@@ -1,0 +1,355 @@
+/* ── Sassembly — the public web ───────────────────────────────────────────────
+   One stylesheet for the whole set.
+
+   LIGHT IS THE DEFAULT, deliberately: `:root` is the light palette and there is
+   no `prefers-color-scheme` switch, so a visitor on a dark OS still lands on
+   light. Dark is opt-in through the toggle, which stamps
+   `data-theme="dark"` on the root element and remembers the choice.
+
+   The identity is taken from the subject rather than applied to it: warm ink on
+   a near-white leaf, madder red used the way a manuscript uses rubrication —
+   section marks and structure, never decoration — and `॥` as the structural
+   glyph. Type: Tiro Devanagari Sanskrit for .t1 source (a face actually cut for
+   Sanskrit), Spectral for display and prose, IBM Plex Mono for octets.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* light — the default */
+  --ground:   #FBF8F3;
+  --surface:  #FFFFFF;
+  --sunk:     #F3EDE3;
+  --ink:      #16140F;
+  --ink-2:    #45403A;
+  --ink-3:    #6A6459;   /* 4.9:1 on --ground */
+  --rule:     #E6DDCE;
+  --rule-2:   #D3C7B2;
+  --madder:   #A8351C;
+  --madder-d: #7C2413;
+  --madder-w: #FDF0EB;   /* wash */
+  --teal:     #0F5A54;
+  --code-bg:  #1A1814;
+  --code-fg:  #F4EFE5;
+  --code-dim: #A79C8B;
+
+  --shadow-1: 0 1px 2px rgba(22, 20, 15, .04), 0 1px 1px rgba(22, 20, 15, .03);
+  --shadow-2: 0 4px 14px rgba(22, 20, 15, .07), 0 1px 3px rgba(22, 20, 15, .05);
+  --shadow-3: 0 18px 44px rgba(22, 20, 15, .10);
+
+  --deva: 'Tiro Devanagari Sanskrit', 'Noto Serif Devanagari', 'Adobe Devanagari', serif;
+  --disp: 'Spectral', Georgia, 'Times New Roman', serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --gutter: 80px;
+  --measure: 33em;
+  --r: 6px;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+}
+
+:root[data-theme="dark"] {
+  --ground:   #121110;
+  --surface:  #1C1A17;
+  --sunk:     #0C0B0A;
+  --ink:      #F2EDE3;
+  --ink-2:    #D2C9B9;
+  --ink-3:    #A29886;
+  --rule:     #2E2A25;
+  --rule-2:   #423C34;
+  --madder:   #E8917B;
+  --madder-d: #F5B4A2;
+  --madder-w: #241713;
+  --teal:     #6FB5AD;
+  --code-bg:  #0C0B0A;
+  --code-fg:  #F2EDE3;
+  --code-dim: #877C6D;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, .40);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, .46);
+  --shadow-3: 0 18px 44px rgba(0, 0, 0, .55);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--disp);
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a { color: var(--madder); text-decoration: none; transition: color .16s var(--ease); }
+a:hover { color: var(--madder-d); }
+a:focus-visible, button:focus-visible, input:focus-visible,
+textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--madder); outline-offset: 3px; border-radius: 2px;
+}
+
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(36px, 5.4vw, 66px); line-height: 1.02; font-weight: 700; letter-spacing: -0.032em; }
+h2 { font-size: clamp(26px, 3vw, 36px); font-weight: 700; letter-spacing: -0.026em; }
+h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.012em; }
+p  { margin: 0; }
+
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: var(--gutter); }
+@media (max-width: 860px) { :root { --gutter: 18px; } body { font-size: 16px; } }
+
+/* ── masthead ─────────────────────────────────────────────────────────────── */
+.masthead {
+  position: sticky; top: 0; z-index: 40;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--ground) 84%, transparent);
+  backdrop-filter: saturate(1.6) blur(12px);
+  -webkit-backdrop-filter: saturate(1.6) blur(12px);
+}
+.masthead__in { display: flex; align-items: center; gap: 26px; min-height: 70px; flex-wrap: wrap; padding-block: 10px; }
+.brand { display: flex; align-items: baseline; gap: 10px; color: var(--ink); }
+.brand__deva { font-family: var(--deva); font-size: 24px; line-height: 1; }
+.brand__latin { font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.mark { color: var(--rule-2); font-size: 17px; }
+.nav { display: flex; gap: 22px; flex-grow: 1; flex-wrap: wrap; font-size: 15px; }
+.nav a { color: var(--ink-2); padding-block: 4px; border-bottom: 2px solid transparent; }
+.nav a:hover { color: var(--ink); border-bottom-color: var(--rule-2); }
+.nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--madder); }
+
+/* theme toggle */
+.themetoggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; padding: 0;
+  background: transparent; color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--r);
+  cursor: pointer; transition: background .16s var(--ease), color .16s var(--ease), border-color .16s var(--ease);
+}
+.themetoggle:hover { background: var(--sunk); color: var(--ink); border-color: var(--rule-2); }
+.themetoggle svg { width: 17px; height: 17px; display: block; }
+.themetoggle .i-sun { display: none; }
+.themetoggle .i-moon { display: block; }
+:root[data-theme="dark"] .themetoggle .i-sun { display: block; }
+:root[data-theme="dark"] .themetoggle .i-moon { display: none; }
+
+/* ── buttons ──────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 11px 24px; border-radius: var(--r);
+  font-family: var(--disp); font-size: 16px; font-weight: 600; letter-spacing: -0.01em;
+  border: 1px solid var(--rule-2); background: var(--surface); color: var(--ink);
+  cursor: pointer; box-shadow: var(--shadow-1);
+  transition: transform .16s var(--ease), box-shadow .18s var(--ease), background .16s var(--ease), border-color .16s var(--ease);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-2); border-color: var(--ink-3); }
+.btn:active { transform: translateY(0); box-shadow: var(--shadow-1); }
+.btn--solid { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+.btn--solid:hover { background: var(--ink-2); border-color: var(--ink-2); color: var(--ground); }
+.btn--sm { min-height: 40px; padding: 8px 16px; font-size: 14.5px; }
+
+/* ── eyebrow, sections ────────────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--madder);
+}
+.section { padding-block: 84px; }
+.section--tight { padding-block: 44px; }
+.section__head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 32px; }
+.section__note { font-size: 16px; color: var(--ink-3); }
+.lede { font-size: 20.5px; line-height: 1.56; color: var(--ink-2); max-width: var(--measure); }
+
+/* ── grids and cards ──────────────────────────────────────────────────────── */
+.grid { display: grid; gap: 20px; }
+.grid--3 { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.grid--2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.card {
+  padding: 26px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: var(--r);
+  box-shadow: var(--shadow-1);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform .2s var(--ease), box-shadow .22s var(--ease), border-color .2s var(--ease);
+}
+.card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--rule-2); }
+.card p { font-size: 15.5px; line-height: 1.58; color: var(--ink-2); }
+.card--teal { background: var(--teal); border-color: var(--teal); }
+.card--teal h3 { color: #F4EFE5; }
+.card--teal p { color: #D2E6E3; }
+.pillar { border-top: 2px solid var(--madder); padding-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+.pillar p { font-size: 16px; line-height: 1.62; color: var(--ink-2); }
+
+/* ── code ─────────────────────────────────────────────────────────────────── */
+.pane {
+  border: 1px solid var(--rule); border-radius: var(--r); overflow: hidden;
+  box-shadow: var(--shadow-2); background: var(--surface);
+}
+.pane__bar {
+  display: flex; justify-content: space-between; gap: 16px; align-items: center;
+  padding: 11px 16px; background: var(--code-bg); color: var(--code-dim);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.11em; text-transform: uppercase;
+}
+.pane__bar .deva { font-family: var(--deva); font-size: 14.5px; letter-spacing: 0; text-transform: none; color: var(--code-fg); }
+pre { margin: 0; overflow-x: auto; }
+.code-deva {
+  padding: 22px 20px; background: var(--code-bg); color: var(--code-fg);
+  font-family: var(--deva); font-size: 16px; line-height: 1.9;
+}
+.code-mono {
+  padding: 20px; background: var(--surface); color: var(--ink);
+  font-family: var(--mono); font-size: 13px; line-height: 1.82;
+}
+.code-mono--dark { background: var(--code-bg); color: var(--code-fg); }
+code.inline {
+  font-family: var(--mono); font-size: 0.86em;
+  background: var(--sunk); padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--rule);
+}
+code.inline-deva {
+  font-family: var(--deva); font-size: 1.02em;
+  background: var(--sunk); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--rule);
+}
+
+/* ── colophon ─────────────────────────────────────────────────────────────── */
+.colophon {
+  background: var(--code-bg); color: #F4EFE5; border-radius: calc(var(--r) + 2px);
+  padding: 44px 48px; display: flex; gap: 60px; flex-wrap: wrap;
+  box-shadow: var(--shadow-3);
+}
+.colophon__lead { flex: 1 1 280px; display: flex; flex-direction: column; gap: 11px; }
+.colophon__lead .eyebrow { color: #D9917B; }
+.colophon__lead h2 { font-size: 29px; font-weight: 600; }
+.colophon__lead p { font-size: 15.5px; color: var(--code-dim); }
+.colophon__figs { flex: 2 1 420px; display: grid; grid-template-columns: repeat(auto-fit, minmax(195px, 1fr)); gap: 28px 44px; }
+.fig { display: flex; flex-direction: column; gap: 6px; }
+.fig__n { font-family: var(--mono); font-size: 31px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.fig__l { font-size: 14px; line-height: 1.5; color: var(--code-dim); }
+
+/* ── tables ───────────────────────────────────────────────────────────────── */
+.tablewrap {
+  overflow-x: auto; border: 1px solid var(--rule); border-radius: var(--r);
+  background: var(--surface); box-shadow: var(--shadow-1);
+}
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+caption { text-align: left; padding: 15px 20px; font-size: 14px; color: var(--ink-3); border-bottom: 1px solid var(--rule); }
+th, td { text-align: left; padding: 12px 20px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-size: 11.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; font-family: var(--mono); }
+tbody tr { transition: background .14s var(--ease); }
+tbody tr:hover { background: var(--sunk); }
+tbody tr:last-child td { border-bottom: 0; }
+td.deva { font-family: var(--deva); font-size: 17px; white-space: nowrap; }
+td.mono, th.mono { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+/* ── docs layout ──────────────────────────────────────────────────────────── */
+.docs { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 60px; padding-block: 60px; align-items: start; }
+@media (max-width: 940px) { .docs { grid-template-columns: minmax(0, 1fr); gap: 30px; } .sidenav { position: static; } }
+.sidenav { position: sticky; top: 94px; display: flex; flex-direction: column; gap: 24px; font-size: 15px; }
+.sidenav__group { display: flex; flex-direction: column; gap: 8px; }
+.sidenav__title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); }
+.sidenav a { color: var(--ink-2); padding-left: 11px; border-left: 2px solid var(--rule); }
+.sidenav a:hover { color: var(--ink); border-left-color: var(--rule-2); }
+.sidenav a[aria-current="page"] { color: var(--madder); font-weight: 600; border-left-color: var(--madder); }
+.prose { display: flex; flex-direction: column; gap: 24px; max-width: 42em; }
+.prose p, .prose li { color: var(--ink-2); }
+.prose h2 { margin-top: 20px; }
+.prose ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 9px; }
+.callout {
+  border-left: 3px solid var(--madder); background: var(--madder-w);
+  padding: 18px 22px; border-radius: 0 var(--r) var(--r) 0;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.callout p { color: var(--ink-2); }
+.callout strong { color: var(--ink); }
+
+/* ── playground ───────────────────────────────────────────────────────────── */
+.pg { display: grid; grid-template-columns: repeat(auto-fit, minmax(430px, 1fr)); gap: 20px; padding-block: 28px; }
+.pg__editor {
+  width: 100%; min-height: 392px; resize: vertical; border: 0; display: block;
+  padding: 22px 20px; background: var(--code-bg); color: var(--code-fg);
+  font-family: var(--deva); font-size: 16px; line-height: 1.9;
+}
+.stages { display: flex; align-items: center; flex-wrap: wrap; font-family: var(--mono); font-size: 11.5px; box-shadow: var(--shadow-1); border-radius: var(--r); overflow: hidden; }
+.stage { padding: 8px 15px; border: 1px solid var(--rule); border-right: 0; background: var(--surface); color: var(--ink-3); }
+.stage:last-child { border-right: 1px solid var(--rule); }
+.stage--done { background: var(--teal); border-color: var(--teal); color: #F4EFE5; }
+.tabs { display: flex; }
+.tab {
+  padding: 10px 17px; border: 1px solid var(--rule); border-bottom: 0; background: var(--sunk);
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); cursor: pointer;
+  border-radius: var(--r) var(--r) 0 0; margin-right: 3px;
+  transition: background .16s var(--ease), color .16s var(--ease);
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--surface); margin-bottom: -1px; }
+.panel { border: 1px solid var(--rule); border-radius: 0 var(--r) var(--r) var(--r); background: var(--surface); box-shadow: var(--shadow-1); flex-grow: 1; }
+
+/* ── downloads ────────────────────────────────────────────────────────────── */
+.dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(265px, 1fr)); gap: 20px; }
+.dl__card {
+  padding: 24px; border: 1px solid var(--rule); border-radius: var(--r); background: var(--surface);
+  box-shadow: var(--shadow-1); display: flex; flex-direction: column; gap: 13px; align-items: flex-start;
+  transition: transform .2s var(--ease), box-shadow .22s var(--ease), border-color .2s var(--ease);
+}
+.dl__card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); border-color: var(--rule-2); }
+.dl__plat { font-size: 19px; font-weight: 600; letter-spacing: -0.012em; }
+.dl__meta { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.hash { font-family: var(--mono); font-size: 11.5px; word-break: break-all; color: var(--ink-3); }
+
+/* ── footer ───────────────────────────────────────────────────────────────── */
+.foot { border-top: 1px solid var(--rule); margin-top: 64px; background: var(--sunk); }
+.foot__in { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; padding-block: 36px; font-size: 14px; color: var(--ink-3); }
+.foot__deva { font-family: var(--deva); font-size: 17px; color: var(--ink); }
+.foot a { color: var(--ink-2); }
+.foot a:hover { color: var(--ink); }
+.foot__spacer { flex-grow: 1; min-width: 0; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+
+/* ── Language ─────────────────────────────────────────────────────────────── */
+/* SANSKRIT IS THE DEFAULT and the markup is written in it. Devanagari serves
+   Sanskrit and Hindi but not identically — the two differ in conjunct formation
+   and in the preferred shapes of ल and क्ष — so Tiro has separate cuts and we
+   select between them on html[lang]. Latin prose gets Spectral; the Devanagari
+   faces have no Latin of their own worth using, so the stacks are ordered to
+   let each script fall to the face designed for it. */
+
+html[lang="sa"] body,
+html[lang="hi"] body {
+  font-size: 17.5px;
+  line-height: 1.78;          /* Devanagari needs the extra leading */
+}
+html[lang="sa"] body { font-family: 'Tiro Devanagari Sanskrit', 'Noto Serif Devanagari', serif; }
+html[lang="hi"] body { font-family: 'Tiro Devanagari Hindi', 'Noto Serif Devanagari', serif; }
+
+/* Devanagari has no case, so uppercase tracking is meaningless and letter-spacing
+   damages conjuncts. Turn both off where the Latin design used them. */
+html[lang="sa"] .eyebrow, html[lang="hi"] .eyebrow,
+html[lang="sa"] th,        html[lang="hi"] th,
+html[lang="sa"] .pane__bar, html[lang="hi"] .pane__bar,
+html[lang="sa"] .sidenav__title, html[lang="hi"] .sidenav__title {
+  text-transform: none; letter-spacing: 0.02em;
+}
+html[lang="sa"] .eyebrow, html[lang="hi"] .eyebrow,
+html[lang="sa"] .sidenav__title, html[lang="hi"] .sidenav__title { font-family: inherit; font-size: 13.5px; }
+html[lang="sa"] th, html[lang="hi"] th { font-family: inherit; font-size: 14px; }
+
+/* headings: Devanagari carries less weight contrast, so ease the negative
+   tracking that suits Spectral and let the line breathe */
+html[lang="sa"] h1, html[lang="hi"] h1 { letter-spacing: -0.005em; line-height: 1.24; font-size: clamp(30px, 4.4vw, 52px); }
+html[lang="sa"] h2, html[lang="hi"] h2 { letter-spacing: 0; line-height: 1.3; }
+html[lang="sa"] h3, html[lang="hi"] h3 { letter-spacing: 0; }
+html[lang="sa"] .lede, html[lang="hi"] .lede { font-size: 19.5px; line-height: 1.75; max-width: 36em; }
+html[lang="sa"] .fig__n, html[lang="hi"] .fig__n { font-family: var(--mono); }
+
+.langpick, .select {
+  min-height: 40px; padding: 8px 12px; border-radius: var(--r);
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--rule); font-family: inherit; font-size: 14.5px;
+  cursor: pointer; transition: border-color .16s var(--ease), background .16s var(--ease);
+}
+.langpick:hover, .select:hover { border-color: var(--rule-2); background: var(--sunk); }
