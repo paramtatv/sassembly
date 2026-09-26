@@ -2,14 +2,17 @@
   <img src="assets/banner.png" alt="संस्कृतयन्त्रम् · Sassembly — a grammar-based instruction set. Stage 2 == Stage 1, 1,393,602 octets, byte for byte." width="100%">
 </p>
 
+<p align="center">
+  <a href="https://discord.gg/XvYvXR8HAh"><img src="assets/btn-discord.png" alt="Join the study group on Discord · अध्ययनसङ्घः" width="344"></a>
+</p>
+
 # Sassembly
 
 **A compiler that compiles itself, written in a language with no English in it,
 targeting bare-metal RISC-V.**
 
 <https://github.com/paramtatv/sassembly> · docs and playground:
-<https://paramtatv.github.io/sassembly/> · study group:
-[Discord](https://discord.gg/XvYvXR8HAh)
+<https://paramtatv.github.io/sassembly/>
 
 Sassembly is an instruction set architecture and a systems language whose
 keywords are Sanskrit words and whose operand roles are marked by **kāraka
