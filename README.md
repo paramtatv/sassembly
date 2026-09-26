@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="संस्कृतयन्त्रम् · Sassembly — a grammar-based instruction set. Stage 2 == Stage 1, 1,393,602 octets, byte for byte." width="100%">
+</p>
+
 # Sassembly
 
 **A compiler that compiles itself, written in a language with no English in it,
