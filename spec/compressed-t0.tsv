@@ -1,0 +1,57 @@
+# Compressed instructions — DERIVED, do not edit.
+#
+# Produced by tools/gen-compressed.py. We choose the instruction and
+# riscv64-elf-as chooses the bytes, so agreement is evidence.
+#
+# Columns: assembly, halfword
+assembly	halfword
+c.addi s0, 1	0x0405
+c.addi s0, -1	0x147d
+c.addi a5, 31	0x07fd
+c.addi ra, -32	0x1081
+c.addiw s0, 1	0x2405
+c.addiw a5, -16	0x37c1
+c.addi16sp sp, 32	0x6105
+c.addi16sp sp, -512	0x7101
+c.addi4spn s0, sp, 4	0x0040
+c.addi4spn a5, sp, 1020	0x1ffc
+c.li s0, 5	0x4415
+c.li a5, -16	0x57c1
+c.lui s0, 1	0x6405
+c.lui a5, 31	0x67fd
+c.mv s0, s1	0x8426
+c.add s0, s1	0x9426
+c.sub s0, s1	0x8c05
+c.subw s0, s1	0x9c05
+c.and s0, s1	0x8c65
+c.or s0, s1	0x8c45
+c.xor s0, s1	0x8c25
+c.addw s0, s1	0x9c25
+c.andi s0, 5	0x8815
+c.andi a3, -16	0x9ac1
+c.slli s0, 1	0x0406
+c.slli a5, 63	0x17fe
+c.srli s0, 1	0x8005
+c.srai s0, 63	0x947d
+c.lw s0, 0(s1)	0x4080
+c.lw a5, 124(a3)	0x5efc
+c.ld s0, 0(s1)	0x6080
+c.ld a5, 248(a3)	0x7efc
+c.sw s0, 0(s1)	0xc080
+c.sd s0, 8(s1)	0xe480
+c.lwsp s0, 0(sp)	0x4402
+c.ldsp s0, 8(sp)	0x6422
+c.swsp s0, 0(sp)	0xc022
+c.sdsp s0, 8(sp)	0xe422
+c.fld fs0, 0(s1)	0x2080
+c.fsd fs0, 8(s1)	0xa480
+c.fldsp fs0, 0(sp)	0x2402
+c.fsdsp fs0, 8(sp)	0xa422
+c.j .+8	0xa021
+c.j .-8	0xbfe5
+c.jr s0	0x8402
+c.jalr s0	0x9402
+c.beqz s0, .+8	0xc401
+c.bnez s0, .-8	0xfc65
+c.nop	0x0001
+c.ebreak	0x9002

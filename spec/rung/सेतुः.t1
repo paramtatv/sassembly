@@ -1,0 +1,155 @@
+मण्डलम् सेतुः ॥   ॰ setuh — THE CALLER HALF: one cross-module call, and nothing else
+
+॰ THE ANSWER IS ४२. `पारम्ॱद्विगुणय २१` — and the call across the module
+॰ boundary is the only thing in this file's BODY that `निजम्.t1` beside it does
+॰ not do. It is not the only thing in the FILE: this module also carries
+॰ `आयातः पारम् ।`, which `निजम्.t1` has no need of and which — see ANSWERED
+॰ 2026-09-21 below — is the line whose absence made the first four runs refuse.
+॰
+॰ WHAT THIS PAIR IS FOR. `W-279`'s ladder has answered five constructs natively
+॰ — a constant, a CALL, a BRANCH, a LOOP and RECURSION (rung 100, status १०१७६,
+॰ 1990 trace records byte-identical). Every one of those five reads
+॰ `0 cross-module`, and the corpus places 1,105 cross-module calls. The compiled
+॰ emitter has never once been asked for one, and no existing `spec/demo/` source
+॰ can supply it, because a cross-module call needs a second module. This is that
+॰ second module.
+॰
+॰ MEASURED 2026-09-21, AND THE RUNG CANNOT YET BE WRITTEN — FOUR RUNS, TWO OF
+॰ THEM CONTROLS, AND THE CONTROLS ARE WHAT MAKE IT A FINDING RATHER THAN A
+॰ COMPLAINT. All on tree `8c444afa`, release, via `tools/t1-image.sh
+॰ --compiler crates/sadhana-t1/src` and `t1_boot`:
+॰
+॰   1  THE PAIR        --entry सेतुः मुख्य  पारम्.t1 सेतुः.t1
+॰                      -> build: 1 source(s) failed to compile (सेतुः),
+॰                         2 object(s) linked;  STOPPED AT link: empty image
+॰   2  ORDER CONTROL   the same two sources with the CALLER listed FIRST
+॰                      -> identical, to the interpreter step. Not an ordering
+॰                         fault in `मण्डलानिप्रतिबिम्बम्`'s collect-then-compile.
+॰   3  CALL CONTROL    `निजम्.t1` beside the same callee — the identical
+॰                      arithmetic written INLINE, no cross-module call
+॰                      -> build: 0 source(s) failed, 3 object(s) linked, and
+॰                         `yantra-run` on the image halts with status ४२.
+॰                         So the cross-module call is the only difference.
+॰   4  CALLER CONTROL  `t1_boot --object` on `crates/sadhana-t1/src/utsarjana.t1`
+॰                      — a CORPUS module that makes cross-module calls, through
+॰                      the SAME path
+॰                      -> object: उत्सर्जन text 454891 object 86552 records true
+॰                         So a cross-module call is NOT broken in general.
+॰
+॰ THE STEP COUNTS ARE IN THE CYCLE LOG AND NOT IN THIS MARGIN, ON PURPOSE. The
+॰ interpreter lexes this file, so quoting a step count HERE changes it — the
+॰ first draft of this margin read 40,912,065 and the committed text measures
+॰ 41,235,201 for the same build. A figure that its own statement moves is not a
+॰ figure. `.loop/log/2026-09.tsv` carries both, against the tree that produced
+॰ them.
+॰
+॰ WHERE IT STOPS, BY THE PRODUCT'S OWN CODE AND NOT BY INFERENCE. `t1_boot
+॰ --object` on a caller outside the collected corpus, calling a REAL corpus
+॰ routine (`अष्टकॱमुद्रणम् ६५`), dumps `सङ्कलनविरामभेद = Int(2)` =
+॰ `सङ्कलनानिर्णयभेद` (`shrinkhala.t1:125`): **`अर्थ` refused it** — resolve or
+॰ typecheck, NOT the emitter and NOT the assembler. Beside it in the same dump:
+॰ `सञ्चयसिद्धमस्ति = true`, `निर्णायकसिद्धः = true`, `असङ्गृहीतमण्डलसंख्या = 0`,
+॰ `असदस्यमस्ति = false` — the registry reports itself full and names no missing
+॰ member, and the stage refuses anyway. The Rust-hosted chain says the same in
+॰ words, with the store NOT pre-filled: `tools/demo.sh spec/rung/सेतुः.t1`
+॰ reports `3 RESOLVE REFUSED — `पारम्ॱद्विगुणय` has no declaration`,
+॰ having lexed 14 tokens and parsed 1 routine.
+॰
+॰ ANSWERED 2026-09-21, AND THE CAUSE IS IN THIS FILE AND NOT IN `अर्थ`. The
+॰ four runs above are all explained by ONE missing line: this module named
+॰ `पारम्` and never imported it. `अर्थ`'s qualified-name arm (`artha.t1:2944`)
+॰ says in its own margin what it checks — *"WHAT IS CHECKED IS THE IMPORT, NOT
+॰ THE MARK ... `आयातः` is a declaration now, so the MODULE half is looked up
+॰ exactly like any other name"* — and that lookup is `नामनिर्णयः`, which walks
+॰ the CALLER'S SCOPE STACK (`निर्णायकः ॱ परिसराः`). Only an `आयातः` declaration
+॰ puts a module name on that stack. So `घोषणासञ्चय` reading itself full
+॰ (`सञ्चयसिद्धमस्ति = true`, `असङ्गृहीतमण्डलसंख्या = 0`) was never relevant to
+॰ this lookup: the registry and the scope stack are two different stores, and
+॰ the resolver's module half consults only the second BY DESIGN.
+॰
+॰ THAT IS ALSO WHY RUN 4 IS NOT THE COUNTEREXAMPLE IT LOOKED LIKE.
+॰ `utsarjana.t1` carries `आयातः मध्यरूप ।` at its line 158; `सेतुः.t1` carried
+॰ no `आयातः` at all. The difference between the two callers was never
+॰ collection or registry membership — both were collected — it was the import
+॰ line, which is exactly the first property the previous cycle's item 2 named
+॰ as the cheapest cut.
+॰
+॰ MEASURED BOTH WAYS, ON TREE `205816cc`, BEFORE AND AFTER THE ONE-LINE ADD:
+॰
+॰   RUST TWIN   `tools/demo.sh` on this file
+॰               before -> `3 RESOLVE REFUSED — `पारम्ॱद्विगुणय` at line 74 has
+॰                          no declaration`, 14 tokens, 1 declaration
+॰               after  -> `3 RESOLVE ok`, `4 TYPECHECK ok`, 17 tokens,
+॰               2 declarations, 1 routine / 2 blocks / 2 instructions / 1 call,
+॰                          20 lines of T0, TWINS AGREE at 1552 octets
+॰   PRODUCT     `t1_boot --object` with `T1_BOOT_COLLECT=spec/rung/पारम्.t1`
+॰   `.t1` CHAIN before -> `सङ्कलनविरामभेद = Int(2)`, `निर्णयविरामभेद = Int(1)`
+॰                          = RESOLVE, and `no text for सेतुः`
+॰               after  -> `object: सेतुः text 1537 object 1008 records false`
+॰
+॰ `records false` IS NOT A SECOND DEFECT, and it is stated here so the next
+॰ cycle does not chase it: the INLINE control `निजम्.t1`, which links and halts
+॰ ४२, also reports `records false` through the same path. `records true` on
+॰ `उत्सर्जन` is that module's size, not its cross-module calls.
+॰
+॰ ASKED OF THE MACHINE 2026-09-21T16:22Z, ON TREE `2d116943`, AND THE ANSWER IS
+॰ ४२. The pair links and runs end to end; the ladder's native column is no
+॰ longer five constructs at `0 cross-module`. Four runs, release, and the last
+॰ two are the controls that make it a measurement:
+॰
+॰   a  CALLEE ALONE     `t1_boot --object` on `पारम्.t1`
+॰                       -> `object: पारम् text 1877 object 960 records false`.
+॰                          The callee compiles through the same path; nothing
+॰                          had ever asked.
+॰   b  THE PAIR         `t1-image.sh --compiler crates/sadhana-t1/src
+॰                        --entry सेतुः मुख्य  पारम्.t1 सेतुः.t1`
+॰                       -> `0 source(s) failed to compile, 3 object(s) linked`,
+॰                          45,368,677 steps, 65,832 octets of ELF. This is run 1
+॰                          above RE-RUN with the import present, and it reads
+॰                          exactly what run 3's inline control read.
+॰   c  NATIVE RUN       `yantra-run` on that image
+॰                       -> `halt: Finisher { value: 2765619, status: Some(42) }`
+॰   d  INLINE CONTROL   `निजम्.t1` built and run the same way
+॰                       -> 2 objects, 42,531,668 steps, 65,776 octets, and
+॰                          `Finisher { value: 2765619, status: Some(42) }` —
+॰                          THE IDENTICAL FINISHER WORD, not merely the same
+॰                          status. The cross-module call and the inline
+॰                          arithmetic are indistinguishable at the halt.
+॰   e  NEGATIVE CONTROL the caller built ALONE, callee object withheld
+॰                       -> `0 failed to compile, 2 object(s) linked`, then
+॰                          `STOPPED AT link: the product returned an empty
+॰                          image` with `link refusals` naming this module's
+॰                          own text. So the callee's object is LOAD-BEARING:
+॰                          run c did not reach ४२ by computing it here.
+॰
+॰ AND THE SYMBOL QUESTION THE PREVIOUS CYCLE LEFT OPEN IS CLOSED, FOR PENNIES,
+॰ BEFORE ANY IMAGE WAS BUILT. It asked whether the emitter writes a callee
+॰ target carrying the CALLER's module prefix — `tools/demo.sh` had reported
+॰ `1 call (0 cross-module)` and a target spelled `सेतुःसंज्ञा२०००००१य्`. It does
+॰ not. `T1_BOOT_TEXT` on both halves of the pair, on this tree:
+॰   this file emits  `लङ्घनम् पुनःस्थानम्म् पारम्द्विगुणयय् ।`
+॰   `पारम्.t1` emits `॥ वैश्विकम् पारम्द्विगुणय ॥`
+॰ — the callee's own exported global, spelled the same, no caller prefix. The
+॰ `ॱ` of `पारम्ॱद्विगुणय` is flattened away on both sides, which is why they
+॰ meet. That dump costs one `--object` run and answers what an image answers.
+॰
+॰ WHAT IS STILL NOT DONE, SAID PLAINLY. No RUNG 101 was written: a rung pairs an
+॰ INTERPRETED prediction with a NATIVE status, and `t1_image` prints
+॰ `predict: interpreted सेतुःॱमुख्य refused: no routine named … is loaded` for
+॰ both halves of the pair AND for the `निजम्` control — `--compiler` supplies
+॰ the loader's sources and `spec/rung/` is not among them, so the interpreted
+॰ side of this pair has never been run and there is no prediction to embed yet.
+॰ That is the next unit and it is a `त1_image` loader question, not a compiler
+॰ one. The member `द्विगुणय` also remains taken on trust at resolve
+॰ (`artha.t1:2946`); the LINKER is what refused it in run e, not `अर्थ`.
+
+॰ THE ONE LINE THE FOUR RUNS ABOVE WERE MISSING. `पारम्ॱद्विगुणय` names a
+॰ module, and `अर्थ` resolves the MODULE half against this file's own scope —
+॰ so without this declaration the name has none, exactly as the Rust twin
+॰ said in words. The member `द्विगुणय` is still taken on trust; that gap is
+॰ `अर्थ`'s, is documented at `artha.t1:2946`, and is not this file's.
+आयातः पारम् ।
+
+सार्वजनिक वृत्तिः मुख्य ददाति न६४ आदि
+    प्रत्यागमनम् पारम्ॱद्विगुणय २१ ।
+इति

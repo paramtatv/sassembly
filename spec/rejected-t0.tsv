@@ -1,0 +1,41 @@
+# Programs that must NOT assemble — task B-044.
+#
+# AUTHORED, not generated, and the expectations here are OURS. Every other
+# corpus in this directory compares against riscv64-elf-as, which cannot help
+# with rejection: an assembler that refuses a program tells you nothing about
+# what OUR diagnostic should say, and GNU as has no opinion on a kāraka sigil.
+#
+# So this file is a different kind of check. It does not ask "are the bytes
+# right" but "does the wrong program fail, and does it fail legibly". Both
+# halves matter. Every defect found in this assembler so far — the conjunct
+# sigil, the shift-immediate opcodes, every load assembling as `lb` — produced
+# a VALID instruction that nobody asked for, which is the failure mode a
+# byte-comparison corpus catches only where it happens to look.
+#
+# Columns: sassembly, a fragment the message must contain, why it is wrong.
+sassembly	expect	why
+निधानम् क्षणिक०न स्तूपसूचकःए ८न ।	E14	B-044: silently encoded a store of register 7 — t0 (5) OR sp (2)
+आहारः क्षणिक०म् स्तूपसूचकःए ८न ।	E14	the same sigil that corrupts a store happened to work here; both are rejected
+योगः अर्थ०म् अर्थ१म् अर्थ२न ।	P05	two destinations — the parser catches this one before the encoder does
+निधानम् क्षणिक०न क्षणिक१न ८न ।	E16	two values and no address to store them to
+योगः अर्थ०म् अर्थ१न ५०००न ।	E17	5000 does not fit the 12 bits addi gives it
+योगः अर्थ०म् ।	E04	a verb with one argument where three are needed
+योगः अर्थ०म् अर्थ१न अर्थ२न	P02	the sentence never ends
+अज्ञातः अर्थ०म् अर्थ१न अर्थ२न ।	P03	R-02-1: an instruction absent from the registry cannot be written
+अज्ञातम् अर्थ०म् अर्थ१न अर्थ२न ।	P09	a name ending in म् is read as an operand, not a verb (ADR-0004)
+योगः अर्थ० अर्थ१न अर्थ२न ।	P10	an operand with no case marking has no role
+योगःॱअ१२८ अर्थ०म् अर्थ१न अर्थ२न ।	व्याप्ति	128 is not a width the ISA has
+व्यत्ययः अर्थ०म् अर्थ१न ।	E01	a pseudo-instruction is named but has no encoding of its own
+भिन्नरूपान्तरम्ॱअ३२ अर्थ०म् भिन्न१न ।	E10	B-075: a conversion names what it writes AND what it reads; one type leaves eighteen encodings fitting and file order choosing
+भिन्नरूपान्तरम्ॱअ३२ॱभ१६ अर्थ०म् भिन्न१न ।	E10	B-075: there is no 16-bit float to convert from, and a pair that does not exist must not fall back to one that does
+योगःॱअ३२ॱभ६४ अर्थ०म् अर्थ१न अर्थ२न ।	E04	B-075: only a conversion reads one type and writes another
+॥ अष्टकाः उक्तम् क इति इति ॥	इति	B-067: a doubled इति is the word itself, so nothing closes this string
+॥ अष्टकाः उक्तम् क इति ख ॥	इति	B-067: content after the closing इति would assemble as `क`, which is not what the program says
+योगःॱभ३२ अर्थ०म् अर्थ१न अर्थ२न ।	E03	B-077: भ names a float and योगः adds integers; the letter was validated and discarded, so this assembled as addw
+भिन्नयोगःॱअ३२ भिन्न०म् भिन्न१न भिन्न२न ।	E09	B-077: the corpus wrote every float family with the integer type that happens to share its width
+वैश्विकम् मुख्यम् ॥	P24	ADR-0012: this assembled for 150 cycles, and the claim that a directive is tellable from an instruction without knowing the names was false while it did
+॥	P25	a lone ॥ was silently an empty statement; a mark that assembles to nothing is how a typo becomes a program that says nothing
+॥ ॥	P26	an opened and closed directive that names nothing
+कॱॱ ॥ कोष्ठकम् ॱदत्त ॥ ॥ चतुरष्टकाः क ॥	P27	ADR-0013: an address is 64 bits, and four bytes would keep the low half and discard the rest
+सचिह्नदक्षिणसरणम्ॱन६४ अर्थ०म् अर्थ१न अर्थ२न ।	E20	ADR-0014: sra shifts an i64, so calling its operands unsigned contradicts the name ADR-0006 gave it
+अचिह्नाहारःॱअ३२ अर्थ०म् स्तूपसूचकःत् ०न ।	E21	B-101: this assembled to lwu, which zero-extends, while its own type suffix said signed

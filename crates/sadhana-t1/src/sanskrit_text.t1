@@ -1,0 +1,1569 @@
+मण्डलम् अक्षरकोश ॥ ॰ sanskrit_text module
+
+॰ For the TSV row walk व्यञ्जन is built on — पङ्क्तिसीमा , उपेक्ष्यपङ्क्तिः ,
+॰ क्षेत्रसंख्या , क्षेत्रारम्भः and क्षेत्रसीमा . समयोजन ॱ भेदाङ्कः reads
+॰ spec/relocations-riscv64.tsv through the same five (samyojana.t1:501-531),
+॰ so this is the crate's one table reader and not a second one.
+आयातः सङ्केतन ।
+आयातः पदविभाग ।   ॰ the spec-table store: `समावेशपाठः` answers a table by name (2026-09-14)
+
+॰ numeral::is_numeral — validate(token).is_ok(), and the RADIX when it is
+॰ one. सम्भाव्य अ६४ is the declared return and it is the right one: Rust's
+॰ `validate` answers `Result<Radix, NumeralError>` and `is_numeral` throws
+॰ the radix away, so the stub's signature already carries more than the
+॰ predicate did. शून्यम् is absent, as encode.t1's षोडशाङ्कमूल्यम् writes it.
+॰
+॰ IT IS NOT मानदोषः समम् ० AND THAT IS THE POINT. `validate` splits the
+॰ sign and then never looks at it again, so `ऋण१` IS a numeral — while
+॰ मानदोषः answers ३ for it, because a MAGNITUDE has nowhere to put a sign.
+॰ Nor is it अंशदोषः समम् ०: `validate` does no arithmetic at all, so a
+॰ literal too large by any amount is still well-formed writing. Three
+॰ questions, three answers; W-075 is the record of what one reader cost.
+सार्वजनिक वृत्तिः सङ्ख्या आदाय शब्द ॱॱ अङ्कः अन्तः अ८ ददाति सम्भाव्य न६४ आदि
+    चरः सीमा ॱॱ अ६४ भवति शब्द ॱ दैर्घ्य ।
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य शब्द ऽ ० ऽ सीमा समाप्तम् ।
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य शब्द ऽ ० ऽ सीमा समाप्तम् ।
+    ॰ `digits.is_empty()` — a prefix with no digits after it.
+    यदि स्थानम् समम् सीमा आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    यावत् स्थानम् न्यूनम् सीमा आदि
+        यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् सीमा आदि
+            प्रत्यागमनम् शून्यम् ।
+        इति
+        यदि अङ्कमूल्यम् आरभ्य शब्द ऽ स्थानम् ऽ मूलम् समाप्तम् समम् ९९ आदि
+            प्रत्यागमनम् शून्यम् ।
+        इति
+        स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् मूलम् ।
+इति
+
+॰ ══════════════════ हल् — phonology::is_consonant ══════════════════
+॰ THE BLOCKER IS CLEARED. This routine was a stub for one reason: `HAL` is
+॰ `char_set("ह", "ल्")` (phonology.rs:281), derived at compile time from
+॰ spec/shiva-sutras.tsv (phonology.rs:30, `include_str!`), and that file had
+॰ NO NAME in crates/sadhana/src/t1/anita.rs's TABLES, so `समावेशः` could not
+॰ reach it. `("शिवसूत्रकोशः", "shiva-sutras.tsv")` is now anita.rs:197 and
+॰ the derivation below is what the name was for.
+॰
+॰ THE SET IS STILL NOT LISTED HERE, AND THAT IS THE POINT. The 33 consonants
+॰ are not a range — क U+0915 … ह U+0939 also holds ऩ U+0929, ऱ U+0931,
+॰ ळ U+0933 and ऴ U+0934, which हल् does not — so nothing arithmetic answers
+॰ this and a range test would be wrong by four. Writing the 33 out instead
+॰ would be rule F: a second transcription of an AUTHORED table that
+॰ phonology.rs's own `every_anubandha_names_exactly_one_sound` exists to
+॰ check precisely because nothing else can.
+॰
+॰ ── THE RULE, WHICH IS PĀṆINI'S AND NOT THIS FILE'S ── a pratyāhāra is a
+॰ RANGE over the sūtras: start at a phoneme, run forward, stop at a named
+॰ anubandha, and drop the markers passed on the way. हल् starts at ह and
+॰ stops at ल् , which is every consonant there is. ह occurs TWICE — sūtra 5
+॰ and sūtra 14 — and the FIRST is taken, exactly as phonology.rs:81 does;
+॰ starting at the second would yield a set of one.
+॰
+॰ ── WHY ह AND ल् ARE WRITTEN AS OCTETS ── they are the pratyāhāra's NAME,
+॰ the two arguments `char_set` itself takes, and not a copy of the table.
+॰ R-15-1 admits no literal that would spell them, so each is compared octet
+॰ by octet against the code point it is, which is the idiom निदान uses for
+॰ its braces (nidana.t1:84) and पदविभाग ॱ विभज for its kāraka sigils.
+
+॰ whether पाठ्यम्[आदिः..सीमा] is ह — U+0939, UTF-8 २२४ १६४ १८५.
+सार्वजनिक वृत्तिः हकारः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आदिः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य सीमा वियोगः आदिः समाप्तम् असमम् ३ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आदिः अन्तः असमम् २२४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः असमम् १६४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः २ समाप्तम् अन्तः असमम् १८५ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ whether पाठ्यम्[आदिः..सीमा] is ल् — ल U+0932 and the virāma U+094D,
+॰ UTF-8 २२४ १६४ १७८ २२४ १६५ १४१. Six octets and not three: an anubandha
+॰ is written WITH its virāma, which is what tells it from the sound ल .
+सार्वजनिक वृत्तिः लकारचिह्नम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आदिः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य सीमा वियोगः आदिः समाप्तम् असमम् ६ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आदिः अन्तः असमम् २२४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः असमम् १६४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः २ समाप्तम् अन्तः असमम् १७८ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः ३ समाप्तम् अन्तः असमम् २२४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः ४ समाप्तम् अन्तः असमम् १६५ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः ५ समाप्तम् अन्तः असमम् १४१ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ whether the kind field पाठ्यम्[आदिः..सीमा] is the anubandha mark — Rust's
+॰ `f[4] == "it"` (phonology.rs:63). The two octets are १०५ and ११६ , which
+॰ is `it` in ASCII; R-15-1 admits neither as a literal, and the file's own
+॰ header says the last entry of each line is a BOUNDARY SIGN, not a sound.
+सार्वजनिक वृत्तिः इत्संज्ञा आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आदिः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य सीमा वियोगः आदिः समाप्तम् असमम् २ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आदिः अन्तः असमम् १०५ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः असमम् ११६ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ whether अक्षर BEGINS with the phoneme पाठ्यम्[आदिः..सीमा].
+॰
+॰ A PREFIX TEST AND NOT AN EQUALITY, because `is_consonant` asks after the
+॰ FIRST CHAR of the akṣara — `aksara.chars().next()` (phonology.rs:301) —
+॰ and क्ष is three code points whose first is क . Every phoneme of the
+॰ sūtras is one code point, so no phoneme is a prefix of another and
+॰ "begins with some phoneme of हल् " is exactly "first char is in हल् ",
+॰ with no UTF-8 width arithmetic anywhere.
+सार्वजनिक वृत्तिः वर्णोपक्रमः आदाय अक्षर ॱॱ अङ्कः अन्तः अ८ ऽ पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आदिः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    चरः विस्तारः ॱॱ अ६४ भवति आरभ्य सीमा वियोगः आदिः समाप्तम् ।
+
+    ॰ an empty phoneme is no phoneme; a phoneme longer than the akṣara
+    ॰ cannot begin it.
+    यदि विस्तारः समम् ० आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि विस्तारः अधिकम् अक्षर ॱ दैर्घ्य आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः सरणम् ॱॱ अ६४ भवति ० ।
+    यावत् सरणम् न्यूनम् विस्तारः आदि
+        यदि अक्षर अङ्कः सरणम् अन्तः असमम् पाठ्यम् अङ्कः आरभ्य आदिः योगः सरणम् समाप्तम् अन्तः आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सरणम् भवति सरणम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ phonology::is_consonant — whether an akṣara begins with a sound of हल् .
+॰
+॰ THE HEADER ROW NEEDS NO REFUSING, for the reason सङ्केतन ॱ कोष्ठपङ्क्तिः
+॰ gives at encode.t1:1117: उपेक्ष्यपङ्क्तिः has already dropped the `#`
+॰ comments and the blank lines, and the one line left — `line pos
+॰ devanagari iast kind` — carries `devanagari` in field २ and `kind` in
+॰ field ४. `kind` is not the anubandha mark, so the row reads as a phoneme
+॰ whose sound is the word `devanagari`; that word is not ह , so प्रवृत्तम्
+॰ is still असत्यम् when it is passed and the row can decide nothing.
+सार्वजनिक वृत्तिः व्यञ्जन आदाय अक्षर ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् शिवसूत्रकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+    ॰ whether the walk has reached ह — the FIRST one, since this never
+    ॰ goes back to असत्यम् .
+    चरः प्रवृत्तम् ॱॱ बूल भवति असत्यम् ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतनॱपङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतनॱउपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            ॰ line pos devanagari iast kind — five fields, counted from ० .
+            यदि सङ्केतनॱक्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् ४ आदि
+                चरः वर्णादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                चरः वर्णसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                चरः भेदादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ४ ।
+                चरः भेदसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा ४ ।
+                चरः चिह्नम् ॱॱ बूल भवति इत्संज्ञा पाठ्यम् भेदादिः भेदसीमा ।
+
+                यदि प्रवृत्तम् समम् असत्यम् आदि
+                    ॰ the start sound must be a PHONEME — phonology.rs:83's
+                    ॰ `!e.is_marker && e.devanagari == start`. Without that
+                    ॰ the marker ह् , were one ever written, would open the
+                    ॰ range at the wrong row.
+                    यदि चिह्नम् समम् असत्यम् आदि
+                        यदि हकारः पाठ्यम् वर्णादिः वर्णसीमा समम् सत्यम् आदि
+                            प्रवृत्तम् भवति सत्यम् ।
+                        इति
+                    इति
+                इति
+
+                यदि प्रवृत्तम् समम् सत्यम् आदि
+                    यदि चिह्नम् समम् सत्यम् आदि
+                        ॰ ल् CLOSES हल् . Any other anubandha is a boundary
+                        ॰ for some other pratyāhāra and simply not a sound,
+                        ॰ so it is skipped and the range spans the sūtras —
+                        ॰ phonology.rs:91.
+                        यदि लकारचिह्नम् पाठ्यम् वर्णादिः वर्णसीमा समम् सत्यम् आदि
+                            प्रत्यागमनम् असत्यम् ।
+                        इति
+                    इति
+                    अन्यथा आदि
+                        यदि वर्णोपक्रमः अक्षर पाठ्यम् वर्णादिः वर्णसीमा समम् सत्यम् आदि
+                            प्रत्यागमनम् सत्यम् ।
+                        इति
+                    इति
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    ॰ the marker ल् never arrived, so the table is not the one हल् is
+    ॰ defined over — phonology.rs's `pratyahara` answers None here.
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ══════════════════ segment::aksharas — UAX #29 in full ══════════════════
+॰ crates/sanskrit-text/src/segment.rs. The EXTENDED grapheme cluster:
+॰ GB1–GB999, Hangul jamo, regional-indicator parity, InCB conjuncts and the
+॰ ExtPict ZWJ sequence, over GRAPHEME_BREAK (1386 ranges), INCB (473) and
+॰ EXTENDED_PICTOGRAPHIC (156).
+॰
+॰ ── BOTH HALVES OF THE OLD BLOCKER ARE ANSWERED, AND THEY WERE ANSWERED
+॰ DIFFERENTLY ──
+॰
+॰ (1) WAS DATA AND IS SIMPLY GONE. The note here used to say the tables
+॰ "have no spec file at all". They have three, generated by
+॰ tools/gen-grapheme-break.py and tools/gen-incb.py from the SAME pinned
+॰ UCD that crates/sanskrit-text/src/tables.rs is generated from, and
+॰ asserted equal to tables.rs code point by code point by
+॰ crates/sanskrit-text/tests/grapheme_break_spec.rs. anita.rs names all
+॰ three for the embed — अक्षरभेदकोशः , संयोगभेदकोशः , चित्राक्षरकोशः — so
+॰ NOTHING BELOW LISTS A RANGE. Every range this file uses is read out of
+॰ spec/ at load time, which is rule F and is also the only way the port and
+॰ tables.rs can be prevented from drifting.
+॰
+॰ (2) WAS A DECISION, AND ADR-0031 SAYS WHAT A DIVERGENCE COSTS. The
+॰ declared return was `अङ्कः अन्तः अङ्कः अन्तः अ८` — a slice OF slices —
+॰ and the appending idiom (वाक्यविभाग ॱ पाठांशयोजनम् :421) writes a record
+॰ into an arena and answers an INDEX, never a slice it constructed. So the
+॰ return is now a COUNT over a pair of module arenas, and the enumeration
+॰ ADR-0031 requires before a port may diverge is this:
+॰
+॰   * parse.rs:376 collects Vec<&str> and compares a[i-1] != b[j-1] BY
+॰     VALUE. Served by अक्षरसाम्यम् below, which compares two RANGES octet
+॰     by octet — the shape निदान ॱ अक्षरतुल्यम् :529 already ships, here
+॰     generalised so the caller holds the pairs and one arena serves both
+॰     operands.
+॰   * lex.rs:438 collects and hands clusters[last] to Karaka::from_sigil.
+॰     A sigil is compared octet-wise (पदविभाग ॱ विभज does exactly this), so
+॰     a (start, length) into the ORIGINAL slice serves it unchanged.
+॰
+॰ Those are the only two consumers that keep a substring; the rest want a
+॰ boundary or a count. THE PRECEDENT, not that claim, is what licenses
+॰ this: निदान already answers अक्षरविभागः :411 with an octet length,
+॰ अक्षरसंख्या :446 with a count and अक्षरतुल्यम् :529 with an equality over
+॰ ranges, and nothing downstream of those three has ever needed a slice.
+॰ Reusing that shape here beats inventing a second one.
+॰
+॰ ── WHAT निदान KEEPS, AND WHY IT IS NOT DELETED ── nidana.t1 carries the
+॰ DEVANAGARI RESTRICTION, where only GB9/GB9a/GB9c/GB999 can fire and the
+॰ two property lookups are written as code because "inside one Unicode
+॰ block the table is short enough to be the code" (nidana.t1:186). That
+॰ file states its own reason for existing: it keeps निदान free of the
+॰ generated-table dependency THIS routine takes on. The handover is named
+॰ here and left to the row that owns निदान, exactly as the numeral section
+॰ below names वाक्यविभाग's seven and leaves them.
+
+॰ ── the Grapheme_Cluster_Break classes, as they are SPELLED in the table ──
+॰ Zero is Other and is the DEFAULT: a code point in no range of
+॰ spec/grapheme-break.tsv takes it, and the file carries no `Other` row.
+सार्वजनिक चरः अन्यद्भेदः ॱॱ अ६४ भवति ० ।          ॰ Other
+सार्वजनिक चरः नियन्त्रणभेदः ॱॱ अ६४ भवति १ ।       ॰ Control
+सार्वजनिक चरः प्रत्यावर्तनभेदः ॱॱ अ६४ भवति २ ।    ॰ CR
+सार्वजनिक चरः पङ्क्तिपोषणभेदः ॱॱ अ६४ भवति ३ ।     ॰ LF
+सार्वजनिक चरः विस्तारभेदः ॱॱ अ६४ भवति ४ ।         ॰ Extend
+सार्वजनिक चरः अदृश्ययोजकभेदः ॱॱ अ६४ भवति ५ ।      ॰ ZWJ
+सार्वजनिक चरः प्रादेशिकभेदः ॱॱ अ६४ भवति ६ ।       ॰ Regional_Indicator
+सार्वजनिक चरः पूर्वयोगभेदः ॱॱ अ६४ भवति ७ ।        ॰ Prepend
+सार्वजनिक चरः अवकाशचिह्नभेदः ॱॱ अ६४ भवति ८ ।      ॰ SpacingMark
+सार्वजनिक चरः आद्यव्यञ्जनभेदः ॱॱ अ६४ भवति ९ ।     ॰ L
+सार्वजनिक चरः मध्यस्वरभेदः ॱॱ अ६४ भवति १० ।       ॰ V
+सार्वजनिक चरः अन्त्यव्यञ्जनभेदः ॱॱ अ६४ भवति ११ ।  ॰ T
+सार्वजनिक चरः आद्यस्वरभेदः ॱॱ अ६४ भवति १२ ।       ॰ LV
+सार्वजनिक चरः आद्यस्वरान्त्यभेदः ॱॱ अ६४ भवति १३ । ॰ LVT
+
+॰ ── Indic_Conjunct_Break, GB9c's only input. None is not a row here
+॰ either: spec/incb.tsv carries Consonant, Extend and Linker and nothing
+॰ else, so None is the default.
+सार्वजनिक चरः संयोगनास्ति ॱॱ अ६४ भवति ० ।     ॰ Incb::None
+सार्वजनिक चरः संयोगव्यञ्जनम् ॱॱ अ६४ भवति १ ।  ॰ Incb::Consonant
+सार्वजनिक चरः संयोगयोजकः ॱॱ अ६४ भवति २ ।      ॰ Incb::Linker — U+094D, the virāma
+सार्वजनिक चरः संयोगविस्तारः ॱॱ अ६४ भवति ३ ।   ॰ Incb::Extend
+
+॰ ── the rules, NUMBERED AS UAX #29 NUMBERS THEM ── विच्छेदनिर्णयः answers
+॰ the rule and not a बूल, for निदान ॱ विच्छेदः 's stated reason: a port that
+॰ quietly became code-point level would answer अन्तिमनियमः everywhere and
+॰ nowhere else, and that is measurable where a bare `false` is not.
+सार्वजनिक चरः आदिनियमः ॱॱ अ६४ भवति १ ।            ॰ GB1   sot ÷ Any
+सार्वजनिक चरः प्रत्यावर्तननियमः ॱॱ अ६४ भवति ३ ।   ॰ GB3   CR × LF
+सार्वजनिक चरः नियन्त्रणपूर्वनियमः ॱॱ अ६४ भवति ४ । ॰ GB4   (Control|CR|LF) ÷
+सार्वजनिक चरः नियन्त्रणपरनियमः ॱॱ अ६४ भवति ५ ।    ॰ GB5   ÷ (Control|CR|LF)
+सार्वजनिक चरः आद्यजामोनियमः ॱॱ अ६४ भवति ६ ।       ॰ GB6   L × (L|V|LV|LVT)
+सार्वजनिक चरः मध्यजामोनियमः ॱॱ अ६४ भवति ७ ।       ॰ GB7   (LV|V) × (V|T)
+सार्वजनिक चरः अन्त्यजामोनियमः ॱॱ अ६४ भवति ८ ।     ॰ GB8   (LVT|T) × T
+सार्वजनिक चरः विस्तारनियमः ॱॱ अ६४ भवति ९ ।        ॰ GB9   × (Extend|ZWJ)
+सार्वजनिक चरः अवकाशनियमः ॱॱ अ६४ भवति ९१ ।         ॰ GB9a  × SpacingMark
+सार्वजनिक चरः पूर्वयोगनियमः ॱॱ अ६४ भवति ९२ ।      ॰ GB9b  Prepend ×
+सार्वजनिक चरः संयोगभङ्गनियमः ॱॱ अ६४ भवति ९३ ।     ॰ GB9c  the conjunct rule
+सार्वजनिक चरः चित्रयोजननियमः ॱॱ अ६४ भवति ११ ।     ॰ GB11  ExtPict Extend* ZWJ × ExtPict
+सार्वजनिक चरः प्रादेशिकनियमः ॱॱ अ६४ भवति १२ ।     ॰ GB12/GB13 — the RI pair
+सार्वजनिक चरः अन्तिमनियमः ॱॱ अ६४ भवति ९९९ ।       ॰ GB999 otherwise, break
+
+
+॰ ══════════════════ UTF-8, one code point at a time ══════════════════
+॰ सङ्केताष्टकम् below goes the OTHER way — a code point to its octets, which
+॰ is what the radix prefixes need. Deciding a break needs the inverse,
+॰ because every rule is a range test over the code point itself.
+॰
+॰ निदान carries the same two (अष्टकसंख्या :136, सङ्केताङ्कः :153). They are
+॰ not called from here and that is not an oversight: निदान ॱ आयातः names
+॰ वास्तु and सङ्केतन only, and importing निदान FROM this module to borrow a
+॰ decoder would make the text primitive depend on the diagnostic layer.
+॰ The handover runs the other way and belongs to निदान's row.
+
+॰ How many अष्टक the sequence beginning with this lead byte occupies.
+सार्वजनिक वृत्तिः अष्टकविस्तारः आदाय अग्राष्टक ॱॱ अ८ ददाति अ६४ आदि
+    यदि अग्राष्टक न्यूनम् १२८ आदि
+        प्रत्यागमनम् १ ।
+    इति
+    यदि अग्राष्टक न्यूनम् २२४ आदि
+        प्रत्यागमनम् २ ।
+    इति
+    यदि अग्राष्टक न्यूनम् २४० आदि
+        प्रत्यागमनम् ३ ।
+    इति
+    प्रत्यागमनम् ४ ।
+इति
+
+॰ The code point beginning at सूचकाङ्क . All four widths, because this
+॰ routine is the GENERAL port and the corpus it must segment is every
+॰ script the repertoire admits — the emoji of GB11 are the four-अष्टक case
+॰ and the Hangul of GB6–GB8 the three.
+॰
+॰ ── WHY EACH TERM IS A NAMED LOCAL AND NOT ONE NESTED EXPRESSION ──
+॰ निदान ॱ सङ्केताङ्कः :153 writes the same arithmetic as a single
+॰ आरभ्य/समाप्तम् nest, AND THAT NEST IS UNBALANCED: its three-अष्टक return
+॰ opens five groups and closes six, its four-अष्टक return opens seven and
+॰ closes nine. The parser does not refuse the extra समाप्तम् — it stops
+॰ there, and the LAST term is silently dropped. Executed today, that routine
+॰ answers U+0900 for अ (U+0905), U+0940 for the virāma (U+094D) and
+॰ U+1F000 for U+1F600: every code point rounded down to a multiple of ६४ ,
+॰ because the `योगः आरभ्य <last> वियोगः १२८ समाप्तम्` never runs. It follows
+॰ that निदान ॱ अक्षरविभागः answers १५ for अक्षर — the whole word as ONE
+॰ akṣara — so the Devanagari restriction is not currently segmenting
+॰ anything. That is a defect in a file this row may not edit; it is named
+॰ here so the row that owns निदान has the reproduction, and it is the reason
+॰ this routine does NOT copy that idiom. Every group below is balanced and
+॰ every partial sum is a local that can be read on its own.
+सार्वजनिक वृत्तिः सङ्केतमूल्यम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ सूचकाङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः अग्राष्टक ॱॱ अ८ भवति मूल अङ्कः सूचकाङ्क अन्तः ।
+    चरः व्याप्तिः ॱॱ अ६४ भवति अष्टकविस्तारः अग्राष्टक ।
+
+    यदि व्याप्तिः समम् १ आदि
+        प्रत्यागमनम् अग्राष्टक ।
+    इति
+
+    यदि व्याप्तिः समम् २ आदि
+        चरः द्वितीयक ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+        चरः द्विउच्चम् ॱॱ अ६४ भवति आरभ्य अग्राष्टक वियोगः १९२ समाप्तम् गुणनम् ६४ ।
+        चरः द्विनीचम् ॱॱ अ६४ भवति द्वितीयक वियोगः १२८ ।
+        प्रत्यागमनम् द्विउच्चम् योगः द्विनीचम् ।
+    इति
+
+    यदि व्याप्तिः समम् ३ आदि
+        चरः द्वितीयकम् ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+        चरः तृतीयकम् ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः ।
+        चरः त्रिउच्चम् ॱॱ अ६४ भवति आरभ्य अग्राष्टक वियोगः २२४ समाप्तम् गुणनम् ४०९६ ।
+        चरः त्रिमध्यम् ॱॱ अ६४ भवति आरभ्य द्वितीयकम् वियोगः १२८ समाप्तम् गुणनम् ६४ ।
+        चरः त्रिनीचम् ॱॱ अ६४ भवति तृतीयकम् वियोगः १२८ ।
+        प्रत्यागमनम् आरभ्य त्रिउच्चम् योगः त्रिमध्यम् समाप्तम् योगः त्रिनीचम् ।
+    इति
+
+    चरः द्वितीयकः ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+    चरः तृतीयकः ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः ।
+    चरः चतुर्थकः ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः ३ समाप्तम् अन्तः ।
+    चरः चतुरुच्चम् ॱॱ अ६४ भवति आरभ्य अग्राष्टक वियोगः २४० समाप्तम् गुणनम् २६२१४४ ।
+    चरः चतुरुत्तरम् ॱॱ अ६४ भवति आरभ्य द्वितीयकः वियोगः १२८ समाप्तम् गुणनम् ४०९६ ।
+    चरः चतुर्मध्यम् ॱॱ अ६४ भवति आरभ्य तृतीयकः वियोगः १२८ समाप्तम् गुणनम् ६४ ।
+    चरः चतुर्नीचम् ॱॱ अ६४ भवति चतुर्थकः वियोगः १२८ ।
+    चरः चतुरग्रम् ॱॱ अ६४ भवति आरभ्य चतुरुच्चम् योगः चतुरुत्तरम् समाप्तम् ।
+    चरः चतुरन्त्यम् ॱॱ अ६४ भवति आरभ्य चतुर्मध्यम् योगः चतुर्नीचम् समाप्तम् ।
+    प्रत्यागमनम् चतुरग्रम् योगः चतुरन्त्यम् ।
+इति
+
+
+॰ ══════════════════ the three tables, read ONCE into arenas ══════════════
+॰ THE RANGES ARE NOT WALKED PER LOOKUP AND THE REASON IS NOT ONLY SPEED.
+॰ tables.rs BINARY-SEARCHES a sorted range table, and a linear TSV re-scan
+॰ would be a different algorithm wearing the same answers — 1386 rows
+॰ re-split into fields for every code point of every akṣara. So each file is
+॰ walked exactly once into parallel arenas and every lookup after that is
+॰ the binary search the original does.
+॰
+॰ THE ARENAS ARE ONE-BASED, as every arena in this crate is, and slot ० is
+॰ never live. संख्यानम् समम् ० therefore means UNFILLED and not EMPTY, which
+॰ is what makes the fill idempotent: each पूरणम् returns early once it has
+॰ run, so a lookup may call it unconditionally and the file is read once per
+॰ interpreter rather than once per akṣara.
+॰
+॰ A ROW WHOSE start OR end IS NOT HEX IS DROPPED, and that is how the header
+॰ refuses itself — सङ्केतन ॱ षोडशाङ्कमूल्यम् answers शून्यम् for `start` and
+॰ for `end`, exactly as it answers शून्यम् for the register table's own
+॰ header. No row of any of the three names itself here.
+
+सार्वजनिक चरः भेदारम्भकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः भेदान्तकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः भेदवर्गकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः भेदसंख्यानम् ॱॱ अ६४ भवति ० ।
+
+सार्वजनिक चरः संयोगारम्भकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः संयोगान्तकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः संयोगवर्गकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः संयोगसंख्यानम् ॱॱ अ६४ भवति ० ।
+
+सार्वजनिक चरः चित्रारम्भकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः चित्रान्तकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः चित्रसंख्यानम् ॱॱ अ६४ भवति ० ।
+
+॰ ── the class COLUMN, read as the table spells it ── field १ of
+॰ spec/grapheme-break.tsv is the UAX property VALUE, and the thirteen
+॰ spellings are fixed by the UCD and not by this file. They are told apart
+॰ by their LENGTH and, where a length is shared, by one octet — the idiom
+॰ सङ्केतन ॱ कोष्ठप्लवः gives for `float` against `int`: "the field is one of
+॰ exactly two spellings the table's own schema fixes".
+॰
+॰ The uax column and NOT the devanagari column, deliberately. The file's own
+॰ head says the Devanagari names "are a human decision" while the ranges
+॰ "are read out of the UCD and are not a decision at all" — so keying on the
+॰ UCD's own property value is the half that cannot be renamed out from under
+॰ this reader.
+॰
+॰ (2,C) CR · (2,L) LF or LV, told apart by octet १ · (1,L) L · (1,V) V ·
+॰ (1,T) T · (3,Z) ZWJ · (3,L) LVT · (6,E) Extend · (7,C) Control ·
+॰ (7,P) Prepend · (11,S) SpacingMark · (18,R) Regional_Indicator.
+सार्वजनिक वृत्तिः भेदनामवर्गः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नामादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+    चरः नामान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+    चरः मानम् ॱॱ अ६४ भवति नामान्तः वियोगः नामादिः ।
+
+    यदि मानम् समम् ० आदि
+        प्रत्यागमनम् अन्यद्भेदः ।
+    इति
+
+    चरः प्रथमाष्टक ॱॱ अ८ भवति पाठ्यम् अङ्कः नामादिः अन्तः ।
+
+    यदि मानम् समम् १ आदि
+        यदि प्रथमाष्टक समम् ७६ आदि
+            प्रत्यागमनम् आद्यव्यञ्जनभेदः ।
+        इति
+        यदि प्रथमाष्टक समम् ८६ आदि
+            प्रत्यागमनम् मध्यस्वरभेदः ।
+        इति
+        यदि प्रथमाष्टक समम् ८४ आदि
+            प्रत्यागमनम् अन्त्यव्यञ्जनभेदः ।
+        इति
+        प्रत्यागमनम् अन्यद्भेदः ।
+    इति
+
+    यदि मानम् समम् २ आदि
+        यदि प्रथमाष्टक समम् ६७ आदि
+            प्रत्यागमनम् प्रत्यावर्तनभेदः ।
+        इति
+        ॰ LF and LV are both `L` plus one octet: F is ७०, V is ८६.
+        यदि पाठ्यम् अङ्कः आरभ्य नामादिः योगः १ समाप्तम् अन्तः समम् ७० आदि
+            प्रत्यागमनम् पङ्क्तिपोषणभेदः ।
+        इति
+        प्रत्यागमनम् आद्यस्वरभेदः ।
+    इति
+
+    यदि मानम् समम् ३ आदि
+        यदि प्रथमाष्टक समम् ९० आदि
+            प्रत्यागमनम् अदृश्ययोजकभेदः ।
+        इति
+        प्रत्यागमनम् आद्यस्वरान्त्यभेदः ।
+    इति
+
+    यदि मानम् समम् ६ आदि
+        प्रत्यागमनम् विस्तारभेदः ।
+    इति
+
+    यदि मानम् समम् ७ आदि
+        यदि प्रथमाष्टक समम् ६७ आदि
+            प्रत्यागमनम् नियन्त्रणभेदः ।
+        इति
+        प्रत्यागमनम् पूर्वयोगभेदः ।
+    इति
+
+    यदि मानम् समम् ११ आदि
+        प्रत्यागमनम् अवकाशचिह्नभेदः ।
+    इति
+
+    यदि मानम् समम् १८ आदि
+        प्रत्यागमनम् प्रादेशिकभेदः ।
+    इति
+
+    प्रत्यागमनम् अन्यद्भेदः ।
+इति
+
+॰ The same column of spec/incb.tsv, which the UCD fixes at three spellings:
+॰ Consonant (9), Extend (6, E) and Linker (6, L).
+सार्वजनिक वृत्तिः संयोगनामवर्गः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नामादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+    चरः नामान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+    चरः मानम् ॱॱ अ६४ भवति नामान्तः वियोगः नामादिः ।
+
+    यदि मानम् समम् ९ आदि
+        प्रत्यागमनम् संयोगव्यञ्जनम् ।
+    इति
+
+    यदि मानम् समम् ६ आदि
+        यदि पाठ्यम् अङ्कः नामादिः अन्तः समम् ७६ आदि
+            प्रत्यागमनम् संयोगयोजकः ।
+        इति
+        प्रत्यागमनम् संयोगविस्तारः ।
+    इति
+
+    प्रत्यागमनम् संयोगनास्ति ।
+इति
+
+॰ spec/grapheme-break.tsv into the three भेद arenas. Answers the row count.
+सार्वजनिक वृत्तिः भेदपूरणम् ददाति अ६४ आदि
+    यदि भेदसंख्यानम् अधिकम् ० आदि
+        प्रत्यागमनम् भेदसंख्यानम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् अक्षरभेदकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् ३ आदि
+                चरः आदिक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                चरः आदिक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                चरः अन्तक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                चरः अन्तक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+
+                चरः आदिमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् आदिक्षेत्रादिः आदिक्षेत्रान्तः ।
+                चरः अन्तमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् अन्तक्षेत्रादिः अन्तक्षेत्रान्तः ।
+
+                यदि आदिमूल्यम् असमम् शून्यम् आदि
+                    यदि अन्तमूल्यम् असमम् शून्यम् आदि
+                        चरः वर्गः ॱॱ अ६४ भवति भेदनामवर्गः पाठ्यम् आरम्भः सीमा ।
+                        भेदसंख्यानम् भवति आरभ्य भेदसंख्यानम् योगः १ समाप्तम् ।
+                        भेदारम्भकोश अङ्कः भेदसंख्यानम् अन्तः भवति आदिमूल्यम् ।
+                        भेदान्तकोश अङ्कः भेदसंख्यानम् अन्तः भवति अन्तमूल्यम् ।
+                        भेदवर्गकोश अङ्कः भेदसंख्यानम् अन्तः भवति वर्गः ।
+                    इति
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् भेदसंख्यानम् ।
+इति
+
+॰ spec/incb.tsv into the three संयोग arenas.
+सार्वजनिक वृत्तिः संयोगपूरणम् ददाति अ६४ आदि
+    यदि संयोगसंख्यानम् अधिकम् ० आदि
+        प्रत्यागमनम् संयोगसंख्यानम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् संयोगभेदकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् ३ आदि
+                चरः आदिक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                चरः आदिक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                चरः अन्तक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                चरः अन्तक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+
+                चरः आदिमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् आदिक्षेत्रादिः आदिक्षेत्रान्तः ।
+                चरः अन्तमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् अन्तक्षेत्रादिः अन्तक्षेत्रान्तः ।
+
+                यदि आदिमूल्यम् असमम् शून्यम् आदि
+                    यदि अन्तमूल्यम् असमम् शून्यम् आदि
+                        चरः वर्गः ॱॱ अ६४ भवति संयोगनामवर्गः पाठ्यम् आरम्भः सीमा ।
+                        संयोगसंख्यानम् भवति आरभ्य संयोगसंख्यानम् योगः १ समाप्तम् ।
+                        संयोगारम्भकोश अङ्कः संयोगसंख्यानम् अन्तः भवति आदिमूल्यम् ।
+                        संयोगान्तकोश अङ्कः संयोगसंख्यानम् अन्तः भवति अन्तमूल्यम् ।
+                        संयोगवर्गकोश अङ्कः संयोगसंख्यानम् अन्तः भवति वर्गः ।
+                    इति
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् संयोगसंख्यानम् ।
+इति
+
+॰ spec/extended-pictographic.tsv into the two चित्र arenas. There is no
+॰ class column to read: the property is BOOLEAN and membership in the file
+॰ IS the property, so this table carries starts and ends only.
+सार्वजनिक वृत्तिः चित्रपूरणम् ददाति अ६४ आदि
+    यदि चित्रसंख्यानम् अधिकम् ० आदि
+        प्रत्यागमनम् चित्रसंख्यानम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् चित्राक्षरकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् ३ आदि
+                चरः आदिक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                चरः आदिक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                चरः अन्तक्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                चरः अन्तक्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+
+                चरः आदिमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् आदिक्षेत्रादिः आदिक्षेत्रान्तः ।
+                चरः अन्तमूल्यम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् अन्तक्षेत्रादिः अन्तक्षेत्रान्तः ।
+
+                यदि आदिमूल्यम् असमम् शून्यम् आदि
+                    यदि अन्तमूल्यम् असमम् शून्यम् आदि
+                        चित्रसंख्यानम् भवति आरभ्य चित्रसंख्यानम् योगः १ समाप्तम् ।
+                        चित्रारम्भकोश अङ्कः चित्रसंख्यानम् अन्तः भवति आदिमूल्यम् ।
+                        चित्रान्तकोश अङ्कः चित्रसंख्यानम् अन्तः भवति अन्तमूल्यम् ।
+                    इति
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् चित्रसंख्यानम् ।
+इति
+
+
+॰ ══════════════════ the three lookups ══════════════════
+॰ Binary search over a sorted range table, which is what tables.rs does.
+॰ THE DEFAULT IS ANSWERED BY FALLING OFF THE END and not by a row: a code
+॰ point in no range of spec/grapheme-break.tsv is Other, one in no range of
+॰ spec/incb.tsv is None, and one in no range of
+॰ spec/extended-pictographic.tsv is not pictographic. None of the three
+॰ files carries a row saying so.
+
+॰ Grapheme_Cluster_Break of a code point.
+सार्वजनिक वृत्तिः अक्षरभेदः आदाय सङ्केताङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः संख्या ॱॱ अ६४ भवति भेदपूरणम् ।
+    चरः अधरः ॱॱ अ६४ भवति १ ।
+    चरः उपरितनः ॱॱ अ६४ भवति संख्या ।
+
+    यावत् अधरः न्यूनम् आरभ्य उपरितनः योगः १ समाप्तम् आदि
+        चरः मध्यमः ॱॱ अ६४ भवति आरभ्य आरभ्य अधरः योगः उपरितनः समाप्तम् विभाजनम् २ समाप्तम् ।
+        यदि सङ्केताङ्क न्यूनम् भेदारम्भकोश अङ्कः मध्यमः अन्तः आदि
+            उपरितनः भवति मध्यमः वियोगः १ ।
+        इति अन्यथा आदि
+            यदि सङ्केताङ्क अधिकम् भेदान्तकोश अङ्कः मध्यमः अन्तः आदि
+                अधरः भवति मध्यमः योगः १ ।
+            इति अन्यथा आदि
+                प्रत्यागमनम् भेदवर्गकोश अङ्कः मध्यमः अन्तः ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् अन्यद्भेदः ।
+इति
+
+॰ Indic_Conjunct_Break of a code point. GB9c reads nothing else.
+सार्वजनिक वृत्तिः संयोगभेदः आदाय सङ्केताङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः संख्या ॱॱ अ६४ भवति संयोगपूरणम् ।
+    चरः अधरः ॱॱ अ६४ भवति १ ।
+    चरः उपरितनः ॱॱ अ६४ भवति संख्या ।
+
+    यावत् अधरः न्यूनम् आरभ्य उपरितनः योगः १ समाप्तम् आदि
+        चरः मध्यमः ॱॱ अ६४ भवति आरभ्य आरभ्य अधरः योगः उपरितनः समाप्तम् विभाजनम् २ समाप्तम् ।
+        यदि सङ्केताङ्क न्यूनम् संयोगारम्भकोश अङ्कः मध्यमः अन्तः आदि
+            उपरितनः भवति मध्यमः वियोगः १ ।
+        इति अन्यथा आदि
+            यदि सङ्केताङ्क अधिकम् संयोगान्तकोश अङ्कः मध्यमः अन्तः आदि
+                अधरः भवति मध्यमः योगः १ ।
+            इति अन्यथा आदि
+                प्रत्यागमनम् संयोगवर्गकोश अङ्कः मध्यमः अन्तः ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् संयोगनास्ति ।
+इति
+
+॰ Extended_Pictographic — GB11's only input.
+सार्वजनिक वृत्तिः चित्राक्षरम् आदाय सङ्केताङ्क ॱॱ अ६४ ददाति बूल आदि
+    चरः संख्या ॱॱ अ६४ भवति चित्रपूरणम् ।
+    चरः अधरः ॱॱ अ६४ भवति १ ।
+    चरः उपरितनः ॱॱ अ६४ भवति संख्या ।
+
+    यावत् अधरः न्यूनम् आरभ्य उपरितनः योगः १ समाप्तम् आदि
+        चरः मध्यमः ॱॱ अ६४ भवति आरभ्य आरभ्य अधरः योगः उपरितनः समाप्तम् विभाजनम् २ समाप्तम् ।
+        यदि सङ्केताङ्क न्यूनम् चित्रारम्भकोश अङ्कः मध्यमः अन्तः आदि
+            उपरितनः भवति मध्यमः वियोगः १ ।
+        इति अन्यथा आदि
+            यदि सङ्केताङ्क अधिकम् चित्रान्तकोश अङ्कः मध्यमः अन्तः आदि
+                अधरः भवति मध्यमः योगः १ ।
+            इति अन्यथा आदि
+                प्रत्यागमनम् सत्यम् ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+
+॰ ══════════════════ the cursor ══════════════════
+॰ segment.rs keeps five fields and this keeps all five, which is the whole
+॰ difference from निदान's cursor: निदान keeps two because the other three
+॰ belong to rules that cannot fire inside Devanagari, and this routine is
+॰ the one that must let them fire.
+॰
+॰ THE CURSOR IS RESET AT EVERY CLUSTER START and that is sound rather than
+॰ convenient. GB12/GB13 is the only rule whose state could in principle
+॰ reach across a boundary, and it cannot: a break before a
+॰ Regional_Indicator happens exactly when an EVEN number of them precede
+॰ it, so the run at every boundary is even and restarting from zero asks
+॰ the same question. The conjunct and pictographic sequences are contiguous
+॰ by construction and cannot span a break.
+
+सार्वजनिक चरः पूर्वभेदः ॱॱ अ६४ भवति ० ।                 ॰ prev
+सार्वजनिक चरः पूर्वदृष्टम् ॱॱ बूल भवति असत्यम् ।        ॰ whether there IS a prev — GB1's sot
+सार्वजनिक चरः संयोगव्यञ्जनदृष्टम् ॱॱ बूल भवति असत्यम् । ॰ incb_consonant
+सार्वजनिक चरः संयोगयोजकदृष्टम् ॱॱ बूल भवति असत्यम् ।    ॰ incb_linker
+सार्वजनिक चरः चित्रस्थितिः ॱॱ अ६४ भवति ० ।              ॰ ० none, १ ExtPict Extend*, २ …ZWJ
+सार्वजनिक चरः प्रादेशिकगणना ॱॱ अ६४ भवति ० ।             ॰ the RI run
+
+सार्वजनिक वृत्तिः अक्षरदर्शकादिः ददाति अ६४ आदि
+    पूर्वभेदः भवति अन्यद्भेदः ।
+    पूर्वदृष्टम् भवति असत्यम् ।
+    संयोगव्यञ्जनदृष्टम् भवति असत्यम् ।
+    संयोगयोजकदृष्टम् भवति असत्यम् ।
+    चित्रस्थितिः भवति ० ।
+    प्रादेशिकगणना भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Cursor::push — fold one code point into all five fields.
+सार्वजनिक वृत्तिः अक्षरदर्शकवर्धनम् आदाय सङ्केताङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः वर्गः ॱॱ अ६४ भवति अक्षरभेदः सङ्केताङ्क ।
+    चरः संयोगवर्गः ॱॱ अ६४ भवति संयोगभेदः सङ्केताङ्क ।
+
+    ॰ ── the conjunct state ── Consonant [Extend|Linker]* Linker. An
+    ॰ Incb::Extend between the व्यञ्जन and the योजक leaves both flags
+    ॰ standing — segment.rs's empty match arm; anything else clears them.
+    यदि संयोगवर्गः समम् संयोगव्यञ्जनम् आदि
+        संयोगव्यञ्जनदृष्टम् भवति सत्यम् ।
+        संयोगयोजकदृष्टम् भवति असत्यम् ।
+    इति अन्यथा आदि
+        यदि संयोगवर्गः समम् संयोगयोजकः आदि
+            यदि संयोगव्यञ्जनदृष्टम् समम् सत्यम् आदि
+                संयोगयोजकदृष्टम् भवति सत्यम् ।
+            इति अन्यथा आदि
+                संयोगव्यञ्जनदृष्टम् भवति असत्यम् ।
+                संयोगयोजकदृष्टम् भवति असत्यम् ।
+            इति
+        इति अन्यथा आदि
+            यदि संयोगवर्गः समम् संयोगविस्तारः आदि
+                यदि संयोगव्यञ्जनदृष्टम् समम् असत्यम् आदि
+                    संयोगयोजकदृष्टम् भवति असत्यम् ।
+                इति
+            इति अन्यथा आदि
+                संयोगव्यञ्जनदृष्टम् भवति असत्यम् ।
+                संयोगयोजकदृष्टम् भवति असत्यम् ।
+            इति
+        इति
+    इति
+
+    ॰ ── the pictographic state ── ExtPict Extend* ZWJ, the left side of
+    ॰ GB11. An ExtPict RESTARTS it even from state २, because the emoji it
+    ॰ just joined may itself open the next sequence.
+    यदि चित्राक्षरम् सङ्केताङ्क समम् सत्यम् आदि
+        चित्रस्थितिः भवति १ ।
+    इति अन्यथा आदि
+        यदि चित्रस्थितिः समम् १ आदि
+            यदि वर्गः समम् विस्तारभेदः आदि
+                चित्रस्थितिः भवति १ ।
+            इति अन्यथा आदि
+                यदि वर्गः समम् अदृश्ययोजकभेदः आदि
+                    चित्रस्थितिः भवति २ ।
+                इति अन्यथा आदि
+                    चित्रस्थितिः भवति ० ।
+                इति
+            इति
+        इति अन्यथा आदि
+            चित्रस्थितिः भवति ० ।
+        इति
+    इति
+
+    ॰ ── the regional-indicator run ──
+    यदि वर्गः समम् प्रादेशिकभेदः आदि
+        प्रादेशिकगणना भवति प्रादेशिकगणना योगः १ ।
+    इति अन्यथा आदि
+        प्रादेशिकगणना भवति ० ।
+    इति
+
+    पूर्वभेदः भवति वर्गः ।
+    पूर्वदृष्टम् भवति सत्यम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ विच्छेदनिर्णयः — WHICH RULE decides ══════════════════
+॰ The rules are tried in the order UAX #29 numbers them and the FIRST that
+॰ matches decides, exactly as segment.rs does. The order is not cosmetic:
+॰ GB4 and GB5 come before GB9, so a Control breaks from a following Extend
+॰ rather than absorbing it, and moving them after GB9 is the classic way to
+॰ make a line feed swallow the combining mark that follows it.
+सार्वजनिक वृत्तिः विच्छेदनिर्णयः आदाय अग्रिमसङ्केताङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः अग्रिमभेदः ॱॱ अ६४ भवति अक्षरभेदः अग्रिमसङ्केताङ्क ।
+
+    ॰ GB1 — sot ÷ Any.
+    यदि पूर्वदृष्टम् समम् असत्यम् आदि
+        प्रत्यागमनम् आदिनियमः ।
+    इति
+
+    ॰ GB3 — CR × LF. The one place two Control-ish classes join.
+    यदि पूर्वभेदः समम् प्रत्यावर्तनभेदः आदि
+        यदि अग्रिमभेदः समम् पङ्क्तिपोषणभेदः आदि
+            प्रत्यागमनम् प्रत्यावर्तननियमः ।
+        इति
+    इति
+
+    ॰ GB4 — (Control | CR | LF) ÷ .
+    यदि पूर्वभेदः समम् नियन्त्रणभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपूर्वनियमः ।
+    इति
+    यदि पूर्वभेदः समम् प्रत्यावर्तनभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपूर्वनियमः ।
+    इति
+    यदि पूर्वभेदः समम् पङ्क्तिपोषणभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपूर्वनियमः ।
+    इति
+
+    ॰ GB5 — ÷ (Control | CR | LF).
+    यदि अग्रिमभेदः समम् नियन्त्रणभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपरनियमः ।
+    इति
+    यदि अग्रिमभेदः समम् प्रत्यावर्तनभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपरनियमः ।
+    इति
+    यदि अग्रिमभेदः समम् पङ्क्तिपोषणभेदः आदि
+        प्रत्यागमनम् नियन्त्रणपरनियमः ।
+    इति
+
+    ॰ GB6 — L × (L | V | LV | LVT).
+    यदि पूर्वभेदः समम् आद्यव्यञ्जनभेदः आदि
+        यदि अग्रिमभेदः समम् आद्यव्यञ्जनभेदः आदि
+            प्रत्यागमनम् आद्यजामोनियमः ।
+        इति
+        यदि अग्रिमभेदः समम् मध्यस्वरभेदः आदि
+            प्रत्यागमनम् आद्यजामोनियमः ।
+        इति
+        यदि अग्रिमभेदः समम् आद्यस्वरभेदः आदि
+            प्रत्यागमनम् आद्यजामोनियमः ।
+        इति
+        यदि अग्रिमभेदः समम् आद्यस्वरान्त्यभेदः आदि
+            प्रत्यागमनम् आद्यजामोनियमः ।
+        इति
+    इति
+
+    ॰ GB7 — (LV | V) × (V | T).
+    यदि पूर्वभेदः समम् आद्यस्वरभेदः आदि
+        यदि अग्रिमभेदः समम् मध्यस्वरभेदः आदि
+            प्रत्यागमनम् मध्यजामोनियमः ।
+        इति
+        यदि अग्रिमभेदः समम् अन्त्यव्यञ्जनभेदः आदि
+            प्रत्यागमनम् मध्यजामोनियमः ।
+        इति
+    इति
+    यदि पूर्वभेदः समम् मध्यस्वरभेदः आदि
+        यदि अग्रिमभेदः समम् मध्यस्वरभेदः आदि
+            प्रत्यागमनम् मध्यजामोनियमः ।
+        इति
+        यदि अग्रिमभेदः समम् अन्त्यव्यञ्जनभेदः आदि
+            प्रत्यागमनम् मध्यजामोनियमः ।
+        इति
+    इति
+
+    ॰ GB8 — (LVT | T) × T.
+    यदि पूर्वभेदः समम् आद्यस्वरान्त्यभेदः आदि
+        यदि अग्रिमभेदः समम् अन्त्यव्यञ्जनभेदः आदि
+            प्रत्यागमनम् अन्त्यजामोनियमः ।
+        इति
+    इति
+    यदि पूर्वभेदः समम् अन्त्यव्यञ्जनभेदः आदि
+        यदि अग्रिमभेदः समम् अन्त्यव्यञ्जनभेदः आदि
+            प्रत्यागमनम् अन्त्यजामोनियमः ।
+        इति
+    इति
+
+    ॰ GB9 — × (Extend | ZWJ). Neither ever begins a cluster.
+    यदि अग्रिमभेदः समम् विस्तारभेदः आदि
+        प्रत्यागमनम् विस्तारनियमः ।
+    इति
+    यदि अग्रिमभेदः समम् अदृश्ययोजकभेदः आदि
+        प्रत्यागमनम् विस्तारनियमः ।
+    इति
+
+    ॰ GB9a — × SpacingMark. कि is one akṣara though the i-matra is stored
+    ॰ after the consonant and drawn before it.
+    यदि अग्रिमभेदः समम् अवकाशचिह्नभेदः आदि
+        प्रत्यागमनम् अवकाशनियमः ।
+    इति
+
+    ॰ GB9b — Prepend × .
+    यदि पूर्वभेदः समम् पूर्वयोगभेदः आदि
+        प्रत्यागमनम् पूर्वयोगनियमः ।
+    इति
+
+    ॰ GB9c — THE CONJUNCT RULE. The consonant, the virāma and the next
+    ॰ consonant stay ONE akṣara, which is why क्ष is one and not three, and
+    ॰ why U+094D being Linker in spec/incb.tsv is the single row this whole
+    ॰ port turns on.
+    यदि संयोगव्यञ्जनदृष्टम् समम् सत्यम् आदि
+        यदि संयोगयोजकदृष्टम् समम् सत्यम् आदि
+            यदि संयोगभेदः अग्रिमसङ्केताङ्क समम् संयोगव्यञ्जनम् आदि
+                प्रत्यागमनम् संयोगभङ्गनियमः ।
+            इति
+        इति
+    इति
+
+    ॰ GB11 — ExtPict Extend* ZWJ × ExtPict.
+    यदि चित्रस्थितिः समम् २ आदि
+        यदि चित्राक्षरम् अग्रिमसङ्केताङ्क समम् सत्यम् आदि
+            प्रत्यागमनम् चित्रयोजननियमः ।
+        इति
+    इति
+
+    ॰ GB12/GB13 — sot (RI RI)* RI × RI. An ODD run so far means this RI
+    ॰ closes a pair; an even one means it opens the next.
+    यदि अग्रिमभेदः समम् प्रादेशिकभेदः आदि
+        यदि आरभ्य प्रादेशिकगणना युक् १ समाप्तम् समम् १ आदि
+            प्रत्यागमनम् प्रादेशिकनियमः ।
+        इति
+    इति
+
+    ॰ GB999 — Any ÷ Any.
+    प्रत्यागमनम् अन्तिमनियमः ।
+इति
+
+॰ Whether that rule is a BREAK. Four of the fourteen are: GB1 opens the
+॰ text, GB4 and GB5 fence the controls off, and GB999 is the default.
+सार्वजनिक वृत्तिः विच्छेदप्रश्नः आदाय नियमः ॱॱ अ६४ ददाति बूल आदि
+    यदि नियमः समम् आदिनियमः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि नियमः समम् नियन्त्रणपूर्वनियमः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि नियमः समम् नियन्त्रणपरनियमः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि नियमः समम् अन्तिमनियमः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+
+॰ ══════════════════ अक्षरसीमा and अक्षराणि ══════════════════
+
+॰ segment.rs's Aksharas::next, which yields a borrowed slice. T1 has no
+॰ slice, so this yields the LENGTH IN अष्टक of the akṣara beginning at
+॰ सूचकाङ्क , and the caller walks by adding it. ० means there is nothing
+॰ there, which is Rust's None. Deliberately the SAME shape as
+॰ निदान ॱ अक्षरविभागः :411, so that the general reader and the Devanagari
+॰ restriction can be run against each other on one call.
+सार्वजनिक वृत्तिः अक्षरसीमा आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ सूचकाङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति पाठ ॱ दैर्घ्य ।
+    चरः व्याप्तिः ॱॱ अ६४ भवति ० ।
+
+    यदि सूचकाङ्क न्यूनम् दैर्घ्यम् आदि
+        चरः आदिफलम् ॱॱ अ६४ भवति अक्षरदर्शकादिः ।
+        चरः प्रथमाङ्कः ॱॱ अ६४ भवति सङ्केतमूल्यम् पाठ सूचकाङ्क ।
+        चरः वर्धनफलम् ॱॱ अ६४ भवति अक्षरदर्शकवर्धनम् प्रथमाङ्कः ।
+
+        चरः स्थानम् ॱॱ अ६४ भवति सूचकाङ्क योगः अष्टकविस्तारः आरभ्य पाठ अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        चरः चलतु ॱॱ बूल भवति सत्यम् ।
+
+        यावत् चलतु आदि
+            यदि स्थानम् न्यूनम् दैर्घ्यम् आदि
+                चरः अग्रिमाङ्कः ॱॱ अ६४ भवति सङ्केतमूल्यम् पाठ स्थानम् ।
+                चरः नियमः ॱॱ अ६४ भवति विच्छेदनिर्णयः अग्रिमाङ्कः ।
+                यदि विच्छेदप्रश्नः नियमः समम् सत्यम् आदि
+                    चलतु भवति असत्यम् ।
+                इति अन्यथा आदि
+                    वर्धनफलम् भवति अक्षरदर्शकवर्धनम् अग्रिमाङ्कः ।
+                    स्थानम् भवति स्थानम् योगः अष्टकविस्तारः आरभ्य पाठ अङ्कः स्थानम् अन्तः समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                चलतु भवति असत्यम् ।
+            इति
+        इति
+
+        व्याप्तिः भवति स्थानम् वियोगः सूचकाङ्क ।
+    इति
+
+    प्रत्यागमनम् व्याप्तिः ।
+इति
+
+॰ ── THE ROUTINE THE ROW IS FOR ── sanskrit_text::aksharas.
+॰
+॰ Rust answers Vec<&str>; this fills अक्षरारम्भकोश and अक्षरदैर्घ्यकोश and
+॰ answers HOW MANY. The head of this section carries the ADR-0031
+॰ enumeration that licenses the divergence and names the two consumers that
+॰ keep a substring; अक्षरादिः , अक्षरमानम् and अक्षरसाम्यम् below are what
+॰ serves them. The arenas are one-based and slot ० is never live.
+॰
+॰ RE-ENTRANT ON PURPOSE. अक्षरसंख्यानम् is reset at entry, exactly as
+॰ निदान ॱ निदानपङ्क्तयः resets its own — without it a second call files
+॰ every akṣara again, the arena grows without bound, and every accessor
+॰ keeps answering the FIRST copy.
+सार्वजनिक चरः अक्षरारम्भकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः अक्षरदैर्घ्यकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः अक्षरसंख्यानम् ॱॱ अ६४ भवति ० ।
+
+सार्वजनिक वृत्तिः अक्षराणि आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति पाठ ॱ दैर्घ्य ।
+    चरः स्थानम् ॱॱ अ६४ भवति ० ।
+    अक्षरसंख्यानम् भवति ० ।
+
+    यावत् स्थानम् न्यूनम् दैर्घ्यम् आदि
+        चरः व्याप्तिः ॱॱ अ६४ भवति अक्षरसीमा पाठ स्थानम् ।
+        यदि व्याप्तिः समम् ० आदि
+            प्रत्यागमनम् अक्षरसंख्यानम् ।
+        इति
+        अक्षरसंख्यानम् भवति आरभ्य अक्षरसंख्यानम् योगः १ समाप्तम् ।
+        अक्षरारम्भकोश अङ्कः अक्षरसंख्यानम् अन्तः भवति स्थानम् ।
+        अक्षरदैर्घ्यकोश अङ्कः अक्षरसंख्यानम् अन्तः भवति व्याप्तिः ।
+        स्थानम् भवति स्थानम् योगः व्याप्तिः ।
+    इति
+
+    प्रत्यागमनम् अक्षरसंख्यानम् ।
+इति
+
+॰ Where the क्रमः-th akṣara of the last अक्षराणि begins, and how long it
+॰ is. Together they are the &str Rust hands back, as the pair of indices
+॰ this language can actually carry. ० for a क्रमः no walk filed.
+सार्वजनिक वृत्तिः अक्षरादिः आदाय क्रमः ॱॱ अ६४ ददाति अ६४ आदि
+    यदि क्रमः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि क्रमः अधिकम् अक्षरसंख्यानम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् अक्षरारम्भकोश अङ्कः क्रमः अन्तः ।
+इति
+
+सार्वजनिक वृत्तिः अक्षरमानम् आदाय क्रमः ॱॱ अ६४ ददाति अ६४ आदि
+    यदि क्रमः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि क्रमः अधिकम् अक्षरसंख्यानम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् अक्षरदैर्घ्यकोश अङ्कः क्रमः अन्तः ।
+इति
+
+॰ ── THE VALUE COMPARISON, which is what parse.rs:376 actually wants ──
+॰ `a[i-1] != b[j-1]` over two Vec<&str>. निदान ॱ अक्षरतुल्यम् :529 answers
+॰ the same question by holding TWO segmentations in two arena pairs; this
+॰ takes the two ranges as arguments instead, so one arena serves both
+॰ operands and a caller segments one name, keeps its pairs, and segments
+॰ the other. Same rule, and it is a length and then the octets.
+सार्वजनिक वृत्तिः अक्षरसाम्यम् आदाय प्रथमम् ॱॱ अङ्कः अन्तः अ८ ऽ प्रथमादिः ॱॱ अ६४ ऽ प्रथममानम् ॱॱ अ६४ ऽ द्वितीयम् ॱॱ अङ्कः अन्तः अ८ ऽ द्वितीयादिः ॱॱ अ६४ ऽ द्वितीयमानम् ॱॱ अ६४ ददाति बूल आदि
+    यदि प्रथममानम् असमम् द्वितीयमानम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः सरणम् ॱॱ अ६४ भवति ० ।
+
+    यावत् सरणम् न्यूनम् प्रथममानम् आदि
+        चरः वामम् ॱॱ अ८ भवति प्रथमम् अङ्कः आरभ्य प्रथमादिः योगः सरणम् समाप्तम् अन्तः ।
+        चरः दक्षिणम् ॱॱ अ८ भवति द्वितीयम् अङ्कः आरभ्य द्वितीयादिः योगः सरणम् समाप्तम् अन्तः ।
+        यदि वामम् असमम् दक्षिणम् आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सरणम् भवति सरणम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ numeral::value and numeral::bits ══════════════════
+॰ crates/sanskrit-text/src/numeral.rs:232 and :269. THEY ARE TWO READERS
+॰ ON PURPOSE — W-075. A datum is a BIT PATTERN, so ऋण१ is all ones and
+॰ ०षोड्इआऊ२९इउ४८४२२२३२५ is a perfectly good अष्टाष्टकाः operand; a count
+॰ is a MAGNITUDE, and ऋण means nothing on it. One reader answering both
+॰ is how a literal too large became i64::MAX and was emitted as one.
+॰
+॰ FOUR ROUTINES AND NOT TWO. Rust returns Result<u64, NumeralError> and
+॰ T1 has no tuple, so the fault and the answer are separate questions —
+॰ the same split सङ्केतन made for split_types (संज्ञासीमा and
+॰ प्रकारसंख्या) and व्याकर for split_type_class.
+॰
+॰ THE RANGE IS TWO EXTRA ARGUMENTS. T1 indexes ONE octet (अङ्कः ॱ अन्तः)
+॰ and has no sub-slice expression, so a routine Rust hands a &str is
+॰ handed a slice and two indices — सङ्केतनॱक्षेत्रखण्डसाम्यम्'s stated
+॰ idiom. The सङ्ख्या stub above takes a WHOLE slice and therefore has no
+॰ caller in this tree that can cut one; these four can be called from a
+॰ token's text without cutting anything, and वाक्यविभाग calls them.
+॰
+॰ ALL FOUR WERE STUBS, exactly as the three above were, and this section
+॰ is what took them out of it. numeral.rs is radix prefixes, digit values
+॰ and checked arithmetic, and it is THIS module's to own: a second
+॰ transcription of it inside the assembler is how the first one stops
+॰ being the authority — मध्यरूप ॱ अङ्कमूल्यम् gives that reason for calling
+॰ सङ्ख्या rather than reimplementing it, and the same reason holds here.
+॰
+॰ THE SECOND TRANSCRIPTION EXISTS AND IS NOT DELETED HERE. वाक्यविभाग
+॰ carries seven routines of the same reader — अङ्कमूल्यम्, ऋणचिह्नम्,
+॰ सङ्ख्यारम्भः, सङ्ख्यामूलम्, सङ्ख्याङ्कारम्भः, सङ्ख्यादोषः, सङ्ख्यामानम् —
+॰ written by D-002f5 against the row that needed them, with its own head
+॰ saying "when a sanskrit-text port lands, these routines are what it
+॰ takes over". Taking them over is an edit to वाक्यविभाग and to the
+॰ t1_sources.rs ratchet that counts its real bodies; both are outside
+॰ this row, so the handover is named here and left to it. What has
+॰ changed is that there is now something to hand over TO.
+
+सार्वजनिक चरः अङ्कनिर्दोषः ॱॱ न६४ भवति ० ।       ॰ Ok
+सार्वजनिक चरः अङ्करूपदोषः ॱॱ न६४ भवति १ ।        ॰ NoDigits, BadDigit — P19
+सार्वजनिक चरः अङ्कातिमानदोषः ॱॱ न६४ भवति २ ।     ॰ TooLarge — P29
+सार्वजनिक चरः अङ्कचिह्नदोषः ॱॱ न६४ भवति ३ ।      ॰ Signed — P30
+
+
+॰ ══════════════════ the three radix prefixes ══════════════════
+॰ NOTHING BELOW HAND-COPIES A TABLE (rule F). BINARY, OCTAL and HEX are
+॰ three string CONSTANTS of numeral.rs:26-28 — five akṣaras each — and
+॰ they are carried here as their five CODE POINTS, with the octets
+॰ DERIVED by सङ्केताष्टकम् rather than listed. वाक्यविभाग carries the same
+॰ three as forty-five literal octets in an initialiser that something has
+॰ to remember to call; this needs no initialiser and no global, so a
+॰ prefix cannot be read before it is filled.
+॰
+॰ THEY ARE NOT ADR-0017 LITERALS and cannot be, for the reason
+॰ वाक्यविभाग gives at its own declaration: each begins with ०, ० is a
+॰ NUMERAL and not an akṣara word, and the frozen string production admits
+॰ akṣara words. ऋण by contrast is two letters and IS written as a
+॰ literal, at ऋणचिह्नम् below.
+
+॰ the स्थानम्-th octet of the UTF-8 for सङ्केतः — U+0800 … U+FFFF, which
+॰ is every character any of the three prefixes is made of.
+सार्वजनिक वृत्तिः सङ्केताष्टकम् आदाय सङ्केतः ॱॱ अ६४ ऽ स्थानम् ॱॱ अ६४ ददाति अ६४ आदि
+    यदि स्थानम् समम् ० आदि
+        प्रत्यागमनम् आरभ्य २२४ योगः आरभ्य सङ्केतः विभाजनम् ४०९६ समाप्तम् समाप्तम् ।
+    इति
+    यदि स्थानम् समम् १ आदि
+        प्रत्यागमनम् आरभ्य १२८ योगः आरभ्य आरभ्य सङ्केतः विभाजनम् ६४ समाप्तम् युक् ६३ समाप्तम् समाप्तम् ।
+    इति
+    प्रत्यागमनम् आरभ्य १२८ योगः आरभ्य सङ्केतः युक् ६३ समाप्तम् समाप्तम् ।
+इति
+
+॰ the अङ्कस्थानम्-th code point of मूलम्'s prefix. All three are five
+॰ akṣaras long, which is why सङ्ख्याङ्कारम्भः needs only one length.
+॰ ०द्वि  U+0966 U+0926 U+094D U+0935 U+093F — २४०६ २३४२ २३८१ २३५७ २३६७
+॰ ०अष्ट U+0966 U+0905 U+0937 U+094D U+091F — २४०६ २३०९ २३५९ २३८१ २३३५
+॰ ०षोड् U+0966 U+0937 U+094B U+0921 U+094D — २४०६ २३५९ २३७९ २३३७ २३८१
+सार्वजनिक वृत्तिः मूलपाठसङ्केतः आदाय मूलम् ॱॱ अ६४ ऽ अङ्कस्थानम् ॱॱ अ६४ ददाति अ६४ आदि
+    ॰ every prefix opens with ०, which is what makes the bare-digit case
+    ॰ have to be tried LAST — see सङ्ख्यामूलम्.
+    यदि अङ्कस्थानम् समम् ० आदि
+        प्रत्यागमनम् २४०६ ।
+    इति
+
+    यदि मूलम् समम् २ आदि
+        यदि अङ्कस्थानम् समम् १ आदि
+            प्रत्यागमनम् २३४२ ।
+        इति
+        यदि अङ्कस्थानम् समम् २ आदि
+            प्रत्यागमनम् २३८१ ।
+        इति
+        यदि अङ्कस्थानम् समम् ३ आदि
+            प्रत्यागमनम् २३५७ ।
+        इति
+        प्रत्यागमनम् २३६७ ।
+    इति
+
+    यदि मूलम् समम् ८ आदि
+        यदि अङ्कस्थानम् समम् १ आदि
+            प्रत्यागमनम् २३०९ ।
+        इति
+        यदि अङ्कस्थानम् समम् २ आदि
+            प्रत्यागमनम् २३५९ ।
+        इति
+        यदि अङ्कस्थानम् समम् ३ आदि
+            प्रत्यागमनम् २३८१ ।
+        इति
+        प्रत्यागमनम् २३३५ ।
+    इति
+
+    यदि अङ्कस्थानम् समम् १ आदि
+        प्रत्यागमनम् २३५९ ।
+    इति
+    यदि अङ्कस्थानम् समम् २ आदि
+        प्रत्यागमनम् २३७९ ।
+    इति
+    यदि अङ्कस्थानम् समम् ३ आदि
+        प्रत्यागमनम् २३३७ ।
+    इति
+    प्रत्यागमनम् २३८१ ।
+इति
+
+॰ Rust's `token.strip_prefix(prefix).is_some()` for one radix. Fifteen
+॰ octets are compared and not three: `०द` is not `०द्वि`, and a check
+॰ that stopped at the second akṣara would read `०दश` as binary.
+सार्वजनिक वृत्तिः उपसर्गसाम्यम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ स्थानम् ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ऽ मूलम् ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य स्थानम् योगः १५ समाप्तम् अधिकम् सीमा आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः अङ्कस्थानम् ॱॱ अ६४ भवति ० ।
+    यावत् अङ्कस्थानम् न्यूनम् ५ आदि
+        चरः सङ्केतः ॱॱ अ६४ भवति मूलपाठसङ्केतः आरभ्य मूलम् ऽ अङ्कस्थानम् समाप्तम् ।
+        चरः अष्टकस्थानम् ॱॱ अ६४ भवति ० ।
+        यावत् अष्टकस्थानम् न्यूनम् ३ आदि
+            चरः अपेक्षितम् ॱॱ अ६४ भवति सङ्केताष्टकम् आरभ्य सङ्केतः ऽ अष्टकस्थानम् समाप्तम् ।
+            चरः प्राप्तम् ॱॱ अ६४ भवति पाठ अङ्कः आरभ्य स्थानम् योगः अङ्कस्थानम् गुणनम् ३ योगः अष्टकस्थानम् समाप्तम् अन्तः ।
+            यदि प्राप्तम् असमम् अपेक्षितम् आदि
+                प्रत्यागमनम् असत्यम् ।
+            इति
+            अष्टकस्थानम् भवति आरभ्य अष्टकस्थानम् योगः १ समाप्तम् ।
+        इति
+        अङ्कस्थानम् भवति आरभ्य अङ्कस्थानम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ numeral::digit_value ══════════════════
+॰ The value of the character whose first octet is at स्थानम्, in radix
+॰ मूलम् — or ९९, this routine's "not a digit here", chosen because it is
+॰ larger than every radix so the last comparison folds Rust's
+॰ `(v < radix).then_some(v)` and the None arm into one.
+॰
+॰ numeral.rs:75-85 is a MATCH ON CODE POINTS and not a file, so this is a
+॰ port and not a copy. Every character concerned is three octets: २२४,
+॰ then १६४ or १६५, then the low six bits. ० U+0966 … ९ U+096F are second
+॰ १६५, third १६६ … १७५; अ U+0905 … ऊ U+090A are ten to fifteen and are
+॰ second १६४, third १३३ … १३८.
+सार्वजनिक वृत्तिः अङ्कमूल्यम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ स्थानम् ॱॱ अ६४ ऽ मूलम् ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् पाठ ॱ दैर्घ्य आदि
+        प्रत्यागमनम् ९९ ।
+    इति
+
+    यदि पाठ अङ्कः स्थानम् अन्तः असमम् २२४ आदि
+        प्रत्यागमनम् ९९ ।
+    इति
+
+    चरः द्वितीयम् ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थानम् योगः १ समाप्तम् अन्तः ।
+    चरः तृतीयम् ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थानम् योगः २ समाप्तम् अन्तः ।
+    चरः मूल्यम् ॱॱ अ६४ भवति ९९ ।
+
+    ॰ ० … ९ — U+0966 … U+096F.
+    यदि द्वितीयम् समम् १६५ आदि
+        यदि तृतीयम् अधिकम् १६५ आदि
+            यदि तृतीयम् न्यूनम् १७६ आदि
+                मूल्यम् भवति आरभ्य तृतीयम् वियोगः १६६ समाप्तम् ।
+            इति
+        इति
+    इति
+
+    ॰ अ आ इ ई उ ऊ — ten to fifteen, U+0905 … U+090A.
+    यदि द्वितीयम् समम् १६४ आदि
+        यदि तृतीयम् अधिकम् १३२ आदि
+            यदि तृतीयम् न्यूनम् १३९ आदि
+                मूल्यम् भवति आरभ्य तृतीयम् वियोगः १२३ समाप्तम् ।
+            इति
+        इति
+    इति
+
+    ॰ ९९ is below no radix, so a character that matched neither range
+    ॰ falls out here unchanged.
+    यदि मूल्यम् न्यूनम् मूलम् आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    प्रत्यागमनम् ९९ ।
+इति
+
+
+॰ ══════════════════ numeral::split_sign ══════════════════
+॰ ऋण is doc 15's negative operator and Brahmagupta's own word. It is two
+॰ LETTERS, so unlike the radix prefixes it IS an ADR-0017 literal and
+॰ needs no code points. Rust returns (bool, &str) and T1 has no tuple, so
+॰ it is these two routines over one slice.
+
+सार्वजनिक वृत्तिः ऋणचिह्नम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    चरः ऋणपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् ऋण इति ।
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति ऋणपाठः ॱ दैर्घ्य ।
+    यदि आरभ्य आरम्भः योगः दैर्घ्यम् समाप्तम् अधिकम् सीमा आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः स्थानम् ॱॱ अ६४ भवति ० ।
+    यावत् स्थानम् न्यूनम् दैर्घ्यम् आदि
+        यदि पाठ अङ्कः आरभ्य आरम्भः योगः स्थानम् समाप्तम् अन्तः असमम् ऋणपाठः अङ्कः स्थानम् अन्तः आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        स्थानम् भवति आरभ्य स्थानम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ where the magnitude begins — the second half of split_sign.
+सार्वजनिक वृत्तिः सङ्ख्यारम्भः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि ऋणचिह्नम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        चरः ऋणपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् ऋण इति ।
+        प्रत्यागमनम् आरभ्य आरम्भः योगः ऋणपाठः ॱ दैर्घ्य समाप्तम् ।
+    इति
+    प्रत्यागमनम् आरम्भः ।
+इति
+
+
+॰ ══════════════════ numeral::classify ══════════════════
+॰ Rust returns Option<(Radix, &str)>: no tuple here either, so the radix
+॰ and the offset of the digits are two routines. The radix is its own
+॰ number — २, ८, १० and १६ are what Radix's discriminants ARE — and ० is
+॰ None, which is sound because no radix is zero.
+॰
+॰ THE SIGN IS SPLIT FIRST AND THE PREFIX SEARCHED AFTER, because ऋण sits
+॰ OUTSIDE the radix prefix: ऋण०षोड्ऊ is negative fifteen, read in the
+॰ order it is said. And the three prefixes are tried BEFORE the bare-digit
+॰ case, because every one of them begins with ० and ० is itself a digit —
+॰ reversing the two would read ०द्वि१ as decimal zero.
+
+सार्वजनिक वृत्तिः सङ्ख्यामूलम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+
+    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ १६ समाप्तम् आदि
+        प्रत्यागमनम् १६ ।
+    इति
+    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ २ समाप्तम् आदि
+        प्रत्यागमनम् २ ।
+    इति
+    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ ८ समाप्तम् आदि
+        प्रत्यागमनम् ८ ।
+    इति
+
+    ॰ Rust's `token.chars().next().filter(is_devanagari_digit)`. In radix
+    ॰ ten अ … ऊ answer ९९, so this is that predicate and not a wider one.
+    यदि स्थानम् समम् सीमा आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि अङ्कमूल्यम् आरभ्य पाठ ऽ स्थानम् ऽ १० समाप्तम् न्यूनम् १० आदि
+        प्रत्यागमनम् १० ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ where the digits themselves begin — classify's second half. Decimal
+॰ keeps its digits; the other three are named by a prefix and the digits
+॰ begin after it. All three prefixes are five akṣaras, so one length does.
+सार्वजनिक वृत्तिः सङ्ख्याङ्कारम्भः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    यदि मूलम् समम् १० आदि
+        प्रत्यागमनम् स्थानम् ।
+    इति
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् स्थानम् ।
+    इति
+    प्रत्यागमनम् आरभ्य स्थानम् योगः १५ समाप्तम् ।
+इति
+
+॰ numeral::value's Err — a ऋण reaches this reader as अङ्कचिह्नदोषः,
+॰ because a magnitude has nowhere to put a sign.
+वृत्तिः मूलसीमापदम् आदाय मूलम् ॱॱ अ६४ ददाति अ६४ आदि
+    ॰ ⌊(२^६४−१) / मूलम्⌋ for the four bases सङ्ख्यामूलम् answers — every value below २^६३
+    यदि मूलम् समम् २ आदि प्रत्यागमनम् ९२२३३७२०३६८५४७७५८०७ । इति
+    यदि मूलम् समम् ८ आदि प्रत्यागमनम् २३०५८४३००९२१३६९३९५१ । इति
+    यदि मूलम् समम् १६ आदि प्रत्यागमनम् ११५२९२१५०४६०६८४६९७५ । इति
+    प्रत्यागमनम् १८४४६७४४०७३७०९५५१६१ ।
+इति
+वृत्तिः मूलसीमांशः आदाय मूलम् ॱॱ अ६४ ददाति अ६४ आदि
+    ॰ (२^६४−१) mod मूलम्
+    यदि मूलम् समम् २ आदि प्रत्यागमनम् १ । इति
+    यदि मूलम् समम् ८ आदि प्रत्यागमनम् ७ । इति
+    यदि मूलम् समम् १६ आदि प्रत्यागमनम् १५ । इति
+    प्रत्यागमनम् ५ ।
+इति
+सार्वजनिक वृत्तिः मानदोषः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि
+    ॰ value() splits the sign FIRST and refuses a negative outright.
+    यदि ऋणचिह्नम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        प्रत्यागमनम् अङ्कचिह्नदोषः ।
+    इति
+
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् अङ्करूपदोषः ।
+    इति
+
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    ॰ a prefix with no digits after it is NoDigits, not zero.
+    यदि स्थानम् समम् सीमा आदि
+        प्रत्यागमनम् अङ्करूपदोषः ।
+    इति
+
+    ॰ THE OVERFLOW GUARD NEVER TOUCHES A WORD ABOVE २^६३ (2026-09-14). It read
+    ॰ `पदम् अधिकम् (२^६४−१ वियोगः अङ्कः) विभाजनम् मूलम्` — exact in the interpreter's
+    ॰ i128, but the compiled compiler lowers compare and divide SIGNED (the corpus
+    ॰ keeps negative sentinels in अ६४ and compares them below ०, so unsigned kinds
+    ॰ everywhere emptied every native compile), and a signed २^६४−१ is −१: the
+    ॰ guard fired on every second digit, and every multi-digit numeral in every
+    ॰ source compiled natively became ० (the fixpoint's lex rung, octet 11387).
+    ॰ Now the per-base limit ⌊(२^६४−१)/मूलम्⌋ and its remainder are constants
+    ॰ below २^६३, so the signed and the exact comparison agree while पदम् is
+    ॰ below २^६३; an accumulator at or above २^६३ reads negative natively and
+    ॰ `पदम् न्यूनम् ०` catches it there (never true in the interpreter, where the
+    ॰ limit test catches the same case). Both readings agree on every input.
+    चरः सीमापदम् ॱॱ अ६४ भवति मूलसीमापदम् मूलम् ।
+    चरः सीमांशः ॱॱ अ६४ भवति मूलसीमांशः मूलम् ।
+    चरः पदम् ॱॱ अ६४ भवति ० ।
+
+    यावत् स्थानम् न्यूनम् सीमा आदि
+        ॰ अङ्कमूल्यम् bounds itself by the WHOLE text, as Rust's digit_value
+        ॰ takes a char and not a slice; the token ends at सीमा, so a trailing
+        ॰ partial character is refused here rather than read past the end.
+        यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् सीमा आदि
+            प्रत्यागमनम् अङ्करूपदोषः ।
+        इति
+        चरः अङ्कमानम् ॱॱ अ६४ भवति अङ्कमूल्यम् आरभ्य पाठ ऽ स्थानम् ऽ मूलम् समाप्तम् ।
+        यदि अङ्कमानम् समम् ९९ आदि
+            प्रत्यागमनम् अङ्करूपदोषः ।
+        इति
+        ॰ Rust's checked_mul then checked_add, asked BEFORE the multiply rather
+        ॰ than after it, in three signed-safe tests (see the margin above the loop).
+        यदि पदम् न्यूनम् ० आदि
+            प्रत्यागमनम् अङ्कातिमानदोषः ।
+        इति
+        यदि पदम् अधिकम् सीमापदम् आदि
+            प्रत्यागमनम् अङ्कातिमानदोषः ।
+        इति
+        यदि पदम् समम् सीमापदम् आदि
+            यदि अङ्कमानम् अधिकम् सीमांशः आदि
+                प्रत्यागमनम् अङ्कातिमानदोषः ।
+            इति
+        इति
+        पदम् भवति आरभ्य आरभ्य पदम् गुणनम् मूलम् समाप्तम् योगः अङ्कमानम् समाप्तम् ।
+        स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् अङ्कनिर्दोषः ।
+इति
+
+॰ numeral::value's Ok — the MAGNITUDE, ० to १८४४६७४४०७३७०९५५१६१५.
+॰ Read only after मानदोषः has answered ०; it answers ० for anything
+॰ else, which is a value and not a claim.
+सार्वजनिक वृत्तिः मानम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि
+    यदि मानदोषः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् असमम् अङ्कनिर्दोषः आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः पदम् ॱॱ अ६४ भवति ० ।
+
+    यावत् स्थानम् न्यूनम् सीमा आदि
+        चरः अङ्कमानम् ॱॱ अ६४ भवति अङ्कमूल्यम् आरभ्य पाठ ऽ स्थानम् ऽ मूलम् समाप्तम् ।
+        पदम् भवति आरभ्य आरभ्य पदम् गुणनम् मूलम् समाप्तम् योगः अङ्कमानम् समाप्तम् ।
+        स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति
+
+॰ numeral::bits's Err — ऋण is honoured here, so अङ्कचिह्नदोषः never
+॰ arises and a ऋण magnitude past २^६३ is अङ्कातिमानदोषः instead.
+सार्वजनिक वृत्तिः अंशदोषः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि
+    ॰ bits() reads the MAGNITUDE of the bare text — `value(bare)?` — and
+    ॰ bare carries no ऋण, so अङ्कचिह्नदोषः cannot come back from here.
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः मानस्थितिः ॱॱ अ६४ भवति मानदोषः आरभ्य पाठ ऽ स्थानम् ऽ सीमा समाप्तम् ।
+    यदि मानस्थितिः असमम् अङ्कनिर्दोषः आदि
+        प्रत्यागमनम् मानस्थितिः ।
+    इति
+
+    यदि ऋणचिह्नम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        ॰ २^६३ is representable and २^६३ + १ is not: the negative range
+        ॰ reaches one further than the positive one, and −९२२३३७२०३६८५४७७५८०८
+        ॰ is the last magnitude 64 bits hold.
+        ॰ a magnitude above २^६३, tested without comparing against २^६३ itself,
+        ॰ which reads negative to the signed lowering (see मानदोषः): interpreted, a
+        ॰ magnitude above २^६३−१ that is not २^६३; natively, a negative word that is
+        ॰ not the २^६३ pattern. Each side's other test is a no-op.
+        चरः परिमाणम् ॱॱ अ६४ भवति मानम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा समाप्तम् ।
+        यदि परिमाणम् अधिकम् ९२२३३७२०३६८५४७७५८०७ आदि
+            यदि परिमाणम् असमम् ९२२३३७२०३६८५४७७५८०८ आदि
+                प्रत्यागमनम् अङ्कातिमानदोषः ।
+            इति
+        इति
+        यदि परिमाणम् न्यूनम् ० आदि
+            यदि परिमाणम् असमम् ९२२३३७२०३६८५४७७५८०८ आदि
+                प्रत्यागमनम् अङ्कातिमानदोषः ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् अङ्कनिर्दोषः ।
+इति
+
+॰ numeral::bits's Ok — the sixty-four BITS, ऋण read as two's complement.
+सार्वजनिक वृत्तिः अंशाः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि
+    यदि अंशदोषः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् असमम् अङ्कनिर्दोषः आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः पदम् ॱॱ अ६४ भवति मानम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा समाप्तम् ।
+
+    यदि ऋणचिह्नम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        ॰ Rust's `wrapping_neg`, which IS two's complement and is the only
+        ॰ form that reaches i64::MIN — negating through i64 would overflow
+        ॰ there, which is how ऋण followed by २^६३ used to come out one
+        ॰ short. Written as (चरमम् − पदम्) + १ so that no step leaves the
+        ॰ range: negating ० is the one magnitude for which that WOULD, and
+        ॰ ऋण० is ० and is answered before the arithmetic runs.
+        यदि पदम् समम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        चरः चरमम् ॱॱ अ६४ भवति १८४४६७४४०७३७०९५५१६१५ ।
+        प्रत्यागमनम् आरभ्य आरभ्य चरमम् वियोगः पदम् समाप्तम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति

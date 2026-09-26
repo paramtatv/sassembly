@@ -1,0 +1,3734 @@
+मण्डलम् वाक्यविभाग ॥ ॰ vakyavibhaga — the port of crates/sadhana/src/parse.rs
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE SASSEMBLY INSTRUCTION READER, task D-002f1, doc 03 §8.
+॰
+॰ It takes what पदविभाग lexed — चिह्नककोश, one चिह्नक per token — and
+॰ turns a daṇḍa-terminated sentence into an आज्ञा, a ॱॱ into a चिह्न, and
+॰ a ॥ … ॥ into whatever its निर्देश means, filling a कार्यक्रम that
+॰ सङ्केतन (D-002a) turns into an image.
+॰
+॰ ── ADR-0030 REMEDIATION, TASK `D-002h` — THIS FILE IS THE LAST ──
+॰ Every other source in crates/sadhana-t1/src/ is remediated; encode.t1
+॰ closed on the cycle before this one after thirteen bounded parts. This
+॰ file arrived at 487 अ६४ and NOT ONE न६४, and it is taken in parts for
+॰ the same reason encode.t1 was: each site's spelling is read off its
+॰ twin in crates/sadhana/src/parse.rs, not guessed from its neighbour.
+॰
+॰ THE PART TAKEN FIRST IS THE LINE NUMBER — 14 sites, all fourteen
+॰ moving, all fourteen visible to the census: पङ्क्ति in आज्ञा, दत्तम्,
+॰ चिह्न, वाक्य and वाक्यदोष, रिक्तपङ्क्ति in कार्यक्रम, the same
+॰ parameter in all five *योजनम् appenders, the module-level
+॰ रिक्तपङ्क्तिः, वैश्विकपङ्क्तिः's answer and the binding filled from
+॰ it. 487/0 -> 473/14; corpus ledger 550/0/828 -> 536/0/842, sum 1378.
+॰
+॰ ITS READING WAS MADE THREE FILES AGO AND ONLY THE SITES ARE NEW.
+॰ parse.rs declares line: usize five times and bss_line: usize once;
+॰ lex.t1 spells Token::line न६४, parse.t1 spells ParseError::line न६४,
+॰ encode.t1 spells सङ्केतनदोष ॱ पङ्क्ति न६४. EIGHT call sites here were
+॰ already handing a पदविभागॱचिह्नक ॱ पङ्क्ति — an न६४ — into an अ६४
+॰ parameter, so this was a live cross-file disagreement and not a tidy-up.
+॰
+॰ WHAT WAS READ AND LEFT: जालपङ्क्तिः and जालपाठः's पङ्क्तिः. Same name,
+॰ different quantity — a ROW INDEX into the ADR-0019 table this file's
+॰ own prose says is unreachable until जालकोशः gets a registry row. It
+॰ has no twin to read, so it waits for the cycle that ports the table.
+॰
+॰ THE HANDLE FOR THE NEXT UNIT: पङ्क्तिसीमा's three consumers. सीमा is
+॰ bound at अ६४ from it in जालपङ्क्तिः and in both संरेख walkers, while
+॰ samyojana.t1 binds the same call at न६४ — a producer-moved-consumer-
+॰ did-not with a cross-FILE precedent to read it against.
+॰
+॰ ── WHY THIS FILE DID NOT EXIST ──
+॰ For a week the D-002 chain called its second blocker "B-109/parse.t1".
+॰ That was FALSE and D-002a2 measured it false. crates/sadhana-t1/src/
+॰ parse.t1 is मण्डलम् व्याकर, the T1 LANGUAGE parser — घोषणा,
+॰ व्याकरदोष — and it is a port of crates/sadhana/src/t1/parse.rs. The
+॰ Sassembly instruction reader, crates/sadhana/src/parse.rs, 1422 lines,
+॰ had never been ported at all. Two files named parse and one of them
+॰ absent is exactly how a whole module goes missing for a week.
+॰
+॰ ── ON THE NAME आज्ञा — THERE ARE NOW TWO, AND THAT IS DELIBERATE ──
+॰ मध्यरूपॱआज्ञा is the IR instruction, the port of t1/ir.rs's Instruction:
+॰ a tag, a value it defines, and operands that are मूल्याङ्क. वाक्यविभागॱ
+॰ आज्ञा is THIS one, the port of parse.rs's Instruction: a registry family,
+॰ a व्याप्ति, the type names written after the mnemonic, and कारक-marked
+॰ operands. They are different records of different things and neither is
+॰ convertible to the other without उत्सर्जन in between. आज्ञा is the
+॰ attested word for instruction (spec/lexicon.src.tsv) and both earn it;
+॰ the मण्डलम् is what tells them apart, so every reference outside this
+॰ file must be written वाक्यविभागॱआज्ञा and never bare.
+॰
+॰ ── ON THE MODULE NAME ── पदविभाग is "word division" and is the lexer.
+॰ वाक्यविभाग is "sentence division" and is this: T0's statement IS a
+॰ sentence (doc 02 §2.2, ADR-0004 — a verb and its kāraka-marked operands,
+॰ ending in ।), and what parse.rs does at top level is divide the token
+॰ stream into them. व्याकर, the obvious word, is spent on the T1 parser.
+॰
+॰ ── ON THE NAMES ── attested words from spec/lexicon.src.tsv wherever the
+॰ lexicon has one: आज्ञा instruction, कारक operand-role, चिह्न label,
+॰ कोष्ठकम् section, निर्देश directive, संज्ञा mnemonic, वैश्विकम् global,
+॰ अष्टक byte, नाम name, मूल्य value, संख्यानम् count, स्थान address.
+॰ व्याप्ति for Width is parse.rs's own word for it ("Operand width —
+॰ व्याप्ति, extent") and is what diagnostic P23 says out loud, so it is
+॰ taken from the original rather than coined. कार्यक्रम for Program is
+॰ the spelling सङ्केतन already uses in कार्यक्रमसङ्केतनम्.
+॰
+॰ ── ON GROUPING ── spec/grammar-t1.ebnf freezes आरभ्य ॱ समाप्तम्,
+॰ आदि ॱ इति and अङ्कः ॱ अन्तः and says out loud that OPERATORS AND THEIR
+॰ PRECEDENCE ARE NOT FROZEN. Every order-dependent expression below is
+॰ bracketed, as मध्यरूप and संयोजन both do, so the file means one thing
+॰ under either eventual rule.
+॰
+॰ ── ON THE ARENAS ── Rust's Program holds six Vec. T1 has no growable
+॰ collection, so this file adopts the convention व्याकर opened and मध्यरूप
+॰ followed and invents nothing: a preallocated कोश, a module-level
+॰ सूचकाङ्क that the appending routine advances BEFORE it writes, and a
+॰ (first index, count) pair in the record that owns the run. ० is never a
+॰ live entry and therefore means ABSENT — so Rust's Option<T> is a ० here,
+॰ and Section's #[derive(Default)] = Text is NOT free: आरम्भः sets the
+॰ current कोष्ठक to पाठकोष्ठकभेद explicitly, because ० would otherwise mean
+॰ "no section" where Rust means "the text section".
+॰
+॰ ── ON RANGES ── T1 indexes one element (अङ्कः ॱ अन्तः) and has no
+॰ sub-slice expression, so a routine that Rust gives a &str is given a
+॰ slice plus two indices here. That is why अङ्कव्याप्तिः takes आरम्भ and
+॰ सीमा rather than the digits themselves.
+॰
+॰ ── ON COMPARING TEXT ── two techniques, and the choice is not stylistic.
+॰ A whole word is compared with an ADR-0017 literal (उक्तम् पाठ इति),
+॰ which is what व्याकरॱमेलनम् does. A DIGIT is compared as its bytes,
+॰ because the frozen string production is string = string_open ,
+॰ { aksara_word | … } and ८ is a numeral, not an akṣara word — so
+॰ उक्तम् ८ इति is outside the grammar even though today's lexer would
+॰ take it. पदविभागॱविभज already compares a sigil as bytes; this is that.
+॰
+॰ ── WHAT IS IN THIS FILE, ROW BY ROW ── D-002f1 was the RECORDS and the
+॰ routines that need nothing but them, and it READ NO TOKEN. D-002f3
+॰ landed the statement splitter, वाक्यविभाजनम्. D-002f5 landed the
+॰ directive reader's first half, निर्देशानुष्ठानम् and its four arms. The
+॰ sentence reader (D-002f4) and the directives that emit bytes (D-002f6,
+॰ D-002f7) are still to come, and (b) at the foot says so exactly. The
+॰ tests the_t0_reader_reports_whether_it_reads_any_token and
+॰ the_directive_reader_applies_the_directives_that_emit_no_bytes exist so
+॰ that a full symbol table and a full count of real bodies cannot be
+॰ mistaken for a working reader — both were pinned at ० and both moved
+॰ only when something was actually read. The two registry readers
+॰ (families, directives) are blocked and named at the foot of this file.
+॰ ══════════════════════════════════════════════════════════════════════
+
+आयातः पदविभाग ।
+
+॰ FOR THE TSV ROW-WALK HELPERS — `पङ्क्तिसीमा`, `उपेक्ष्यपङ्क्तिः`,
+॰ `क्षेत्रसंख्या`, `क्षेत्रारम्भः`, `क्षेत्रसीमा`. This file ALREADY called them
+॰ qualified at `:3206` and had no import for them, and `जालपङ्क्तिः` called the
+॰ same five UNQUALIFIED — one file, one row walk, written two ways, and neither
+॰ resolvable. `अर्थ` reports only its first refusal, so the unqualified copy
+॰ masked the missing import behind it for as long as it stood.
+॰
+॰ THE CYCLE THIS COMPLETES ALREADY EXISTED: `सङ्केतन` imports `निदान`
+॰ (encode.t1:26) and `निदान` imports `सङ्केतन` (nidana.t1:99). Mutual imports
+॰ are the corpus's existing practice, not something introduced here.
+आयातः सङ्केतन ।
+
+॰ FOR THE EIGHT `अक्षरकोशॱ` CALLS AT `:3180`–`:3208` — `W-204`, 2026-09-04.
+॰ Called qualified, never imported, and unseen by `अर्थ` because all eight
+॰ sit inside one `अन्यथा` block and the resolver read a यदि's condition and
+॰ then-body only (W-202 is the else-walk; W-204 met the same sites while
+॰ making the IR refuse a callee with no symbol). The interpreter had reached
+॰ across regardless, so nothing ran differently, and nothing said so — except
+॰ `t1_modules.rs`, whose REACHED_WITHOUT_IMPORTING row carried these eight
+॰ lines; that row is removed in the same commit, as its margin instructs.
+आयातः अक्षरकोश ।
+
+॰ W-239 (2026-09-04): THE OCTET ARENA — the store this file's own ASCII margin
+॰ promised at (e) and the foot never wrote. `अष्टकसञ्चयः` and its two appenders
+॰ were declared here for the width directives; they are now the module `अष्टक`
+॰ (ashtaka.t1), completed with a text append, a range out, and a refusal.
+॰ A datum's `अष्टकाः` is a range of that one arena.
+आयातः अष्टक ।
+
+
+॰ ══════════════════ sections ══════════════════
+॰ enum Section. ० is not a section: it means ABSENT, so आरम्भः must set
+॰ the current one rather than inherit Rust's #[derive(Default)].
+
+सार्वजनिक चरः पाठकोष्ठकभेद ॱॱ अ६४ भवति १ ।    ॰ Section::Text  — ॱपाठ
+सार्वजनिक चरः दत्तकोष्ठकभेद ॱॱ अ६४ भवति २ ।    ॰ Section::Data  — ॱदत्त
+सार्वजनिक चरः रिक्तकोष्ठकभेद ॱॱ अ६४ भवति ३ ।   ॰ Section::Bss   — ॱरिक्त
+
+
+॰ ══════════════════ operand widths ══════════════════
+॰ enum Width. The suffix ॱअ३२ selects among the encodings one family
+॰ covers (R-02-2); W64 is what a bare mnemonic means.
+
+सार्वजनिक चरः अष्टकव्याप्तिभेद ॱॱ अ६४ भवति १ ।       ॰ Width::W8
+सार्वजनिक चरः षोडशव्याप्तिभेद ॱॱ अ६४ भवति २ ।        ॰ Width::W16
+सार्वजनिक चरः द्वात्रिंशव्याप्तिभेद ॱॱ अ६४ भवति ३ ।  ॰ Width::W32
+सार्वजनिक चरः चतुःषष्टिव्याप्तिभेद ॱॱ अ६४ भवति ४ ।   ॰ Width::W64
+
+
+॰ ══════════════════ statement kinds ══════════════════
+॰ enum StatementKind. A comment is absent here exactly as it is in Rust:
+॰ पदविभाग strips from ॰ to end of line before this module is reached
+॰ (B-067), so it is not a statement anything here can see.
+
+सार्वजनिक चरः आज्ञावाक्यभेद ॱॱ अ६४ भवति १ ।      ॰ StatementKind::Instruction
+सार्वजनिक चरः चिह्नवाक्यभेद ॱॱ अ६४ भवति २ ।      ॰ StatementKind::Label
+सार्वजनिक चरः निर्देशवाक्यभेद ॱॱ अ६४ भवति ३ ।    ॰ StatementKind::Directive
+
+
+॰ ══════════════════ one piece of text ══════════════════
+॰ Rust writes Vec<String> three times — Family::covers, Program::globals
+॰ and ParseError::args. T1 has no growable collection and no arena of
+॰ slices, so each of the three is a RUN in one text arena, named by the
+॰ (first index, count) pair in the record that owns it. One arena and not
+॰ three because the runs are written contiguously by one appender and a
+॰ second convention would have to be justified; मध्यरूप makes the same
+॰ move for Rust's Vec<(ValueId, Instruction)>.
+
+सार्वजनिक संरचना पाठांश आरभ्य
+    पाठ ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ the text this piece lies IN
+    आरम्भ ॱॱ अ६४ ऽ                  ॰ first octet of the piece
+    सीमा ॱॱ अ६४                     ॰ one past its last
+समाप्तम् ।
+
+
+॰ ══════════════════ one registry row ══════════════════
+॰ struct Family, one row of spec/mnemonics-riscv64.src.tsv. R-02-1 says
+॰ the ISA surface IS that file, so this record is the whole of what an
+॰ instruction may be — and see (a) at the foot: nothing fills it yet.
+
+सार्वजनिक संरचना संज्ञाकुल आरभ्य
+    कूट ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ key — the Latin family key, e.g. add
+    नाम ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ name — the Devanagari mnemonic
+    व्याख्या ॱॱ अङ्कः अन्तः अ८ ऽ     ॰ gloss
+    विस्तारः ॱॱ अङ्कः अन्तः अ८ ऽ     ॰ ext — I, M, A, FD, Zicsr, Zifencei
+    आवरणारम्भ ॱॱ अ६४ ऽ              ॰ covers: first index into पाठांशकोश
+    आवरणसंख्यान ॱॱ अ६४              ॰ covers: how many
+समाप्तम् ।
+
+
+॰ ══════════════════ one operand ══════════════════
+॰ struct Operand. कारक is the ROLE and is पदविभागॱविभज's answer — 1 कर्म,
+॰ 2 करण, 3 अपादान, 4 सम्प्रदान, 5 अधिकरण, ० none — so this file does not
+॰ restate the sigil table the lexer already owns.
+॰
+॰ NOTE FOR D-002f4: पदविभागॱचिह्नक carries भेद, पाठ, अष्टक, अक्षर and
+॰ पङ्क्ति and NOT Rust's Kind::Operand { base, karaka }. The T1 token has
+॰ no operand payload, so the reader that fills this record must call
+॰ पदविभागॱविभज for the role and take the base by length. That is a
+॰ finding about lex.t1, recorded here where it will be needed rather than
+॰ discovered again.
+
+सार्वजनिक संरचना कारकपद आरभ्य
+    मूलपाठ ॱॱ अङ्कः अन्तः अ८ ऽ      ॰ base — the text with the sigil removed
+    कारक ॱॱ अ६४ ऽ                   ॰ karaka — पदविभाग's role number
+    सङ्ख्यात्व ॱॱ बूल                ॰ is_numeral
+समाप्तम् ।
+
+
+॰ ══════════════════ one instruction ══════════════════
+॰ struct Instruction. Rust's types: Vec<String> is at most TWO — one
+॰ व्याप्ति for an ordinary instruction, two for a conversion (B-075) —
+॰ so it is two fields and a count rather than an arena run. That is not
+॰ the arena convention being abandoned; it is the Vec having a bound the
+॰ Rust type does not write down but parse_statement enforces with P08.
+
+सार्वजनिक संरचना आज्ञा आरभ्य
+    कुल ॱॱ संज्ञाकुल ऽ              ॰ family — the registry row it resolved to
+    व्याप्ति ॱॱ अ६४ ऽ               ॰ width — चतुःषष्टिव्याप्तिभेद by default
+    प्रथमप्रकार ॱॱ अङ्कः अन्तः अ८ ऽ  ॰ types[0] — what it WRITES
+    द्वितीयप्रकार ॱॱ अङ्कः अन्तः अ८ ऽ ॰ types[1] — what a conversion READS
+    प्रकारसंख्यान ॱॱ अ६४ ऽ          ॰ types.len() — 0, 1 or 2
+    कारकारम्भ ॱॱ अ६४ ऽ              ॰ operands: first index into कारकपदकोश
+    कारकसंख्यान ॱॱ अ६४ ऽ            ॰ operands: how many
+    पङ्क्ति ॱॱ न६४                  ॰ line
+समाप्तम् ।
+
+
+॰ ══════════════════ an address a datum names ══════════════════
+॰ Rust's (usize, String) in Datum::addresses — ADR-0013. A datum stops
+॰ being complete when it is parsed: eight bytes are reserved and left
+॰ zero, and संयोजन fills them once every label has an address.
+
+सार्वजनिक संरचना स्थाननिर्देश आरभ्य
+    सरण ॱॱ अ६४ ऽ                    ॰ byte offset into the datum's bytes
+    नाम ॱॱ अङ्कः अन्तः अ८           ॰ the label whose address goes there
+समाप्तम् ।
+
+
+॰ ══════════════════ bytes a directive emitted ══════════════════
+॰ struct Datum.
+
+सार्वजनिक संरचना दत्तम् आरभ्य
+    कोष्ठक ॱॱ अ६४ ऽ                 ॰ section
+    अष्टकाः ॱॱ अङ्कः अन्तः अ८ ऽ      ॰ bytes, little-endian, already widened
+    स्थानारम्भ ॱॱ अ६४ ऽ             ॰ addresses: first index
+    स्थानसंख्यान ॱॱ अ६४ ऽ           ॰ addresses: how many
+    पङ्क्ति ॱॱ न६४                  ॰ line
+समाप्तम् ।
+
+
+॰ ══════════════════ a label definition ══════════════════
+॰ struct Label. आज्ञाक्रम is an instruction INDEX and not an address:
+॰ addresses belong to सङ्केतन, the only part that knows how many bytes an
+॰ instruction takes, and B-007's relaxation fixpoint is exactly that
+॰ answer changing as compressed forms are chosen.
+
+सार्वजनिक संरचना चिह्न आरभ्य
+    नाम ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ the source the name lies IN
+    नामारम्भ ॱॱ अ६४ ऽ               ॰ name: first octet, without the ॱॱ
+    नामसीमा ॱॱ अ६४ ऽ                ॰ name: one past its last
+    कोष्ठक ॱॱ अ६४ ऽ                 ॰ section it names a place in
+    दत्तसरण ॱॱ अ६४ ऽ                ॰ data_offset — bytes into that section
+    आज्ञाक्रम ॱॱ अ६४ ऽ              ॰ at — index of the instruction it marks
+    पङ्क्ति ॱॱ न६४                  ॰ line
+समाप्तम् ।
+
+
+॰ ══════════════════ one statement, in written order ══════════════════
+॰ struct Statement — the file's SHAPE rather than its content, which is
+॰ what a second parser is checked against (B-034a). Three directives mean
+॰ nothing storable — कोष्ठकम् changes a section, वैश्विकम् pushes a name,
+॰ स्थानीयम् does nothing at all — so without this record a parser could
+॰ drop all three unseen.
+
+सार्वजनिक संरचना वाक्य आरभ्य
+    भेद ॱॱ अ६४ ऽ                    ॰ kind — one of the three above
+    पङ्क्ति ॱॱ न६४ ऽ                ॰ line
+    नाम ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ the source the first word lies IN
+    नामारम्भ ॱॱ अ६४ ऽ               ॰ the first word: first octet
+    नामसीमा ॱॱ अ६४                  ॰ the first word: one past its last
+समाप्तम् ।
+
+
+॰ ══════════════════ an alignment request in ॱपाठ ══════════════════
+॰ Rust's (usize, usize) in Program::text_aligns. W-071: alignment in a
+॰ text section cannot be resolved while parsing, for the same reason a
+॰ branch's width cannot, so the REQUEST is recorded and स्थानविन्यासः
+॰ satisfies it.
+
+सार्वजनिक संरचना संरेख आरभ्य
+    आज्ञाक्रम ॱॱ अ६४ ऽ              ॰ the instruction the padding sits before
+    सीमा ॱॱ अ६४                     ॰ the boundary n
+समाप्तम् ।
+
+
+॰ ══════════════════ one directive of the registry ══════════════════
+॰ struct DirectiveKind, one row of spec/directives.tsv — and see (a).
+॰
+॰ EACH OF THE THREE GAINED A RANGE IN D-002f5, and for the reason D-002f3
+॰ gave when वाक्य ॱ नाम, चिह्न ॱ नाम and पाठांश ॱ पाठ gained theirs: a row
+॰ of a table is a RANGE IN THE EMBEDDED FILE and T1 has no sub-slice
+॰ expression, so a bare अङ्कः अन्तः अ८ per column is a field the registry
+॰ reader could never fill. Written as three columns of whole text this
+॰ record was unfillable and therefore P13 and P14 were unreachable —
+॰ निर्देशान्वेषणम् below compares against नामारम्भ ॱ नामसीमा and
+॰ असमर्थितनिर्देशः reads यवनारम्भ ॱ यवनसीमा for P14's second argument. It
+॰ is an EXTENSION and not an alteration: no field lost a name or a type.
+
+सार्वजनिक संरचना निर्देश आरभ्य
+    नाम ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ the text the Devanagari name lies IN
+    नामारम्भ ॱॱ अ६४ ऽ               ॰ name: first octet
+    नामसीमा ॱॱ अ६४ ऽ                ॰ name: one past its last
+    यवननाम ॱॱ अङ्कः अन्तः अ८ ऽ      ॰ gas — what another assembler calls it
+    यवनारम्भ ॱॱ अ६४ ऽ               ॰ gas: first octet
+    यवनसीमा ॱॱ अ६४ ऽ                ॰ gas: one past its last
+    स्थिति ॱॱ अङ्कः अन्तः अ८ ऽ       ॰ status — live or planned
+    स्थित्यारम्भ ॱॱ अ६४ ऽ            ॰ status: first octet
+    स्थितिसीमा ॱॱ अ६४               ॰ status: one past its last
+समाप्तम् ।
+
+
+॰ ══════════════════ a parsed program ══════════════════
+॰ struct Program. Every Vec is a run: first index and count.
+
+सार्वजनिक संरचना कार्यक्रम आरभ्य
+    आज्ञारम्भ ॱॱ अ६४ ऽ              ॰ instructions: first index
+    आज्ञासंख्यान ॱॱ अ६४ ऽ           ॰ instructions: how many
+    चिह्नारम्भ ॱॱ अ६४ ऽ             ॰ labels: first index
+    चिह्नसंख्यान ॱॱ अ६४ ऽ           ॰ labels: how many
+    दत्तारम्भ ॱॱ अ६४ ऽ              ॰ data: first index
+    दत्तसंख्यान ॱॱ अ६४ ऽ            ॰ data: how many
+    वैश्विकारम्भ ॱॱ अ६४ ऽ           ॰ globals: first index into पाठांशकोश
+    वैश्विकसंख्यान ॱॱ अ६४ ऽ         ॰ globals: how many
+    रिक्तमान ॱॱ अ६४ ऽ               ॰ bss — bytes reserved in ॱरिक्त
+    संरेखारम्भ ॱॱ अ६४ ऽ             ॰ text_aligns: first index
+    संरेखसंख्यान ॱॱ अ६४ ऽ           ॰ text_aligns: how many
+    वाक्यारम्भ ॱॱ अ६४ ऽ             ॰ statements: first index
+    वाक्यसंख्यान ॱॱ अ६४ ऽ           ॰ statements: how many
+    रिक्तपङ्क्ति ॱॱ न६४             ॰ bss_line — 0 when there is no ॱरिक्त
+समाप्तम् ।
+
+
+॰ ══════════════════ why parsing failed ══════════════════
+॰ struct ParseError. कूट is the diagnostic code from spec/diagnostics.tsv
+॰ — P01, P26, L02 — and a caller asking WHAT went wrong reads it rather
+॰ than the prose, so a test does not pin whichever language the parser was
+॰ built to speak. कारणम् is that prose. Rust's args: Vec<String> is a run
+॰ in पाठांशकोश, in the order the template names them.
+
+सार्वजनिक संरचना वाक्यदोष आरभ्य
+    पङ्क्ति ॱॱ न६४ ऽ                ॰ line
+    अक्षर ॱॱ अ६४ ऽ                  ॰ aksara index into the source
+    कूट ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ code
+    पदार्थारम्भ ॱॱ अ६४ ऽ            ॰ args: first index into पाठांशकोश
+    पदार्थसंख्यान ॱॱ अ६४ ऽ          ॰ args: how many
+    कारणम् ॱॱ अङ्कः अन्तः अ८        ॰ reason
+समाप्तम् ।
+
+
+॰ ══════════════════ the arenas ══════════════════
+॰ Rust's Program owns its Vec; here the state is the module's, as it is in
+॰ व्याकर and मध्यरूप. आरम्भः empties all of it.
+
+सार्वजनिक चरः पाठांशकोश ॱॱ अङ्कः अन्तः पाठांश भवति ० ।
+सार्वजनिक चरः पाठांशसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः संज्ञाकुलकोश ॱॱ अङ्कः अन्तः संज्ञाकुल भवति ० ।
+सार्वजनिक चरः संज्ञाकुलसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः निर्देशकोश ॱॱ अङ्कः अन्तः निर्देश भवति ० ।
+सार्वजनिक चरः निर्देशसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः कारकपदकोश ॱॱ अङ्कः अन्तः कारकपद भवति ० ।
+सार्वजनिक चरः कारकपदसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः वाक्यविभागआज्ञाकोश ॱॱ अङ्कः अन्तः आज्ञा भवति ० ।
+सार्वजनिक चरः वाक्यविभागआज्ञासूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः स्थाननिर्देशकोश ॱॱ अङ्कः अन्तः स्थाननिर्देश भवति ० ।
+सार्वजनिक चरः स्थाननिर्देशसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः दत्तकोश ॱॱ अङ्कः अन्तः दत्तम् भवति ० ।
+सार्वजनिक चरः दत्तसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः चिह्नकोश ॱॱ अङ्कः अन्तः चिह्न भवति ० ।
+सार्वजनिक चरः चिह्नसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः वाक्यविभागवाक्यकोश ॱॱ अङ्कः अन्तः वाक्य भवति ० ।
+सार्वजनिक चरः वाक्यविभागवाक्यसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः संरेखकोश ॱॱ अङ्कः अन्तः संरेख भवति ० ।
+सार्वजनिक चरः संरेखसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः वाक्यविभागदोषकोश ॱॱ अङ्कः अन्तः वाक्यदोष भवति ० ।
+सार्वजनिक चरः वाक्यविभागदोषसूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+॰ the section currently open, and the two Program fields that are counted
+॰ rather than collected. Rust keeps `section` as a local of parse(); here
+॰ it is module state for the same reason व्याकर keeps पठनस्थान module
+॰ state — T1 has no &mut parameter.
+सार्वजनिक चरः वर्तमानकोष्ठक ॱॱ अ६४ भवति १ ।
+सार्वजनिक चरः रिक्तमानम् ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः रिक्तपङ्क्तिः ॱॱ न६४ भवति ० ।
+
+॰ Rust's Program::globals. D-002f1 made this a RUN IN पाठांशकोश, on the
+॰ ground that a global is one piece of text and पाठांशकोश is where a piece
+॰ of text goes — and D-002f5, WRITING THE FIRST GLOBAL, MEASURED THAT TO
+॰ BE WRONG AND GIVES IT ITS OWN ARENA.
+॰
+॰ The reason is that पाठांशकोश is not this run's alone: every diagnostic
+॰ pushes its args there too, and the walk raises diagnostics BETWEEN two
+॰ directives. So `॥ वैश्विकम् क ॥`, then anything that reports (a bare `॥`
+॰ raises P24), then `॥ वैश्विकम् ख ॥` leaves पाठांशकोश holding क, the P24
+॰ argument and ख — three entries — while वैश्विकसंख्यानम् is २. The run
+॰ then names क and the P24 argument, and वैश्विकचिह्नपरीक्षा reports L02
+॰ against a word that was never a global. A run is only a run while ONE
+॰ appender writes the arena; that is the convention's precondition and it
+॰ is stated here because it was found by breaking it, not by reading it.
+॰
+॰ पाठांशयोजनम् is untouched and still Rust's Vec<String> push: Family ॱ
+॰ covers and ParseError ॱ args are both still runs in पाठांशकोश, and both
+॰ ARE written by one appender each within one record's construction.
+सार्वजनिक चरः वैश्विककोश ॱॱ अङ्कः अन्तः पाठांश भवति ० ।
+सार्वजनिक चरः वैश्विकसूचकाङ्क ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः वैश्विकारम्भः ॱॱ अ६४ भवति १ ।
+सार्वजनिक चरः वैश्विकसंख्यानम् ॱॱ अ६४ भवति ० ।
+
+
+॰ ══════════════════ Program::default ══════════════════
+॰ Rust gets an empty Program from #[derive(Default)] and a Text section
+॰ from Section's own. Here both are this routine, and the section is set
+॰ EXPLICITLY: ० means absent everywhere else in this file, so a zeroed
+॰ वर्तमानकोष्ठक would mean "no section open" where Rust means ॱपाठ.
+
+सार्वजनिक वृत्तिः आरम्भः ददाति अ६४ आदि
+    पाठांशसूचकाङ्क भवति ० ।
+    संज्ञाकुलसूचकाङ्क भवति ० ।
+    निर्देशसूचकाङ्क भवति ० ।
+    कारकपदसूचकाङ्क भवति ० ।
+    वाक्यविभागआज्ञासूचकाङ्क भवति ० ।
+    स्थाननिर्देशसूचकाङ्क भवति ० ।
+    दत्तसूचकाङ्क भवति ० ।
+    चिह्नसूचकाङ्क भवति ० ।
+    वाक्यविभागवाक्यसूचकाङ्क भवति ० ।
+    संरेखसूचकाङ्क भवति ० ।
+    वाक्यविभागदोषसूचकाङ्क भवति ० ।
+    ॰ W-239: the octet arena begins with the program, and the diagnostic CODE
+    ॰ TABLES ARE BUILT. Nothing called `आज्ञाकूटरचना` or `अङ्कपाठरचना` before
+    ॰ this line existed, so every P-code a diagnostic carried was the empty
+    ॰ run — `t1_ashtaka.rs` holds the before and the after.
+    चरः अष्टकशून्यम् ॱॱ न६४ भवति अष्टकॱअष्टकारम्भः ।
+    चरः कूटरचना ॱॱ अ६४ भवति आज्ञाकूटरचना ।
+    चरः अङ्करचना ॱॱ अ६४ भवति अङ्कपाठरचना ।
+    वर्तमानकोष्ठक भवति पाठकोष्ठकभेद ।
+    रिक्तमानम् भवति ० ।
+    रिक्तपङ्क्तिः भवति ० ।
+    वैश्विकसूचकाङ्क भवति ० ।
+    वैश्विकारम्भः भवति १ ।
+    वैश्विकसंख्यानम् भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ appending ══════════════════
+॰ Every one of these is a Rust `push`. Written as व्याकर writes
+॰ अभिव्यञ्जकयोजनम्: advance the index, write at it, return it — so the
+॰ number returned is a live entry and ० never is.
+॰
+॰ THE TAG IS THE FIRST PARAMETER WHEREVER A RECORD HAS ONE. That is not
+॰ decoration: मध्यरूप's ir_kinds_built test can see which instruction
+॰ kinds are actually constructed only because the kind is the first
+॰ argument at the call site, and वाक्ययोजनम् is measured the same way by
+॰ the_t0_reader_reports_whether_it_reads_any_token.
+
+॰ push one piece of text — a Family::covers entry, a global, or an arg.
+सार्वजनिक वृत्तिः पाठांशयोजनम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ पाठांश भवति ० ।
+    नव ॱ पाठ भवति पाठ ।
+    नव ॱ आरम्भ भवति आरम्भ ।
+    नव ॱ सीमा भवति सीमा ।
+    पाठांशसूचकाङ्क भवति आरभ्य पाठांशसूचकाङ्क योगः १ समाप्तम् ।
+    पाठांशकोश अङ्कः पाठांशसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् पाठांशसूचकाङ्क ।
+इति
+
+॰ push one global — out.globals.push(name). Its own arena, for the reason
+॰ given at वैश्विककोश. वैश्विकारम्भः is set by the FIRST push rather than
+॰ assumed to be १, so the run stays a run under the file's own convention
+॰ even if something else ever writes वैश्विककोश before this does.
+सार्वजनिक वृत्तिः वैश्विकयोजनम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ पाठांश भवति ० ।
+    नव ॱ पाठ भवति पाठ ।
+    नव ॱ आरम्भ भवति आरम्भ ।
+    नव ॱ सीमा भवति सीमा ।
+    वैश्विकसूचकाङ्क भवति आरभ्य वैश्विकसूचकाङ्क योगः १ समाप्तम् ।
+    वैश्विककोश अङ्कः वैश्विकसूचकाङ्क अन्तः भवति नव ।
+    यदि वैश्विकसंख्यानम् समम् ० आदि
+        वैश्विकारम्भः भवति वैश्विकसूचकाङ्क ।
+    इति
+    वैश्विकसंख्यानम् भवति आरभ्य वैश्विकसंख्यानम् योगः १ समाप्तम् ।
+    प्रत्यागमनम् वैश्विकसूचकाङ्क ।
+इति
+
+॰ push one registry row — families()'s per-row work, for when (a) lifts.
+सार्वजनिक वृत्तिः संज्ञाकुलयोजनम् आदाय कूट ॱॱ अङ्कः अन्तः अ८ ऽ नाम ॱॱ अङ्कः अन्तः अ८ ऽ व्याख्या ॱॱ अङ्कः अन्तः अ८ ऽ विस्तारः ॱॱ अङ्कः अन्तः अ८ ऽ आवरणारम्भ ॱॱ अ६४ ऽ आवरणसंख्यान ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ संज्ञाकुल भवति ० ।
+    नव ॱ कूट भवति कूट ।
+    नव ॱ नाम भवति नाम ।
+    नव ॱ व्याख्या भवति व्याख्या ।
+    नव ॱ विस्तारः भवति विस्तारः ।
+    नव ॱ आवरणारम्भ भवति आवरणारम्भ ।
+    नव ॱ आवरणसंख्यान भवति आवरणसंख्यान ।
+    संज्ञाकुलसूचकाङ्क भवति आरभ्य संज्ञाकुलसूचकाङ्क योगः १ समाप्तम् ।
+    संज्ञाकुलकोश अङ्कः संज्ञाकुलसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् संज्ञाकुलसूचकाङ्क ।
+इति
+
+॰ push one directive row — directives()'s per-row work, likewise. Three
+॰ columns and therefore nine parameters: a column is a RANGE in the table,
+॰ as the record above now says.
+सार्वजनिक वृत्तिः निर्देशयोजनम् आदाय नाम ॱॱ अङ्कः अन्तः अ८ ऽ नामारम्भ ॱॱ अ६४ ऽ नामसीमा ॱॱ अ६४ ऽ यवननाम ॱॱ अङ्कः अन्तः अ८ ऽ यवनारम्भ ॱॱ अ६४ ऽ यवनसीमा ॱॱ अ६४ ऽ स्थिति ॱॱ अङ्कः अन्तः अ८ ऽ स्थित्यारम्भ ॱॱ अ६४ ऽ स्थितिसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ निर्देश भवति ० ।
+    नव ॱ नाम भवति नाम ।
+    नव ॱ नामारम्भ भवति नामारम्भ ।
+    नव ॱ नामसीमा भवति नामसीमा ।
+    नव ॱ यवननाम भवति यवननाम ।
+    नव ॱ यवनारम्भ भवति यवनारम्भ ।
+    नव ॱ यवनसीमा भवति यवनसीमा ।
+    नव ॱ स्थिति भवति स्थिति ।
+    नव ॱ स्थित्यारम्भ भवति स्थित्यारम्भ ।
+    नव ॱ स्थितिसीमा भवति स्थितिसीमा ।
+    निर्देशसूचकाङ्क भवति आरभ्य निर्देशसूचकाङ्क योगः १ समाप्तम् ।
+    निर्देशकोश अङ्कः निर्देशसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् निर्देशसूचकाङ्क ।
+इति
+
+॰ push one operand — operands.push(Operand { .. }).
+सार्वजनिक वृत्तिः कारकपदयोजनम् आदाय कारक ॱॱ अ६४ ऽ मूलपाठ ॱॱ अङ्कः अन्तः अ८ ऽ सङ्ख्यात्व ॱॱ बूल ददाति अ६४ आदि
+    चरः नव ॱॱ कारकपद भवति ० ।
+    नव ॱ कारक भवति कारक ।
+    नव ॱ मूलपाठ भवति मूलपाठ ।
+    नव ॱ सङ्ख्यात्व भवति सङ्ख्यात्व ।
+    कारकपदसूचकाङ्क भवति आरभ्य कारकपदसूचकाङ्क योगः १ समाप्तम् ।
+    कारकपदकोश अङ्कः कारकपदसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् कारकपदसूचकाङ्क ।
+इति
+
+॰ push one instruction — out.instructions.push(i).
+सार्वजनिक वृत्तिः आज्ञायोजनम् आदाय कुल ॱॱ संज्ञाकुल ऽ व्याप्ति ॱॱ अ६४ ऽ प्रथमप्रकार ॱॱ अङ्कः अन्तः अ८ ऽ द्वितीयप्रकार ॱॱ अङ्कः अन्तः अ८ ऽ प्रकारसंख्यान ॱॱ अ६४ ऽ कारकारम्भ ॱॱ अ६४ ऽ कारकसंख्यान ॱॱ अ६४ ऽ पङ्क्ति ॱॱ न६४ ददाति अ६४ आदि
+    चरः नव ॱॱ आज्ञा भवति ० ।
+    नव ॱ कुल भवति कुल ।
+    नव ॱ व्याप्ति भवति व्याप्ति ।
+    नव ॱ प्रथमप्रकार भवति प्रथमप्रकार ।
+    नव ॱ द्वितीयप्रकार भवति द्वितीयप्रकार ।
+    नव ॱ प्रकारसंख्यान भवति प्रकारसंख्यान ।
+    नव ॱ कारकारम्भ भवति कारकारम्भ ।
+    नव ॱ कारकसंख्यान भवति कारकसंख्यान ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    वाक्यविभागआज्ञासूचकाङ्क भवति आरभ्य वाक्यविभागआज्ञासूचकाङ्क योगः १ समाप्तम् ।
+    वाक्यविभागआज्ञाकोश अङ्कः वाक्यविभागआज्ञासूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् वाक्यविभागआज्ञासूचकाङ्क ।
+इति
+
+॰ push one address a datum names — addresses.push((at, name)).
+सार्वजनिक वृत्तिः स्थाननिर्देशयोजनम् आदाय सरण ॱॱ अ६४ ऽ नाम ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः नव ॱॱ स्थाननिर्देश भवति ० ।
+    नव ॱ सरण भवति सरण ।
+    नव ॱ नाम भवति नाम ।
+    स्थाननिर्देशसूचकाङ्क भवति आरभ्य स्थाननिर्देशसूचकाङ्क योगः १ समाप्तम् ।
+    स्थाननिर्देशकोश अङ्कः स्थाननिर्देशसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् स्थाननिर्देशसूचकाङ्क ।
+इति
+
+॰ push one datum — out.data.push(Datum { .. }).
+सार्वजनिक वृत्तिः दत्तयोजनम् आदाय कोष्ठक ॱॱ अ६४ ऽ अष्टकाः ॱॱ अङ्कः अन्तः अ८ ऽ स्थानारम्भ ॱॱ अ६४ ऽ स्थानसंख्यान ॱॱ अ६४ ऽ पङ्क्ति ॱॱ न६४ ददाति अ६४ आदि
+    चरः नव ॱॱ दत्तम् भवति ० ।
+    नव ॱ कोष्ठक भवति कोष्ठक ।
+    नव ॱ अष्टकाः भवति अष्टकाः ।
+    नव ॱ स्थानारम्भ भवति स्थानारम्भ ।
+    नव ॱ स्थानसंख्यान भवति स्थानसंख्यान ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    दत्तसूचकाङ्क भवति आरभ्य दत्तसूचकाङ्क योगः १ समाप्तम् ।
+    दत्तकोश अङ्कः दत्तसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् दत्तसूचकाङ्क ।
+इति
+
+॰ push one label — out.labels.push(Label { .. }).
+सार्वजनिक वृत्तिः चिह्नयोजनम् आदाय नाम ॱॱ अङ्कः अन्तः अ८ ऽ नामारम्भ ॱॱ अ६४ ऽ नामसीमा ॱॱ अ६४ ऽ कोष्ठक ॱॱ अ६४ ऽ दत्तसरण ॱॱ अ६४ ऽ आज्ञाक्रम ॱॱ अ६४ ऽ पङ्क्ति ॱॱ न६४ ददाति अ६४ आदि
+    चरः नव ॱॱ चिह्न भवति ० ।
+    नव ॱ नाम भवति नाम ।
+    नव ॱ नामारम्भ भवति नामारम्भ ।
+    नव ॱ नामसीमा भवति नामसीमा ।
+    नव ॱ कोष्ठक भवति कोष्ठक ।
+    नव ॱ दत्तसरण भवति दत्तसरण ।
+    नव ॱ आज्ञाक्रम भवति आज्ञाक्रम ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    चिह्नसूचकाङ्क भवति आरभ्य चिह्नसूचकाङ्क योगः १ समाप्तम् ।
+    चिह्नकोश अङ्कः चिह्नसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् चिह्नसूचकाङ्क ।
+इति
+
+॰ push one statement — out.statements.push(Statement { .. }). THE KIND IS
+॰ FIRST so that the call site says which of the three it is; see the note
+॰ above this block.
+सार्वजनिक वृत्तिः वाक्ययोजनम् आदाय भेद ॱॱ अ६४ ऽ पङ्क्ति ॱॱ न६४ ऽ नाम ॱॱ अङ्कः अन्तः अ८ ऽ नामारम्भ ॱॱ अ६४ ऽ नामसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ वाक्य भवति ० ।
+    नव ॱ भेद भवति भेद ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    नव ॱ नाम भवति नाम ।
+    नव ॱ नामारम्भ भवति नामारम्भ ।
+    नव ॱ नामसीमा भवति नामसीमा ।
+    वाक्यविभागवाक्यसूचकाङ्क भवति आरभ्य वाक्यविभागवाक्यसूचकाङ्क योगः १ समाप्तम् ।
+    वाक्यविभागवाक्यकोश अङ्कः वाक्यविभागवाक्यसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् वाक्यविभागवाक्यसूचकाङ्क ।
+इति
+
+॰ push one alignment request — out.text_aligns.push((at, n)).
+सार्वजनिक वृत्तिः संरेखयोजनम् आदाय आज्ञाक्रम ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ संरेख भवति ० ।
+    नव ॱ आज्ञाक्रम भवति आज्ञाक्रम ।
+    नव ॱ सीमा भवति सीमा ।
+    संरेखसूचकाङ्क भवति आरभ्य संरेखसूचकाङ्क योगः १ समाप्तम् ।
+    संरेखकोश अङ्कः संरेखसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् संरेखसूचकाङ्क ।
+इति
+
+॰ push one diagnostic — errors.push(ParseError { .. }). Rust returns every
+॰ error rather than stopping at the first, so one run reports one file's
+॰ problems; that is what this arena is for.
+सार्वजनिक वृत्तिः दोषयोजनम् आदाय कूट ॱॱ अङ्कः अन्तः अ८ ऽ पङ्क्ति ॱॱ न६४ ऽ अक्षर ॱॱ अ६४ ऽ पदार्थारम्भ ॱॱ अ६४ ऽ पदार्थसंख्यान ॱॱ अ६४ ऽ कारणम् ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः नव ॱॱ वाक्यदोष भवति ० ।
+    नव ॱ कूट भवति कूट ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    नव ॱ अक्षर भवति अक्षर ।
+    नव ॱ पदार्थारम्भ भवति पदार्थारम्भ ।
+    नव ॱ पदार्थसंख्यान भवति पदार्थसंख्यान ।
+    नव ॱ कारणम् भवति कारणम् ।
+    वाक्यविभागदोषसूचकाङ्क भवति आरभ्य वाक्यविभागदोषसूचकाङ्क योगः १ समाप्तम् ।
+    वाक्यविभागदोषकोश अङ्कः वाक्यविभागदोषसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् वाक्यविभागदोषसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════ sealing the program ══════════════════
+॰ Rust's parse() returns the `out` it filled. Here the arenas are the
+॰ module's, so the record is the RUNS they now hold: every arena is
+॰ 1-based, so the first index of a run that starts at the beginning is १
+॰ and its count is the index the appenders reached.
+
+सार्वजनिक वृत्तिः कार्यक्रमरचना ददाति कार्यक्रम आदि
+    चरः नव ॱॱ कार्यक्रम भवति ० ।
+    नव ॱ आज्ञारम्भ भवति १ ।
+    नव ॱ आज्ञासंख्यान भवति वाक्यविभागआज्ञासूचकाङ्क ।
+    नव ॱ चिह्नारम्भ भवति १ ।
+    नव ॱ चिह्नसंख्यान भवति चिह्नसूचकाङ्क ।
+    नव ॱ दत्तारम्भ भवति १ ।
+    नव ॱ दत्तसंख्यान भवति दत्तसूचकाङ्क ।
+    नव ॱ वैश्विकारम्भ भवति वैश्विकारम्भः ।
+    नव ॱ वैश्विकसंख्यान भवति वैश्विकसंख्यानम् ।
+    नव ॱ रिक्तमान भवति रिक्तमानम् ।
+    नव ॱ संरेखारम्भ भवति १ ।
+    नव ॱ संरेखसंख्यान भवति संरेखसूचकाङ्क ।
+    नव ॱ वाक्यारम्भ भवति १ ।
+    नव ॱ वाक्यसंख्यान भवति वाक्यविभागवाक्यसूचकाङ्क ।
+    नव ॱ रिक्तपङ्क्ति भवति रिक्तपङ्क्तिः ।
+    प्रत्यागमनम् नव ।
+इति
+
+
+॰ ══════════════════ Width::bits ══════════════════
+॰ Rust's match is total over four variants. ० is returned for a भेद that
+॰ is none of them, which is this file's ABSENT and not a fifth width.
+
+सार्वजनिक वृत्तिः व्याप्त्यंशाः आदाय भेद ॱॱ अ६४ ददाति अ६४ आदि
+    यदि भेद समम् अष्टकव्याप्तिभेद आदि प्रत्यागमनम् ८ । इति
+    यदि भेद समम् षोडशव्याप्तिभेद आदि प्रत्यागमनम् १६ । इति
+    यदि भेद समम् द्वात्रिंशव्याप्तिभेद आदि प्रत्यागमनम् ३२ । इति
+    यदि भेद समम् चतुःषष्टिव्याप्तिभेद आदि प्रत्यागमनम् ६४ । इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ Width::from_digits ══════════════════
+॰ The digits of a doc 02 §2.5 type name, as BYTES — see ON COMPARING TEXT
+॰ in the header. ८ is three bytes and the other three are six, so the
+॰ length settles which comparison to make and the last byte of each
+॰ Devanagari digit settles which digit it is: ८ is 174, १ is 167, ३ is
+॰ 169, ६ is 172, ६ again 172, ४ is 170, २ is 168. ० is None.
+
+सार्वजनिक वृत्तिः अङ्कव्याप्तिः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति आरभ्य सीमा वियोगः आरम्भ समाप्तम् ।
+
+    यदि दैर्घ्यम् समम् ३ आदि
+        चरः एकाङ्क ॱॱ अ८ भवति पाठ अङ्कः आरभ्य आरम्भ योगः २ समाप्तम् अन्तः ।
+        यदि एकाङ्क समम् १७४ आदि
+            प्रत्यागमनम् अष्टकव्याप्तिभेद ।
+        इति
+        प्रत्यागमनम् ० ।
+    इति
+
+    यदि दैर्घ्यम् समम् ६ आदि
+        चरः प्रथमाङ्क ॱॱ अ८ भवति पाठ अङ्कः आरभ्य आरम्भ योगः २ समाप्तम् अन्तः ।
+        चरः द्वितीयाङ्क ॱॱ अ८ भवति पाठ अङ्कः आरभ्य आरम्भ योगः ५ समाप्तम् अन्तः ।
+        यदि प्रथमाङ्क समम् १६७ आदि
+            यदि द्वितीयाङ्क समम् १७२ आदि
+                प्रत्यागमनम् षोडशव्याप्तिभेद ।
+            इति
+        इति
+        यदि प्रथमाङ्क समम् १६९ आदि
+            यदि द्वितीयाङ्क समम् १६८ आदि
+                प्रत्यागमनम् द्वात्रिंशव्याप्तिभेद ।
+            इति
+        इति
+        यदि प्रथमाङ्क समम् १७२ आदि
+            यदि द्वितीयाङ्क समम् १७० आदि
+                प्रत्यागमनम् चतुःषष्टिव्याप्तिभेद ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ strip_type_class ══════════════════
+॰ Rust returns (char, &str) and T1 has no tuple, so the pair is two
+॰ routines over the same slice: the class letter, and where the digits
+॰ begin. अ is a signed integer, न an unsigned one, भ a float, and a bare
+॰ width with no class letter is signed — which is what ॱ३२ used to mean
+॰ and still does, so the digits then begin at the start.
+॰ The letters differ in their third byte: अ 133, न 168, भ 173.
+
+सार्वजनिक वृत्तिः प्रकारवर्णः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरभ्य आरम्भ योगः ३ समाप्तम् अधिकम् सीमा आदि
+        प्रत्यागमनम् १ ।
+    इति
+    चरः तृतीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य आरम्भ योगः २ समाप्तम् अन्तः ।
+    यदि तृतीय समम् १६८ आदि प्रत्यागमनम् २ । इति       ॰ न — unsigned
+    यदि तृतीय समम् १७३ आदि प्रत्यागमनम् ३ । इति       ॰ भ — float
+    प्रत्यागमनम् १ ।                                  ॰ अ — signed, and the default
+इति
+
+सार्वजनिक वृत्तिः प्रकाराङ्कारम्भः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरभ्य आरम्भ योगः ३ समाप्तम् अधिकम् सीमा आदि
+        प्रत्यागमनम् आरम्भ ।
+    इति
+    चरः तृतीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य आरम्भ योगः २ समाप्तम् अन्तः ।
+    यदि तृतीय समम् १३३ आदि प्रत्यागमनम् आरभ्य आरम्भ योगः ३ समाप्तम् । इति
+    यदि तृतीय समम् १६८ आदि प्रत्यागमनम् आरभ्य आरम्भ योगः ३ समाप्तम् । इति
+    यदि तृतीय समम् १७३ आदि प्रत्यागमनम् आरभ्य आरम्भ योगः ३ समाप्तम् । इति
+    ॰ no class letter: the whole thing is digits, as ॱ३२ writes it.
+    प्रत्यागमनम् आरम्भ ।
+इति
+
+
+॰ ══════════════════ Width::from_type ══════════════════
+॰ The width part of a doc 02 §2.5 type name: भ६४ is 64 bits.
+
+सार्वजनिक वृत्तिः प्रकारव्याप्तिः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः अङ्कारम्भ ॱॱ अ६४ भवति प्रकाराङ्कारम्भः आरभ्य पाठ ऽ आरम्भ ऽ सीमा समाप्तम् ।
+    प्रत्यागमनम् अङ्कव्याप्तिः आरभ्य पाठ ऽ अङ्कारम्भ ऽ सीमा समाप्तम् ।
+इति
+
+
+॰ ══════════════════ split_types ══════════════════
+॰ योगःॱअ३२ is a mnemonic and one type suffix; भिन्नरूपान्तरम्ॱअ३२ॱभ६४ is a
+॰ conversion and two (B-075). Rust returns (&str, Vec<&str>); T1 has
+॰ neither a tuple nor a sub-slice, so the split is three routines that
+॰ return INDICES into the one slice. The separator is ॱ, U+0971, three
+॰ bytes 224 165 177 — and it is looked for by its own bytes because it is
+॰ a MARK and not a word, so no literal can carry it.
+
+॰ where the mnemonic itself ends: the first ॱ, or the whole length.
+सार्वजनिक वृत्तिः संज्ञासीमा आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति पाठ ॱ दैर्घ्य ।
+    चरः स्थान ॱॱ अ६४ भवति ० ।
+    यावत् आरभ्य स्थान योगः ३ समाप्तम् न्यूनम् आरभ्य दैर्घ्यम् योगः १ समाप्तम् आदि
+        चरः प्रथम ॱॱ अ८ भवति पाठ अङ्कः स्थान अन्तः ।
+        चरः द्वितीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः १ समाप्तम् अन्तः ।
+        चरः तृतीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः २ समाप्तम् अन्तः ।
+        यदि प्रथम समम् २२४ आदि
+            यदि द्वितीय समम् १६५ आदि
+                यदि तृतीय समम् १७७ आदि
+                    प्रत्यागमनम् स्थान ।
+                इति
+            इति
+        इति
+        स्थान भवति आरभ्य स्थान योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् दैर्घ्यम् ।
+इति
+
+॰ how many type suffixes were written — one ॱ, one suffix.
+सार्वजनिक वृत्तिः प्रकारसंख्या आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति पाठ ॱ दैर्घ्य ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः स्थान ॱॱ अ६४ भवति ० ।
+    यावत् आरभ्य स्थान योगः ३ समाप्तम् न्यूनम् आरभ्य दैर्घ्यम् योगः १ समाप्तम् आदि
+        चरः प्रथम ॱॱ अ८ भवति पाठ अङ्कः स्थान अन्तः ।
+        चरः द्वितीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः १ समाप्तम् अन्तः ।
+        चरः तृतीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः २ समाप्तम् अन्तः ।
+        यदि प्रथम समम् २२४ आदि
+            यदि द्वितीय समम् १६५ आदि
+                यदि तृतीय समम् १७७ आदि
+                    संख्यानम् भवति आरभ्य संख्यानम् योगः १ समाप्तम् ।
+                इति
+            इति
+        इति
+        स्थान भवति आरभ्य स्थान योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+॰ where the क-th suffix begins — क counted from १, as the arenas are.
+॰ ० means there is no such suffix.
+सार्वजनिक वृत्तिः प्रकारारम्भः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ क्रम ॱॱ अ६४ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति पाठ ॱ दैर्घ्य ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः स्थान ॱॱ अ६४ भवति ० ।
+    यावत् आरभ्य स्थान योगः ३ समाप्तम् न्यूनम् आरभ्य दैर्घ्यम् योगः १ समाप्तम् आदि
+        चरः प्रथम ॱॱ अ८ भवति पाठ अङ्कः स्थान अन्तः ।
+        चरः द्वितीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः १ समाप्तम् अन्तः ।
+        चरः तृतीय ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थान योगः २ समाप्तम् अन्तः ।
+        यदि प्रथम समम् २२४ आदि
+            यदि द्वितीय समम् १६५ आदि
+                यदि तृतीय समम् १७७ आदि
+                    संख्यानम् भवति आरभ्य संख्यानम् योगः १ समाप्तम् ।
+                    यदि संख्यानम् समम् क्रम आदि
+                        प्रत्यागमनम् आरभ्य स्थान योगः ३ समाप्तम् ।
+                    इति
+                इति
+            इति
+        इति
+        स्थान भवति आरभ्य स्थान योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ Section::from_name ══════════════════
+॰ The name as written, without the ॱ — which पदविभाग has already stripped
+॰ by the time a directive's argument is a token's पाठ. ० is None, and a
+॰ name that is none of the three is refused rather than defaulted: P15
+॰ exists because a mistyped section is a program that assembles into the
+॰ wrong place and says nothing.
+
+॰ IT TAKES A RANGE, AND D-002f5 IS WHY. D-002f1 wrote it against a whole
+॰ अङ्कः अन्तः अ८, which is what Rust's &str is; but the only caller there
+॰ will ever be is the कोष्ठकम् arm, and what that arm holds is a TOKEN —
+॰ पाठ plus अष्टक plus पाठसीमा, a range in the source, because T1 has no
+॰ sub-slice expression to cut the name out with. Written against whole
+॰ text this routine was not callable at all. Same EXTENSION as the three
+॰ records D-002f3 gave ranges to, and it loses nothing: पाठसाम्यम् over
+॰ [० ऽ दैर्घ्य) is the whole-text comparison the old body made.
+
+सार्वजनिक वृत्तिः कोष्ठकनाम आदाय नाम ॱॱ अङ्कः अन्तः अ८ ऽ नामारम्भः ॱॱ अ६४ ऽ नामसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    ॰ W-239 (2026-09-04): THE OPERAND CARRIES ITS MARK. A section is written
+    ॰ `ॱदत्त`, and the T1 lexer keeps the single `ॱ` inside the word (lex.t1:
+    ॰ "ॱ IS NOT AMONG" the peelable signs), so the operand token's text is
+    ॰ `ॱदत्त`; Rust's arm compares against "ॱदत्त" and this one compared against
+    ॰ "दत्त" — every section directive a T1 program wrote was P15. The mark
+    ॰ (U+0971, octets २२४ १६५ १७७) is stepped over before the names are tried.
+    चरः आरम्भः ॱॱ अ६४ भवति नामारम्भः ।
+    यदि आरभ्य आरम्भः योगः ३ समाप्तम् न्यूनम् नामसीमा आदि
+        यदि नाम अङ्कः आरम्भः अन्तः समम् २२४ आदि
+            यदि नाम अङ्कः आरभ्य आरम्भः योगः १ समाप्तम् अन्तः समम् १६५ आदि
+                यदि नाम अङ्कः आरभ्य आरम्भः योगः २ समाप्तम् अन्तः समम् १७७ आदि
+                    आरम्भः भवति आरम्भः योगः ३ ।
+                इति
+            इति
+        इति
+    इति
+    चरः पाठसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् पाठ इति ।
+    यदि पाठसाम्यम् आरभ्य नाम ऽ आरम्भः ऽ नामसीमा ऽ पाठसंज्ञा ऽ ० ऽ पाठसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् पाठकोष्ठकभेद ।
+    इति
+    चरः दत्तसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् दत्त इति ।
+    यदि पाठसाम्यम् आरभ्य नाम ऽ आरम्भः ऽ नामसीमा ऽ दत्तसंज्ञा ऽ ० ऽ दत्तसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् दत्तकोष्ठकभेद ।
+    इति
+    चरः रिक्तसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् रिक्त इति ।
+    यदि पाठसाम्यम् आरभ्य नाम ऽ आरम्भः ऽ नामसीमा ऽ रिक्तसंज्ञा ऽ ० ऽ रिक्तसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् रिक्तकोष्ठकभेद ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ Instruction::by_role ══════════════════
+॰ This is what makes free operand order real: a backend asks for the
+॰ destination rather than for "the first operand" (D-02-C). It returns an
+॰ INDEX into कारकपदकोश, ० for None, because T1 has no reference to hand
+॰ back and ० is already this file's absent.
+
+सार्वजनिक वृत्तिः कारकानुसारम् आदाय आज्ञाम् ॱॱ आज्ञा ऽ कारक ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थान ॱॱ अ६४ भवति ० ।
+    यावत् स्थान न्यूनम् आज्ञाम् ॱ कारकसंख्यान आदि
+        चरः सूचक ॱॱ अ६४ भवति आरभ्य आज्ञाम् ॱ कारकारम्भ योगः स्थान समाप्तम् ।
+        चरः पदम् ॱॱ कारकपद भवति कारकपदकोश अङ्कः सूचक अन्तः ।
+        यदि पदम् ॱ कारक समम् कारक आदि
+            प्रत्यागमनम् सूचक ।
+        इति
+        स्थान भवति आरभ्य स्थान योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ StatementKind::as_str — BLOCKED ══════════════════
+॰ Rust returns "instruction", "label" or "directive": the words
+॰ spec/parse-shape-t0.tsv is written in, and they are LATIN. Doc 15's
+॰ repertoire refuses a Latin letter and ADR-0017 is blunt that a string
+॰ literal is not a licence to smuggle one back in — "a Latin letter inside
+॰ a string is refused exactly as it is anywhere else". So this routine
+॰ cannot be written, and the decision it waits on is not code: either
+॰ spec/parse-shape-t0.tsv gains a Devanagari column, or the shape oracle
+॰ compares भेद numbers instead of words. It is the same blocker that holds
+॰ four of उत्सर्जन's seven emitters, and it is stubbed rather than
+॰ approximated for the same reason.
+
+॰ WRITTEN 2026-08-30, AND NO SPEC TABLE WAS NEEDED. The recorded blocker
+॰ asked for "spec/parse-shape-t0.tsv gains a Devanagari column, or the shape
+॰ oracle compares भेद numbers instead of words". BOTH HALVES ARE ABOUT THE
+॰ ORACLE'S COMPARISON, not about this routine: parse-shape-t0.tsv is a
+॰ GENERATED golden of 9502 rows recording one parse per line, and a column
+॰ there would be a per-row copy of a three-valued fact.
+॰
+॰ THE THREE NAMES ARE ALREADY THIS FILE'S OWN, twenty lines up at :116-:118 —
+॰ आज्ञावाक्यभेद, चिह्नवाक्यभेद, निर्देशवाक्यभेद — and `चिह्न` is attested as
+॰ `label` in spec/lexicon.tsv. So the vocabulary was decided before the
+॰ blocker was written; what was missing was somebody reading it.
+॰
+॰ Returns the empty run for a भेद this file does not define, which is what
+॰ कारकनाम (:2368) does with the same shape and for the same reason: a name
+॰ nobody asked for is not an error, and T1 has no Option to say so with.
+सार्वजनिक वृत्तिः वाक्यभेदनाम आदाय भेद ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि भेद समम् आज्ञावाक्यभेद आदि प्रत्यागमनम् उक्तम् आज्ञा इति । इति
+    यदि भेद समम् चिह्नवाक्यभेद आदि प्रत्यागमनम् उक्तम् चिह्न इति । इति
+    यदि भेद समम् निर्देशवाक्यभेद आदि प्रत्यागमनम् उक्तम् निर्देश इति । इति
+    प्रत्यागमनम् रिक्तपाठः ।
+इति
+
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE STATEMENT SPLITTER — D-002f3, the port of parse.rs:481-675.
+॰
+॰ D-002f1 declared every record and every appender and READ NO TOKEN, and
+॰ said so at (b) below. D-002f10 then filled चिह्नककोश — पदविभाग writes
+॰ real tokens now, append_sites 2, kinds_produced 6 — so the arena this
+॰ row was BLOCKED IN PRACTICE on is no longer empty. This block is the
+॰ walk over it.
+॰
+॰ ── WHAT parse.rs's TOKEN LOOP DOES, AND WHAT IS PORTED ──
+॰ Statements are daṇḍa-terminated rather than line-terminated, so an
+॰ instruction written across two lines stays ONE sentence. ॥ is a PAIRED
+॰ delimiter and not a terminator (ADR-0012): which of the two a given ॥
+॰ is depends on whether a directive is already open, and an unpaired one
+॰ must NOT be allowed to swallow the directive after it — so words before
+॰ an unopened ॥ are reported (P24) rather than treated as an opener,
+॰ because opening here would report a SECOND fault at end of file and
+॰ leave the reader two diagnostics for one omission. A label ends at its
+॰ ॱॱ and not at a daṇḍa: it is not a sentence, it names the place where
+॰ the next one begins.
+॰
+॰ ── ON THE STATEMENT, WHICH IS A RANGE AND NOT A VECTOR ──
+॰ Rust accumulates `statement: Vec<&Token>` and clears it at every
+॰ delimiter. T1 HAS NO SLICE CONSTRUCTOR AND NO ITERATOR — the language
+॰ fact D-002f10 was rooted in — so the accumulator here is the PAIR
+॰ (वाक्यारम्भः ऽ वाक्यसीमा), half-open indices into चिह्नककोश, which is
+॰ सङ्केतन's (पाठ्यम् ऽ आरम्भः ऽ सीमा) convention at अष्टकान्वेषणम् applied
+॰ to an arena rather than to text. That costs nothing here and is not an
+॰ approximation: every delimiter clears, and every non-delimiter appends,
+॰ so what Rust holds in the Vec is ALWAYS a contiguous run of the arena.
+॰ The statement is empty exactly when वाक्यारम्भः समम् वाक्यसीमा.
+॰
+॰ Rust's `opened: Option<&Token>` is उद्घाटकः, an arena INDEX, with ०
+॰ meaning none — this file's ABSENT, stated at the head.
+॰
+॰ ── ON THE THREE RECORDS THAT GAINED A NAME RANGE ──
+॰ वाक्य ॱ नाम, चिह्न ॱ नाम and पाठांश ॱ पाठ are each अङ्कः अन्तः अ८ and
+॰ were written by D-002f1 against Rust's String. A token's text cannot be
+॰ CUT out of the source here, so each of the three gains आरम्भ and सीमा
+॰ and नाम/पाठ becomes the text the name lies IN. That is exactly the move
+॰ lex.t1 made this morning when चिह्नक gained पाठसीमा, and it is an
+॰ EXTENSION and not an alteration: no field lost a name or a type, so
+॰ every field the port's own test pins is still there and still means
+॰ what it meant. Without it L02 could not be written at all — comparing
+॰ a global to a label would compare two handles to the same whole source
+॰ and report every global defined.
+॰
+॰ ── ON THE DIAGNOSTIC CODES, WHICH ARE OCTET RUNS ──
+॰ P01, P24, L02 are LATIN, and doc 15's repertoire refuses a Latin letter
+॰ — the same wall वाक्यभेदनाम is stubbed against and the one nidana.t1
+॰ names at निदानपङ्क्तिः (*"the कूट arrives as an अष्टक run from the
+॰ caller"*). T1 has no character literal and no array literal, so each
+॰ code is BUILT as its octets by कूटरचना, exactly as lex.t1 writes every
+॰ sign as its UTF-8 octets rather than as a character. 'P' is ८०, 'L' is
+॰ ७६ and the digits are ४८ upward. This is the only way a code can exist
+॰ in a T1 source today; it is not a workaround for this row.
+॰ ══════════════════════════════════════════════════════════════════════
+
+॰ the eight codes this row raises, each three octets. Built by कूटरचना.
+सार्वजनिक चरः रिक्तपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः दत्तक्षेत्रआज्ञाकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।      ॰ P01
+सार्वजनिक चरः अदण्डवाक्यकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।           ॰ P02
+सार्वजनिक चरः अनामचिह्नकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।            ॰ P06
+सार्वजनिक चरः बहुपदचिह्नकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।           ॰ P07
+सार्वजनिक चरः अनुद्घाटितनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।    ॰ P24
+सार्वजनिक चरः अनावृतनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ P25
+सार्वजनिक चरः रिक्तनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।         ॰ P26
+सार्वजनिक चरः अपरिभाषितवैश्विककूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।     ॰ L02
+
+॰ the seven D-002f5 raises, on the same terms. Six are codes; जीवत्पाठः is
+॰ the STATUS WORD of spec/directives.tsv, and it is here for exactly the
+॰ reason the codes are — `live` is Latin, doc 15's repertoire refuses a
+॰ Latin letter, and ADR-0017 is blunt that a string literal is not a
+॰ licence to smuggle one back in. So the word a live directive carries can
+॰ only exist in a T1 source as its octets: 'l' १०८, 'i' १०५, 'v' ११८,
+॰ 'e' १०१. THIS IS A FINDING ABOUT spec/directives.tsv AND NOT A
+॰ WORKAROUND — the status column is Latin in a file every tier reads, and
+॰ P14 cannot be raised without comparing against it.
+सार्वजनिक चरः अज्ञातनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ P13
+सार्वजनिक चरः असमर्थितनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।      ॰ P14
+सार्वजनिक चरः अज्ञातकोष्ठककूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।         ॰ P15
+सार्वजनिक चरः अपूर्णनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ P16
+सार्वजनिक चरः उक्तिव्याप्तिकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ P17 — W-239: a string under a width other than one
+सार्वजनिक चरः असङ्ख्यकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।              ॰ P19
+सार्वजनिक चरः अतिप्रवाहकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।            ॰ P29
+सार्वजनिक चरः सचिह्नगणनाकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।           ॰ P30
+सार्वजनिक चरः जीवत्पाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।                ॰ live
+
+॰ ══ THE OCTET APPENDER'S OWN STATE, USED AND NEVER DECLARED ══
+॰
+॰ `अष्टकयोजनम्`:2770 advances this cursor and writes at it — the ADVANCE-THEN-
+॰ WRITE appender idiom every arena in this crate uses — and neither the cursor
+॰ nor its arena existed. The five `…पाठः` runs below are filled by
+॰ `अङ्कपाठरचना` a few lines further on, one octet at a time.
+॰
+॰ TYPES READ FROM THE USE, NOT GUESSED. The cursor is `अ६४` because
+॰ `अष्टकयोजनम्` returns `अ६४` and the body assigns `… योगः १` to it; the runs
+॰ are `अङ्कः अन्तः अ८` because each is written `अङ्कः n अन्तः भवति २२४`, a
+॰ single octet.
+॰
+॰ `भवति ०` AT A SLICE TYPE IS THE EMPTY RUN, matching the fifteen error codes
+॰ above and every other run global in this file. WHETHER ONE SLOT IS ENOUGH FOR
+॰ A WRITE AT INDEX १ IS A RUNTIME QUESTION AND IS NOT SETTLED HERE: the resolve
+॰ census asks whether a name is in scope, not whether an arena is long enough.
+॰ Saying so because a declaration that merely silences a pass, while leaving a
+॰ bound wrong, is the kind of green this tree has been bitten by.
+॰ `अष्टकसञ्चयसूचकाङ्कः` and `अष्टकसञ्चयः` STOOD HERE UNTIL 2026-09-04 (W-239):
+॰ the octet store and its cursor are `अष्टकॱअष्टककोश` / `अष्टकॱअष्टकसूचकाङ्क` now,
+॰ one arena for the whole program, one-based as this stash was.
+सार्वजनिक चरः एकाङ्कपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः द्व्यङ्कपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः चतुरङ्कपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः अष्टकपरमपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः द्व्यष्टकपरमपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः चतुरष्टकपरमपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+
+॰ ══ SEVENTEEN CODES THIS FILE RAISES AND NEVER DECLARED ══
+॰
+॰ Every one is passed to `दोषचिह्नकयोजनम्` at the line noted beside it and
+॰ existed nowhere else in the corpus. `अर्थ` reports only the FIRST refusal and
+॰ then stops, so these were seventeen separate census runs' worth of the same
+॰ discovery — `असमापितोक्तिकूटः` was simply the earliest by line number.
+॰
+॰ DECLARED THE WAY THE FIFTEEN ABOVE ARE, `भवति ०` at a slice type, which is
+॰ the EMPTY RUN and not `Int(0)`. That the existing fifteen are also empty is
+॰ this file's state, not something introduced here: the diagnostic TEXT lives
+॰ elsewhere and these names are the handles it is reached by.
+॰
+॰ NO `P` NUMBER IS CLAIMED. The margins near the 2354-2382 cluster all mention
+॰ P03, but that is a block header rather than each code's own number, and
+॰ writing a number that is merely the nearest one in view is how a ledger stops
+॰ being evidence. The first-use line is exact and is what is recorded.
+सार्वजनिक चरः असमापितोक्तिकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ used :2208
+सार्वजनिक चरः इत्यनन्तरपदकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।         ॰ used :2214
+सार्वजनिक चरः मूल्यरहितनिर्देशकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।    ॰ used :2241
+सार्वजनिक चरः अज्ञातसंज्ञाकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ used :2354
+सार्वजनिक चरः अकारकपदकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।             ॰ used :2358
+सार्वजनिक चरः विरुद्धकारककूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।         ॰ used :2362
+सार्वजनिक चरः प्रकारबहुत्वकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ used :2366
+सार्वजनिक चरः क्रियारहितवाक्यकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।     ॰ used :2370
+सार्वजनिक चरः कारकचिह्नहीनकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।        ॰ used :2374
+सार्वजनिक चरः निषिद्धपदकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।           ॰ used :2378
+सार्वजनिक चरः अप्रकारकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।             ॰ used :2382
+सार्वजनिक चरः स्थानाक्षमकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।          ॰ used :3051
+सार्वजनिक चरः गणनाचिह्नकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।           ॰ used :3085
+सार्वजनिक चरः असंख्याकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।             ॰ used :3096
+सार्वजनिक चरः असमाहितकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।             ॰ used :3115
+सार्वजनिक चरः पाठक्षेत्रमूल्यकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।     ॰ used :3143
+सार्वजनिक चरः रिक्तक्षेत्रमूल्यकूटः ॱॱ अङ्कः अन्तः अ८ भवति ० ।   ॰ used :3154
+
+॰ the three radix prefixes of sanskrit_text::numeral, as octets — and NOT
+॰ as ADR-0017 literals, for the reason this file's header gives at ON
+॰ COMPARING TEXT: each begins with ०, ० is a NUMERAL and not an akṣara
+॰ word, and the frozen string production admits akṣara words. `उक्तम् ०द्वि
+॰ इति` is outside the grammar even though today's lexer would take it.
+॰ ऋण by contrast is two letters and IS written as a literal, at ऋणचिह्नम्.
+सार्वजनिक चरः द्विमूलपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।              ॰ ०द्वि
+सार्वजनिक चरः अष्टमूलपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।              ॰ ०अष्ट
+सार्वजनिक चरः षोडमूलपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।               ॰ ०षोड्
+
+
+॰ ══════════════════ the codes, as octets ══════════════════
+॰ 'P' ८०  'L' ७६  '0' ४८  '1' ४९  '2' ५०  '4' ५२  '5' ५३  '6' ५४  '7' ५५
+
+सार्वजनिक वृत्तिः कूटरचना ददाति अ६४ आदि
+    दत्तक्षेत्रआज्ञाकूटः अङ्कः ० अन्तः भवति ८० ।
+    दत्तक्षेत्रआज्ञाकूटः अङ्कः १ अन्तः भवति ४८ ।
+    दत्तक्षेत्रआज्ञाकूटः अङ्कः २ अन्तः भवति ४९ ।
+
+    अदण्डवाक्यकूटः अङ्कः ० अन्तः भवति ८० ।
+    अदण्डवाक्यकूटः अङ्कः १ अन्तः भवति ४८ ।
+    अदण्डवाक्यकूटः अङ्कः २ अन्तः भवति ५० ।
+
+    अनामचिह्नकूटः अङ्कः ० अन्तः भवति ८० ।
+    अनामचिह्नकूटः अङ्कः १ अन्तः भवति ४८ ।
+    अनामचिह्नकूटः अङ्कः २ अन्तः भवति ५४ ।
+
+    बहुपदचिह्नकूटः अङ्कः ० अन्तः भवति ८० ।
+    बहुपदचिह्नकूटः अङ्कः १ अन्तः भवति ४८ ।
+    बहुपदचिह्नकूटः अङ्कः २ अन्तः भवति ५५ ।
+
+    अनुद्घाटितनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अनुद्घाटितनिर्देशकूटः अङ्कः १ अन्तः भवति ५० ।
+    अनुद्घाटितनिर्देशकूटः अङ्कः २ अन्तः भवति ५२ ।
+
+    अनावृतनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अनावृतनिर्देशकूटः अङ्कः १ अन्तः भवति ५० ।
+    अनावृतनिर्देशकूटः अङ्कः २ अन्तः भवति ५३ ।
+
+    रिक्तनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    रिक्तनिर्देशकूटः अङ्कः १ अन्तः भवति ५० ।
+    रिक्तनिर्देशकूटः अङ्कः २ अन्तः भवति ५४ ।
+
+    अपरिभाषितवैश्विककूटः अङ्कः ० अन्तः भवति ७६ ।
+    अपरिभाषितवैश्विककूटः अङ्कः १ अन्तः भवति ४८ ।
+    अपरिभाषितवैश्विककूटः अङ्कः २ अन्तः भवति ५० ।
+
+    ॰ ── D-002f5's seven, and the status word ──
+    अज्ञातनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अज्ञातनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    अज्ञातनिर्देशकूटः अङ्कः २ अन्तः भवति ५१ ।
+
+    असमर्थितनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    असमर्थितनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    असमर्थितनिर्देशकूटः अङ्कः २ अन्तः भवति ५२ ।
+
+    अज्ञातकोष्ठककूटः अङ्कः ० अन्तः भवति ८० ।
+    अज्ञातकोष्ठककूटः अङ्कः १ अन्तः भवति ४९ ।
+    अज्ञातकोष्ठककूटः अङ्कः २ अन्तः भवति ५३ ।
+
+    अपूर्णनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अपूर्णनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    अपूर्णनिर्देशकूटः अङ्कः २ अन्तः भवति ५४ ।
+
+    असङ्ख्यकूटः अङ्कः ० अन्तः भवति ८० ।
+    असङ्ख्यकूटः अङ्कः १ अन्तः भवति ४९ ।
+    असङ्ख्यकूटः अङ्कः २ अन्तः भवति ५७ ।
+
+    अतिप्रवाहकूटः अङ्कः ० अन्तः भवति ८० ।
+    अतिप्रवाहकूटः अङ्कः १ अन्तः भवति ५० ।
+    अतिप्रवाहकूटः अङ्कः २ अन्तः भवति ५७ ।
+
+    सचिह्नगणनाकूटः अङ्कः ० अन्तः भवति ८० ।
+    सचिह्नगणनाकूटः अङ्कः १ अन्तः भवति ५१ ।
+    सचिह्नगणनाकूटः अङ्कः २ अन्तः भवति ४८ ।
+
+    ॰ `live`, the status spec/directives.tsv writes — see the declaration.
+    जीवत्पाठः अङ्कः ० अन्तः भवति १०८ ।
+    जीवत्पाठः अङ्कः १ अन्तः भवति १०५ ।
+    जीवत्पाठः अङ्कः २ अन्तः भवति ११८ ।
+    जीवत्पाठः अङ्कः ३ अन्तः भवति १०१ ।
+
+    ॰ ०द्वि — U+0966 U+0926 U+094D U+0935 U+093F, fifteen octets.
+    द्विमूलपाठः अङ्कः ० अन्तः भवति २२४ ।
+    द्विमूलपाठः अङ्कः १ अन्तः भवति १६५ ।
+    द्विमूलपाठः अङ्कः २ अन्तः भवति १६६ ।
+    द्विमूलपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    द्विमूलपाठः अङ्कः ४ अन्तः भवति १६४ ।
+    द्विमूलपाठः अङ्कः ५ अन्तः भवति १६६ ।
+    द्विमूलपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    द्विमूलपाठः अङ्कः ७ अन्तः भवति १६५ ।
+    द्विमूलपाठः अङ्कः ८ अन्तः भवति १४१ ।
+    द्विमूलपाठः अङ्कः ९ अन्तः भवति २२४ ।
+    द्विमूलपाठः अङ्कः १० अन्तः भवति १६४ ।
+    द्विमूलपाठः अङ्कः ११ अन्तः भवति १८१ ।
+    द्विमूलपाठः अङ्कः १२ अन्तः भवति २२४ ।
+    द्विमूलपाठः अङ्कः १३ अन्तः भवति १६४ ।
+    द्विमूलपाठः अङ्कः १४ अन्तः भवति १९१ ।
+
+    ॰ ०अष्ट — U+0966 U+0905 U+0937 U+094D U+091F.
+    अष्टमूलपाठः अङ्कः ० अन्तः भवति २२४ ।
+    अष्टमूलपाठः अङ्कः १ अन्तः भवति १६५ ।
+    अष्टमूलपाठः अङ्कः २ अन्तः भवति १६६ ।
+    अष्टमूलपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    अष्टमूलपाठः अङ्कः ४ अन्तः भवति १६४ ।
+    अष्टमूलपाठः अङ्कः ५ अन्तः भवति १३३ ।
+    अष्टमूलपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    अष्टमूलपाठः अङ्कः ७ अन्तः भवति १६४ ।
+    अष्टमूलपाठः अङ्कः ८ अन्तः भवति १८३ ।
+    अष्टमूलपाठः अङ्कः ९ अन्तः भवति २२४ ।
+    अष्टमूलपाठः अङ्कः १० अन्तः भवति १६५ ।
+    अष्टमूलपाठः अङ्कः ११ अन्तः भवति १४१ ।
+    अष्टमूलपाठः अङ्कः १२ अन्तः भवति २२४ ।
+    अष्टमूलपाठः अङ्कः १३ अन्तः भवति १६४ ।
+    अष्टमूलपाठः अङ्कः १४ अन्तः भवति १५९ ।
+
+    ॰ ०षोड् — U+0966 U+0937 U+094B U+0921 U+094D.
+    षोडमूलपाठः अङ्कः ० अन्तः भवति २२४ ।
+    षोडमूलपाठः अङ्कः १ अन्तः भवति १६५ ।
+    षोडमूलपाठः अङ्कः २ अन्तः भवति १६६ ।
+    षोडमूलपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    षोडमूलपाठः अङ्कः ४ अन्तः भवति १६४ ।
+    षोडमूलपाठः अङ्कः ५ अन्तः भवति १८३ ।
+    षोडमूलपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    षोडमूलपाठः अङ्कः ७ अन्तः भवति १६५ ।
+    षोडमूलपाठः अङ्कः ८ अन्तः भवति १३९ ।
+    षोडमूलपाठः अङ्कः ९ अन्तः भवति २२४ ।
+    षोडमूलपाठः अङ्कः १० अन्तः भवति १६४ ।
+    षोडमूलपाठः अङ्कः ११ अन्तः भवति १६१ ।
+    षोडमूलपाठः अङ्कः १२ अन्तः भवति २२४ ।
+    षोडमूलपाठः अङ्कः १३ अन्तः भवति १६५ ।
+    षोडमूलपाठः अङ्कः १४ अन्तः भवति १४१ ।
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ two names, compared ══════════════════
+॰ Rust writes `&l.name == g`. Here a name is a RANGE in a source, so the
+॰ comparison is length then octets. Bracketed throughout: precedence is
+॰ not frozen and वामसीमा वियोगः वामारम्भः must not be read as
+॰ वामसीमा वियोगः आरभ्य वामारम्भः … समाप्तम् by a later rule.
+
+सार्वजनिक वृत्तिः पाठसाम्यम् आदाय वामपाठः ॱॱ अङ्कः अन्तः अ८ ऽ वामारम्भः ॱॱ अ६४ ऽ वामसीमा ॱॱ अ६४ ऽ दक्षिणपाठः ॱॱ अङ्कः अन्तः अ८ ऽ दक्षिणारम्भः ॱॱ अ६४ ऽ दक्षिणसीमा ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य वामसीमा वियोगः वामारम्भः समाप्तम् असमम् आरभ्य दक्षिणसीमा वियोगः दक्षिणारम्भः समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः सरणम् ॱॱ अ६४ भवति ० ।
+    यावत् आरभ्य वामारम्भः योगः सरणम् समाप्तम् न्यूनम् वामसीमा आदि
+        चरः वामाष्टकम् ॱॱ अ८ भवति वामपाठः अङ्कः आरभ्य वामारम्भः योगः सरणम् समाप्तम् अन्तः ।
+        चरः दक्षिणाष्टकम् ॱॱ अ८ भवति दक्षिणपाठः अङ्कः आरभ्य दक्षिणारम्भः योगः सरणम् समाप्तम् अन्तः ।
+        यदि वामाष्टकम् असमम् दक्षिणाष्टकम् आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सरणम् भवति आरभ्य सरणम् योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ where the next label sits ══════════════════
+॰ Rust's out.data.iter().map(|d| d.bytes.len()).sum() — the byte offset a
+॰ label in ॱदत्त names. In ॱरिक्त it is रिक्तमानम् instead, which is what
+॰ चिह्नवाक्यम् chooses between.
+
+सार्वजनिक वृत्तिः दत्तसरणम् ददाति अ६४ आदि
+    चरः योगफलम् ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य दत्तसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः दत्तांशः ॱॱ दत्तम् भवति दत्तकोश अङ्कः क्रमः अन्तः ।
+        योगफलम् भवति आरभ्य योगफलम् योगः दत्तांशः ॱ अष्टकाः ॱ दैर्घ्य समाप्तम् ।
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् योगफलम् ।
+इति
+
+
+॰ ══════════════════ a diagnostic, located at a token ══════════════════
+॰ THE FIRST ROUTINE IN THIS FILE THAT TAKES A पदविभागॱचिह्नक. Rust reads
+॰ tok.line and tok.aksara straight off the token at every push site; here
+॰ that is one routine so that the two fields are never taken from
+॰ different tokens by accident. NOTE अक्षर IS A CODE-POINT INDEX and not
+॰ an akṣara index — lex.t1's recorded limit (c), अक्षरकोश ॱ अक्षराणि
+॰ being a stub — so every diagnostic this file places inherits that and
+॰ will sharpen when that stub lands, with no change here.
+
+सार्वजनिक वृत्तिः दोषचिह्नकयोजनम् आदाय कूटः ॱॱ अङ्कः अन्तः अ८ ऽ चिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ पदार्थारम्भः ॱॱ अ६४ ऽ पदार्थसंख्यानम् ॱॱ अ६४ ददाति अ६४ आदि
+    प्रत्यागमनम् दोषयोजनम् आरभ्य कूटः ऽ चिह्नकम् ॱ पङ्क्ति ऽ चिह्नकम् ॱ अक्षर ऽ पदार्थारम्भः ऽ पदार्थसंख्यानम् ऽ रिक्तपाठः समाप्तम् ।
+इति
+
+
+॰ ══════════════════ a token's text, as an arg ══════════════════
+॰ Rust's args: vec![statement[0].text.clone()]. The clone is a range here.
+
+सार्वजनिक वृत्तिः चिह्नकपदार्थः आदाय चिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    प्रत्यागमनम् पाठांशयोजनम् आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
+इति
+
+
+॰ ══════════════════ a daṇḍa-terminated sentence ══════════════════
+॰ Rust records the statement WHETHER OR NOT it encodes — "the shape of
+॰ the file is what was WRITTEN, and a statement that fails to resolve is
+॰ still a statement a second parser must see" — and then calls
+॰ parse_statement. THAT CALL IS D-002f4 AND IS NOT MADE HERE: this row
+॰ splits, and the sentence reader that turns the run into an आज्ञा is the
+॰ next row. So वाक्यविभागआज्ञाकोश is still empty after this walk and वाक्यविभागवाक्यकोश is
+॰ not, which is exactly the split the two rows were filed as.
+॰
+॰ In ॱदत्त a sentence is P01 instead, and nothing is recorded.
+
+सार्वजनिक वृत्तिः आज्ञावाक्यम् आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    यदि वर्तमानकोष्ठक समम् दत्तकोष्ठकभेद आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य दत्तक्षेत्रआज्ञाकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् वाक्ययोजनम् आरभ्य आज्ञावाक्यभेद ऽ शिरःचिह्नकम् ॱ पङ्क्ति ऽ शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+इति
+
+
+॰ ══════════════════ a ॥ … ॥ directive ══════════════════
+॰ Rust pushes the Statement and THEN calls apply_directive. Both halves
+॰ are here now: this routine records the shape, and निर्देशानुष्ठानम्
+॰ below — D-002f5, apply_directive's first half — gives the directive its
+॰ meaning. The two are separate for the reason Rust separates them: a
+॰ directive that is REFUSED is still a directive that was WRITTEN, so the
+॰ statement is recorded whether or not it applies.
+
+सार्वजनिक वृत्तिः निर्देशवाक्यम् आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    प्रत्यागमनम् वाक्ययोजनम् आरभ्य निर्देशवाक्यभेद ऽ शिरःचिह्नकम् ॱ पङ्क्ति ऽ शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+इति
+
+
+॰ ══════════════════ a label, ended at its ॱॱ ══════════════════
+॰ ANY single token, not only a पदभेद. A name ending in a kāraka sigil
+॰ lexes as an operand — दत्तम् is read as "दत्त, destination" — and
+॰ requiring a word here would bar most Sanskrit neuter nouns from being
+॰ labels, which is the ban ADR-0005 refused for operands. Position
+॰ settles it exactly as ADR-0004 settles the verb: one token before ॱॱ is
+॰ a name, whatever its ending, and the token's full text is that name.
+
+सार्वजनिक वृत्तिः चिह्नवाक्यम् आदाय नामचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    वाक्ययोजनम् आरभ्य चिह्नवाक्यभेद ऽ नामचिह्नकम् ॱ पङ्क्ति ऽ नामचिह्नकम् ॱ पाठ ऽ नामचिह्नकम् ॱ अष्टक ऽ नामचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    चरः सरणम् ॱॱ अ६४ भवति रिक्तमानम् ।
+    यदि वर्तमानकोष्ठक असमम् रिक्तकोष्ठकभेद आदि
+        सरणम् भवति दत्तसरणम् ।
+    इति
+    प्रत्यागमनम् चिह्नयोजनम् आरभ्य नामचिह्नकम् ॱ पाठ ऽ नामचिह्नकम् ॱ अष्टक ऽ नामचिह्नकम् ॱ पाठसीमा ऽ वर्तमानकोष्ठक ऽ सरणम् ऽ वाक्यविभागआज्ञासूचकाङ्क ऽ नामचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+इति
+
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE DIRECTIVES THAT EMIT NO BYTES — D-002f5, the port of
+॰ apply_directive's first half, parse.rs:683-808.
+॰
+॰ ── THE REGISTRY LOOKUP IS THE FIRST THING AND IT REFUSES ──
+॰ parse.rs opens with `directives().find(|d| d.name == head.text)` and an
+॰ `else { return Err(P13) }`, and its own doc comment says why: *"An
+॰ assembler that quietly drops `॥ संरेखः ४ ॥` produces a program wrong by
+॰ four bytes and says nothing about it."* A directive doc 02 named and
+॰ nothing implements is REFUSED (P14) and not ignored. Both codes are
+॰ ported and both are reachable the moment निर्देशकोश is filled; see (a).
+॰
+॰ ── संरेखः IS A BOUNDARY AND NOT A COUNT — W-071 ──
+॰ `॥ संरेखः १६ ॥` says *pad until the address divides by sixteen*, so at an
+॰ address already divisible by sixteen IT EMITS NOTHING, where
+॰ `॥ स्थानम् १६ ॥` always emits sixteen. Sharing an arm with स्थानम् made
+॰ it emit n bytes unconditionally and into ॱदत्त whichever section was
+॰ open. The two are in different rows here as well as different arms:
+॰ स्थानम् is D-002f6.
+॰
+॰ ── AND IT IS READ WITH सङ्ख्यामानम् AND NOT WITH A BIT READER — W-075 ──
+॰ A boundary is a MAGNITUDE. Read as a bit pattern ऋण१६ is ffff…f0, which
+॰ is not a power of two — so the power-of-two guard would refuse it, and
+॰ for a reason that is not the one it broke. सङ्ख्यादोषः answers ३ for a
+॰ ऋण and P30 says so in its own words. D-002f6 is the row that needs the
+॰ OTHER reader, the one that answers bits, and W-075 is the record of what
+॰ happened when one reader served both questions.
+॰
+॰ ── AND IT ACTS DIFFERENTLY IN EACH OF THE THREE SECTIONS ──
+॰ In ॱपाठ the padding CANNOT be computed while parsing, for the same
+॰ reason a branch's width cannot: relaxation has not run. So the REQUEST
+॰ is recorded — संरेखयोजनम् — and स्थानविन्यासः satisfies it. In ॱदत्त
+॰ there is no relaxation, the bytes emitted so far ARE the offset, and the
+॰ padding is known now. In ॱरिक्त — B-108 — it advances the location
+॰ counter and nothing else, which is precisely what स्थानम् does there;
+॰ this was refused by B-068's rule that only स्थानम् may appear in a
+॰ section holding no octets, and the refusal was inherited rather than
+॰ reasoned: P20 is about a directive that WRITES VALUES and संरेखः writes
+॰ none. Alignment at offset zero is a no-op rather than a special case, so
+॰ an empty ॱरिक्त stays empty and रिक्तपङ्क्तिः stays unset.
+॰
+॰ ── WHY THE NUMERAL READER IS IN THIS FILE ──
+॰ Rust calls sanskrit_text::numeral::{classify, value}. The T1 face of
+॰ that module is अक्षरकोश and its सङ्ख्या IS A STUB — measured, not
+॰ assumed: crates/sadhana-t1/src/sanskrit_text.t1 line 3 returns
+॰ अपूर्णम्, which is why lex.t1 records at (b) that सङ्ख्याभेद is never
+॰ produced. So there is no numeral reader anywhere in the T1 corpus to
+॰ call, and this row cannot read its own operand without one. It is
+॰ written HERE, against the row that needs it, rather than into another
+॰ module's stub that no row owns; when a sanskrit-text port lands, these
+॰ five routines are what it takes over.
+॰
+॰ NOTHING BELOW HAND-COPIES A TABLE (rule F). digit_value is a MATCH ON
+॰ CODE POINTS in numeral.rs and not a file, and the three radix prefixes
+॰ are three string constants of that same source, carried here as octets
+॰ because ० is a numeral and ADR-0017's string production admits akṣara
+॰ words. spec/directives.tsv is NOT copied — it is looked up, in an arena
+॰ the registry reader fills.
+॰ ══════════════════════════════════════════════════════════════════════
+
+
+॰ ══════════════════ numeral::digit_value ══════════════════
+॰ The value of the Devanagari character whose first octet is at स्थानम्,
+॰ in radix मूलम् — or ९९, which is this routine's "not a digit here" and
+॰ is chosen because it is larger than every radix, so the last comparison
+॰ folds Rust's `(v < radix).then_some(v)` and the None arm into one.
+॰
+॰ Every character concerned is three octets — २२४, then १६४ or १६५, then
+॰ the low six bits — because U+0900..U+093F and U+0940..U+097F are exactly
+॰ what the second octet distinguishes. ० U+0966 to ९ U+096F are second
+॰ १६५ and third १६६ to १७५; अ U+0905 to ऊ U+090A are ten to fifteen and
+॰ are second १६४ and third १३३ to १३८. Anything else — an ASCII octet, a
+॰ letter, a truncated character — is not a digit and answers ९९.
+
+सार्वजनिक वृत्तिः अङ्कमूल्यम् आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ स्थानम् ॱॱ अ६४ ऽ मूलम् ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् पाठः ॱ दैर्घ्य आदि
+        प्रत्यागमनम् ९९ ।
+    इति
+
+    चरः प्रथमम् ॱॱ अ८ भवति पाठः अङ्कः स्थानम् अन्तः ।
+    यदि प्रथमम् असमम् २२४ आदि
+        प्रत्यागमनम् ९९ ।
+    इति
+
+    चरः द्वितीयम् ॱॱ अ८ भवति पाठः अङ्कः आरभ्य स्थानम् योगः १ समाप्तम् अन्तः ।
+    चरः तृतीयम् ॱॱ अ८ भवति पाठः अङ्कः आरभ्य स्थानम् योगः २ समाप्तम् अन्तः ।
+    चरः मूल्यम् ॱॱ अ६४ भवति ९९ ।
+
+    ॰ ० … ९ — U+0966 … U+096F.
+    यदि द्वितीयम् समम् १६५ आदि
+        यदि तृतीयम् अधिकम् १६५ आदि
+            यदि तृतीयम् न्यूनम् १७६ आदि
+                मूल्यम् भवति आरभ्य तृतीयम् वियोगः १६६ समाप्तम् ।
+            इति
+        इति
+    इति
+
+    ॰ अ आ इ ई उ ऊ — ten to fifteen, U+0905 … U+090A.
+    यदि द्वितीयम् समम् १६४ आदि
+        यदि तृतीयम् अधिकम् १३२ आदि
+            यदि तृतीयम् न्यूनम् १३९ आदि
+                मूल्यम् भवति आरभ्य तृतीयम् वियोगः १२३ समाप्तम् ।
+            इति
+        इति
+    इति
+
+    ॰ Rust's `(v < radix as u32).then_some(v)`. ९९ is below no radix, so a
+    ॰ character that matched neither range falls out here unchanged.
+    यदि मूल्यम् न्यूनम् मूलम् आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    प्रत्यागमनम् ९९ ।
+इति
+
+
+॰ ══════════════════ numeral::split_sign ══════════════════
+॰ ऋण is doc 15's negative operator and Brahmagupta's own word, and it is
+॰ two LETTERS — so unlike the radix prefixes it is an ADR-0017 literal and
+॰ needs no octets. Rust returns (bool, &str) and T1 has no tuple, so it is
+॰ this routine and सङ्ख्यारम्भः below, over one slice.
+
+सार्वजनिक वृत्तिः ऋणचिह्नम् आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    चरः ऋणपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् ऋण इति ।
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति ऋणपाठः ॱ दैर्घ्य ।
+    यदि आरभ्य आरम्भः योगः दैर्घ्यम् समाप्तम् अधिकम् सीमा आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् पाठसाम्यम् आरभ्य पाठः ऽ आरम्भः ऽ आरभ्य आरम्भः योगः दैर्घ्यम् समाप्तम् ऽ ऋणपाठः ऽ ० ऽ दैर्घ्यम् समाप्तम् ।
+इति
+
+॰ where the magnitude begins — the second half of split_sign.
+सार्वजनिक वृत्तिः सङ्ख्यारम्भः आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि ऋणचिह्नम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        चरः ऋणपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् ऋण इति ।
+        प्रत्यागमनम् आरभ्य आरम्भः योगः ऋणपाठः ॱ दैर्घ्य समाप्तम् ।
+    इति
+    प्रत्यागमनम् आरम्भः ।
+इति
+
+
+॰ ══════════════════ numeral::classify ══════════════════
+॰ Rust returns Option<(Radix, &str)>: no tuple here either, so the radix
+॰ and the offset of the digits are two routines. The radix is its own
+॰ number — २, ८, १० and १६ are what Radix's discriminants ARE — and ० is
+॰ None, this file's absent, which is sound because no radix is zero.
+॰
+॰ THE SIGN IS SPLIT FIRST AND THE PREFIX SEARCHED AFTER, in that order,
+॰ because ऋण sits OUTSIDE the radix prefix: ऋण०षोड्ऊ is negative fifteen,
+॰ read in the order it is said. And the three prefixes are tried BEFORE
+॰ the bare-digit case, because every one of them begins with ० and ० is
+॰ itself a digit — reversing the two would read ०द्वि१ as decimal zero.
+
+सार्वजनिक वृत्तिः सङ्ख्यामूलम् आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः उपसर्गदैर्घ्यम् ॱॱ अ६४ भवति षोडमूलपाठः ॱ दैर्घ्य ।
+
+    यदि आरभ्य स्थानम् योगः उपसर्गदैर्घ्यम् समाप्तम् न्यूनम् आरभ्य सीमा योगः १ समाप्तम् आदि
+        चरः उपसर्गसीमा ॱॱ अ६४ भवति आरभ्य स्थानम् योगः उपसर्गदैर्घ्यम् समाप्तम् ।
+        यदि पाठसाम्यम् आरभ्य पाठः ऽ स्थानम् ऽ उपसर्गसीमा ऽ षोडमूलपाठः ऽ ० ऽ उपसर्गदैर्घ्यम् समाप्तम् आदि
+            प्रत्यागमनम् १६ ।
+        इति
+        यदि पाठसाम्यम् आरभ्य पाठः ऽ स्थानम् ऽ उपसर्गसीमा ऽ द्विमूलपाठः ऽ ० ऽ उपसर्गदैर्घ्यम् समाप्तम् आदि
+            प्रत्यागमनम् २ ।
+        इति
+        यदि पाठसाम्यम् आरभ्य पाठः ऽ स्थानम् ऽ उपसर्गसीमा ऽ अष्टमूलपाठः ऽ ० ऽ उपसर्गदैर्घ्यम् समाप्तम् आदि
+            प्रत्यागमनम् ८ ।
+        इति
+    इति
+
+    ॰ Rust's `token.chars().next().filter(is_devanagari_digit)`. In radix
+    ॰ ten अ … ऊ answer ९९, so this is that predicate and not a wider one.
+    यदि अङ्कमूल्यम् आरभ्य पाठः ऽ स्थानम् ऽ १० समाप्तम् न्यूनम् १० आदि
+        प्रत्यागमनम् १० ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ where the digits themselves begin — classify's second half.
+सार्वजनिक वृत्तिः सङ्ख्याङ्कारम्भः आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    ॰ decimal keeps its digits; the other three are named by a prefix and
+    ॰ the digits begin after it. All three prefixes are one length.
+    यदि मूलम् समम् १० आदि
+        प्रत्यागमनम् स्थानम् ।
+    इति
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् स्थानम् ।
+    इति
+    प्रत्यागमनम् आरभ्य स्थानम् योगः षोडमूलपाठः ॱ दैर्घ्य समाप्तम् ।
+इति
+
+
+॰ ══════════════════ numeral::value — the two halves ══════════════════
+॰ Rust returns Result<u64, NumeralError>. T1 has neither Result nor
+॰ Option-of-pair, so this is the file's own no-tuple idiom once more: one
+॰ routine answers WHETHER it reads and why not, the other answers WHAT it
+॰ reads, and the caller asks the first before it trusts the second.
+॰
+॰ सङ्ख्यादोषः answers ० for a numeral, and otherwise names the diagnostic
+॰ the caller must raise: १ is P19 (NoDigits and BadDigit — nothing is a
+॰ numeral, or something in it is not a digit of the radix), २ is P29
+॰ (TooLarge — spelled correctly and naming a value 64 bits cannot hold,
+॰ which is W-075's whole point: it used to saturate at u64::MAX and
+॰ assemble as a different, plausible number), and ३ is P30 (Signed — a ऋण
+॰ reached a reader that has no sign to give it, and reporting THAT as
+॰ "malformed" sent the reader looking for a typo that is not there).
+
+सार्वजनिक वृत्तिः सङ्ख्यादोषः आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    ॰ value() splits the sign FIRST and refuses a negative outright.
+    यदि ऋणचिह्नम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        प्रत्यागमनम् ३ ।
+    इति
+
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् १ ।
+    इति
+
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    ॰ a prefix with no digits after it is NoDigits, not zero.
+    यदि स्थानम् समम् सीमा आदि
+        प्रत्यागमनम् १ ।
+    इति
+
+    ॰ THE THRESHOLD PER BASE, EACH BELOW २^६३ (2026-09-22). This guard used to
+    ॰ hold `चरमम् = २^६४−१` and ask `पदम् अधिकम् ((चरमम् − अङ्कमानम्) ÷ मूलम्)`.
+    ॰ The interpreter compares and divides in `i128`, where that is the unsigned
+    ॰ value; `ir.t1` lowers every source comparison to the SIGNED kind and
+    ॰ division to `भागः`, so natively `चरमम्` is −१, the bound is ०, and EVERY
+    ॰ numeral of two or more digits answered २ — overflow. `॥ संरेखः १६ ॥` was
+    ॰ refused in every module, the data section was never re-aligned after a
+    ॰ section switch, and the native self-image build's image was 1080 octets
+    ॰ short of the interpreter's. The same class was fixed in `अक्षरकोश`'s twin
+    ॰ (`अंशदोषः`) on 2026-09-14 the same way: keep every value below २^६३, where
+    ॰ signed and unsigned agree. Addition and subtraction are bit-identical
+    ॰ under both readings; only COMPARE and DIVIDE are sign-sensitive, so the
+    ॰ division is replaced by a per-base constant — `(२^६४−१) ÷ मूलम्` and its
+    ॰ remainder, both literals, both below २^६३.
+    चरः सीमापदम् ॱॱ अ६४ भवति ० ।
+    चरः सीमाशेषम् ॱॱ अ६४ भवति ० ।
+    यदि मूलम् समम् २ आदि
+        सीमापदम् भवति ९२२३३७२०३६८५४७७५८०७ ।
+        सीमाशेषम् भवति १ ।
+    इति
+    यदि मूलम् समम् ८ आदि
+        सीमापदम् भवति २३०५८४३००९२१३६९३९५१ ।
+        सीमाशेषम् भवति ७ ।
+    इति
+    यदि मूलम् समम् १० आदि
+        सीमापदम् भवति १८४४६७४४०७३७०९५५१६१ ।
+        सीमाशेषम् भवति ५ ।
+    इति
+    यदि मूलम् समम् १६ आदि
+        सीमापदम् भवति ११५२९२१५०४६०६८४६९७५ ।
+        सीमाशेषम् भवति १५ ।
+    इति
+    चरः पदम् ॱॱ अ६४ भवति ० ।
+
+    यावत् स्थानम् न्यूनम् सीमा आदि
+        ॰ अङ्कमूल्यम् bounds itself by the WHOLE text, as Rust's digit_value
+        ॰ takes a char and not a slice; the token ends at सीमा, so a trailing
+        ॰ partial character is refused here rather than read past the end.
+        यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् सीमा आदि
+            प्रत्यागमनम् १ ।
+        इति
+        चरः अङ्कमानम् ॱॱ अ६४ भवति अङ्कमूल्यम् आरभ्य पाठः ऽ स्थानम् ऽ मूलम् समाप्तम् ।
+        यदि अङ्कमानम् समम् ९९ आदि
+            प्रत्यागमनम् १ ।
+        इति
+        ॰ Rust's checked_mul then checked_add, asked BEFORE the multiply
+        ॰ rather than after it: पदम् गुणनम् मूलम् योगः अङ्कमानम् overflows
+        ॰ exactly when पदम् is past (चरमम् − अङ्कमानम्) ÷ मूलम्.
+        यदि पदम् अधिकम् सीमापदम् आदि
+            प्रत्यागमनम् २ ।
+        इति
+        यदि पदम् समम् सीमापदम् आदि
+            यदि अङ्कमानम् अधिकम् सीमाशेषम् आदि
+                प्रत्यागमनम् २ ।
+            इति
+        इति
+        पदम् भवति आरभ्य आरभ्य पदम् गुणनम् मूलम् समाप्तम् योगः अङ्कमानम् समाप्तम् ।
+        स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ the magnitude itself. Read only after सङ्ख्यादोषः has answered ०; it
+॰ answers ० for anything else, which is a value and not a claim.
+सार्वजनिक वृत्तिः सङ्ख्यामानम् आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि सङ्ख्यादोषः आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् असमम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य पाठः ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    चरः पदम् ॱॱ अ६४ भवति ० ।
+
+    यावत् स्थानम् न्यूनम् सीमा आदि
+        चरः अङ्कमानम् ॱॱ अ६४ भवति अङ्कमूल्यम् आरभ्य पाठः ऽ स्थानम् ऽ मूलम् समाप्तम् ।
+        पदम् भवति आरभ्य आरभ्य पदम् गुणनम् मूलम् समाप्तम् योगः अङ्कमानम् समाप्तम् ।
+        स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति
+
+
+॰ ══════════════════ the registry, looked up ══════════════════
+॰ Rust's directives().into_iter().find(|d| d.name == head.text). Returns
+॰ an INDEX into निर्देशकोश, ० for not found — this file's absent, and the
+॰ reason P13 exists at all.
+॰
+॰ IT WALKS AN EMPTY ARENA TODAY and that is (a) and not a defect here:
+॰ निर्देशकोश is filled by directives(), which reads spec/directives.tsv,
+॰ and that file has NO NAME IN anita.rs's TABLES — so the embed cannot
+॰ reach it and D-002f2 is blocked on a registry entry and not on code.
+॰ The loop is real, its comparison is real, and the day the registry
+॰ reader lands P13 and P14 fire without either being touched. That is the
+॰ same shape वैश्विकचिह्नपरीक्षा was left in by D-002f3, and this row is
+॰ what took वैश्विकचिह्नपरीक्षा out of it.
+
+सार्वजनिक वृत्तिः निर्देशान्वेषणम् आदाय पाठः ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः क्रमः ॱॱ अ६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य निर्देशसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः प्रविष्टिः ॱॱ निर्देश भवति निर्देशकोश अङ्कः क्रमः अन्तः ।
+        यदि पाठसाम्यम् आरभ्य पाठः ऽ आरम्भः ऽ सीमा ऽ प्रविष्टिः ॱ नाम ऽ प्रविष्टिः ॱ नामारम्भ ऽ प्रविष्टिः ॱ नामसीमा समाप्तम् आदि
+            प्रत्यागमनम् क्रमः ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Rust's `kind.status != "live"`, and the status word is Latin — so it is
+॰ compared against जीवत्पाठः, which कूटरचना builds as its four octets.
+सार्वजनिक वृत्तिः जीवन्निर्देशः आदाय क्रमः ॱॱ अ६४ ददाति बूल आदि
+    चरः प्रविष्टिः ॱॱ निर्देश भवति निर्देशकोश अङ्कः क्रमः अन्तः ।
+    प्रत्यागमनम् पाठसाम्यम् आरभ्य प्रविष्टिः ॱ स्थिति ऽ प्रविष्टिः ॱ स्थित्यारम्भ ऽ प्रविष्टिः ॱ स्थितिसीमा ऽ जीवत्पाठः ऽ ० ऽ जीवत्पाठः ॱ दैर्घ्य समाप्तम् ।
+इति
+
+
+॰ ══════════════════ P16 — one operand, and exactly one ══════════════════
+॰ Rust writes `let [name] = args[..] else { return Err(P16) }` in each of
+॰ the four arms, and destructuring is what makes ONE the requirement: two
+॰ names is as wrong as none. Written once here because four copies of a
+॰ two-line check is four places for the count to drift. The answer is ०
+॰ when the count is right and the diagnostic's own index when it is not,
+॰ so a caller tests it exactly as it tests any other push here.
+॰
+॰ The argument is the DIRECTIVE'S name, which is head.text — Rust writes
+॰ the literal `&["कोष्ठकम्"]` at each site and they are the same word.
+
+सार्वजनिक वृत्तिः एकपदपरीक्षा आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ पदसंख्या ॱॱ अ६४ ददाति अ६४ आदि
+    यदि पदसंख्या समम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अपूर्णनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+इति
+
+॰ how many operands a ॥ … ॥ carries — Rust's `toks[1..]`, which is the
+॰ statement's own run less its head. Operands of a directive carry no
+॰ कारक: they are arguments to the assembler, not rôles in a sentence.
+सार्वजनिक वृत्तिः निर्देशपदसंख्या आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    प्रत्यागमनम् आरभ्य आरभ्य वाक्यसीमा वियोगः वाक्यारम्भः समाप्तम् वियोगः १ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ ॥ कोष्ठकम् ॱX ॥ — P15/P16 ══════════════════
+॰ Rust assigns `*section = Section::from_name(name).ok_or(P15)?`. A
+॰ mistyped section is a program that assembles into the wrong place and
+॰ says nothing, which is why कोष्ठकनाम refuses rather than defaults.
+॰
+॰ रिक्तपङ्क्तिः IS SET HERE and nowhere else. Program::bss_line exists so
+॰ that a diagnostic about ॱरिक्त written on line 40 does not blame line 1,
+॰ and the line it wants is the one that OPENED the section — which is this
+॰ token, and is not recoverable anywhere later.
+
+सार्वजनिक वृत्तिः कोष्ठकनिर्देशः आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+    चरः न्यूनदोषः ॱॱ अ६४ भवति एकपदपरीक्षा आरभ्य शिरःचिह्नकम् ऽ निर्देशपदसंख्या आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् समाप्तम् ।
+    यदि न्यूनदोषः असमम् ० आदि
+        प्रत्यागमनम् न्यूनदोषः ।
+    इति
+
+    चरः पदचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य वाक्यारम्भः योगः १ समाप्तम् अन्तः ।
+    चरः भेदः ॱॱ अ६४ भवति कोष्ठकनाम आरभ्य पदचिह्नकम् ॱ पाठ ऽ पदचिह्नकम् ॱ अष्टक ऽ पदचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    यदि भेदः समम् ० आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अज्ञातकोष्ठककूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    वर्तमानकोष्ठक भवति भेदः ।
+    यदि भेदः समम् रिक्तकोष्ठकभेद आदि
+        यदि रिक्तपङ्क्तिः समम् ० आदि
+            रिक्तपङ्क्तिः भवति शिरःचिह्नकम् ॱ पङ्क्ति ।
+        इति
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ ॥ वैश्विकम् X ॥ — P16 ══════════════════
+॰ out.globals.push(name). L02 — a name this file exports and does not
+॰ define — is NOT checked here: वैश्विकचिह्नपरीक्षा checks it at the end
+॰ of the walk, because a label may be defined after the directive that
+॰ exports it. This is the push that gives that loop anything to say.
+
+सार्वजनिक वृत्तिः वैश्विकनिर्देशः आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+    चरः न्यूनदोषः ॱॱ अ६४ भवति एकपदपरीक्षा आरभ्य शिरःचिह्नकम् ऽ निर्देशपदसंख्या आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् समाप्तम् ।
+    यदि न्यूनदोषः असमम् ० आदि
+        प्रत्यागमनम् न्यूनदोषः ।
+    इति
+
+    चरः पदचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य वाक्यारम्भः योगः १ समाप्तम् अन्तः ।
+    प्रत्यागमनम् वैश्विकयोजनम् आरभ्य पदचिह्नकम् ॱ पाठ ऽ पदचिह्नकम् ॱ अष्टक ऽ पदचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+इति
+
+
+॰ ══════════════════ ॥ स्थानीयम् X ॥ — P16, AND NOTHING ELSE ══════════════════
+॰ Local is the DEFAULT, so naming it is documentation and not an effect.
+॰ Rust binds `[_name]` and writes that sentence in the arm; the arity is
+॰ still checked, because `॥ स्थानीयम् ॥` names nothing and is a mistake
+॰ whether or not the effect is empty. A routine that does nothing AND SAYS
+॰ SO is not a stub: it is the port of an arm that does nothing.
+
+सार्वजनिक वृत्तिः स्थानीयनिर्देशः आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+    प्रत्यागमनम् एकपदपरीक्षा आरभ्य शिरःचिह्नकम् ऽ निर्देशपदसंख्या आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् समाप्तम् ।
+इति
+
+
+॰ ══════════════════ how many bytes a boundary asks for ══════════════════
+॰ Rust's `at.next_multiple_of(n) - at`. Written with a division and a
+॰ multiplication rather than as सरणम् युक् आरभ्य सीमा वियोगः १ समाप्तम्,
+॰ which is the same answer for a power of two AND ONLY FOR ONE — it would
+॰ hold only because the guard above it holds, making a check and an
+॰ arithmetic identity into one thing that can be half-removed. ० when the
+॰ address already divides, which is the whole difference between संरेखः
+॰ and स्थानम्.
+
+सार्वजनिक वृत्तिः संरेखपूर्तिः आदाय सरणम् ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शेषम् ॱॱ अ६४ भवति आरभ्य सरणम् वियोगः आरभ्य आरभ्य सरणम् विभाजनम् सीमा समाप्तम् गुणनम् सीमा समाप्तम् समाप्तम् ।
+    यदि शेषम् समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् आरभ्य सीमा वियोगः शेषम् समाप्तम् ।
+इति
+
+॰ vec![0; pad] — a run of संख्यानम् zero octets. Padding in ॱदत्त is
+॰ ZEROES and not nops: ॱदत्त holds data, and स्थानविन्यासः is what puts
+॰ instructions into the gap it leaves in ॱपाठ.
+सार्वजनिक वृत्तिः शून्यपूरणम् आदाय संख्यानम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः अष्टकाः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    यावत् क्रमः न्यूनम् संख्यानम् आदि
+        अष्टकाः अङ्कः क्रमः अन्तः भवति ० ।
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् अष्टकाः ।
+इति
+
+
+॰ ══════════════════ ॥ संरेखः n ॥ — P16/P19/P29/P30 ══════════════════
+॰ See the block at the head of this section for W-071, W-075 and B-108.
+॰ Note that spec/directives.tsv's gas column says `.align`, which on
+॰ RISC-V means 2^n and is a different directive; `.balign` is the one that
+॰ means this. Recorded and not fixed, exactly as parse.rs records it: the
+॰ mapping is the spec's to correct, not the assembler's to reinterpret.
+
+सार्वजनिक वृत्तिः संरेखनिर्देशः आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+    चरः न्यूनदोषः ॱॱ अ६४ भवति एकपदपरीक्षा आरभ्य शिरःचिह्नकम् ऽ निर्देशपदसंख्या आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् समाप्तम् ।
+    यदि न्यूनदोषः असमम् ० आदि
+        प्रत्यागमनम् न्यूनदोषः ।
+    इति
+
+    चरः पदचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य वाक्यारम्भः योगः १ समाप्तम् अन्तः ।
+
+    ॰ classify(n).is_none() — it does not even begin like a numeral.
+    यदि सङ्ख्यामूलम् आरभ्य पदचिह्नकम् ॱ पाठ ऽ पदचिह्नकम् ॱ अष्टक ऽ पदचिह्नकम् ॱ पाठसीमा समाप्तम् समम् ० आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    ॰ value(n), and its three failures. Every one is located AT THE
+    ॰ DIRECTIVE — parse.rs's `err` closure carries head.line and
+    ॰ head.aksara — while the ARGUMENT is the numeral that was written.
+    चरः सङ्ख्यास्थितिः ॱॱ अ६४ भवति सङ्ख्यादोषः आरभ्य पदचिह्नकम् ॱ पाठ ऽ पदचिह्नकम् ॱ अष्टक ऽ पदचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+
+    ॰ P30 takes TWO arguments and the DIRECTIVE is the first: "`{0}` takes
+    ॰ a count, and a count carries no sign — `{1}` begins with ऋण".
+    यदि सङ्ख्यास्थितिः समम् ३ आदि
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        ॰ {1}. Its index is not kept and must not be: the args are a RUN,
+        ॰ named by the first index and the count, so what this call is for
+        ॰ is the push and not the number. Deleting it leaves a run of two
+        ॰ whose second entry is whatever the next diagnostic writes.
+        चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य सचिह्नगणनाकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ २ समाप्तम् ।
+    इति
+
+    यदि सङ्ख्यास्थितिः समम् २ आदि
+        चरः अतिपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अतिप्रवाहकूटः ऽ शिरःचिह्नकम् ऽ अतिपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    यदि सङ्ख्यास्थितिः असमम् ० आदि
+        चरः रूपपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ रूपपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    चरः सीमाङ्कः ॱॱ अ६४ भवति सङ्ख्यामानम् आरभ्य पदचिह्नकम् ॱ पाठ ऽ पदचिह्नकम् ॱ अष्टक ऽ पदचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+
+    ॰ Zero and one are not alignment. Zero asks for a multiple of nothing;
+    ॰ one is satisfied by every address, so it is a statement that does
+    ॰ nothing and reads like a statement that does something. And a
+    ॰ boundary that is not a power of two is not a boundary at all.
+    यदि सीमाङ्कः न्यूनम् २ आदि
+        चरः लघुपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ लघुपदार्थः ऽ १ समाप्तम् ।
+    इति
+    यदि आरभ्य सीमाङ्कः युक् आरभ्य सीमाङ्कः वियोगः १ समाप्तम् समाप्तम् असमम् ० आदि
+        चरः द्विघातपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ द्विघातपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    ॰ ── ॱपाठ: a REQUEST, because relaxation has not run ──
+    यदि वर्तमानकोष्ठक समम् पाठकोष्ठकभेद आदि
+        प्रत्यागमनम् संरेखयोजनम् आरभ्य वाक्यविभागआज्ञासूचकाङ्क ऽ सीमाङ्कः समाप्तम् ।
+    इति
+
+    ॰ ── ॱदत्त: the bytes emitted so far ARE the offset ──
+    यदि वर्तमानकोष्ठक समम् दत्तकोष्ठकभेद आदि
+        चरः सरणम् ॱॱ अ६४ भवति दत्तसरणम् ।
+        चरः पूर्तिः ॱॱ अ६४ भवति संरेखपूर्तिः आरभ्य सरणम् ऽ सीमाङ्कः समाप्तम् ।
+        ॰ 7301 — the data cursor, the pad and the chunk count at a data `संरेखः`
+        ॰ (2026-09-22: natively a re-alignment after a section switch padded ०
+        ॰ where the interpreter padded ८).
+        ॰ ALREADY ALIGNED EMITS NOTHING. Not an empty दत्तम् — no दत्तम्.
+        यदि पूर्तिः समम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        प्रत्यागमनम् दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ शून्यपूरणम् पूर्तिः ऽ ० ऽ ० ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+    इति
+
+    ॰ ── ॱरिक्त: the location counter, and nothing else — B-108 ──
+    रिक्तमानम् भवति आरभ्य रिक्तमानम् योगः संरेखपूर्तिः आरभ्य रिक्तमानम् ऽ सीमाङ्कः समाप्तम् समाप्तम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ apply_directive, first half ══════════════════
+॰ parse.rs:683-808. The registry is asked FIRST and refuses, and only then
+॰ is the name dispatched on — so `॥ अस्ति ॥` is P13 and never falls
+॰ through to "no arm matched", which is the difference between an
+॰ assembler that refuses what it cannot do and one that drops it.
+॰
+॰ THE ARMS BELOW ARE THE FOUR THAT EMIT NO BYTES. The five that emit
+॰ them — स्थानम्, अष्टकाः, द्वयष्टकाः, चतुरष्टकाः, अष्टाष्टकाः — and the
+॰ two text ones — आस्की, जाल — are D-002f6 and D-002f7, and a name this
+॰ routine does not dispatch on is answered by ० here rather than by a
+॰ diagnostic: the registry has already said the word IS a directive, so
+॰ refusing it a second time would report a fault in the source for a gap
+॰ in the port. That is stated so the ० is a decision and not an oversight.
+
+सार्वजनिक वृत्तिः निर्देशानुष्ठानम् आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+
+    ॰ ── P13: doc 02 named it and spec/directives.tsv does not ──
+    चरः क्रमः ॱॱ अ६४ भवति निर्देशान्वेषणम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    यदि क्रमः समम् ० आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अज्ञातनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    ॰ ── P14: the registry names it and its status is not live. The second
+    ॰ argument is the gas name, so the two pieces of text are pushed in the
+    ॰ order the template names them and the run is the pair.
+    यदि जीवन्निर्देशः क्रमः समम् असत्यम् आदि
+        चरः प्रविष्टिः ॱॱ निर्देश भवति निर्देशकोश अङ्कः क्रमः अन्तः ।
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        पाठांशयोजनम् आरभ्य प्रविष्टिः ॱ यवननाम ऽ प्रविष्टिः ॱ यवनारम्भ ऽ प्रविष्टिः ॱ यवनसीमा समाप्तम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असमर्थितनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ २ समाप्तम् ।
+    इति
+
+    ॰ ── the four arms ──
+    चरः कोष्ठकसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् कोष्ठकम् इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ कोष्ठकसंज्ञा ऽ ० ऽ कोष्ठकसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् कोष्ठकनिर्देशः आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    चरः वैश्विकसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् वैश्विकम् इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ वैश्विकसंज्ञा ऽ ० ऽ वैश्विकसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् वैश्विकनिर्देशः आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    चरः स्थानीयसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् स्थानीयम् इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ स्थानीयसंज्ञा ऽ ० ऽ स्थानीयसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् स्थानीयनिर्देशः आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    चरः संरेखसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् संरेखः इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ संरेखसंज्ञा ऽ ० ऽ संरेखसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् संरेखनिर्देशः आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    ॰ W-239 (2026-09-04): THE BYTE-EMITTING HALF — apply_directive's second
+    ॰ half (parse.rs:809-900). Until this the four arms above were the whole
+    ॰ of what a T1 program's directive could DO; `आस्की`, `जाल` and the five
+    ॰ width directives were recorded as statements and never applied, and
+    ॰ `अष्टकनिर्देशकार्यम्` was reached only from Rust tests. The operands
+    ॰ begin one token after the head; each reader raises P16 for none.
+    चरः आस्कीसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् आस्की इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ आस्कीसंज्ञा ऽ ० ऽ आस्कीसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् आस्कीपाठः आरभ्य शिरःचिह्नकम् ऽ आरभ्य वाक्यारम्भः योगः १ समाप्तम् ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    चरः जालसंज्ञा ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् जाल इति ।
+    यदि पाठसाम्यम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ जालसंज्ञा ऽ ० ऽ जालसंज्ञा ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् जालपाठः आरभ्य शिरःचिह्नकम् ऽ आरभ्य वाक्यारम्भः योगः १ समाप्तम् ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    यदि आरभ्य अष्टकनिर्देशवाचकः शिरःचिह्नकम् समाप्तम् समम् सत्यम् आदि
+        प्रत्यागमनम् अष्टकनिर्देशकार्यम् आरभ्य शिरःचिह्नकम् ऽ आरभ्य वाक्यारम्भः योगः १ समाप्तम् ऽ वाक्यसीमा समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ POST-CHECK 1 — L02, and it is checked HERE ══════════════════
+॰ A name this file exports and does not define is a promise nothing keeps.
+॰ Checked at the END OF THE WALK rather than at link time, because
+॰ वैश्विकम् X says *this file defines X and shows it to others* — a claim
+॰ about ONE translation unit, which every path that reads a unit should
+॰ test. बन्धकः tested it and the object path did not, so --वस्तु wrote a
+॰ file whose export was a name nothing in it defined and said nothing.
+॰ That is B-096, and it is why this loop is in the splitter.
+॰
+॰ IT NO LONGER WALKS AN EMPTY RUN. D-002f3 left this loop real and with
+॰ nothing to read, and said so; D-002f5 landed वैश्विकनिर्देशः, which is
+॰ the push that fills वैश्विककोश, and this loop began reporting without
+॰ being touched — which is what a real loop over an empty arena is FOR.
+॰ Only the arena it reads changed, and the reason is at वैश्विककोश.
+
+सार्वजनिक वृत्तिः वैश्विकपङ्क्तिः ददाति न६४ आदि
+    चरः नामपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् वैश्विकम् इति ।
+    चरः क्रमः ॱॱ अ६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य वाक्यविभागवाक्यसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः वाक्यम् ॱॱ वाक्य भवति वाक्यविभागवाक्यकोश अङ्कः क्रमः अन्तः ।
+        यदि वाक्यम् ॱ भेद समम् निर्देशवाक्यभेद आदि
+            यदि पाठसाम्यम् आरभ्य वाक्यम् ॱ नाम ऽ वाक्यम् ॱ नामारम्भ ऽ वाक्यम् ॱ नामसीमा ऽ नामपाठः ऽ ० ऽ नामपाठः ॱ दैर्घ्य समाप्तम् आदि
+                प्रत्यागमनम् वाक्यम् ॱ पङ्क्ति ।
+            इति
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् १ ।
+इति
+
+सार्वजनिक वृत्तिः वैश्विकचिह्नपरीक्षा ददाति अ६४ आदि
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः पङ्क्तिः ॱॱ न६४ भवति वैश्विकपङ्क्तिः ।
+    चरः क्रमः ॱॱ अ६४ भवति वैश्विकारम्भः ।
+    यावत् क्रमः न्यूनम् आरभ्य वैश्विकारम्भः योगः वैश्विकसंख्यानम् समाप्तम् आदि
+        चरः वैश्विकम् ॱॱ पाठांश भवति वैश्विककोश अङ्कः क्रमः अन्तः ।
+        चरः लब्धम् ॱॱ बूल भवति असत्यम् ।
+        चरः चिह्नक्रमः ॱॱ अ६४ भवति १ ।
+        यावत् चिह्नक्रमः न्यूनम् आरभ्य चिह्नसूचकाङ्क योगः १ समाप्तम् आदि
+            चरः चिह्नम् ॱॱ चिह्न भवति चिह्नकोश अङ्कः चिह्नक्रमः अन्तः ।
+            यदि पाठसाम्यम् आरभ्य चिह्नम् ॱ नाम ऽ चिह्नम् ॱ नामारम्भ ऽ चिह्नम् ॱ नामसीमा ऽ वैश्विकम् ॱ पाठ ऽ वैश्विकम् ॱ आरम्भ ऽ वैश्विकम् ॱ सीमा समाप्तम् आदि
+                लब्धम् भवति सत्यम् ।
+            इति
+            चिह्नक्रमः भवति आरभ्य चिह्नक्रमः योगः १ समाप्तम् ।
+        इति
+        यदि लब्धम् समम् असत्यम् आदि
+            दोषयोजनम् आरभ्य अपरिभाषितवैश्विककूटः ऽ पङ्क्तिः ऽ ० ऽ क्रमः ऽ १ ऽ रिक्तपाठः समाप्तम् ।
+            संख्यानम् भवति आरभ्य संख्यानम् योगः १ समाप्तम् ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+
+॰ ══════════════════ POST-CHECK 2 — P25, AT THE MARK THAT OPENED ══════════════════
+॰ A directive left open swallows whatever follows it, so it is reported at
+॰ THE ॥ THAT OPENED IT and not at the end of the file — which is the whole
+॰ reason उद्घाटकः stores an arena index rather than a flag: a flag would
+॰ know that a directive is open and not know where it began.
+
+सार्वजनिक वृत्तिः अनावृतनिर्देशपरीक्षा आदाय उद्घाटकः ॱॱ अ६४ ददाति अ६४ आदि
+    यदि उद्घाटकः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः उद्घाटकः अन्तः ।
+    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अनावृतनिर्देशकूटः ऽ चिह्नकम् ऽ ० ऽ ० समाप्तम् ।
+इति
+
+
+॰ ══════════════════ POST-CHECK 3 — P02, a trailing sentence ══════════════════
+॰ A trailing statement with no daṇḍa is not a sentence. Reported at its
+॰ FIRST token, which is why the range is carried out of the loop.
+
+सार्वजनिक वृत्तिः अन्तिमवाक्यपरीक्षा आदाय वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि वाक्यारम्भः समम् वाक्यसीमा आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+    चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अदण्डवाक्यकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ THE WALK ══════════════════
+॰ parse.rs:485-612's `for tok in tokens`. Returns how many वाक्य it
+॰ recorded, which is ० exactly when the arena held no statement — the
+॰ same answer-shape पदविभाग gives, and for the same reason: a routine
+॰ that cannot return Rust's Result returns the count it produced.
+॰
+॰ THE FOUR ARMS ARE WRITTEN AS ONE if/else CHAIN rather than with
+॰ अनुवर्तनम्, because Rust's `continue` at the foot of each arm is what
+॰ makes them exclusive and a chain says that without depending on how
+॰ this language's `continue` binds inside यावत्.
+
+सार्वजनिक वृत्तिः वाक्यविभाजनम् ददाति अ६४ आदि
+    चरः कूटाः ॱॱ अ६४ भवति कूटरचना ।
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति १ ।
+    चरः वाक्यारम्भः ॱॱ अ६४ भवति १ ।
+    चरः वाक्यसीमा ॱॱ अ६४ भवति १ ।
+    चरः उद्घाटकः ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्कः न्यूनम् आरभ्य पदविभागॱचिह्नकसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः सूचकाङ्कः अन्तः ।
+
+        ॰ ── ARM 1: । ends a sentence ──
+        यदि चिह्नकम् ॱ भेद समम् पदविभागॱदण्डभेद आदि
+            यदि वाक्यारम्भः न्यूनम् वाक्यसीमा आदि
+                चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+                चरः फलम् ॱॱ अ६४ भवति आज्ञावाक्यम् शिरःचिह्नकम् ।
+                ॰ ── AND READ IT, WHICH IS THE HALF THAT WAS MISSING ────────
+                ॰ `आज्ञावाक्यम्` records the STATEMENT into वाक्यविभागवाक्यकोश; it does not
+                ॰ build the आज्ञा. The margin above it said so — "the sentence
+                ॰ reader that turns the run into an आज्ञा is the next row, so
+                ॰ वाक्यविभागआज्ञाकोश is still empty after this walk and वाक्यविभागवाक्यकोश is not"
+                ॰ — and that next row is this line.
+                ॰
+                ॰ MEASURED BEFORE IT EXISTED: `सङ्कलनम्` over a four-instruction
+                ॰ source answered ४ statements and left वाक्यविभागआज्ञासूचकाङ्क at ०, so
+                ॰ `सङ्केतन` encoded ० octets and the image halted Unimplemented
+                ॰ at its first word. The top level was HALF present — a splitter
+                ॰ with no reader behind it — which reads from outside exactly
+                ॰ like no top level at all.
+                ॰
+                ॰ ONLY WHEN THE STATEMENT WAS ACCEPTED. `आज्ञावाक्यम्` answers ०
+                ॰ where an instruction may not stand — in `ॱदत्त` it is P01 — and
+                ॰ reading one there would build an आज्ञा the statement walk
+                ॰ refused.
+                यदि फलम् असमम् ० आदि
+                    चरः पठितम् ॱॱ अ६४ भवति वाक्यपठनम् आरभ्य शिरःचिह्नकम् ऽ वाक्यारम्भः ऽ सूचकाङ्कः समाप्तम् ।
+                इति
+            इति
+            वाक्यारम्भः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+            वाक्यसीमा भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+
+        ॰ ── ARM 2: ॥ opens or closes (ADR-0012) ──
+        यदि चिह्नकम् ॱ भेद समम् पदविभागॱयुग्मदण्डभेद आदि
+            यदि उद्घाटकः असमम् ० आदि
+                ॰ this one CLOSES the directive उद्घाटकः opened.
+                यदि वाक्यारम्भः न्यूनम् वाक्यसीमा आदि
+                    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+                    चरः फलम् ॱॱ अ६४ भवति निर्देशवाक्यम् शिरःचिह्नकम् ।
+                    ॰ D-002f5. Rust pushes the Statement and THEN applies —
+                    ॰ recorded whether or not it applies, because the shape
+                    ॰ of the file is what was WRITTEN.
+                    चरः निर्देशफलम् ॱॱ अ६४ भवति निर्देशानुष्ठानम् आरभ्य वाक्यारम्भः ऽ वाक्यसीमा समाप्तम् ।
+                इति अन्यथा आदि
+                    ॰ ॥ ॥ with nothing between them — P26.
+                    चरः फलम् ॱॱ अ६४ भवति दोषचिह्नकयोजनम् आरभ्य रिक्तनिर्देशकूटः ऽ चिह्नकम् ऽ ० ऽ ० समाप्तम् ।
+                इति
+                उद्घाटकः भवति ० ।
+            इति अन्यथा आदि
+                यदि वाक्यारम्भः न्यूनम् वाक्यसीमा आदि
+                    ॰ words before an unopened ॥ — the OPENING mark is what
+                    ॰ is missing, so P24 is raised at the first word and this
+                    ॰ ॥ is NOT taken as an opener. Treating it as one would
+                    ॰ report a second fault at end of file and leave the
+                    ॰ reader two diagnostics for one omission.
+                    चरः शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+                    चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+                    चरः फलम् ॱॱ अ६४ भवति दोषचिह्नकयोजनम् आरभ्य अनुद्घाटितनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+                इति अन्यथा आदि
+                    ॰ nothing pending: THIS mark opens. Its index is kept so
+                    ॰ that P25 can be reported here if it is never closed.
+                    उद्घाटकः भवति सूचकाङ्कः ।
+                इति
+            इति
+            वाक्यारम्भः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+            वाक्यसीमा भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+
+        ॰ ── ARM 3: ॱॱ ends a LABEL, not a sentence ──
+        ॰ चिह्नभेद and NOT विच्छेदकभेद: पदविभागॱविरामचिह्न gives ॱॱ (six
+        ॰ octets, २२४ १६५ १७७ twice) the kind चिह्नभेद, and विच्छेदकभेद is
+        ॰ ऽ — Kind::Separator, which parse.rs has no arm for and which
+        ॰ therefore falls to arm 4 and extends the statement.
+        यदि चिह्नकम् ॱ भेद समम् पदविभागॱचिह्नभेद आदि
+            चरः पदसंख्या ॱॱ अ६४ भवति आरभ्य वाक्यसीमा वियोगः वाक्यारम्भः समाप्तम् ।
+            यदि पदसंख्या समम् ० आदि
+                चरः फलम् ॱॱ अ६४ भवति दोषचिह्नकयोजनम् आरभ्य अनामचिह्नकूटः ऽ चिह्नकम् ऽ ० ऽ ० समाप्तम् ।
+            इति अन्यथा आदि
+                यदि पदसंख्या समम् १ आदि
+                    ॰ Rust guards this arm with `!matches!(name.kind, Danda |
+                    ॰ DoubleDanda)`. THE GUARD IS VACUOUS AND IS NOT PORTED:
+                    ॰ both marks are handled by arms 1 and 2 above and clear
+                    ॰ the range, so a token inside [वाक्यारम्भः ऽ वाक्यसीमा)
+                    ॰ can never be either. Writing it would suggest a case
+                    ॰ that cannot arise.
+                    चरः नामचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यारम्भः अन्तः ।
+                    चरः फलम् ॱॱ अ६४ भवति चिह्नवाक्यम् नामचिह्नकम् ।
+                इति अन्यथा आदि
+                    ॰ more than one word before ॱॱ — P07. Rust joins the
+                    ॰ words into one arg and adds their count; the join needs
+                    ॰ a text builder T1 has not got, so the RUN is recorded
+                    ॰ instead — every word as its own पाठांश, in order.
+                    चरः पदक्रमः ॱॱ अ६४ भवति वाक्यारम्भः ।
+                    चरः प्रथमपदार्थः ॱॱ अ६४ भवति ० ।
+                    यावत् पदक्रमः न्यूनम् वाक्यसीमा आदि
+                        चरः पदचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पदक्रमः अन्तः ।
+                        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदचिह्नकम् ।
+                        यदि प्रथमपदार्थः समम् ० आदि
+                            प्रथमपदार्थः भवति पदार्थः ।
+                        इति
+                        पदक्रमः भवति आरभ्य पदक्रमः योगः १ समाप्तम् ।
+                    इति
+                    चरः फलम् ॱॱ अ६४ भवति दोषचिह्नकयोजनम् आरभ्य बहुपदचिह्नकूटः ऽ चिह्नकम् ऽ प्रथमपदार्थः ऽ पदसंख्या समाप्तम् ।
+                इति
+            इति
+            वाक्यारम्भः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+            वाक्यसीमा भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+
+        ॰ ── ARM 4: anything else EXTENDS the statement — Rust's push ──
+            यदि वाक्यारम्भः समम् वाक्यसीमा आदि
+                वाक्यारम्भः भवति सूचकाङ्कः ।
+            इति
+            वाक्यसीमा भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति
+        इति
+        इति
+
+        सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+    इति
+
+    ॰ ── the three post-checks, in parse.rs's order ──
+    चरः वैश्विकदोषाः ॱॱ अ६४ भवति वैश्विकचिह्नपरीक्षा ।
+    चरः अनावृतदोषः ॱॱ अ६४ भवति अनावृतनिर्देशपरीक्षा उद्घाटकः ।
+    चरः अन्तिमदोषः ॱॱ अ६४ भवति अन्तिमवाक्यपरीक्षा वाक्यारम्भः वाक्यसीमा ।
+
+    प्रत्यागमनम् वाक्यविभागवाक्यसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ WHAT IS NOT PORTED, AND WHY. Two blockers and four rows.
+॰
+॰ (a) THE TWO REGISTRY READERS — families() and directives() — read
+॰ spec/mnemonics-riscv64.src.tsv and spec/directives.tsv through
+॰ include_str!. THE OLD SENTENCE HERE SAID "T1 HAS NO FILE READER" AND
+॰ D-002f5 MEASURED THAT TO BE STALE: ADR-0019 landed the embed on
+॰ 2026-08-28 (D-002g), `समावेशः आरभ्य <name> समाप्तम्`, and encode.t1 and
+॰ samyojana.t1 both use it today. What is actually missing is smaller and
+॰ exact: the embed resolves an IDENTIFIER against TABLES in
+॰ crates/sadhana/src/t1/anita.rs, and NEITHER spec/directives.tsv NOR
+॰ spec/mnemonics-riscv64.src.tsv is quite reachable — mnemonics IS listed,
+॰ as नामकोशः, but directives.tsv HAS NO NAME THERE AT ALL, so it is
+॰ unreachable however much it exists on disk. That is one line of Rust and
+॰ it is D-002f2's to add, exactly as D-002i2 had संस्कारकोशः added for it.
+॰ Neither reader is stubbed here: a stub says "unwritten", and what is
+॰ true is that the file cannot be named. संज्ञाकुलयोजनम् and
+॰ निर्देशयोजनम् are the per-row halves of both and are written and real,
+॰ and D-002f5 added निर्देशान्वेषणम् and जीवन्निर्देशः above them, so the
+॰ remaining work is a loop and not a record. Nothing here hand-copies a
+॰ derived table: a typed second copy agrees with the first by construction
+॰ and checks nothing.
+॰
+॰ (b) THE TOKEN LOOP IS READ, AND SO IS ONE OF THE TWO READERS UNDER IT.
+॰ D-002f3 landed वाक्यविभाजनम् above — parse.rs:485-612's `for tok in
+॰ tokens` plus its three post-checks — so this file READS पदविभागॱचिह्नक
+॰ and वाक्यविभागवाक्यकोश fills from real input. D-002f5 landed निर्देशानुष्ठानम्,
+॰ apply_directive's first half, so a paired ॥ … ॥ now CHANGES SECTION,
+॰ EXPORTS A NAME and ALIGNS, and वैश्विकचिह्नपरीक्षा's L02 loop has
+॰ something to read. What is still absent is parse_statement, which turns
+॰ a statement's run into an आज्ञा (D-002f4) — so after a walk वाक्यविभागआज्ञाकोश is
+॰ still empty — and apply_directive's SECOND half, the directives that
+॰ emit bytes (D-002f6) and the text ones (D-002f7). A directive of those
+॰ two rows is not refused here: the registry has already said the word IS
+॰ a directive, and refusing it again would report a fault in the source
+॰ for a gap in the port. That is stated at निर्देशानुष्ठानम् too.
+॰
+॰ (c) THAT SECOND ABSENCE IS CLOSED. पदविभागॱपदविभाग wrote NOTHING into
+॰ चिह्नककोश when this file was written, so even a finished reader would
+॰ have read an empty arena; D-002f10 landed the lexer (121 -> 502 lines,
+॰ two append sites, six kinds produced) and the arena is real. TWO OF ITS
+॰ FIVE RECORDED LIMITS REACH THIS FILE and are not re-measured here:
+॰ अक्षर IS A CODE-POINT INDEX and not an akṣara index (अक्षरकोश ॱ अक्षराणि
+॰ is a stub), so every diagnostic placed above inherits that; and
+॰ सङ्ख्याभेद IS NEVER PRODUCED, so a numeral lexes as पदभेद — which the
+॰ splitter does not care about, every non-delimiter kind extending the
+॰ statement alike, but D-002f4 will.
+॰
+॰ (d) nearest()/distance() — the akṣara-level edit distance behind "did
+॰ you mean" — needs sanskrit_text::aksharas, akṣara segmentation, which
+॰ no .t1 module has. It is its own row and its own port.
+॰ ══════════════════════════════════════════════════════════════════════
+
+
+
+॰ ══════════════════ is this token the closing word? ══════════════════
+॰ Rust writes args[i] == "इति". Here a token is a RANGE in a source, so
+॰ the comparison is पाठसाम्यम् against इतिशब्दः — length first, then
+॰ octets. The literal's own range is ० to its दैर्घ्य.
+
+॰ ॥ इतिशब्दः ॥ THE CLOSING WORD ITSELF, as a run of octets to compare against.
+॰
+॰ USED AT `इतिपदम्` BELOW AND DECLARED NOWHERE — the resolver's first refusal
+॰ for this file. The margin above describes the comparison in detail and the
+॰ name it compares against was never brought into being.
+॰
+॰ IT COULD NOT HAVE BEEN WRITTEN UNTIL TODAY. The literal `इति` is spelled
+॰ `उक्तम् इति इति इति` — ADR-0011's doubled close — and `व्याकर`'s string
+॰ scanner closed on the FIRST `इति` until W-185, so this declaration would have
+॰ ended after one word and left `इति इति` loose.
+॰ W-239 (2026-09-04): AND STILL IT WAS EMPTY. The interpreter (`nirvahana.rs`)
+॰ ignored a literal initializer on a slice-typed GLOBAL — `भवति उक्तम् अब इति`
+॰ on a global was the empty run, the same literal inside a routine the text
+॰ (probed; filed as W-242). So `इतिपदम्` compared every token against nothing
+॰ and every literal was P22 "unclosed". W-239 built the word from octets in
+॰ `अङ्कपाठरचना`, as the digit texts are.
+॰ W-242 (2026-09-04): THE LOADER EVALUATES THE INITIALIZER NOW, and this is
+॰ the literal again — the one place in the corpus a global is a string. The
+॰ octet table in `अङ्कपाठरचना` is gone with it.
+॰ 2026-09-21: AND THE IMAGE STILL HAD IT EMPTY. W-242 fixed the INTERPRETER's
+॰ loader; the NATIVE lowering drops a global's literal initializer to this day,
+॰ so in the compiled compiler `इतिपदम्` compared every token against the empty
+॰ run. It went unseen only because compiler-emitted Sassembly carries its
+॰ strings as octets and never reaches `इतिपदम्`. A routine returning the
+॰ literal is honoured by both engines; a bare name of it is still a call.
+सार्वजनिक वृत्तिः इतिशब्दः ददाति अङ्कः अन्तः अ८ आदि
+    प्रत्यागमनम् उक्तम् इति इति इति ।
+इति
+
+सार्वजनिक वृत्तिः इतिपदम् आदाय क्रमः ॱॱ अ६४ ददाति बूल आदि
+    चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+    प्रत्यागमनम् पाठसाम्यम् आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा ऽ इतिशब्दः ऽ ० ऽ इतिशब्दः ॱ दैर्घ्य समाप्तम् ।
+इति
+
+
+॰ ══════════════════ string_body: where the literal closed ══════════════
+॰ Rust's `return Some((.., i + 1))` — the index of the इति that closed.
+॰ ० means no unpaired इति was found, which is Rust's None and the caller's
+॰ P22.
+॰
+॰ THE SCAN RUNS FORWARD AND THE PAIR IS LOOKED FOR AT THE NEXT TOKEN.
+॰ Those two facts are the doubling rule; see the direction note above.
+॰ Written as an if/else chain and not with अनुवर्तनम् for the reason
+॰ वाक्यविभाजनम् gives: Rust's `continue` is what makes the arms
+॰ exclusive, and a chain says that without depending on how this
+॰ language's `continue` binds inside यावत्.
+
+सार्वजनिक वृत्तिः उक्तिसमाप्तिः आदाय आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति आरम्भः ।
+
+    यावत् सूचकाङ्कः न्यूनम् सीमा आदि
+        यदि आरभ्य इतिपदम् सूचकाङ्कः समाप्तम् समम् असत्यम् आदि
+            ॰ an ordinary word: it belongs to the body, and the scan goes on.
+            सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+            चरः युग्मम् ॱॱ बूल भवति असत्यम् ।
+            यदि आरभ्य सूचकाङ्कः योगः १ समाप्तम् न्यूनम् सीमा आदि
+                युग्मम् भवति इतिपदम् आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+            इति
+
+            यदि युग्मम् समम् सत्यम् आदि
+                ॰ a pair is the word itself and the string continues.
+                सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः २ समाप्तम् ।
+            इति अन्यथा आदि
+                ॰ a lone one closes, and the FIRST lone one closes.
+                प्रत्यागमनम् सूचकाङ्कः ।
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ string_body: the text ══════════════════
+॰ Rust's words.join(" "). Every body word is pushed to पाठांशकोश in the
+॰ order it was written and the FIRST index is returned, so the run is
+॰ (this index ऽ उक्तिपदसंख्या). ० when nothing closed the literal, which
+॰ is the same ० उक्तिसमाप्तिः reports and for the same reason: पाठांशकोश
+॰ is 1-based, so no real piece can be ०.
+॰
+॰ A PAIR PUSHES ONE PIECE AND ADVANCES TWO. That is Rust's
+॰ `words.push("इति"); i += 2;` and it is where the doubling stops being a
+॰ scanning question and becomes what the string MEANS.
+
+सार्वजनिक वृत्तिः उक्तिपाठः आदाय आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः समाप्तिः ॱॱ अ६४ भवति उक्तिसमाप्तिः आरभ्य आरम्भः ऽ सीमा समाप्तम् ।
+
+    यदि समाप्तिः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति आरम्भः ।
+    चरः प्रथमांशः ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्कः न्यूनम् समाप्तिः आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः सूचकाङ्कः अन्तः ।
+        चरः अंशः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+
+        यदि प्रथमांशः समम् ० आदि
+            प्रथमांशः भवति अंशः ।
+        इति
+
+        यदि आरभ्य इतिपदम् सूचकाङ्कः समाप्तम् समम् सत्यम् आदि
+            सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः २ समाप्तम् ।
+        इति अन्यथा आदि
+            सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति
+    इति
+
+    प्रत्यागमनम् प्रथमांशः ।
+इति
+
+
+॰ ══════════════════ string_body: how many pieces ══════════════════
+॰ The count of the run उक्तिपाठः wrote, and it is a SECOND walk because
+॰ T1 hands back one value and a run needs two. It is NOT सीमा वियोगः
+॰ आरम्भः and it is not the token count: `उक्तम् इति इति इति` is three
+॰ tokens after the opener and ONE piece.
+
+सार्वजनिक वृत्तिः उक्तिपदसंख्या आदाय आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः समाप्तिः ॱॱ अ६४ भवति उक्तिसमाप्तिः आरभ्य आरम्भः ऽ सीमा समाप्तम् ।
+
+    यदि समाप्तिः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति आरम्भः ।
+    चरः संख्या ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्कः न्यूनम् समाप्तिः आदि
+        संख्या भवति आरभ्य संख्या योगः १ समाप्तम् ।
+
+        यदि आरभ्य इतिपदम् सूचकाङ्कः समाप्तम् समम् सत्यम् आदि
+            सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः २ समाप्तम् ।
+        इति अन्यथा आदि
+            सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+        इति
+    इति
+
+    प्रत्यागमनम् संख्या ।
+इति
+
+
+॰ ══════════════════ the two ways a literal is malformed ══════════════
+॰ parse.rs:885-893, and both diagnostics sit at the DIRECTIVE's head
+॰ token because apply_directive's `err` closure reads head.line and
+॰ head.aksara for every code it raises.
+॰
+॰ P22 — nothing closed it. The message is the doubling rule itself
+॰ ("write इति इति for the word"), so it carries no argument and the run
+॰ is ० ऽ ०.
+॰
+॰ P18 — something FOLLOWS the close. Rust states the cost out loud:
+॰ dropping it silently would let `उक्तम् क इति ख` assemble as `क`, "a
+॰ program that does not say what it does". The offending word is the
+॰ token just past the close, so it is read at समाप्तिः योगः १ — which is
+॰ in range precisely because the test above failed.
+॰
+॰ ० when the literal is well formed, which is this file's ABSENT and not
+॰ a diagnostic index.
+
+सार्वजनिक वृत्तिः उक्तिपरीक्षा आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः समाप्तिः ॱॱ अ६४ भवति उक्तिसमाप्तिः आरभ्य आरम्भः ऽ सीमा समाप्तम् ।
+
+    यदि समाप्तिः समम् ० आदि
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असमापितोक्तिकूटः ऽ शिरःचिह्नकम् ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    यदि समाप्तिः असमम् आरभ्य सीमा वियोगः १ समाप्तम् आदि
+        चरः शेषचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य समाप्तिः योगः १ समाप्तम् अन्तः ।
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शेषचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य इत्यनन्तरपदकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ आस्की ══════════════════
+॰ parse.rs:809-822. P16 for a directive with no operand at all, and then
+॰ the text: Rust joins the args with a space "since split_whitespace
+॰ loses spaces", and here that join is a RUN in पाठांशकोश, one piece per
+॰ word, exactly as उक्तिपाठः records the body of a literal.
+॰
+॰ WHAT THIS ROUTINE DOES NOT DO, AND IT IS HALF OF RUST'S ARM: it does
+॰ not push the दत्तम्. दत्तम् ॱ अष्टकाः is an अङ्कः अन्तः अ८ — a SLICE —
+॰ and T1 has no allocator, no array literal and no sub-slice expression,
+॰ so there is no expression in this language that yields the octets of a
+॰ joined string. दत्तम् as D-002f1 landed it also carries no आरम्भ/सीमा,
+॰ so the bytes could not be named as a range of anything even if one
+॰ existed. That is not this row's to settle: D-002f6 is THE DIRECTIVES
+॰ THAT EMIT BYTES and every one of its arms — `३००` refused by W-082, a
+॰ label's eight zero octets — needs the same octet arena for the same
+॰ reason. It is recorded at (e) below rather than worked around here.
+
+सार्वजनिक वृत्तिः आस्कीपाठः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरम्भः समम् सीमा आदि
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य मूल्यरहितनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति आरम्भः ।
+    चरः प्रथमांशः ॱॱ अ६४ भवति ० ।
+    ॰ W-239: THE OTHER HALF OF RUST'S ARM — `args.join(" ").into_bytes()` and
+    ॰ the datum. Each word's octets go into the arena, a space between words,
+    ॰ and the datum names the range. The pieces are still recorded.
+    चरः अष्टकारम्भः ॱॱ न६४ भवति अष्टकॱअष्टकसूचकाङ्क योगः १ ।
+    चरः अष्टकसंख्यानम् ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्कः न्यूनम् सीमा आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः सूचकाङ्कः अन्तः ।
+        चरः अंशः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+
+        यदि प्रथमांशः समम् ० आदि
+            प्रथमांशः भवति अंशः ।
+        इति
+
+        यदि सूचकाङ्कः अधिकम् आरम्भः आदि
+            चरः अन्तरालम् ॱॱ न६४ भवति अष्टकॱअष्टकयोजनम् ३२ ।
+            अष्टकसंख्यानम् भवति अष्टकसंख्यानम् योगः १ ।
+        इति
+        चरः लिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
+        अष्टकसंख्यानम् भवति अष्टकसंख्यानम् योगः आरभ्य चिह्नकम् ॱ पाठसीमा वियोगः चिह्नकम् ॱ अष्टक समाप्तम् ।
+
+        सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+    इति
+
+    चरः दत्तांशः ॱॱ अ६४ भवति दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ अष्टकॱअष्टकखण्डः अष्टकारम्भः अष्टकसंख्यानम् ऽ ० ऽ ० ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+    प्रत्यागमनम् प्रथमांशः ।
+इति
+
+
+॰ ══════════════════ जाल ══════════════════
+॰ parse.rs:823-851 — the same shape as आस्की, except that each word is
+॰ first looked up in spec/web-dictionary.tsv and replaced by what that
+॰ file maps it to, a word the table does not carry passing through
+॰ unchanged.
+॰
+॰ A STUB, AND THE BLOCKER IS NOT THE ONE THE ROW'S NOTE NAMES. The note
+॰ says जाल reads its file "through include_str! and is therefore
+॰ D-002f2's blocker". include_str! stopped being the obstacle when
+॰ ADR-0019 landed: a T1 source reaches a spec table by name through the
+॰ embed, समावेशः आरभ्य <name> समाप्तम्, and encode.t1's कोष्ठाङ्कः reads
+॰ spec/registers-riscv64.tsv that way today. THE ACTUAL BLOCKER IS THAT
+॰ web-dictionary.tsv HAS NO NAME. The embed resolves an identifier
+॰ against TABLES in crates/sadhana/src/t1/anita.rs, which lists six files
+॰ and not this one, and ADR-0019's own design is that an unlisted file is
+॰ UNSPELLABLE rather than refused. Naming it is a registry decision of
+॰ the same kind D-002i2 took when it added संस्कारकोशः, so it wants its
+॰ own row and must not arrive unremarked inside a port. Until then the
+॰ per-word half is not written either: it would be a loop over a table
+॰ that cannot be reached, and rule F forbids hand-copying the table to
+॰ make the loop look real.
+
+सार्वजनिक वृत्तिः जालपङ्क्तिः आदाय पदपाठ ॱॱ अङ्कः अन्तः अ८ ऽ पदारम्भः ॱॱ अ६४ ऽ पदसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् जालकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् १ आदि
+                चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+                चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+                यदि पाठसाम्यम् आरभ्य पाठ्यम् ऽ क्षेत्रादिः ऽ क्षेत्रान्तः ऽ पदपाठ ऽ पदारम्भः ऽ पदसीमा समाप्तम् समम् सत्यम् आदि
+                    प्रत्यागमनम् आरम्भः योगः १ ।
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः जालपाठः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरम्भः समम् सीमा आदि
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य मूल्यरहितनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    चरः सूचकाङ्कः ॱॱ अ६४ भवति आरम्भः ।
+    चरः प्रथमांशः ॱॱ अ६४ भवति ० ।
+    ॰ W-239: THE OTHER HALF OF RUST'S ARM — the mapped words, joined by a
+    ॰ space, into the arena, and the datum. A word the dictionary knows is
+    ॰ replaced by its second field; one it does not is written as it is.
+    ॰ `जालपङ्क्तिः` answered the line before and nothing read the answer.
+    चरः अष्टकारम्भः ॱॱ न६४ भवति अष्टकॱअष्टकसूचकाङ्क योगः १ ।
+    चरः अष्टकसंख्यानम् ॱॱ न६४ भवति ० ।
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् जालकोशः इति ।
+
+    यावत् सूचकाङ्कः न्यूनम् सीमा आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः सूचकाङ्कः अन्तः ।
+        चरः अंशः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+
+        चरः पङ्क्तिः ॱॱ अ६४ भवति जालपङ्क्तिः चिह्नकम् ॱ पाठ चिह्नकम् ॱ अष्टक चिह्नकम् ॱ पाठसीमा ।
+
+        यदि प्रथमांशः समम् ० आदि
+            प्रथमांशः भवति अंशः ।
+        इति
+
+        यदि सूचकाङ्कः अधिकम् आरम्भः आदि
+            चरः अन्तरालम् ॱॱ न६४ भवति अष्टकॱअष्टकयोजनम् ३२ ।
+            अष्टकसंख्यानम् भवति अष्टकसंख्यानम् योगः १ ।
+        इति
+        यदि पङ्क्तिः समम् ० आदि
+            चरः लिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
+            अष्टकसंख्यानम् भवति अष्टकसंख्यानम् योगः आरभ्य चिह्नकम् ॱ पाठसीमा वियोगः चिह्नकम् ॱ अष्टक समाप्तम् ।
+        इति अन्यथा आदि
+            ॰ `जालपङ्क्तिः` answers the line's start plus one; the mapped text is
+            ॰ that line's SECOND field.
+            चरः पङ्क्त्यारम्भः ॱॱ अ६४ भवति पङ्क्तिः वियोगः १ ।
+            चरः पङ्क्तिसीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् पङ्क्त्यारम्भः ।
+            चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् पङ्क्त्यारम्भः पङ्क्तिसीमा १ ।
+            चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् पङ्क्त्यारम्भः पङ्क्तिसीमा १ ।
+            चरः लिखितद्वि ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य पाठ्यम् ऽ क्षेत्रादिः ऽ क्षेत्रान्तः समाप्तम् ।
+            अष्टकसंख्यानम् भवति अष्टकसंख्यानम् योगः आरभ्य क्षेत्रान्तः वियोगः क्षेत्रादिः समाप्तम् ।
+        इति
+
+        सूचकाङ्कः भवति आरभ्य सूचकाङ्कः योगः १ समाप्तम् ।
+    इति
+
+    चरः दत्तांशः ॱॱ अ६४ भवति दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ अष्टकॱअष्टकखण्डः अष्टकारम्भः अष्टकसंख्यानम् ऽ ० ऽ ० ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+    प्रत्यागमनम् प्रथमांशः ।
+इति
+
+
+॰ where the क-th suffix ends — the ॱ that opens the NEXT one, or सीमा.
+॰ Rust's Vec<&str> gives each element an end for free; here the fourth
+॰ half of split_types has to say it. DERIVED from प्रकारारम्भः rather than
+॰ scanning a second time, so the two cannot disagree about where a
+॰ separator is: the next suffix begins three octets after its ॱ, and this
+॰ one therefore ends where that ॱ begins.
+सार्वजनिक वृत्तिः प्रकारसीमा आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ऽ क्रम ॱॱ अ६४ ददाति अ६४ आदि
+    चरः अग्रिमः ॱॱ अ६४ भवति प्रकारारम्भः आरभ्य पाठ अङ्कः आरम्भ अन्तः सीमा ऽ आरभ्य क्रम योगः १ समाप्तम् समाप्तम् ।    ॰ W-227: the slice the callee declares; अग्रिमः is an offset INTO it
+    यदि अग्रिमः समम् ० आदि
+        प्रत्यागमनम् सीमा ।
+    इति
+    प्रत्यागमनम् आरभ्य आरम्भ योगः अग्रिमः वियोगः ३ समाप्तम् ।    ॰ rebased onto the whole text, as सीमा above already is
+इति
+
+
+॰ ══════════════════ the sentence reader's codes, as octets ══════════════════
+॰ 'P' ८०  '0' ४८  '1' ४९  '2' ५०  '3' ५१  '4' ५२  '5' ५३  '8' ५६  '9' ५७
+॰ Same wall, same answer: doc 15's repertoire refuses a Latin letter and
+॰ T1 has no character literal, so P03 is the three octets ८० ४८ ५१.
+
+सार्वजनिक वृत्तिः आज्ञाकूटरचना ददाति अ६४ आदि
+    अज्ञातसंज्ञाकूटः अङ्कः ० अन्तः भवति ८० ।
+    अज्ञातसंज्ञाकूटः अङ्कः १ अन्तः भवति ४८ ।
+    अज्ञातसंज्ञाकूटः अङ्कः २ अन्तः भवति ५१ ।
+
+    अकारकपदकूटः अङ्कः ० अन्तः भवति ८० ।
+    अकारकपदकूटः अङ्कः १ अन्तः भवति ४८ ।
+    अकारकपदकूटः अङ्कः २ अन्तः भवति ५२ ।
+
+    विरुद्धकारककूटः अङ्कः ० अन्तः भवति ८० ।
+    विरुद्धकारककूटः अङ्कः १ अन्तः भवति ४८ ।
+    विरुद्धकारककूटः अङ्कः २ अन्तः भवति ५३ ।
+
+    प्रकारबहुत्वकूटः अङ्कः ० अन्तः भवति ८० ।
+    प्रकारबहुत्वकूटः अङ्कः १ अन्तः भवति ४८ ।
+    प्रकारबहुत्वकूटः अङ्कः २ अन्तः भवति ५६ ।
+
+    क्रियारहितवाक्यकूटः अङ्कः ० अन्तः भवति ८० ।
+    क्रियारहितवाक्यकूटः अङ्कः १ अन्तः भवति ४८ ।
+    क्रियारहितवाक्यकूटः अङ्कः २ अन्तः भवति ५७ ।
+
+    कारकचिह्नहीनकूटः अङ्कः ० अन्तः भवति ८० ।
+    कारकचिह्नहीनकूटः अङ्कः १ अन्तः भवति ४९ ।
+    कारकचिह्नहीनकूटः अङ्कः २ अन्तः भवति ४८ ।
+
+    निषिद्धपदकूटः अङ्कः ० अन्तः भवति ८० ।
+    निषिद्धपदकूटः अङ्कः १ अन्तः भवति ४९ ।
+    निषिद्धपदकूटः अङ्कः २ अन्तः भवति ४९ ।
+
+    अप्रकारकूटः अङ्कः ० अन्तः भवति ८० ।
+    अप्रकारकूटः अङ्कः १ अन्तः भवति ५० ।
+    अप्रकारकूटः अङ्कः २ अन्तः भवति ५१ ।
+
+    ॰ W-239: P17, the string arm's width refusal.
+    उक्तिव्याप्तिकूटः अङ्कः ० अन्तः भवति ८० ।
+    उक्तिव्याप्तिकूटः अङ्कः १ अन्तः भवति ४९ ।
+    उक्तिव्याप्तिकूटः अङ्कः २ अन्तः भवति ५५ ।
+
+    ॰ W-239: THE CODES THE DIRECTIVE PATHS RAISE, built here so that a refused
+    ॰ directive names its refusal. Every code this file declares and this
+    ॰ routine does not build is still the empty run: 9 were built before this
+    ॰ row, 19 after, of the codes the file declares — the rest are D-002f8's.
+    मूल्यरहितनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    मूल्यरहितनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    मूल्यरहितनिर्देशकूटः अङ्कः २ अन्तः भवति ५४ ।
+    अपूर्णनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अपूर्णनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    अपूर्णनिर्देशकूटः अङ्कः २ अन्तः भवति ५४ ।
+    इत्यनन्तरपदकूटः अङ्कः ० अन्तः भवति ८० ।
+    इत्यनन्तरपदकूटः अङ्कः १ अन्तः भवति ४९ ।
+    इत्यनन्तरपदकूटः अङ्कः २ अन्तः भवति ५६ ।
+    असमापितोक्तिकूटः अङ्कः ० अन्तः भवति ८० ।
+    असमापितोक्तिकूटः अङ्कः १ अन्तः भवति ५० ।
+    असमापितोक्तिकूटः अङ्कः २ अन्तः भवति ५० ।
+    स्थानाक्षमकूटः अङ्कः ० अन्तः भवति ८० ।
+    स्थानाक्षमकूटः अङ्कः १ अन्तः भवति ५० ।
+    स्थानाक्षमकूटः अङ्कः २ अन्तः भवति ५५ ।
+    असमाहितकूटः अङ्कः ० अन्तः भवति ८० ।
+    असमाहितकूटः अङ्कः १ अन्तः भवति ५१ ।
+    असमाहितकूटः अङ्कः २ अन्तः भवति ४९ ।
+    अज्ञातनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    अज्ञातनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    अज्ञातनिर्देशकूटः अङ्कः २ अन्तः भवति ५१ ।
+    असमर्थितनिर्देशकूटः अङ्कः ० अन्तः भवति ८० ।
+    असमर्थितनिर्देशकूटः अङ्कः १ अन्तः भवति ४९ ।
+    असमर्थितनिर्देशकूटः अङ्कः २ अन्तः भवति ५२ ।
+    अज्ञातकोष्ठककूटः अङ्कः ० अन्तः भवति ८० ।
+    अज्ञातकोष्ठककूटः अङ्कः १ अन्तः भवति ४९ ।
+    अज्ञातकोष्ठककूटः अङ्कः २ अन्तः भवति ५३ ।
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ Karaka::name ══════════════════
+॰ The role's own name, which P05 says out loud. lex.rs:76 records why the
+॰ name exists at all: {:?} prints Destination, *"an English word in the
+॰ middle of a Sanskrit sentence"*, which is the fault B-078b split two
+॰ codes to avoid. These five ARE writable — they are Sanskrit, so ADR-0017
+॰ literals carry them. वाक्यभेदनाम stands at the same wall from the other
+॰ side and stays a stub because ITS words are Latin.
+
+सार्वजनिक वृत्तिः कारकनाम आदाय कारक ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि कारक समम् १ आदि प्रत्यागमनम् उक्तम् कर्म इति । इति
+    यदि कारक समम् २ आदि प्रत्यागमनम् उक्तम् करण इति । इति
+    यदि कारक समम् ३ आदि प्रत्यागमनम् उक्तम् अपादान इति । इति
+    यदि कारक समम् ४ आदि प्रत्यागमनम् उक्तम् सम्प्रदान इति । इति
+    यदि कारक समम् ५ आदि प्रत्यागमनम् उक्तम् अधिकरण इति । इति
+    प्रत्यागमनम् रिक्तपाठः ।
+इति
+
+
+॰ ══════════════════ which roles may repeat ══════════════════
+॰ Rust's matches!(a.karaka, Destination | SourceAddress | DestAddress),
+॰ and it is a SEMANTIC question the grammar answers the way Sanskrit does.
+॰
+॰ करण IS THE INSTRUMENTAL — "by means of ख and ग". Multiple instruments
+॰ are natural in the language and required by the ISA: योगः कम् खन गन ।
+॰ is क ← ख + ग, doc 02 §2.2's own first example, and it carries TWO न. A
+॰ first version of the Rust check rejected it as a contradiction, which
+॰ would have made addition unwritable. अधिकरण is not singular either.
+॰
+॰ The other three are singular by their sense: you write to one place
+॰ (कर्म), load from one address (अपादान), store to one address
+॰ (सम्प्रदान). Two of those in one sentence is a genuine contradiction and
+॰ exactly what free operand order makes easy to write by accident.
+
+सार्वजनिक वृत्तिः एककारकः आदाय कारक ॱॱ अ६४ ददाति बूल आदि
+    यदि कारक समम् १ आदि प्रत्यागमनम् सत्यम् । इति   ॰ कर्म — one place written
+    यदि कारक समम् ३ आदि प्रत्यागमनम् सत्यम् । इति   ॰ अपादान — one address read
+    यदि कारक समम् ४ आदि प्रत्यागमनम् सत्यम् । इति   ॰ सम्प्रदान — one address written
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+
+॰ ══════════════════ the base, by length ══════════════════
+॰ Rust's &word[..word.len() - sigil.len()], and the length is what the
+॰ ROLE says it is, so no sigil table is restated here — विभज owns that.
+॰ न and ए are three octets, standing as their own akṣara. म् त् य् are
+॰ SIX: each is a consonant and a virama, and ADR-0005's absorbed sigil is
+॰ that pair fused into the final cluster, which is why Rust strips the
+॰ two-character suffix and not one character.
+॰ ० — no sigil — leaves the word whole, which is the caller's guard and
+॰ not a base: कारकपदपठनम् reports P10 before it ever asks.
+
+सार्वजनिक वृत्तिः कारकमूलसीमा आदाय सीमा ॱॱ अ६४ ऽ कारक ॱॱ अ६४ ददाति अ६४ आदि
+    यदि कारक समम् ० आदि प्रत्यागमनम् सीमा । इति
+    यदि कारक समम् २ आदि प्रत्यागमनम् आरभ्य सीमा वियोगः ३ समाप्तम् । इति   ॰ न
+    यदि कारक समम् ५ आदि प्रत्यागमनम् आरभ्य सीमा वियोगः ३ समाप्तम् । इति   ॰ ए
+    प्रत्यागमनम् आरभ्य सीमा वियोगः ६ समाप्तम् ।                          ॰ म् त् य्
+इति
+
+
+॰ ══════════════════ the registry lookup ══════════════════
+॰ Rust's fams.iter().find(|f| f.name == name). संज्ञाकुल ॱ नाम is a whole
+॰ slice and not a range — the registry reader will build one row per row
+॰ of the file — so the right-hand side is compared as ० ऽ नाम ॱ दैर्घ्य,
+॰ which is what वैश्विकपङ्क्तिः already does with its literal.
+॰
+॰ IT WALKS AN EMPTY ARENA TODAY and that is blocker (a) at the foot of
+॰ this file, not a defect here: संज्ञाकुलकोश is filled by families(),
+॰ which reads spec/mnemonics-riscv64.src.tsv. The loop is real, the
+॰ comparison is real, and every sentence therefore reports P03 until that
+॰ row lands — which is the honest state and is stated here rather than
+॰ hidden behind a reader that appears to resolve something.
+
+सार्वजनिक वृत्तिः संज्ञाकुलान्वेषणम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः क्रमः ॱॱ अ६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य संज्ञाकुलसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः कुलम् ॱॱ संज्ञाकुल भवति संज्ञाकुलकोश अङ्कः क्रमः अन्तः ।
+        यदि पाठसाम्यम् आरभ्य पाठ ऽ आरम्भ ऽ सीमा ऽ कुलम् ॱ नाम ऽ ० ऽ कुलम् ॱ नाम ॱ दैर्घ्य समाप्तम् आदि
+            प्रत्यागमनम् क्रमः ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ P23 — a suffix that is not a width ══════════════════
+॰ Rust: for t in &types { if Width::from_type(t).is_none() { … } }. The
+॰ offending suffix itself is the argument, so it is pushed as its own
+॰ range — ॱकिम् is reported, not the whole verb.
+
+सार्वजनिक वृत्तिः प्रकारशुद्धिः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    चरः प्रकारगणना ॱॱ अ६४ भवति प्रकारसंख्या आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    चरः क्रमः ॱॱ अ६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य प्रकारगणना योगः १ समाप्तम् आदि
+        चरः अंशारम्भः ॱॱ अ६४ भवति शिरःचिह्नकम् ॱ अष्टक योगः प्रकारारम्भः आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा ऽ क्रमः समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+        चरः अंशसीमा ॱॱ अ६४ भवति प्रकारसीमा आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ क्रमः समाप्तम् ।
+        चरः व्याप्तिः ॱॱ अ६४ भवति प्रकारव्याप्तिः आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ अंशारम्भः ऽ अंशसीमा समाप्तम् ।
+        यदि व्याप्तिः समम् ० आदि
+            चरः पदार्थः ॱॱ अ६४ भवति पाठांशयोजनम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ अंशारम्भः ऽ अंशसीमा समाप्तम् ।
+            प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अप्रकारकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ P08 — a third type suffix ══════════════════
+॰ Rust: if types.len() > 2. One व्याप्ति names what the instruction is
+॰ operated on; two name a conversion (B-075); three name nothing. See the
+॰ head of this block for {1}, which is the count and is not written.
+
+सार्वजनिक वृत्तिः प्रकारबहुत्वपरीक्षा आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    चरः प्रकारगणना ॱॱ अ६४ भवति प्रकारसंख्या आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    यदि प्रकारगणना अधिकम् २ आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य प्रकारबहुत्वकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ the width of the result ══════════════════
+॰ Rust: types.first().map_or(W64, |t| Width::from_type(t).unwrap_or(W64)).
+॰ The FIRST suffix is the width of the result, which for everything but a
+॰ conversion is the width of the whole instruction. Both defaults are
+॰ ported: no suffix is चतुःषष्टिव्याप्तिभेद, and so is a suffix that is not
+॰ a width — which प्रकारशुद्धिः has already refused, so the second
+॰ default is unreachable from वाक्यपठनम् and is written because Rust
+॰ writes it.
+
+सार्वजनिक वृत्तिः शिरोव्याप्तिः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    चरः प्रकारगणना ॱॱ अ६४ भवति प्रकारसंख्या आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    यदि प्रकारगणना समम् ० आदि
+        प्रत्यागमनम् चतुःषष्टिव्याप्तिभेद ।
+    इति
+    चरः अंशारम्भः ॱॱ अ६४ भवति शिरःचिह्नकम् ॱ अष्टक योगः प्रकारारम्भः आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा ऽ १ समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+    चरः अंशसीमा ॱॱ अ६४ भवति प्रकारसीमा आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ १ समाप्तम् ।
+    चरः व्याप्तिः ॱॱ अ६४ भवति प्रकारव्याप्तिः आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ अंशारम्भः ऽ अंशसीमा समाप्तम् ।
+    यदि व्याप्तिः समम् ० आदि
+        प्रत्यागमनम् चतुःषष्टिव्याप्तिभेद ।
+    इति
+    प्रत्यागमनम् व्याप्तिः ।
+इति
+
+
+॰ ══════════════════ P09 and P03 — the verb that is not one ══════════════════
+॰ Rust chooses between them on matches!(head.kind, Kind::Operand { .. }),
+॰ and ADR-0004 is why: a sigil-bearing first token is almost certainly a
+॰ statement whose VERB WAS OMITTED, not a misspelt mnemonic, and saying so
+॰ names the rule that was broken instead of sending the reader to check
+॰ their spelling. T1 has no operand kind, so the question is put to
+॰ पदविभागॱविभज directly — the predicate Rust's lexer used to build the
+॰ kind, asked one stage later.
+॰
+॰ THE TWO ARGUMENTS ARE DIFFERENT RANGES AND THAT IS DELIBERATE. P09
+॰ quotes the WHOLE token, because what carries the kāraka is the whole of
+॰ what was written. P03 quotes the MNEMONIC ONLY: योगःॱअ३२ missing from
+॰ the registry is reported as योगः, since the width suffix is not what was
+॰ misspelt and Rust's `name` is likewise the part before the first ॱ.
+
+सार्वजनिक वृत्तिः अज्ञातसंज्ञादोषः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    चरः कारकः ॱॱ अ६४ भवति पदविभागॱविभज आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    यदि कारकः असमम् ० आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य क्रियारहितवाक्यकूटः ऽ शिरःचिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+    इति
+    चरः संज्ञान्तः ॱॱ अ६४ भवति शिरःचिह्नकम् ॱ अष्टक योगः संज्ञासीमा आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+    चरः नामार्थः ॱॱ अ६४ भवति पाठांशयोजनम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ संज्ञान्तः समाप्तम् ।
+    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अज्ञातसंज्ञाकूटः ऽ शिरःचिह्नकम् ऽ नामार्थः ऽ १ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ ONE OPERAND — THE ROLE COMES FROM THE SIGIL ══════════════════
+॰ Rust's four match arms over t.kind, in Rust's order. THIS IS THE
+॰ ROUTINE THE ROW IS ABOUT: nothing here looks at WHERE the token sits in
+॰ the sentence, so योगः कम् खन गन ।, योगः खन कम् गन । and योगः गन खन कम् ।
+॰ build the same three operands with the same three roles. That is D-02-C
+॰ and it is what कारकानुसारम् above exists to be asked afterwards.
+॰
+॰ सङ्ख्यात्व is pinned असत्यम् AND IS NOT COMPUTED, which is lex.t1's
+॰ blocker (b) reaching one file further: Rust asks
+॰ sanskrit_text::is_numeral(base) and the T1 अक्षरकोशॱसङ्ख्या
+॰ (sanskrit_text.t1:3) is a stub — the whole Sanskrit numeral grammar, and
+॰ another module's row. Writing a second numeral reader here to fill one
+॰ बूल would be the hand-copy this project refuses. The field is declared,
+॰ the appender takes it, and the day अक्षरकोशॱसङ्ख्या lands this one
+॰ argument changes.
+
+सार्वजनिक वृत्तिः कारकपदपठनम् आदाय चिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    ॰ Kind::Numeral — P04. Never reached today: lex.t1 (b), सङ्ख्याभेद is
+    ॰ not produced while अक्षरकोशॱसङ्ख्या is a stub, so a numeral arrives
+    ॰ as पदभेद and is refused one arm down as P10 instead.
+    यदि चिह्नकम् ॱ भेद समम् पदविभागॱसङ्ख्याभेद आदि
+        चरः सङ्ख्यार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+        दोषचिह्नकयोजनम् आरभ्य अकारकपदकूटः ऽ चिह्नकम् ऽ सङ्ख्यार्थः ऽ १ समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    ॰ Rust's `_ =>` — P11. ऽ (विच्छेदकभेद), ॱ (अंशचिह्नभेद) and a string
+    ॰ cannot appear inside an instruction; the three delimiters never
+    ॰ reach here at all, the splitter having consumed them.
+    यदि चिह्नकम् ॱ भेद असमम् पदविभागॱपदभेद आदि
+        चरः निषिद्धार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+        दोषचिह्नकयोजनम् आरभ्य निषिद्धपदकूटः ऽ चिह्नकम् ऽ निषिद्धार्थः ऽ १ समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    ॰ THE ROLE, AND IT IS ASKED OF THE SIGIL AND OF NOTHING ELSE.
+    चरः कारकः ॱॱ अ६४ भवति पदविभागॱविभज आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
+
+    ॰ Kind::Word — P10. A word carrying no sigil states no role, and
+    ॰ D-02-C is that every operand states its own.
+    यदि कारकः समम् ० आदि
+        चरः पदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः चिह्नकम् ।
+        दोषचिह्नकयोजनम् आरभ्य कारकचिह्नहीनकूटः ऽ चिह्नकम् ऽ पदार्थः ऽ १ समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः मूलान्तः ॱॱ अ६४ भवति कारकमूलसीमा आरभ्य चिह्नकम् ॱ पाठसीमा ऽ कारकः समाप्तम् ।
+
+    ॰ ── IS IT A NUMERAL? ASKED, NOT ASSUMED ─────────────────────────────
+    ॰ This passed `असत्यम्` — a HARDCODED false — for every operand, and the
+    ॰ margin at the head of this routine says why nobody saw it: "Kind::Numeral
+    ॰ — P04. Never reached today: `सङ्ख्याभेद` is not produced while
+    ॰ `अक्षरकोशॱसङ्ख्या` is a stub, so a numeral arrives as `पदभेद` and is
+    ॰ refused one arm down as P10 instead."
+    ॰
+    ॰ THAT PREMISE IS GONE. `W-257` and 47bad575 made `अक्षरकोशॱसङ्ख्या`
+    ॰ accumulate instead of answering the radix, so a numeral is no longer
+    ॰ refused one arm down — it reaches HERE, takes its role from its sigil,
+    ॰ and is recorded with `सङ्ख्यात्व` FALSE. `सङ्केतन` then reads it as
+    ॰ neither a register nor a numeral and refuses the program with E02
+    ॰ (encode.t1:3818).
+    ॰
+    ॰ NOTHING CAUGHT IT BECAUSE NOTHING CALLS THIS ROUTINE. Every test over
+    ॰ `सङ्केतन` builds its operands with `कारकपदयोजनम्` directly, from a
+    ॰ `sadhana::parse` result — `t1_exec_encode.rs`'s `mirror` — so the reader
+    ॰ that fills this field has never had its output encoded. A stale premise
+    ॰ in a margin, a constant standing in for a question, and no caller: the
+    ॰ three together kept it invisible.
+    चरः सङ्ख्यात्वम् ॱॱ बूल भवति असत्यम् ।
+    यदि अक्षरकोशॱअंशदोषः आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ मूलान्तः समाप्तम् समम् अक्षरकोशॱअङ्कनिर्दोषः आदि
+        सङ्ख्यात्वम् भवति सत्यम् ।
+    इति
+    प्रत्यागमनम् कारकपदयोजनम् आरभ्य कारकः ऽ चिह्नकम् ॱ पाठ अङ्कः चिह्नकम् ॱ अष्टक अन्तः मूलान्तः ऽ सङ्ख्यात्वम् समाप्तम् ।    ॰ W-227: मूलपाठ is the base as a slice, Rust's `base: String`
+इति
+
+
+॰ ══════════════════ P05 — one role, filled once ══════════════════
+॰ Rust's nested iterate-and-find over operands: for each one whose role is
+॰ singular, is there a LATER one claiming the same role. The three
+॰ arguments are the two bases and the role's own name, in that order,
+॰ which is the order spec/diagnostics.tsv's template names them; three
+॰ पाठांश are appended contiguously and the first index heads the run.
+॰
+॰ Reported AT THE VERB — शिरःचिह्नकम् — and not at either operand, because
+॰ Rust locates it at head.line and head.aksara: the contradiction is a
+॰ property of the sentence and not of one word in it.
+
+सार्वजनिक वृत्तिः कारकैकत्वपरीक्षा आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ कारकारम्भः ॱॱ अ६४ ऽ कारकसंख्यानम् ॱॱ अ६४ ददाति अ६४ आदि
+    चरः पूर्वक्रमः ॱॱ अ६४ भवति ० ।
+    यावत् पूर्वक्रमः न्यूनम् कारकसंख्यानम् आदि
+        चरः पूर्वम् ॱॱ कारकपद भवति कारकपदकोश अङ्कः आरभ्य कारकारम्भः योगः पूर्वक्रमः समाप्तम् अन्तः ।
+        यदि एककारकः आरभ्य पूर्वम् ॱ कारक समाप्तम् आदि
+            चरः परक्रमः ॱॱ अ६४ भवति आरभ्य पूर्वक्रमः योगः १ समाप्तम् ।
+            यावत् परक्रमः न्यूनम् कारकसंख्यानम् आदि
+                चरः परम् ॱॱ कारकपद भवति कारकपदकोश अङ्कः आरभ्य कारकारम्भः योगः परक्रमः समाप्तम् अन्तः ।
+                यदि परम् ॱ कारक समम् पूर्वम् ॱ कारक आदि
+                    चरः प्रथमार्थः ॱॱ अ६४ भवति पाठांशयोजनम् आरभ्य पूर्वम् ॱ मूलपाठ ऽ ० ऽ पूर्वम् ॱ मूलपाठ ॱ दैर्घ्य समाप्तम् ।
+                    पाठांशयोजनम् आरभ्य परम् ॱ मूलपाठ ऽ ० ऽ परम् ॱ मूलपाठ ॱ दैर्घ्य समाप्तम् ।
+                    चरः भूमिका ॱॱ अङ्कः अन्तः अ८ भवति कारकनाम पूर्वम् ॱ कारक ।
+                    पाठांशयोजनम् आरभ्य भूमिका ऽ ० ऽ भूमिका ॱ दैर्घ्य समाप्तम् ।
+                    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य विरुद्धकारककूटः ऽ शिरःचिह्नकम् ऽ प्रथमार्थः ऽ ३ समाप्तम् ।
+                इति
+                परक्रमः भवति आरभ्य परक्रमः योगः १ समाप्तम् ।
+            इति
+        इति
+        पूर्वक्रमः भवति आरभ्य पूर्वक्रमः योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ THE SENTENCE ══════════════════
+॰ parse_statement itself, in parse.rs's order: the type suffixes are
+॰ checked, the width is taken, the registry decides whether the first word
+॰ is a verb, the operands are read, and the kāraka uniqueness check runs
+॰ last. Answers the वाक्यविभागआज्ञाकोश index, or ० when a diagnostic was raised —
+॰ Rust's Ok(i) and Err(e).
+॰
+॰ THE STATEMENT IS A RANGE AND NOT A VECTOR, which is D-002f3's convention
+॰ and its reasoning applies unchanged: [वाक्यारम्भः ऽ वाक्यसीमा) are
+॰ half-open indices into पदविभागॱचिह्नककोश, the head is at वाक्यारम्भः,
+॰ and Rust's &toks[1..] is the walk from वाक्यारम्भः योगः १.
+
+सार्वजनिक वृत्तिः वाक्यपठनम् आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ वाक्यारम्भः ॱॱ अ६४ ऽ वाक्यसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आरभ्य प्रकारशुद्धिः शिरःचिह्नकम् समाप्तम् असमम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि आरभ्य प्रकारबहुत्वपरीक्षा शिरःचिह्नकम् समाप्तम् असमम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः व्याप्तिः ॱॱ अ६४ भवति शिरोव्याप्तिः शिरःचिह्नकम् ।
+
+    चरः संज्ञान्तः ॱॱ अ६४ भवति शिरःचिह्नकम् ॱ अष्टक योगः संज्ञासीमा आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+    चरः कुलक्रमः ॱॱ अ६४ भवति संज्ञाकुलान्वेषणम् आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ संज्ञान्तः समाप्तम् ।
+    यदि कुलक्रमः समम् ० आदि
+        अज्ञातसंज्ञादोषः शिरःचिह्नकम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    ॰ Rust's `for t in &toks[1..]`. कारकारम्भः is where this sentence's run
+    ॰ of operands STARTS, taken before the first append because the arena
+    ॰ index advances before it writes.
+    चरः कारकारम्भः ॱॱ अ६४ भवति आरभ्य कारकपदसूचकाङ्क योगः १ समाप्तम् ।
+    चरः कारकगणना ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति आरभ्य वाक्यारम्भः योगः १ समाप्तम् ।
+    यावत् क्रमः न्यूनम् वाक्यसीमा आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+        यदि आरभ्य कारकपदपठनम् चिह्नकम् समाप्तम् समम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        कारकगणना भवति आरभ्य कारकगणना योगः १ समाप्तम् ।
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+
+    यदि आरभ्य कारकैकत्वपरीक्षा आरभ्य शिरःचिह्नकम् ऽ कारकारम्भः ऽ कारकगणना समाप्तम् समाप्तम् असमम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    ॰ Rust's family.clone(). The record is copied out of the arena, which
+    ॰ is what an आज्ञा carries; कुलक्रमः is not stored, exactly as Rust
+    ॰ stores no index into fams.
+    चरः कुलम् ॱॱ संज्ञाकुल भवति संज्ञाकुलकोश अङ्कः कुलक्रमः अन्तः ।
+
+    चरः प्रकारगणना ॱॱ अ६४ भवति प्रकारसंख्या आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा समाप्तम् ।
+    चरः प्रथमारम्भः ॱॱ अ६४ भवति ० ।
+    चरः प्रथमान्तः ॱॱ अ६४ भवति ० ।
+    चरः द्वितीयारम्भः ॱॱ अ६४ भवति ० ।
+    चरः द्वितीयान्तः ॱॱ अ६४ भवति ० ।
+    यदि प्रकारगणना अधिकम् ० आदि
+        प्रथमारम्भः भवति शिरःचिह्नकम् ॱ अष्टक योगः प्रकारारम्भः आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा ऽ १ समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+        प्रथमान्तः भवति प्रकारसीमा आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ १ समाप्तम् ।
+    इति
+    यदि प्रकारगणना अधिकम् १ आदि
+        द्वितीयारम्भः भवति शिरःचिह्नकम् ॱ अष्टक योगः प्रकारारम्भः आरभ्य शिरःचिह्नकम् ॱ पाठ अङ्कः शिरःचिह्नकम् ॱ अष्टक अन्तः शिरःचिह्नकम् ॱ पाठसीमा ऽ २ समाप्तम् ।    ॰ W-227: the token's slice in, its offset rebased out
+        द्वितीयान्तः भवति प्रकारसीमा आरभ्य शिरःचिह्नकम् ॱ पाठ ऽ शिरःचिह्नकम् ॱ अष्टक ऽ शिरःचिह्नकम् ॱ पाठसीमा ऽ २ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् आज्ञायोजनम् आरभ्य कुलम् ऽ व्याप्तिः ऽ शिरःचिह्नकम् ॱ पाठ अङ्कः प्रथमारम्भः अन्तः प्रथमान्तः ऽ शिरःचिह्नकम् ॱ पाठ अङ्कः द्वितीयारम्भः अन्तः द्वितीयान्तः ऽ प्रकारगणना ऽ कारकारम्भः ऽ कारकगणना ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।    ॰ W-227: each type suffix as the slice आज्ञा declares; an absent suffix is the empty slice ०..०
+इति
+
+
+॰ `अष्टकयोजनम्` (push one octet, D-002f6) and `शून्याष्टकयोजनम्` (push n zeros)
+॰ STOOD HERE UNTIL 2026-09-04 (W-239) and are `अष्टकॱअष्टकयोजनम्` and
+॰ `अष्टकॱशून्याष्टकयोजनम्` now — the same advance-then-write appenders, in the
+॰ module that also appends a run's range and refuses a write past the end.
+
+
+सार्वजनिक वृत्तिः अङ्कपाठरचना ददाति अ६४ आदि
+    ॰ १
+    एकाङ्कपाठः अङ्कः ० अन्तः भवति २२४ ।
+    एकाङ्कपाठः अङ्कः १ अन्तः भवति १६५ ।
+    एकाङ्कपाठः अङ्कः २ अन्तः भवति १६७ ।
+
+    ॰ २
+    द्व्यङ्कपाठः अङ्कः ० अन्तः भवति २२४ ।
+    द्व्यङ्कपाठः अङ्कः १ अन्तः भवति १६५ ।
+    द्व्यङ्कपाठः अङ्कः २ अन्तः भवति १६८ ।
+
+    ॰ ४
+    चतुरङ्कपाठः अङ्कः ० अन्तः भवति २२४ ।
+    चतुरङ्कपाठः अङ्कः १ अन्तः भवति १६५ ।
+    चतुरङ्कपाठः अङ्कः २ अन्तः भवति १७० ।
+
+    ॰ २५५ — २^८ वियोगः १
+    अष्टकपरमपाठः अङ्कः ० अन्तः भवति २२४ ।
+    अष्टकपरमपाठः अङ्कः १ अन्तः भवति १६५ ।
+    अष्टकपरमपाठः अङ्कः २ अन्तः भवति १६८ ।
+    अष्टकपरमपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    अष्टकपरमपाठः अङ्कः ४ अन्तः भवति १६५ ।
+    अष्टकपरमपाठः अङ्कः ५ अन्तः भवति १७१ ।
+    अष्टकपरमपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    अष्टकपरमपाठः अङ्कः ७ अन्तः भवति १६५ ।
+    अष्टकपरमपाठः अङ्कः ८ अन्तः भवति १७१ ।
+
+    ॰ ६५५३५ — २^१६ वियोगः १
+    द्व्यष्टकपरमपाठः अङ्कः ० अन्तः भवति २२४ ।
+    द्व्यष्टकपरमपाठः अङ्कः १ अन्तः भवति १६५ ।
+    द्व्यष्टकपरमपाठः अङ्कः २ अन्तः भवति १७२ ।
+    द्व्यष्टकपरमपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    द्व्यष्टकपरमपाठः अङ्कः ४ अन्तः भवति १६५ ।
+    द्व्यष्टकपरमपाठः अङ्कः ५ अन्तः भवति १७१ ।
+    द्व्यष्टकपरमपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    द्व्यष्टकपरमपाठः अङ्कः ७ अन्तः भवति १६५ ।
+    द्व्यष्टकपरमपाठः अङ्कः ८ अन्तः भवति १७१ ।
+    द्व्यष्टकपरमपाठः अङ्कः ९ अन्तः भवति २२४ ।
+    द्व्यष्टकपरमपाठः अङ्कः १० अन्तः भवति १६५ ।
+    द्व्यष्टकपरमपाठः अङ्कः ११ अन्तः भवति १६९ ।
+    द्व्यष्टकपरमपाठः अङ्कः १२ अन्तः भवति २२४ ।
+    द्व्यष्टकपरमपाठः अङ्कः १३ अन्तः भवति १६५ ।
+    द्व्यष्टकपरमपाठः अङ्कः १४ अन्तः भवति १७१ ।
+
+    ॰ ४२९४९६७२९५ — २^३२ वियोगः १
+    चतुरष्टकपरमपाठः अङ्कः ० अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः १ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः २ अन्तः भवति १७० ।
+    चतुरष्टकपरमपाठः अङ्कः ३ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः ४ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः ५ अन्तः भवति १६८ ।
+    चतुरष्टकपरमपाठः अङ्कः ६ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः ७ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः ८ अन्तः भवति १७५ ।
+    चतुरष्टकपरमपाठः अङ्कः ९ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः १० अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः ११ अन्तः भवति १७० ।
+    चतुरष्टकपरमपाठः अङ्कः १२ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः १३ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः १४ अन्तः भवति १७५ ।
+    चतुरष्टकपरमपाठः अङ्कः १५ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः १६ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः १७ अन्तः भवति १७२ ।
+    चतुरष्टकपरमपाठः अङ्कः १८ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः १९ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः २० अन्तः भवति १७३ ।
+    चतुरष्टकपरमपाठः अङ्कः २१ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः २२ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः २३ अन्तः भवति १६८ ।
+    चतुरष्टकपरमपाठः अङ्कः २४ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः २५ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः २६ अन्तः भवति १७५ ।
+    चतुरष्टकपरमपाठः अङ्कः २७ अन्तः भवति २२४ ।
+    चतुरष्टकपरमपाठः अङ्कः २८ अन्तः भवति १६५ ।
+    चतुरष्टकपरमपाठः अङ्कः २९ अन्तः भवति १७१ ।
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE DIRECTIVES THAT EMIT BYTES — D-002f6, parse.rs:857-1009.
+॰
+॰ स्थानम् / अष्टकाः / द्वयष्टकाः / चतुरष्टकाः / अष्टाष्टकाः: one Rust match
+॰ arm over five names, and the five are one arm because they differ only
+॰ in HOW WIDE the destination is. `let width = match head.text` is
+॰ निर्देशव्याप्तिः below; the pattern list itself is अष्टकनिर्देशवाचकः,
+॰ which is what lets the ॥…॥ arm reach this half without the registry
+॰ lookup and the four non-emitting arms that are D-002f5's row.
+॰
+॰ ── TWO READERS FOR TWO QUESTIONS — W-075 ──
+॰ A DATUM IS A BIT PATTERN and A COUNT IS A MAGNITUDE, and one reader
+॰ answering both is how a literal too large became i64::MAX and was
+॰ emitted as one. So ॥ अष्टाष्टकाः ऋण१ ॥ is eight octets of ones and
+॰ ॥ स्थानम् ऋण५ ॥ is P30 and not a request to reserve 0xffff…fb bytes of
+॰ address space. The two readers are अक्षरकोश ॱ मानम् (numeral::value)
+॰ and अक्षरकोश ॱ अंशाः (numeral::bits), each paired with the routine that
+॰ answers its fault, because Rust returns a Result and T1 has no tuple.
+॰
+॰ THOSE FOUR ARE STUBS TODAY and this port says so rather than hiding it.
+॰ numeral.rs is radix prefixes, digit values and checked arithmetic and
+॰ it is अक्षरकोश's to own — मध्यरूप ॱ अङ्कमूल्यम् gives the reason for
+॰ calling a stub there rather than transcribing the module a second time,
+॰ and the same reason holds here. WHAT IS NOT BLOCKED BY IT is everything
+॰ around them: the width table, the fit check, the two-reader SPLIT, the
+॰ address placeholder, and the section rules, all of which are written.
+॰ When the four land, ॥ अष्टकाः ३०० ॥ raises P31 with no edit here.
+॰
+॰ ── THE FIT CHECK REFUSES RATHER THAN TRUNCATES — W-082 ──
+॰ ॥ अष्टकाः ३०० ॥ used to emit ०षोड्२च silently. GNU as warns and
+॰ truncates; THIS TOOLCHAIN HAS NO WARNING CHANNEL, and R-02-1's stance
+॰ is emit-what-was-written-or-refuse, so the only answer that keeps what
+॰ was written and what was emitted the same number is to refuse.
+॰
+॰ ── A NAME IS AN ADDRESS — ADR-0013 ──
+॰ A token that begins with a digit or a radix prefix is a numeral; one
+॰ that begins with a letter is a NAME, and a name is the address of what
+॰ it names. Eight zero octets are reserved and स्थाननिर्देशयोजनम् records
+॰ the fixup, which संयोजन fills once every label has an address.
+॰
+॰ ── WHAT IS DELIBERATELY NOT HERE ──
+॰ (1) The string branch — args.first() == उक्तम्, string_body, P17, P18,
+॰     P22 — is D-002f7 (THE TEXT DIRECTIVES), together with आस्की and
+॰     जाल. This routine DECLINES a उक्तम् statement rather than falling
+॰     through to the operand loop, because falling through would read
+॰     उक्तम् as a label name and reserve eight octets for it. An absence
+॰     that is visible beats one that assembles.
+॰ (2) Rust's usize::try_from(v) for स्थानम् has nothing to port: it
+॰     narrows u64 to usize, and अ६४ IS the count type here, so the
+॰     conversion is the identity and a check on it would test nothing.
+॰     The P29 that CAN fire is the reader's own, below.
+॰ (3) The octet arena is NOT rewound when a later operand raises. Rust
+॰     drops a local Vec; here the run stays in अष्टकसञ्चयः with no दत्तम्
+॰     naming it, so the program is right and the arena holds unreferenced
+॰     octets. Stated rather than left to be found.
+॰ ══════════════════════════════════════════════════════════════════════
+
+॰ a token's whole text against a literal — Rust's head.text == "…".
+॰ पाठसाम्यम् with the literal's own range, which is the shape
+॰ वैश्विकपङ्क्तिः already uses for उक्तम् वैश्विकम् इति.
+सार्वजनिक वृत्तिः चिह्नकनामसाम्यम् आदाय चिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ अपेक्षितम् ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    प्रत्यागमनम् पाठसाम्यम् आरभ्य चिह्नकम् ॱ पाठ ऽ चिह्नकम् ॱ अष्टक ऽ चिह्नकम् ॱ पाठसीमा ऽ अपेक्षितम् ऽ ० ऽ अपेक्षितम् ॱ दैर्घ्य समाप्तम् ।
+इति
+
+
+॰ the match arm's own PATTERN LIST — the five names this half is for.
+सार्वजनिक वृत्तिः अष्टकनिर्देशवाचकः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति बूल आदि
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् स्थानम् इति समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् अष्टकाः इति समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् द्वयष्टकाः इति समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् चतुरष्टकाः इति समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् अष्टाष्टकाः इति समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+
+॰ let width = match head.text — HOW MANY OCTETS one operand becomes.
+॰ ० is स्थानम्, which COUNTS octets rather than writing a value, and is
+॰ Rust's `_` arm, reached only from the five names above.
+सार्वजनिक वृत्तिः निर्देशव्याप्तिः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति अ६४ आदि
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् अष्टकाः इति समाप्तम् आदि प्रत्यागमनम् १ । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् द्वयष्टकाः इति समाप्तम् आदि प्रत्यागमनम् २ । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् चतुरष्टकाः इति समाप्तम् आदि प्रत्यागमनम् ४ । इति
+    यदि चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् अष्टाष्टकाः इति समाप्तम् आदि प्रत्यागमनम् ८ । इति
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ Rust's head.text != स्थानम् at the ॱरिक्त guard. Written as the NAME and
+॰ not as व्याप्तिः समम् ०, which is equivalent inside this arm and says
+॰ something else: P20's own words are "only स्थानम्".
+सार्वजनिक वृत्तिः स्थानवाचकः आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ददाति बूल आदि
+    प्रत्यागमनम् चिह्नकनामसाम्यम् आरभ्य शिरःचिह्नकम् ऽ उक्तम् स्थानम् इति समाप्तम् ।
+इति
+
+
+॰ numeral::split_sign's test, as octets. ऋण is U+090B U+0923 — २२४ १६४
+॰ १३९ २२४ १६४ १६३. Compared octet by octet for the reason this file's
+॰ head gives: a digit is not an akṣara word, so neither a numeral nor the
+॰ sign it may carry can be written as a string literal.
+सार्वजनिक वृत्तिः ऋणारम्भवाचकः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य आरम्भः योगः ६ समाप्तम् अधिकम् सीमा आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरम्भः अन्तः असमम् २२४ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य आरम्भः योगः १ समाप्तम् अन्तः असमम् १६४ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य आरम्भः योगः २ समाप्तम् अन्तः असमम् १३९ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य आरम्भः योगः ३ समाप्तम् अन्तः असमम् २२४ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य आरम्भः योगः ४ समाप्तम् अन्तः असमम् १६४ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य आरम्भः योगः ५ समाप्तम् अन्तः असमम् १६३ आदि प्रत्यागमनम् असत्यम् । इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ numeral::classify(token).is_some() — DOES THIS TOKEN BEGIN LIKE A
+॰ NUMERAL. That is the whole of what parse.rs asks it, and parse.rs's own
+॰ comment states the rule it stands for: a token that begins with a digit
+॰ or a radix prefix is a numeral, one that begins with a letter is a name.
+॰ All three radix prefixes (०द्वि ०अष्ट ०षोड्) BEGIN WITH ०, so after an
+॰ optional ऋण the question reduces to one Devanagari digit —
+॰ U+0966..U+096F, i.e. २२४ १६५ and a third octet in १६६..१७५.
+॰ THE RADIX TABLE AND THE DIGIT VALUES ARE NOT COPIED HERE. Those are
+॰ अक्षरकोश's and are asked of it by मानम्/अंशाः below; what is written
+॰ here is only the name-or-numeral split, which is ADR-0013's rule and
+॰ the directive reader's own decision.
+सार्वजनिक वृत्तिः अङ्कारम्भवाचकः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति बूल आदि
+    चरः स्थितिः ॱॱ अ६४ भवति आरम्भः ।
+    यदि ऋणारम्भवाचकः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+        स्थितिः भवति आरभ्य आरम्भः योगः ६ समाप्तम् ।
+    इति
+    यदि आरभ्य स्थितिः योगः ३ समाप्तम् अधिकम् सीमा आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः स्थितिः अन्तः असमम् २२४ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि पाठ अङ्कः आरभ्य स्थितिः योगः १ समाप्तम् अन्तः असमम् १६५ आदि प्रत्यागमनम् असत्यम् । इति
+    चरः तृतीयम् ॱॱ अ८ भवति पाठ अङ्कः आरभ्य स्थितिः योगः २ समाप्तम् अन्तः ।
+    यदि तृतीयम् न्यूनम् १६६ आदि प्रत्यागमनम् असत्यम् । इति
+    यदि तृतीयम् अधिकम् १७५ आदि प्रत्यागमनम् असत्यम् । इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ W-082, the fit check ══════════════════
+॰ Rust: let fits_unsigned = v >> n == 0;
+॰       let fits_signed = (v as i64) >> (n - 1) == -1;
+॰ writable iff it fits न bits unsigned, or with ऋण as signed — the
+॰ two's-complement range of न. अंशाः has already produced the 64-bit
+॰ pattern, so both tests are on that pattern.
+॰
+॰ THE SIGNED TEST IS WRITTEN WITHOUT AN ARITHMETIC SHIFT. Rust casts to
+॰ i64 so that >> sign-extends; T1's दक्षिणसृ on अ६४ does not, and no
+॰ signed shift is frozen, so the same question is asked as "are ALL the
+॰ bits from the sign upward set": मूल्यम् दक्षिणसृ (न वियोगः १) against
+॰ the ६५ वियोगः न ones such a value leaves. Same answer, and no reliance
+॰ on an operator whose signedness the grammar has not settled.
+॰
+॰ WIDTH ८ IS SKIPPED because a 64-bit datum holds every अ६४ by
+॰ construction — and because v >> 64 is not a shift Rust will perform.
+सार्वजनिक वृत्तिः अन्तर्भाववाचकः आदाय मूल्यम् ॱॱ अ६४ ऽ व्याप्तिः ॱॱ अ६४ ददाति बूल आदि
+    यदि व्याप्तिः अधिकम् ७ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    चरः अंशसंख्या ॱॱ अ६४ भवति आरभ्य व्याप्तिः गुणनम् ८ समाप्तम् ।
+    यदि आरभ्य मूल्यम् दक्षिणसृ अंशसंख्या समाप्तम् समम् ० आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    चरः उच्चांशाः ॱॱ अ६४ भवति आरभ्य मूल्यम् दक्षिणसृ आरभ्य अंशसंख्या वियोगः १ समाप्तम् समाप्तम् ।
+    चरः सर्वैकाः ॱॱ अ६४ भवति आरभ्य आरभ्य १ वामसृ आरभ्य ६५ वियोगः अंशसंख्या समाप्तम् समाप्तम् वियोगः १ समाप्तम् ।
+    यदि उच्चांशाः समम् सर्वैकाः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+
+॰ P31's {1} — Rust's width.to_string(). Only १, २ and ४ can reach it.
+सार्वजनिक वृत्तिः व्याप्तिपाठः आदाय व्याप्तिः ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि व्याप्तिः समम् २ आदि प्रत्यागमनम् द्व्यङ्कपाठः । इति
+    यदि व्याप्तिः समम् ४ आदि प्रत्यागमनम् चतुरङ्कपाठः । इति
+    प्रत्यागमनम् एकाङ्कपाठः ।
+इति
+
+
+॰ P31's {3} — Rust's ((1u64 << n) - 1).to_string(), the largest value the
+॰ destination holds. The same closed set of three.
+सार्वजनिक वृत्तिः परमपाठः आदाय व्याप्तिः ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि व्याप्तिः समम् २ आदि प्रत्यागमनम् द्व्यष्टकपरमपाठः । इति
+    यदि व्याप्तिः समम् ४ आदि प्रत्यागमनम् चतुरष्टकपरमपाठः । इति
+    प्रत्यागमनम् अष्टकपरमपाठः ।
+इति
+
+
+॰ ══════════════════ the arm itself ══════════════════
+॰ parse.rs:857-1009. EVERY DIAGNOSTIC IS PLACED AT THE HEAD TOKEN and not
+॰ at the operand that caused it, because apply_directive's `err` closure
+॰ captures `head` and all nine of its call sites use it. The operand still
+॰ reaches the reader — as an ARG — so the message names it while the caret
+॰ points at the directive.
+सार्वजनिक वृत्तिः अष्टकनिर्देशकार्यम् आदाय शिरःचिह्नकम् ॱॱ पदविभागॱचिह्नक ऽ पदारम्भः ॱॱ अ६४ ऽ पदसीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः व्याप्तिः ॱॱ अ६४ भवति निर्देशव्याप्तिः शिरःचिह्नकम् ।
+
+    ॰ P16 — if args.is_empty().
+    यदि पदारम्भः समम् पदसीमा आदि
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अपूर्णनिर्देशकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    ॰ ADR-0003's उक्तम् … इति — D-002f7's row, DECLINED rather than
+    ॰ mistaken for a label: falling through would read उक्तम् as a name
+    ॰ and reserve eight octets for it. See (1) at the head of this block.
+    चरः प्रथमपदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पदारम्भः अन्तः ।
+    यदि चिह्नकनामसाम्यम् आरभ्य प्रथमपदम् ऽ उक्तम् उक्तम् इति समाप्तम् आदि
+        ॰ W-239: D-002f7's row, WIRED — this arm returned ० and emitted nothing.
+        ॰ Rust: P17 unless the width is one; string_body, else P22; P18 if a
+        ॰ word follows the close (उक्तिपरीक्षा raises both of those); then the
+        ॰ text's UTF-8 as the datum, nothing appended (doc 02 §2.5: `.ascii`).
+        ॰ The pieces are recorded as before; the octets go to the arena — each
+        ॰ piece's text, a doubled इति as the one word इति, pieces joined by a
+        ॰ space — and the datum names the range.
+        यदि व्याप्तिः असमम् १ आदि
+            चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+            प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य उक्तिव्याप्तिकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+        इति
+        चरः उक्त्यारम्भः ॱॱ अ६४ भवति पदारम्भः योगः १ ।
+        चरः परीक्षाफलम् ॱॱ अ६४ भवति उक्तिपरीक्षा आरभ्य शिरःचिह्नकम् ऽ उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
+        यदि परीक्षाफलम् असमम् ० आदि
+            प्रत्यागमनम् परीक्षाफलम् ।
+        इति
+        चरः पदसंख्या ॱॱ अ६४ भवति उक्तिपदसंख्या आरभ्य उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
+        चरः उक्त्यष्टकारम्भः ॱॱ न६४ भवति अष्टकॱअष्टकसूचकाङ्क योगः १ ।
+        चरः उक्त्यष्टकसंख्यानम् ॱॱ न६४ भवति ० ।
+        यदि पदसंख्या समम् ० आदि
+            ॰ `उक्तम् इति` — Rust's string_body answers the empty text, and the
+            ॰ datum is empty: written, not refused.
+            प्रत्यागमनम् दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ अष्टकॱरिक्ताष्टकाः ऽ ० ऽ ० ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+        इति
+        चरः प्रथमांशः ॱॱ अ६४ भवति उक्तिपाठः आरभ्य उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
+        चरः समाप्तिः ॱॱ अ६४ भवति उक्तिसमाप्तिः आरभ्य उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
+        चरः उक्तिक्रमः ॱॱ अ६४ भवति उक्त्यारम्भः ।
+        यावत् उक्तिक्रमः न्यूनम् समाप्तिः आदि
+            चरः उक्तिपदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः उक्तिक्रमः अन्तः ।
+            यदि उक्तिक्रमः अधिकम् उक्त्यारम्भः आदि
+                चरः अन्तरालम् ॱॱ न६४ भवति अष्टकॱअष्टकयोजनम् ३२ ।
+                उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः १ ।
+            इति
+            चरः लिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य उक्तिपदम् ॱ पाठ ऽ उक्तिपदम् ॱ अष्टक ऽ उक्तिपदम् ॱ पाठसीमा समाप्तम् ।
+            उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः आरभ्य उक्तिपदम् ॱ पाठसीमा वियोगः उक्तिपदम् ॱ अष्टक समाप्तम् ।
+            यदि आरभ्य इतिपदम् उक्तिक्रमः समाप्तम् समम् सत्यम् आदि
+                उक्तिक्रमः भवति उक्तिक्रमः योगः २ ।
+            इति अन्यथा आदि
+                उक्तिक्रमः भवति उक्तिक्रमः योगः १ ।
+            इति
+        इति
+        प्रत्यागमनम् दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ अष्टकॱअष्टकखण्डः उक्त्यष्टकारम्भः उक्त्यष्टकसंख्यानम् ऽ ० ऽ ० ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।
+    इति
+
+    ॰ Rust's `let mut bytes = Vec::new(); let mut addresses = Vec::new();`
+    ॰ — here the first index of each run, and the counts the loop fills.
+    चरः अष्टकारम्भः ॱॱ अ६४ भवति आरभ्य अष्टकॱअष्टकसूचकाङ्क योगः १ समाप्तम् ।
+    चरः अष्टकसंख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः स्थानारम्भः ॱॱ अ६४ भवति ० ।
+    चरः स्थानसंख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति पदारम्भः ।
+
+    यावत् क्रमः न्यूनम् पदसीमा आदि
+        चरः पदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+
+        यदि आरभ्य अङ्कारम्भवाचकः आरभ्य पदम् ॱ पाठ ऽ पदम् ॱ अष्टक ऽ पदम् ॱ पाठसीमा समाप्तम् समाप्तम् समम् असत्यम् आदि
+            ॰ ── A NAME IS AN ADDRESS (ADR-0013) ──
+            ॰ P27: only अष्टाष्टकाः is wide enough to hold one.
+            यदि व्याप्तिः असमम् ८ आदि
+                चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+                प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य स्थानाक्षमकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+            इति
+            ॰ addresses.push((bytes.len(), name)) — the offset is this
+            ॰ datum's own length so far, which is where संयोजन patches.
+            ॰ W-239 fixed this arity the same day W-227 did (two arguments for two parameters; the name as a slice).
+            चरः निर्देशाङ्कः ॱॱ अ६४ भवति स्थाननिर्देशयोजनम् आरभ्य अष्टकसंख्यानम् ऽ पदम् ॱ पाठ अङ्कः पदम् ॱ अष्टक अन्तः पदम् ॱ पाठसीमा समाप्तम् ।    ॰ W-227: the name as the slice स्थाननिर्देश declares
+            यदि स्थानारम्भः समम् ० आदि
+                स्थानारम्भः भवति निर्देशाङ्कः ।
+            इति
+            स्थानसंख्यानम् भवति आरभ्य स्थानसंख्यानम् योगः १ समाप्तम् ।
+            ॰ bytes.extend_from_slice(&0u64.to_le_bytes()) — EIGHT ZEROES.
+            चरः पूरितानि ॱॱ अ६४ भवति अष्टकॱशून्याष्टकयोजनम् ८ ।
+            अष्टकसंख्यानम् भवति आरभ्य अष्टकसंख्यानम् योगः पूरितानि समाप्तम् ।
+        इति अन्यथा आदि
+            ॰ ── TWO READERS, TWO QUESTIONS (W-075) ──
+            चरः मूल्यम् ॱॱ अ६४ भवति ० ।
+            चरः पठनदोषः ॱॱ अ६४ भवति अक्षरकोशॱअङ्कनिर्दोषः ।
+            यदि व्याप्तिः समम् ० आदि
+                ॰ स्थानम् न — a COUNT, so the MAGNITUDE reader. ऋण means
+                ॰ nothing on a count and is refused rather than read as
+                ॰ 0xffff…fb, which would ask to reserve the address space.
+                पठनदोषः भवति अक्षरकोशॱमानदोषः आरभ्य पदम् ॱ पाठ ऽ पदम् ॱ अष्टक ऽ पदम् ॱ पाठसीमा समाप्तम् ।
+                मूल्यम् भवति अक्षरकोशॱमानम् आरभ्य पदम् ॱ पाठ ऽ पदम् ॱ अष्टक ऽ पदम् ॱ पाठसीमा समाप्तम् ।
+            इति अन्यथा आदि
+                ॰ a DATUM, so the BIT PATTERN reader. ऋण१ is all ones and
+                ॰ ०षोड्इआऊ२९इउ४८४२२२३२५ is a good अष्टाष्टकाः operand.
+                पठनदोषः भवति अक्षरकोशॱअंशदोषः आरभ्य पदम् ॱ पाठ ऽ पदम् ॱ अष्टक ऽ पदम् ॱ पाठसीमा समाप्तम् ।
+                मूल्यम् भवति अक्षरकोशॱअंशाः आरभ्य पदम् ॱ पाठ ऽ पदम् ॱ अष्टक ऽ पदम् ॱ पाठसीमा समाप्तम् ।
+            इति
+
+            ॰ P30 — NumeralError::Signed, and only मानम् can raise it.
+            ॰ Two args, pushed in the order the template names them.
+            यदि पठनदोषः समम् अक्षरकोशॱअङ्कचिह्नदोषः आदि
+                चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+                चरः पदपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदम् ।
+                प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य गणनाचिह्नकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ २ समाप्तम् ।
+            इति
+            ॰ P29 — NumeralError::TooLarge. Kept apart from P19 because
+            ॰ nothing is wrong with the writing; the number does not exist.
+            यदि पठनदोषः समम् अक्षरकोशॱअङ्कातिमानदोषः आदि
+                चरः पदपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदम् ।
+                प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य अतिप्रवाहकूटः ऽ शिरःचिह्नकम् ऽ पदपदार्थः ऽ १ समाप्तम् ।
+            इति
+            ॰ P19 — every remaining fault: Rust's Err(_) arm.
+            यदि पठनदोषः असमम् अक्षरकोशॱअङ्कनिर्दोषः आदि
+                चरः पदपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदम् ।
+                प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असंख्याकूटः ऽ शिरःचिह्नकम् ऽ पदपदार्थः ऽ १ समाप्तम् ।
+            इति
+
+            यदि व्याप्तिः समम् ० आदि
+                ॰ स्थानम् न — न zero octets, unconditionally. संरेखः used
+                ॰ to share this line and does not any more (W-071): it asks
+                ॰ for a BOUNDARY, which is a different question, and it is
+                ॰ D-002f5's arm.
+                ॰ IN ॱरिक्त A RESERVATION IS A SIZE, NOT OCTETS — 2026-09-13. This
+                ॰ pushed the zeros first and let the ॱरिक्त branch below discard
+                ॰ the ITEM afterwards: the count was right, the octets stayed in
+                ॰ the shared store. For the record region's own reservation
+                ॰ (`॥ स्थानम् ४१९४३०४ ॥`) that is 4,194,314 pushed zeros per object,
+                ॰ carried into the image's store, and NATIVELY a run that must live
+                ॰ inside the very region it reserves — circular; measured as two
+                ॰ 12.7 MB runs in ashtaka.t1's compile under the bump model. In
+                ॰ ॱरिक्त the reservation is counted and nothing is pushed; the
+                ॰ file's bytes are unchanged, because that branch wrote no item.
+                यदि वर्तमानकोष्ठक समम् रिक्तकोष्ठकभेद आदि
+                    अष्टकसंख्यानम् भवति आरभ्य अष्टकसंख्यानम् योगः मूल्यम् समाप्तम् ।
+                इति अन्यथा आदि
+                    चरः पूरितानि ॱॱ अ६४ भवति अष्टकॱशून्याष्टकयोजनम् मूल्यम् ।
+                    अष्टकसंख्यानम् भवति आरभ्य अष्टकसंख्यानम् योगः पूरितानि समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                ॰ P31 — W-082. REFUSE, do not trim.
+                यदि आरभ्य अन्तर्भाववाचकः आरभ्य मूल्यम् ऽ व्याप्तिः समाप्तम् समाप्तम् समम् असत्यम् आदि
+                    चरः अङ्कपाठः ॱॱ अङ्कः अन्तः अ८ भवति व्याप्तिपाठः व्याप्तिः ।
+                    चरः परमः ॱॱ अङ्कः अन्तः अ८ भवति परमपाठः व्याप्तिः ।
+                    चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+                    चरः व्याप्तिपदार्थः ॱॱ अ६४ भवति पाठांशयोजनम् आरभ्य अङ्कपाठः ऽ ० ऽ अङ्कपाठः ॱ दैर्घ्य समाप्तम् ।
+                    चरः पदपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः पदम् ।
+                    चरः परमपदार्थः ॱॱ अ६४ भवति पाठांशयोजनम् आरभ्य परमः ऽ ० ऽ परमः ॱ दैर्घ्य समाप्तम् ।
+                    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असमाहितकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ ४ समाप्तम् ।
+                इति
+                ॰ bytes.extend_from_slice(&v.to_le_bytes()[..width]) — the
+                ॰ LOW व्याप्तिः octets, least significant first. The same
+                ॰ expression सङ्केतन ॱ चतुरष्टकम् writes for its four.
+                चरः अंशक्रमः ॱॱ अ६४ भवति ० ।
+                यावत् अंशक्रमः न्यूनम् व्याप्तिः आदि
+                    चरः अष्टकम् ॱॱ अ८ भवति आरभ्य आरभ्य मूल्यम् दक्षिणसृ आरभ्य अंशक्रमः वामसृ ३ समाप्तम् समाप्तम् युक् २५५ समाप्तम् ।
+                    चरः लिखितम् ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् अष्टकम् ।
+                    अष्टकसंख्यानम् भवति आरभ्य अष्टकसंख्यानम् योगः १ समाप्तम् ।
+                    अंशक्रमः भवति आरभ्य अंशक्रमः योगः १ समाप्तम् ।
+                इति
+            इति
+        इति
+
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+
+    ॰ P28 — ॱपाठ holds INSTRUCTIONS. A data directive written there used
+    ॰ to put its octets in ॱदत्त, a section the author never named, while
+    ॰ any label around it kept naming the NEXT INSTRUCTION — so two labels
+    ॰ either side of it compared equal and reading through one returned an
+    ॰ opcode octet (W-071, found from the other side by E-004). Refused
+    ॰ rather than placed, because placing it needs ॱपाठ to address octets
+    ॰ instead of instructions, which is a change to how the section is
+    ॰ modelled and not to this directive.
+    यदि वर्तमानकोष्ठक समम् पाठकोष्ठकभेद आदि
+        चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+        प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य पाठक्षेत्रमूल्यकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+    इति
+
+    ॰ P20 — only स्थानम् belongs in ॱरिक्त. A value written there would be
+    ॰ dropped at load, nothing in the file backing it, so it is refused
+    ॰ rather than silently lost. रिक्तपङ्क्तिः is set at the FIRST such
+    ॰ statement so that a diagnostic about a ॱरिक्त written on line 40
+    ॰ does not blame line 1.
+    यदि वर्तमानकोष्ठक समम् रिक्तकोष्ठकभेद आदि
+        यदि आरभ्य स्थानवाचकः शिरःचिह्नकम् समाप्तम् समम् असत्यम् आदि
+            चरः शिरःपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः शिरःचिह्नकम् ।
+            प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य रिक्तक्षेत्रमूल्यकूटः ऽ शिरःचिह्नकम् ऽ शिरःपदार्थः ऽ १ समाप्तम् ।
+        इति
+        यदि रिक्तमानम् समम् ० आदि
+            रिक्तपङ्क्तिः भवति शिरःचिह्नकम् ॱ पङ्क्ति ।
+        इति
+        रिक्तमानम् भवति आरभ्य रिक्तमानम् योगः अष्टकसंख्यानम् समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    ॰ W-239: FIVE ARGUMENTS FOR FIVE PARAMETERS. This call passed the store
+    ॰ and a start and a count where `दत्तयोजनम्` declares ONE `अष्टकाः` — the
+    ॰ text-as-triple arity disagreement W-227 measured — so the datum's octets
+    ॰ were the whole stash and its line was a start index. The datum's
+    ॰ `अष्टकाः` is the arena's range now, and the addresses' start and count
+    ॰ land where they were declared.
+    प्रत्यागमनम् दत्तयोजनम् आरभ्य वर्तमानकोष्ठक ऽ अष्टकॱअष्टकखण्डः अष्टकारम्भः अष्टकसंख्यानम् ऽ स्थानारम्भः ऽ स्थानसंख्यानम् ऽ शिरःचिह्नकम् ॱ पङ्क्ति समाप्तम् ।    ॰ W-227's margin held here: this datum's run as the slice दत्तम् declares — its ॱ दैर्घ्य is what सङ्केतन sums; W-239: the run is the arena's range.
+इति
+
+
+सार्वजनिक वृत्तिः निर्देशकोशपठनम् ददाति अ६४ आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् निर्देशकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा बृहत्समम् ५ आदि
+                चरः क्षे०आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+                चरः प्रथममष्टकम् ॱॱ अ८ भवति पाठ्यम् अङ्कः क्षे०आरम्भः अन्तः ।
+
+                यदि प्रथममष्टकम् समम् २२४ आदि
+                    चरः क्षे०सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+                    चरः क्षे१आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+                    चरः क्षे१सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+                    चरः क्षे३आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                    चरः क्षे३सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+
+                    ॰ W-239 (2026-09-04): W-227's nine arguments below are the fix; the finding stands: this
+                    ॰ call passed three SLICES — `निर्देशयोजनम् नाम यवननाम स्थिति ।` —
+                    ॰ where the appender declares three (text, start, end) TRIPLES,
+                    ॰ the text-as-triple arity class W-227 measured. The interpreter
+                    ॰ reads a callee's arity off its declaration and kept reading
+                    ॰ arguments past the `।` for the missing six, so this loader had
+                    ॰ NEVER RUN: the directive registry was always empty and every
+                    ॰ directive a T1 program wrote was P13. Bisected, not inferred.
+                    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे०आरम्भः अन्तः क्षे०सीमा समाप्तम् ।
+                    चरः यवननाम ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे१आरम्भः अन्तः क्षे१सीमा समाप्तम् ।
+                    चरः स्थिति ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे३आरम्भः अन्तः क्षे३सीमा समाप्तम् ।
+
+                    निर्देशयोजनम् आरभ्य नाम ऽ ० ऽ नाम ॱ दैर्घ्य ऽ यवननाम ऽ ० ऽ यवननाम ॱ दैर्घ्य ऽ स्थिति ऽ ० ऽ स्थिति ॱ दैर्घ्य समाप्तम् ।    ॰ W-227: the three (text ऽ start ऽ end) triples निर्देश declares, each over its own field
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् निर्देशसूचकाङ्क ।
+इति
+
+सार्वजनिक वृत्तिः संज्ञाकुलपठनम् ददाति अ६४ आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् नामकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा बृहत्समम् ५ आदि
+                चरः क्षे०आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+                चरः देवनागरीस्थानम् ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+                चरः प्रथममष्टकम् ॱॱ अ८ भवति पाठ्यम् अङ्कः देवनागरीस्थानम् अन्तः ।
+
+                यदि प्रथममष्टकम् समम् २२४ आदि
+                    चरः क्षे०सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+                    चरः क्षे१आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+                    चरः क्षे१सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+                    चरः क्षे२आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                    चरः क्षे२सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                    चरः क्षे३आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                    चरः क्षे३सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+                    
+                    चरः क्षे४आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ४ ।
+                    चरः क्षे४सीमा ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ४ ।
+                    
+                    चरः कूट ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे०आरम्भः अन्तः क्षे०सीमा समाप्तम् ।
+                    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे१आरम्भः अन्तः क्षे१सीमा समाप्तम् ।
+                    चरः व्याख्या ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे२आरम्भः अन्तः क्षे२सीमा समाप्तम् ।
+                    चरः विस्तारः ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः क्षे३आरम्भः अन्तः क्षे३सीमा समाप्तम् ।
+                    
+                    चरः आवरणस्थानम् ॱॱ अ६४ भवति क्षे४आरम्भः ।
+                    चरः प्रथमआवरणसूचकाङ्क ॱॱ अ६४ भवति आरभ्य पाठांशसूचकाङ्क योगः १ समाप्तम् ।
+                    चरः आवरणसंख्यानम् ॱॱ अ६४ भवति ० ।
+                    
+                    यावत् आवरणस्थानम् न्यूनम् क्षे४सीमा आदि
+                        चरः अल्पविरामः ॱॱ अ६४ भवति सङ्केतन ॱ अष्टकान्वेषणम् पाठ्यम् आवरणस्थानम् क्षे४सीमा ४४ ।
+                        
+                        चरः आवरणप्रारम्भः ॱॱ अ६४ भवति आवरणस्थानम् ।
+                        चरः आवरणान्तः ॱॱ अ६४ भवति अल्पविरामः ।
+                        चरः अग्रेसरः ॱॱ बूल भवति सत्यम् ।
+
+                        यावत् अग्रेसरः समम् सत्यम् आदि
+                            यदि आवरणप्रारम्भः न्यूनम् आवरणान्तः आदि
+                                यदि पाठ्यम् अङ्कः आवरणप्रारम्भः अन्तः समम् ३२ आदि
+                                    आवरणप्रारम्भः भवति आवरणप्रारम्भः योगः १ ।
+                                इति
+                                यदि पाठ्यम् अङ्कः आवरणप्रारम्भः अन्तः असमम् ३२ आदि
+                                    अग्रेसरः भवति असत्यम् ।
+                                इति
+                            इति
+                            यदि आवरणप्रारम्भः समम् आवरणान्तः आदि
+                                अग्रेसरः भवति असत्यम् ।
+                            इति
+                        इति
+
+                        अग्रेसरः भवति सत्यम् ।
+                        यावत् अग्रेसरः समम् सत्यम् आदि
+                            यदि आवरणान्तः अधिकम् आवरणप्रारम्भः आदि
+                                यदि पाठ्यम् अङ्कः आरभ्य आवरणान्तः वियोगः १ समाप्तम् अन्तः समम् ३२ आदि
+                                    आवरणान्तः भवति आवरणान्तः वियोगः १ ।
+                                इति
+                                यदि पाठ्यम् अङ्कः आरभ्य आवरणान्तः वियोगः १ समाप्तम् अन्तः असमम् ३२ आदि
+                                    अग्रेसरः भवति असत्यम् ।
+                                इति
+                            इति
+                            यदि आवरणान्तः समम् आवरणप्रारम्भः आदि
+                                अग्रेसरः भवति असत्यम् ।
+                            इति
+                        इति
+                        
+                        यदि आवरणप्रारम्भः न्यूनम् आवरणान्तः आदि
+                            यदि पाठ्यम् अङ्कः आवरणप्रारम्भः अन्तः असमम् ४० आदि
+                                पाठांशयोजनम् पाठ्यम् आवरणप्रारम्भः आवरणान्तः ।
+                                आवरणसंख्यानम् भवति आवरणसंख्यानम् योगः १ ।
+                            इति
+                        इति
+                        
+                        आवरणस्थानम् भवति अल्पविरामः योगः १ ।
+                    इति
+                    
+                    संज्ञाकुलयोजनम् कूट नाम व्याख्या विस्तारः प्रथमआवरणसूचकाङ्क आवरणसंख्यानम् ।
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् संज्ञाकुलसूचकाङ्क ।
+इति
+
+॰ ══════════════════ lex and parse in one step ══════════════════
+॰
+॰ `D-002f9`, AND THE LAST ROW OF THE PORT. Rust's `assemble_program`
+॰ (`parse.rs:1169`) is three lines — lex, then parse — and it is what the
+॰ whole chain was for: with it a `.sas` goes source → ELF entirely
+॰ through T1, which is the self-hosting milestone.
+॰
+॰ WHAT THE `Result` BECOMES, and it is not a translation but a decision.
+॰ Rust returns `Result<Program, Vec<String>>` and collects EVERY lexical
+॰ and syntactic error, not only the first. T1 has neither `Result` nor a
+॰ growable collection — `D-002k` gave it FIXED-capacity arrays and said
+॰ so — and the errors already have somewhere to live: both halves write
+॰ their own diagnostics as they go. So this returns a COUNT.
+॰
+॰ ० MEANS "NOTHING PARSED", AND THAT IS SOUND ONLY BECAUSE A SOURCE WITH
+॰ NO TOKENS HAS NO STATEMENTS EITHER. It is the same encoding `भेदाङ्कः`
+॰ uses for "not found", and it is only safe where the absent case and the
+॰ zero case coincide. They do here; say so rather than assuming it.
+॰
+॰ THIS IS NOT THE FIRST CROSS-MODULE CALL. वाक्यविभाग has imported
+॰ पदविभाग since `:89` and already makes 77 qualified references to it —
+॰ the row's own note said otherwise and was wrong. What was missing was
+॰ never the reference, it was the DECLARATION half (`D-002l`).
+सार्वजनिक वृत्तिः सङ्कलनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः चिह्नकसंख्या ॱॱ अ६४ भवति पदविभागॱपदविभाग मूल ।
+
+    यदि चिह्नकसंख्या समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    प्रत्यागमनम् वाक्यविभाजनम् ।
+इति
+
+॰ Rust's `assemble_source` — the same, keeping only the instructions.
+॰ It returns `Vec<Instruction>` there and the INSTRUCTION COUNT here, for
+॰ the reason above: `वाक्यविभागआज्ञासूचकाङ्क` (`:335`) is already the count the
+॰ statement walker keeps, so this reports what was built rather than
+॰ building a second thing to report.
+सार्वजनिक वृत्तिः आज्ञासङ्कलनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः वाक्यसंख्या ॱॱ अ६४ भवति सङ्कलनम् मूल ।
+
+    यदि वाक्यसंख्या समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    प्रत्यागमनम् वाक्यविभागआज्ञासूचकाङ्क ।
+इति

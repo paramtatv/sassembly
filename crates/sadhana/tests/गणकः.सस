@@ -1,0 +1,52 @@
+ॐ
+॰ doc 07 §4.2's counter — the FROZEN Sassembly-web sketch, task F-004f.
+॰
+॰ This is §4.2 as written, in the spelling ADR-0003 ratified and
+॰ spec/grammar-t1.ebnf froze. Task A-033 measured the sketch's seven Vedic
+॰ signs at 0 of 27 Devanagari faces, so ADR-0003 replaced each with a word:
+॰ group with आरभ्य … समाप्तम्, block with आदि … इति, index with अङ्कः … अन्तः
+॰ and string with उक्तम् … इति. The table itself is in the module docs of
+॰ crates/sadhana/src/t1/drishya.rs; NONE of the seven signs appear here, and
+॰ the_fixture_is_the_sketch_and_this_test_is_not_vacuous asserts that.
+॰
+॰ ADR-0018 adds ONE MORE RESPELLING to that list. §4.2 writes the space between
+॰ गणना and the count as ॰ॱ — an escape inside the string, at the one position
+॰ ADR-0017 says a string cannot reach, since the delimiters are words and words
+॰ are whitespace-separated. Here it is विवरम्, the space as a VALUE, beside the
+॰ literal instead of inside it. The rendered text is गणना 0 either way; what
+॰ changed is that the space is written rather than supplied by the अधि join.
+॰
+॰ THIS FILE IS NOT T0 AND MUST NOT ASSEMBLE. `sadhana` the binary is the T0
+॰ assembler and refuses it; `crates/sadhana/tests/t0_cannot_read_t1.rs` asserts
+॰ that refusal over every `.सस` in the tree. What READS it is
+॰ `sadhana::t1::drishya`, and `crates/sadhana/tests/t2_drishya.rs` is where.
+॥ मण्डलम् गणकः ॥
+
+प्रकारः स्थितिः भवति संरचना आदि
+    सङ्ख्याॱॱ अ३२ ऽ
+इति ॥
+
+प्रकारः घटना भवति गणना आदि
+    वर्धनम् ऽ
+    ह्रासः ऽ
+इति ॥
+
+वृत्तिः परिवर्तनम् आरभ्य सॱॱ स्थितिः ऽ घॱॱ घटना समाप्तम् फलम् स्थितिः आदि
+    विकल्पना घ आदि
+        वर्धनम् ततः प्रत्यागमनम् स्थितिः आदि सङ्ख्या भवति सॱसङ्ख्या अधि १ इति ।
+        ह्रासः  ततः प्रत्यागमनम् स्थितिः आदि सङ्ख्या भवति सॱसङ्ख्या ऊन  १ इति ।
+    इति
+इति ॥
+
+वृत्तिः दृश्यम् आरभ्य सॱॱ स्थितिः समाप्तम् फलम् रूपम् आदि
+    प्रत्यागमनम् स्तम्भः आदि
+        विन्यासः भवति आदि अन्तरम् भवति १२ ऽ संरेखः भवति मध्यम् इति ऽ
+        सन्ततिः भवति अङ्कः
+            पाठः आरभ्य उक्तम् गणना इति अधि विवरम् अधि अङ्कपाठः आरभ्य सॱसङ्ख्या समाप्तम् समाप्तम् ऽ
+            पङ्क्तिः आदि सन्ततिः भवति अङ्कः
+                कुञ्जिका आरभ्य उक्तम् वर्धय इति ऽ वर्धनम् समाप्तम् ऽ
+                कुञ्जिका आरभ्य उक्तम् ह्रासय इति ऽ ह्रासः  समाप्तम्
+            अन्तः इति
+        अन्तः
+    इति ।
+इति ॥

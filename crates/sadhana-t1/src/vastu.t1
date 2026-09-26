@@ -1,0 +1,77 @@
+मण्डलम् वास्तु ॥   ॰ vastu — the port of crates/sadhana/src/vastu.rs, the object model
+
+॰ THIS FILE WAS NOT SANSKRIT UNTIL 2026-08-30. It arrived in e332932d ("Merge
+॰ the fork: restore AGY's work") holding English spelled out one letter at a
+॰ time in Devanagari characters: मण्डलम् वअसतउ, संरचना आब्जेक्टसयमबओल,
+॰ गणना पलएसमएनट, fields नअमए ॱॱ पाठ and गलओबअल ॱॱ बूल. Thirty-nine of its
+॰ ninety-five words were formed that way — not translated, TRANSCRIBED, which
+॰ produces strings no reader of either language can read.
+॰
+॰ It was not merely ugly. It BROKE THE LINKER'S IMPORTS, and silently:
+॰   * संयोजन:27 imports वास्तु and asks nine times for वास्तुॱवस्तु. The
+॰     object lived here under the name आब्जेक्ट, inside a module called
+॰     वअसतउ, so neither the module nor the type it wanted existed.
+॰   * संयोजन also wants वास्तुॱवस्तुसंज्ञा, वास्तुॱपुनःस्थापनम् and
+॰     वास्तुॱशोधनखण्डः. None of the three was declared anywhere.
+॰ The callers had been writing proper Sanskrit all along; only the definitions
+॰ were transcribed. So EVERY NAME BELOW IS THE CALLER'S, recovered from the
+॰ call sites, not chosen here.
+॰
+॰ Two files may name one module: nirvahana.rs:458 keys a routine as
+॰ `module ॱ name`, so this and वास्तु's other file both register under वास्तु.
+
+॰ which of an object's sections a symbol names a place in — Placement.
+॰ resolved here and not by the linker: संयोजन matched खण्डाङ्कः समम् १ against
+॰ ॱपाठ्य on the reasoning that ours and GNU's both put it there, which was true
+॰ while ॱशून्यक्षेत्र and ॱपुनःस्थापनदत्त were absent (B-099).
+सार्वजनिक गणना स्थापन आरभ्य
+  पाठ्यम् ऽ            ॰ .text
+  दत्तम् ऽ             ॰ .data
+  शून्यक्षेत्रम् ऽ       ॰ .bss — space that exists in memory and not in the file
+  शोधनपङ्क्तिः ऽ        ॰ .debug_line — the section a DW_AT_stmt_list points through
+  अनिर्दिष्टम् ऽ        ॰ SHN_UNDEF: the file ASKS for this name rather than defining it
+  अन्यत्              ॰ a section this reader does not model. never placed, never guessed
+समाप्तम् ।
+
+॰ a symbol as the file records it — ObjectSymbol.
+सार्वजनिक संरचना वस्तुसंज्ञा आरभ्य
+  नाम ॱॱ पाठः ऽ         ॰ from .strtab
+  मूल्यम् ॱॱ न६४ ऽ       ॰ its value — an offset within its section, for an object
+  खण्डाङ्कः ॱॱ अ१६ ऽ     ॰ the section header index it belongs to; ० is SHN_UNDEF
+  स्थापनम् ॱॱ स्थापन ऽ    ॰ which section that index turned out to be
+  वैश्विकम् ॱॱ बूल       ॰ true for STB_GLOBAL
+समाप्तम् ।
+
+॰ one .rela.text entry — ObjectRelocation.
+सार्वजनिक संरचना पुनःस्थापनम् आरभ्य
+  स्थानाङ्कः ॱॱ न६४ ऽ    ॰ byte offset into .text
+  संज्ञाङ्कः ॱॱ अ३२ ऽ     ॰ index into वस्तुॱसंज्ञाः, as ELF counts it — ० is the null symbol
+  भेदः ॱॱ अ३२ ऽ         ॰ a type from spec/relocations-riscv64.tsv
+  योज्यम् ॱॱ इ६४        ॰ added to the symbol's value
+समाप्तम् ।
+
+॰ one debug section, carried by name — the (String, Vec<u8>) pair.
+सार्वजनिक संरचना शोधनखण्डः आरभ्य
+  नाम ॱॱ पाठः ऽ
+  दत्तम् ॱॱ अङ्कः अन्तः अ८
+समाप्तम् ।
+
+॰ relocations against ONE debug section, kept per section for the reason
+॰ ॱपुनःस्थापनदत्त is kept apart from ॱपुनःस्थापनपाठ्य: an offset means nothing
+॰ without the section it counts from (B-099).
+सार्वजनिक संरचना शोधनपुनःस्थापनखण्डः आरभ्य
+  नाम ॱॱ पाठः ऽ
+  पुनःस्थापनानि ॱॱ अङ्कः अन्तः पुनःस्थापनम्
+समाप्तम् ।
+
+॰ a relocatable object, as far as linking needs it — Object.
+सार्वजनिक संरचना वस्तु आरभ्य
+  पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ                       ॰ .text contents
+  दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ                        ॰ .data, empty when the section is absent
+  संज्ञाः ॱॱ अङ्कः अन्तः वस्तुसंज्ञा ऽ                 ॰ every symbol, in file order, including the null one at ०
+  पुनःस्थापनानि ॱॱ अङ्कः अन्तः पुनःस्थापनम् ऽ           ॰ every .rela.text record
+  शून्यक्षेत्रम् ॱॱ न६४ ऽ                            ॰ bytes reserved in .bss: in memory, absent from the file
+  शोधनम् ॱॱ अङ्कः अन्तः शोधनखण्डः ऽ                  ॰ the debug sections this object carries, in file order
+  शोधनपुनःस्थापनानि ॱॱ अङ्कः अन्तः शोधनपुनःस्थापनखण्डः ऽ  ॰ relocations against a debug section, by that section's name
+  दत्तपुनःस्थापनानि ॱॱ अङ्कः अन्तः पुनःस्थापनम्          ॰ every .rela.data record — a pointer written into ॱदत्त (B-098)
+समाप्तम् ।

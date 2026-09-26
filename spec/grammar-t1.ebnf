@@ -1,0 +1,1629 @@
+(* ===================================================================== *)
+(* Sassembly T1 — LEXICAL grammar, FROZEN v0.1.                          *)
+(* Task B-079a. Gate B11's prerequisite.                                 *)
+(*                                                                        *)
+(* Frozen means the T1 front end (B-080) may depend on this shape.        *)
+(* Changing a production after this point is an ADR, not an edit.         *)
+(*                                                                        *)
+(* AMENDED 2026-08-28 by ADR-0017 (`F-004f2`): `token` gains `string`,     *)
+(* which is what the note at the foot of this file asked for. It was added  *)
+(* the way the line above requires.                                        *)
+(*                                                                        *)
+(* AMENDED 2026-08-28 by ADR-0018: `keyword` gains `यतिः` and `विवरम्`,      *)
+(* two LAYOUT WORDS that are values. See the note in that production.      *)
+(*                                                                        *)
+(* ADDED 2026-08-28 by ADR-0019 (`D-002g`), OWNER-RATIFIED: the `embed`       *)
+(* production — a derived table brought in BY NAME at assembly time. It is    *)
+(* opened by `समावेशः`, WHICH THIS FILE ALREADY CARRIES as `include`. The      *)
+(* owner ruled that the embed REUSE that keyword rather than that a new one   *)
+(* be added, so ADR-0019 amends NO production: `keyword` is untouched, and    *)
+(* `आनीतम्`, which the proposed draft would have added, is not a word of this   *)
+(* language. `token` is untouched too — an embed's result is a `string`.      *)
+(* ADDED 2026-08-29 by ADR-0026 (`D-002k`), OWNER-RATIFIED: `array_type`, a   *)
+(* fixed-capacity array. It too amends NO production — it coins no word and   *)
+(* reuses the ratified `index` pair with a `numeral` between the marks. See    *)
+(* the note beside the production near the foot of this file.                 *)
+(*                                                                        *)
+(* AMENDED 2026-08-29 by ADR-0027 (`D-002l`): `keyword` gains `मण्डलम्`, and   *)
+(* three productions are ADDED — `module_decl`, `import` and `qualified_name`. *)
+(* The word is ADOPTED, not coined: `spec/lexicon.src.tsv:271` already carries *)
+(* `मण्डलम् / module / keyword / attested`, and 19 of the 20 `.t1` sources in  *)
+(* the tree already declare with it. See the `modules` section below.         *)
+(*                                                                        *)
+(*                                                                        *)
+(* ADDED 2026-08-30 by ADR-0032 (`D-002h`): the EXPRESSION and OPERATOR       *)
+(* section. Thirteen binary operators, one unary, and a nine-level precedence *)
+(* ladder — all MEASURED from the `.t1` corpus the owner ruled canonical on    *)
+(* 2026-08-29, not chosen. No production above it is amended.                 *)
+(*                                                                        *)
+(*                                                                        *)
+(* MERGE NOTE 2026-08-31: two branches amended this header for two real     *)
+(* reasons and neither is withdrawn, so both notes above are kept. The      *)
+(* operator ADR was accepted on `origin/main` as ADR-0026 while this branch *)
+(* had accepted a DIFFERENT ADR-0026, the fixed-capacity array; the same    *)
+(* collision holds for 0027 and for 0028. THE NUMBERS STILL COLLIDE IN      *)
+(* `docs/adr/` AS OF THIS COMMIT. The tests cite origin's numbers, so       *)
+(* origin's keep them and this branch's three move; that is its own row.    *)
+(* Until it lands, read the TASK ID, which is never ambiguous: `D-002k` and *)
+(* `D-002l` are this branch's array and module ADRs, and `D-002h` is        *)
+(* origin's operator, statement and lexicon work.                           *)
+(*                                                                        *)
+(* EVERY DEVIATION FROM THE FREEZE IS ADR-BACKED, which is what the line    *)
+(* above requires. The COUNT that stood here is dropped rather than merged: *)
+(* each side computed it against a different baseline -- one calls          *)
+(* `unary_expr` amended, and `unary_expr` did not exist at the freeze at    *)
+(* all -- so no single number is true of the union. Deriving one from the   *)
+(* freeze gives 35 added, which is not what either sentence meant. The      *)
+(* ADRs are the record; each production carries its own head.               *)
+(*                                                                        *)
+(* THE PHRASE STRUCTURE IS HERE AS OF B-079b, THE EXPRESSION GRAMMAR AS OF  *)
+(* the operator ADR, AND `statement`/`type`/`call` AS OF ADR-0027 -- both   *)
+(* task `D-002h`. What is left is declaration BODIES; see "what is STILL    *)
+(* not frozen" below.                                                       *)
+(* ===================================================================== *)
+
+(* --- why this file stops where it does -------------------------------- *)
+
+(* Two sources describe T1 and neither can be transcribed.
+ *
+ * Doc 02 §3.2 is a SKETCH, and says so: its `{ } ( ) , = + * →` are ASCII
+ * "for legibility while the semantics are under discussion". Its normative
+ * spelling is doc 15 §3.4–3.5.
+ *
+ * Doc 15 §3.1's table assigns those roles to Siddham and Vedic-extension
+ * signs — `꣼ ꣸` for grouping, `꣺ ꣻ` for blocks, `ᳵ ᳶ` for indexing,
+ * `꣹` for strings. **Task A-033 measured all seven at 0 of 27 Devanagari
+ * faces.** ADR-0003 already acted on that measurement for T0, replacing the
+ * string delimiter with the words `उक्तम् … इति`, and ratified exactly six
+ * signs — `। ॥ ॰ ॱ ॱॱ ऽ` — because those are the ones that render.
+ *
+ * T0 needed one of the seven and could work around it. T1 needs grouping,
+ * blocks and indexing as well, and there is no ratified sign for any of them.
+ *
+ * Doc 15 §15.3.3 says how to decide: a READABILITY STUDY, five readers, three
+ * programs each, closure form against an ASCII control, measuring comprehension
+ * time and error rate. Doc 15's own risk table names the danger it settles —
+ * "operator-words make code unreadably verbose" — and says to carve sign
+ * operators out of the Vedic block if the data says so.
+ *
+ * That study needs human readers. It is `A-063` and it is the owner's.
+ * Freezing the phrase structure before it would be guessing at the most
+ * consequential surface decision in the language, and this project does not
+ * guess where it can measure.
+ *
+ * What IS decided is the lexical layer: every token below is spelled with
+ * signs ADR-0003 ratified, or with words, and none of it waits on the study.
+ *)
+
+(* --- tokens ----------------------------------------------------------- *)
+
+token          = keyword
+               | type_name
+               | identifier
+               | numeral
+               | string
+               | comment ;
+
+(* --- keywords --------------------------------------------------------- *)
+
+(* Doc 02 §3.2's v0.1 set. Each is an ordinary Sanskrit word, so each is also
+   a possible identifier — the reader must prefer the keyword, which is why
+   they are enumerated here rather than recognised by shape. *)
+keyword        = "वृत्तिः"        (* fn        *)
+               | "प्रकारः"        (* type      *)
+               | "संरचना"         (* struct    *)
+               | "संघः"           (* union     *)
+               | "गणना"           (* enum      *)
+               | "चरः"            (* var       *)
+               | "ध्रुवः"          (* const     *)
+               | "यदि" | "अन्यथा"  (* if / else *)
+               | "यावत्"          (* while     *)
+               | "प्रत्येकम्"       (* for       *)
+               | "भङ्गः"           (* break     *)
+               | "अनुवर्तनम्"      (* continue  *)
+               | "प्रत्यागमनम्"     (* return    *)
+               | "विकल्पना"       (* switch    *)
+               | "रक्षा"           (* defer     *)
+               | "प्रयत्नः"        (* try       *)
+               | "दोषः"           (* error     *)
+               | "समयकृत"         (* comptime  *)
+               | "परीक्षा"         (* test      *)
+               | "सार्वजनिक"      (* pub       *)
+               | "मण्डलम्"         (* module — ADR-0026, the DECLARING half of
+                                     the pair below; see the `modules` section *)
+               | "आयातः"          (* import    *)
+               | "समावेशः"        (* include — AND the embed opener; see the
+                                     `embed` production and ADR-0019 *)
+               | "शून्यम्"         (* void      *)
+               | "सत्यम्" | "असत्यम्" (* true / false *)
+               | "रिक्तः"          (* null      *)
+               | "स्वयम्"          (* self      *)
+               | "असुरक्षितम्"     (* unsafe    *)
+
+               (* ADR-0018, owner-ratified 2026-08-28. Two LAYOUT WORDS, and
+                  they are VALUES rather than escapes: `यतिः` is U+000A and
+                  `विवरम्` is U+0020 wherever a value may stand, and INSIDE
+                  `उक्तम् … इति` each is simply its own akṣaras. That
+                  distinction is guarded by exactly one test — decoding either
+                  inside a literal fails `a_layout_word_inside_a_string_is_its_
+                  own_letters` AND NOTHING ELSE, not even ADR-0017's suite.
+
+                  `यतिः` is prosody's caesura and is not coined here: doc 17a
+                  §3.3 already names darshana's line breaker `यतिः` for this
+                  concept and `crates/darshana/src/yati.rs` implements it.
+                  `विवरम्` (वि+√वृ) is the interstice. `अवकाशः`, the obvious
+                  word for a space, IS TAKEN — `संरचना अवकाश` is the linker's
+                  `Slot`, written 14 times across `samyojana.t1` and
+                  `vishlesana.t1`, so reserving it would have silently changed
+                  the meaning of code already in the tree. *)
+               | "यतिः"           (* newline   *)
+               | "विवरम्" ;        (* space     *)
+
+(* ADR-0019 ADDS NO WORD TO THE LIST ABOVE, and the reason is the owner's
+ * ruling of 2026-08-28.
+ *
+ * The proposed draft would have added `आनीतम्` ("brought in") as the embed
+ * opener, and it gave two reasons for not reusing `समावेशः`. First, `समावेशः`
+ * was written as a function name in `crates/sadhana-t1/src/encode.t1` —
+ * `Slot::fits` — which is the hazard ADR-0018 refused `अवकाशः` over. Second,
+ * `spec/directives.tsv:36` gives `समावेशः` as `.include`, "textual inclusion",
+ * where an embed yields a file's BYTES as a VALUE.
+ *
+ * THE OWNER REFUSED BOTH, AND DIFFERENTLY FOR EACH.
+ *
+ * On the first: that occupancy was not a reason to spend a word, it was a
+ * DEFECT. `समावेशः` is in the frozen list above, and this file says a keyword
+ * "is also a possible identifier — the reader must prefer the keyword", so
+ * `encode.t1` was already illegal and merely unnoticed, no front end having
+ * been written to enforce the list. `B-112` renamed it — `Slot::fits` is
+ * `अन्तर्भावः` now — and added the guard that matters more than the rename:
+ * `no_t1_source_binds_a_frozen_keyword_as_a_name` in
+ * `crates/sadhana-t1/tests/t1_sources.rs` reads THIS PRODUCTION, refuses any
+ * `.t1` file that binds one of these words as a name, and cannot drift from the
+ * grammar because it is not a copy of it. It found ten further collisions the
+ * same day.
+ *
+ * On the second: one word carrying a T0 directive sense and a T1 sense is not
+ * an anomaly here, it is the norm. Of the six directives at
+ * `spec/directives.tsv:32`-`:39`, FIVE already do it — `स्थानम्` is `.space`
+ * and the pointer type, `समम्` is `.equ` and the equality comparison, `यदि`
+ * and `अन्यथा` are `.if`/`.else` and the keywords above, `अन्तः` is `.endif`
+ * and the index close — and `समावेशः` was the only one that did not. The two
+ * senses are told apart by the TIER (two grammars, two lexers, no source that
+ * is both), by the WRAPPER (`॥ … ॥` for a directive, ADR-0012; `आरभ्य …
+ * समाप्तम्` for the embed, ADR-0003) and by the ARGUMENT (a string, ADR-0013;
+ * a bare identifier here). ADR-0019 says this at length.
+ *
+ * `आनीतम्` is therefore not a word of this language. *)
+
+(* --- type names ------------------------------------------------------- *)
+
+(* The same vocabulary T0 already uses for its व्याप्ति suffix (ADR-0010), so
+   `ॱअ३२` in an instruction and `अ३२` in a declaration name one type. That
+   agreement is the point: two tiers of one language, not two languages.
+
+   `पाठः` BECAME `पाठ` ON 2026-08-31 BY ADR-0029, and the count that decides it
+   is not the one ADR-0027 recorded. ADR-0027 wrote "`पाठ` appears 145 times
+   against `पाठः`'s 39, both in type position"; measured again with POSITION
+   taken into account — the token after an `annotation` or after `ददाति` — the
+   corpus writes `पाठ` 27 times and `पाठः` 9, and the other 148 occurrences are
+   parameter names, field names and values, which are `identifier` and not
+   `type_name` at all. The direction is unchanged and the magnitude is a
+   quarter of what was claimed. In type position `पाठ` is written in SIX of the
+   fifteen files and all nine `पाठः` are in `utsarjana.t1` alone.
+
+   BOTH SPELLINGS COULD NOT BE ADMITTED, and that is what forced a single
+   choice rather than a widening. Doc 01 §4 rule 5 — one word, one sense; one
+   sense, one word — is enforced by `no_concept_has_two_words` in
+   `crates/sanskrit-text/tests/lexicon.rs`, and `spec/lexicon.src.tsv` holds no
+   sense twice in 476 rows. A `type_name` naming two words for `string` would
+   have made the lexicon unable to follow the grammar, which is the direction
+   ADR-0028 fixed.
+
+   `अक्षरम्` STAYS, unchanged and for ADR-0027's reason: it is written ZERO
+   times in type position and so is unused rather than contradicted, and `अक्षर`
+   is written zero times there too. There is no divergence to settle. *)
+type_name      = integer_type | float_type | "बूल" | "अक्षरम्" | "पाठ" ;
+
+(* ADR-0030 CONSIDERED WIDENING THIS AND REFUSED. The corpus writes `इ६४` 56
+   times in type position — at that ONE width, never `इ८`/`इ१६`/`इ३२`/`इ१२८` —
+   and this production cannot produce it. It is NOT admitted. `इ` is the Latin
+   `i` of `i64` written in Devanagari, where `अंश`, `निर्ऋण` and `भिन्न` are
+   chosen words with derivations printed in doc 02 §2.5; the corpus annotates
+   its own `इ६४` sites with Rust type names in English (`ir.t1:118` reads
+   `॰ ConstInt's i64`), which is what a mechanical port leaves behind and not
+   what a designed vocabulary needs. `tools/gen_levels.py`, the tree's OTHER
+   writer of T1, already spells unsigned `न६४`/`न३२` 52 times and `इ` never.
+
+   THE SAME PORT WROTE `अ` FOR UNSIGNED, 1322 TIMES: `encode.t1:212`'s
+   `मूल्यम् ॱॱ अ६४` is `encode.rs:118`'s `value: u64`, and the `चिह्नितम् ॱॱ इ६४`
+   beside it is the `let signed = value as i64` of `:132` hoisted into a
+   parameter because T1 has no cast. Both directions are one defect with one
+   cause, they live only in `crates/sadhana-t1/src/*.t1`, and ADR-0030
+   authorises the remediation without performing it.
+
+   AND `इ` IS NOT FREE TO TAKE: `hex_digit` below already spells `c` with it,
+   `अ` being `a`, so `०षोड्इ६४` is a legal hexadecimal literal and admitting
+   `इ` here would give one sign two senses inside this one grammar. *)
+integer_type   = ( "अ" | "न" ) , type_width ;   (* अंश signed, निर्ऋण unsigned *)
+
+(* ADR-0031 — AND NO CAST PRODUCTION IS ADDED EITHER, WHICH IS THE OTHER HALF
+   OF THE NOTE ABOVE. ADR-0030 said the port hoisted `let signed = value as i64`
+   into a parameter "because T1 has no cast" and left the gap named. It stays a
+   gap ON PURPOSE: no T1 expression changes the type of what it evaluates —
+   `type` is reachable from `binding` and the four type constructors and from no
+   expression production at all — and a conversion routine could not be written
+   in this language, since its body would need the very thing it exists to
+   provide. Nor does arithmetic reach the case: `vishlesana.t1`'s उद्धरणम्
+   converts by subtracting `१ वामसृ विस्तारः`, but only under
+   `यदि विस्तारः न्यूनम् ६४`, because at sixty-four there is no bit above the
+   sign to borrow from.
+
+   WHAT STANDS IN ITS PLACE IS WHAT THE CORPUS ALREADY WRITES: the caller
+   carries BOTH readings. `encode.t1:885` states it — "मूल्यानि and चिह्नितानि
+   are the SAME numbers twice, unsigned and signed: अन्तर्भावः needs both, T1
+   has no cast" — and the file writes the pair as two scalars at `:212`, as two
+   parallel slices at `:893`, and unpacks the one into the other at `:916`–`:917`.
+   Where the two readings are
+   PROVABLY equal at every call, the pair is not written and the parameter
+   follows the caller, with the guard that proves it in the file: `nidana.t1`'s
+   पदार्थलेखनम् behind `यदि अङ्कम् अधिकम् ऋण१`, `utsarjana.t1`'s अङ्कचिह्नम्
+   behind a remainder modulo `१०`. *)
+float_type     = "भ" , ( "३२" | "६४" ) ;        (* भिन्न *)
+type_width     = "८" | "१६" | "३२" | "६४" | "१२८" ;
+
+(* `ᳵᳶ T` slice, `स्थानम् T` pointer, `सम्भाव्य T` optional and
+   `दोषयुक्त T` error union are TYPE CONSTRUCTORS, not type names: they take
+   an operand, so they are phrase structure and wait with the rest. The slice
+   spelling in particular uses `ᳵ ᳶ`, which is one of the seven signs that
+   render in no face. *)
+
+(* --- identifiers, numerals, comments ---------------------------------- *)
+
+(* Identical to T0, deliberately: one lexer serves both tiers, and a name
+   written in an instruction is the same name written in a declaration. *)
+identifier     = aksara_word ;
+aksara_word    = aksara , { aksara } ;
+
+numeral        = [ "ऋण" ] , ( binary | octal | hexadecimal | decimal ) ;
+binary         = "०द्वि"  , bin_digit , { bin_digit } ;
+octal          = "०अष्ट" , oct_digit , { oct_digit } ;
+hexadecimal    = "०षोड्" , hex_digit , { hex_digit } ;
+decimal        = dec_digit , { dec_digit } ;
+
+bin_digit      = "०" | "१" ;
+oct_digit      = "०" | "१" | "२" | "३" | "४" | "५" | "६" | "७" ;
+dec_digit      = "०" | "१" | "२" | "३" | "४" | "५" | "६" | "७" | "८" | "९" ;
+hex_digit      = dec_digit | "अ" | "आ" | "इ" | "ई" | "उ" | "ऊ" ;
+
+comment        = comment_mark , { non_newline } , newline ;
+
+(* --- strings ---------------------------------------------------------- *)
+
+(* ADR-0017. Two earlier decisions are carried here unchanged and only the
+ * third belongs to this file:
+ *
+ *   the DELIMITERS are ADR-0003's. Doc 15 §3.1 spelled them `꣹ … ꣹`; A-033
+ *   measured that sign at 0 of 27 Devanagari faces and ADR-0003 replaced it
+ *   with `उक्तम् … इति`, "spoken … thus", under Principle P-1. Both words are
+ *   attested — `spec/lexicon.src.tsv:77` and `:75`.
+ *
+ *   the ESCAPE is ADR-0011's. ADR-0003 had named `॰`, and it could never work:
+ *   `॰` is the comment mark and the lexer deleted everything after it before a
+ *   parser existed. A DOUBLED close takes its place — `इति इति` is the word
+ *   itself and the first unpaired `इति` closes — which coins no character, as
+ *   `ॱॱ` already does for the colon role.
+ *
+ *   what is NEW is the STAGE: the lexer reads the string, and reads it BEFORE
+ *   it strips the comment. That is why a string may hold a space and a `॰`,
+ *   and it is why this production is lexical rather than phrase structure.
+ *)
+string         = string_open ,
+                 { aksara_word | string_close , string_close } ,
+                 string_close ;
+string_open    = "उक्तम्" ;   (* spoken *)
+string_close   = "इति"   ;   (* thus   *)
+
+(* A string does not cross a newline: an unclosed one is an error at end of
+   line, reported at the opener. Interior whitespace is the text's, taken from
+   the source rather than rebuilt; the whitespace separating a delimiter from
+   the body belongs to the delimiter, so a string neither begins nor ends with
+   a space. Every character of one is still inside doc 15's repertoire, which
+   already admits SPACE, TAB and LINE FEED (R-15-1) — THIS PRODUCTION WIDENS NO
+   REPERTOIRE, and a Latin letter inside a string is refused exactly as it is
+   anywhere else. *)
+
+(* --- embeds ----------------------------------------------------------- *)
+
+(* ADR-0019, task `D-002g`. An EMBED is a derived table brought into a program
+ * at ASSEMBLY time. It is the T1 equivalent of Rust's `include_str!`, which is
+ * what `crates/sadhana/src/parse.rs:25` uses on THIS spec directory and what
+ * `crates/sadhana-t1/src/encode.t1:419` names as the thing T1 lacks.
+ *
+ * A FILE IS NAMED, NEVER PATHED, and that is the decision rather than a
+ * convenience. `spec/mnemonics-riscv64.src.tsv` is Latin letters, `/`, `-` and
+ * `.`; the lexer checks the doc 15 repertoire over every word AND over the
+ * whole of a string literal, so a path is not writable in this language. The
+ * answer is not to widen the repertoire or to exempt this construct from it —
+ * it is R-02-1's answer, the one the ISA already gets: a finite reviewed set of
+ * NAMES, and no escape hatch. `..` is not refused here; it is unspellable.
+ *
+ * The name is an ordinary `identifier` and is checked exactly as every other
+ * word is. The CONTENT is not source and is not repertoire-checked, for the
+ * reason ADR-0003's Foreclosed section already gives about a string's interior:
+ * it is data. That is also the whole point of the row — `B-058a` found that a
+ * hand-typed second copy of a derived table agrees with the first BY
+ * CONSTRUCTION and checks nothing.
+ *
+ * The delimiters are the ratified `group` pair and nothing is coined. The
+ * RESULT is a `string`, so `token` above needs no amendment and every reader of
+ * a string literal reads an embed with no second rule — ADR-0017's reason and
+ * ADR-0018's, applied a third time.
+ *)
+
+embed          = "समावेशः" , "आरभ्य" , identifier , "समाप्तम्" ;
+
+(* T0 IS NOT ON THIS PATH, exactly as it is not on ADR-0017's or ADR-0018's.
+ * `spec/grammar-t0.ebnf` is frozen, `crates/sadhana/src/lex.rs` `lex` is
+ * untouched, and `समावेशः` remains `.include`, `planned`, in
+ * `spec/directives.tsv` — that row is not edited, not reclassified and not
+ * deleted by this ADR.
+ *
+ * SO THE WORD NOW CARRIES TWO SENSES AND THIS FILE SAYS SO RATHER THAN LEAVING
+ * THE COLLISION TO LOOK ACCIDENTAL. `.include` splices SOURCE to be parsed —
+ * C's `#include`, Rust's `include!`. The production above yields a file's BYTES
+ * as a VALUE — Rust's `include_str!`. English double-books that pair in exactly
+ * this way and separates them by what follows the word; so does this, and what
+ * follows is `आरभ्य … समाप्तम्`.
+ *
+ * A READER TELLS THEM APART BY THE TIER, AND THAT ALONE IS SUFFICIENT: a
+ * directive is T0, read by `spec/grammar-t0.ebnf` and by `lex`; an embed is T1,
+ * read by this file and by `lex_t1`. No source is both tiers, so no position is
+ * ambiguous. `t0_never_produces_an_embed` in `crates/sadhana/tests/t1_embed.rs`
+ * holds it. Two further discriminators back it up: a directive is wrapped in
+ * `॥ … ॥` (ADR-0012) and an embed in the group pair (ADR-0003); a directive's
+ * argument may be a STRING (ADR-0013, and doc 02 §2.5 writes
+ * `॥ समावेशः "तन्त्र/स्मृति" ॥`) where an embed's is a bare identifier and
+ * cannot be a path at all.
+ *
+ * WHAT THIS FORECLOSES, said out loud: if T1 ever wants textual inclusion of
+ * its own, it may NOT spell it `समावेशः`, because in T1 that word is the embed.
+ * That cost is accepted — no row asks for it, and even the T0 form is
+ * `planned`. *)
+
+(* --- terminals, all from ADR-0003 ------------------------------------- *)
+
+danda          = "।"  ;   (* U+0964  statement end                       *)
+double_danda   = "॥"  ;   (* U+0965  declaration end                     *)
+comment_mark   = "॰"  ;   (* U+0970  comment to end of line              *)
+member_mark    = "ॱ"  ;   (* U+0971  member access                       *)
+annotation     = "ॱॱ" ;   (* U+0971 ×2  the colon role                   *)
+separator      = "ऽ"  ;   (* U+093D  argument separator                  *)
+
+(* ===================================================================== *)
+(* MODULES — ADR-0026, task `D-002l`. Added 2026-08-29.                   *)
+(* FROZEN on the same terms as everything above.                          *)
+(* ===================================================================== *)
+
+(* --- what was missing, and what was not ------------------------------- *)
+
+(* The IMPORT half was frozen already: `आयातः` is in the `keyword` production
+ * above and 23 `आयातः` statements stand in 14 `.t1` sources. What was
+ * missing was the DECLARING half — the thing being imported had no production,
+ * so `आयातः` named nothing that this grammar could define.
+ *
+ * `मण्डलम्` is not coined here. `spec/lexicon.src.tsv:271` already gives it as
+ * `module`, `keyword`, `attested`; 19 of the 20 `.t1` sources in the tree
+ * declare with `मण्डलम् <name>`; and `crates/sadhana/src/t1/drishya.rs` reads
+ * the word for T2. Adding it here ADOPTS a word that the corpus, the lexicon and
+ * one front end were all already using, and closes the gap the grammar had:
+ * a construct asserted by nearly every source file and defined nowhere.
+ *
+ * It cannot collide with a name. `no_t1_source_binds_a_frozen_keyword_as_a_name`
+ * flags a keyword only where it FOLLOWS a declaring word or PRECEDES `ॱॱ`, and
+ * `मण्डलम्` LEADS its declaration in every one of the 19.
+ *)
+
+module_decl    = "मण्डलम्" , identifier , double_danda ;
+import         = "आयातः" , identifier , danda ;
+
+(* --- reaching into another module ------------------------------------- *)
+
+(* A qualified name is `member_mark`, ADR-0003's ratified sign, applied to a
+ * module rather than to a value. NO SIGN IS COINED and no new shape is
+ * introduced, which is why this is one production and not a section.
+ *)
+
+qualified_name = identifier , member_mark , identifier ;
+
+(* TWO THINGS ABOUT THIS PRODUCTION ARE LOAD-BEARING, AND BOTH WERE MEASURED
+ * IN THE CORPUS RATHER THAN ASSUMED.
+ *
+ * ONE — IT HAS TWO SPELLINGS, AND THE LEXER TELLS THEM APART, NOT THE PARSER.
+ * `crates/sadhana/src/lex.rs` `split_trailing_punct` peels `ॱॱ । ॥ ऽ` off the
+ * end of a word but NEVER the single `ॱ`, and `punctuation` maps a standalone
+ * `ॱ` to `Kind::MemberMark`. So the UNSPACED form `सङ्केतनॱस्थापनम्` arrives as
+ * ONE token whose text holds the mark, and the SPACED form `सङ्केतन ॱ स्थापनम्`
+ * as THREE. The corpus writes both — 228 unspaced against 34 spaced, counted by
+ * `the_corpus_declares_modules_and_reaches_across_them` — so a reader that
+ * knows only the unspaced form misses 34 of 262 references and one that knows
+ * only the spaced form misses 228 of them.
+ *
+ * `ॱॱ` IS NOT `ॱ`, AND A READER MUST NOT TAKE THE FIRST HALF OF ONE FOR THE
+ * OTHER. `crates/sadhana-t1/src/samyojana.t1:74` is `सारणी ॱॱ अङ्कः अन्तः
+ * कोशॱसंज्ञा` — the FIELD `सारणी` and the annotation mark — and `सारणी` is also
+ * a module, declared at `crates/sankriti/src/text/tables.t1:1`. A reader that
+ * splits `ॱॱ` reads that field as a qualified name into a module the file never
+ * imports, and invents a fourth unimported module out of a colon.
+ *
+ * A READER OVER TOKENS GETS THIS FOR FREE AND A READER OVER WORDS DOES NOT.
+ * The lexer already ratified the distinction: `ॱॱ` is `Kind::LabelMark`, `ॱ` is
+ * `Kind::MemberMark`, two kinds, one peeled before the other. That is why
+ * `mandala` reads tokens; widening its spaced case to accept a label mark was
+ * tried, and `exactly_three_modules_are_reached_without_being_imported` went
+ * red with the fourth module in it.
+ *
+ * TWO — THE SHAPE DOES NOT SAY WHICH IT IS. `पदम् ॱ पाठ` is a FIELD of a local
+ * and `सङ्केतन ॱ पङ्क्तिसीमा` is a routine of a module, and the two are the same
+ * three tokens. The head is a MODULE only when it names one, so this is settled
+ * at RESOLUTION against the set of declared modules and cannot be settled by the
+ * grammar. `crates/sadhana/src/t1/mandala.rs` is that resolution and
+ * `crates/sadhana-t1/tests/t1_modules.rs` holds it against the corpus.
+ *)
+
+(* WHAT THIS DOES NOT SETTLE, said out loud rather than left to be found:
+ *
+ *   - VISIBILITY. `सार्वजनिक` is in the frozen keyword list and 19 sources write
+ *     it, but nothing yet says a qualified name may reach only a `सार्वजनिक`
+ *     member. The declaration half had to exist before that rule could bite.
+ *   - WHERE A MODULE'S SOURCE LIVES. A name is resolved against the modules
+ *     DECLARED in the compilation set; no search path, no file-name convention
+ *     and no directory rule is frozen here. `कओश` and `सारणी` show why the
+ *     question is real — `crates/sadhana-t1/src/kosha.t1` declares `कओश` while
+ *     two sources import `कोश`, and no rule yet says whether that is one module
+ *     or two.
+ *   - SUBMODULES. `crates/sadhana-t1/src/artha.t1:28` says outright that three
+ *     Rust modules are one `मण्डलम्` here "because T1 has no submodules". This
+ *     production keeps it that way: a module name is one `identifier`.
+ *)
+
+(* ===================================================================== *)
+(* PHRASE STRUCTURE — grouping, blocks, indexing. Task B-079b.            *)
+(* Added 2026-08-25. FROZEN on the same terms as the lexical layer above:  *)
+(* changing a production below is an ADR, not an edit.                    *)
+(* ===================================================================== *)
+
+(* --- why this could be settled without the readability study ---------- *)
+
+(* The section this replaces said the three constructs waited on `A-063`,
+ * because the alternatives — words, reusing `॥`, or an off-side rule —
+ * "differ in exactly the property A-063 measures". The owner ruled on
+ * 2026-08-25 that A-063's evidence is NOT a precondition for phrase
+ * structure. That ruling alone would still leave a choice to make.
+ *
+ * IT DOES NOT, BECAUSE THE CHOICE WAS ALREADY MADE AND RATIFIED. The old text
+ * asserted "there is no ratified sign for any of them", which was true of
+ * SIGNS and missed that ADR-0003 had already replaced these exact three roles
+ * with WORDS, in its "Replaced — paired keywords" table, under Principle P-1
+ * (prefer words to signs) and on the same A-033 font measurement:
+ *
+ *     group   `꣼ ꣸`  ->  आरभ्य   … समाप्तम्   (begun … completed)
+ *     block   `꣺ ꣻ`  ->  आदि     … इति        (beginning … thus)
+ *     index   `ᳵ ᳶ`  ->  अङ्कः    … अन्तः      (index … end)
+ *     string  `꣹ ꣹`  ->  उक्तम्   … इति        (spoken … thus)
+ *
+ * ADR-0003 is `accepted`, so adopting its own table is not a guess and not a
+ * new decision — it is applying a ratified one to the tier that needs it. What
+ * A-063 would still inform is whether operator-words are too verbose, which is
+ * a different question about different tokens, and is why OPERATORS ARE NOT
+ * FROZEN HERE (see below).
+ *)
+
+(* --- the three constructs --------------------------------------------- *)
+
+group          = "आरभ्य" , expression , "समाप्तम्" ;
+block          = "आदि" , { statement } , "इति" ;
+index          = "अङ्कः" , expression , "अन्तः" ;
+
+(* --- the type constructors that were waiting on them ------------------ *)
+
+(* Deferred at line 97 above because each takes an operand, and the slice
+   spelling needed `ᳵ ᳶ`. With the index marks ratified as words, the slice is
+   the EMPTY index pair before a type, which is the same shape doc 02 §3.2
+   sketched as `[]T`. *)
+slice_type     = "अङ्कः" , "अन्तः" , type ;
+pointer_type   = "स्थानम्" , type ;
+optional_type  = "सम्भाव्य" , type ;
+error_union    = "दोषयुक्त" , type ;
+
+(* ADDED 2026-08-29 by ADR-0026 (`D-002k`), OWNER-RATIFIED: a FIXED-CAPACITY
+ * ARRAY. It amends no production above; `slice_type` is untouched and is still
+ * exactly what it was.
+ *
+ * IT COINS NO WORD, and that is the reason for this spelling rather than a new
+ * keyword. `keyword` is untouched, `type_name` is untouched, and the terminals
+ * below are `अङ्कः` and `अन्तः`, both of which this file already carries as the
+ * `index` pair ADR-0003 ratified. The bound is a `numeral`, which is a token
+ * this file already defines and which ADR-0023 already spells in Devanagari
+ * digits. So `every_terminal_survives_orthographic_closure` and
+ * `no_terminal_is_a_sign_that_renders_in_no_face` in
+ * `crates/sanskrit-text/tests/grammar_t1.rs` have nothing new to weigh — the
+ * third application of ADR-0017's reason, after ADR-0018's and ADR-0019's.
+ *
+ * A SLICE IS THIS TYPE WITH THE BOUND LEFT OUT. Doc 02 §3.2 sketched `[]T` and
+ * `[N]T` as the same brackets differing by what is inside them; the index marks
+ * are this language's brackets, so they differ here by the same thing. No
+ * source that parsed before parses differently: the numeral is the only
+ * discriminator and no slice ever had one.
+ *
+ * THE BOUND IS COMPILE-TIME AND THAT IS THE POINT. It is a `numeral` TOKEN, not
+ * an `expression`, so it can be read with operators still deferred (see "what
+ * is STILL not frozen") and so no capacity can depend on a runtime value. T1
+ * has no allocator and this production does not ask for one — it is the
+ * capacity `ast.t1:65` and `parse.t1:36` need in order to write down the
+ * arenas they already index into, and it is deliberately NOT a growable
+ * collection. `artha.t1:444` wants growth and is not answered here.
+ *)
+
+array_type     = "अङ्कः" , numeral , "अन्तः" , type ;
+
+(* --- `इति` CLOSES TWO THINGS, AND THAT IS RESOLVED LEXICALLY ---------- *)
+
+(* ADR-0003 gives `इति` as both the block close and the string close. That is
+ * not an ambiguity the parser has to resolve, because a string is a LEXICAL
+ * construct: `उक्तम्` opens it and the first unpaired `इति` closes it, a
+ * DOUBLED `इति` standing for the word itself (ADR-0011). The lexer therefore
+ * consumes the whole string, including its `इति`, before the parser sees a
+ * token — exactly as a quote-delimited string works in an ASCII language — and
+ * a `इति` inside a string is never offered as a candidate block close.
+ *
+ * THE CONSEQUENCE THIS NOTE USED TO RECORD IS DISCHARGED. It read: "this only
+ * holds if the lexer knows about strings, and the FROZEN `token` production
+ * above does not list one … Until it is, a T1 front end (B-080) cannot lex a
+ * string literal." `token` now lists `string`, `crates/sadhana/src/lex.rs`
+ * `lex_t1` reads it, and `F-004f2` is the row that did it under ADR-0017.
+ *
+ * ONE THING THIS NOTE GOT WRONG IS CORRECTED RATHER THAN QUIETLY DROPPED: it
+ * said `॰` escapes the following akṣara, so a literal `इति` was `॰इति`.
+ * ADR-0011 had already superseded that clause of ADR-0003 — `॰` is the comment
+ * mark and an escape written with it was deleted before any parser could see
+ * it, unreachable by construction rather than merely unimplemented. The escape
+ * is the doubled close, and `॰` inside a string is now ordinary text.
+ *
+ * T0 IS NOT ON THIS PATH. `spec/grammar-t0.ebnf` still spells `string` as a
+ * phrase and `crates/sadhana/src/parse.rs` still reassembles it from words, so
+ * ADR-0011's "`॰` cannot appear inside a string" still stands THERE. The two
+ * tiers agree on the spelling of a string and differ on which stage reads it;
+ * unifying them is a successor row, and ADR-0017 says so out loud rather than
+ * leaving the divergence to be found.
+ *)
+
+(* ===================================================================== *)
+(* EXPRESSIONS AND OPERATORS — ADR-0026, task `D-002h`.                   *)
+(* Added 2026-08-30. FROZEN on the same terms as everything above it:      *)
+(* changing a production below is an ADR, not an edit.                    *)
+(* ===================================================================== *)
+
+(* --- why this could be settled, after standing open since v0.1 -------- *)
+
+(* The note this replaces said operators waited on `A-063`'s readability
+ * study, because doc 02 §3.2's `= + * →` is a self-declared ASCII sketch and
+ * doc 15 §3.4-3.5 — where the normative spelling was deferred to — was never
+ * written. That reasoning is retired for two reasons, not one.
+ *
+ * `A-063` is `dropped` and ADR-0003 foreclosed sign operators permanently, so
+ * the study cannot arrive and would not decide this if it did.
+ *
+ * AND THE SPELLINGS WERE NEVER ACTUALLY MISSING. The 9,721-line `.t1` corpus
+ * under `crates/sadhana-t1/src/` writes them, and has for as long as it has
+ * existed: `योगः` 393 times, `भवति` 1,788, `समम्` 340. The owner ruled on
+ * 2026-08-29 that WHERE THREE DESCRIPTIONS DISAGREE — `spec/lexicon.tsv`'s
+ * 24 `category=operator` rows, this corpus, and
+ * `crates/tree-sitter-t1/grammar.js` — THE CORPUS IS CANONICAL. So freezing
+ * here is transcription of a ratified source, which is what this file does
+ * everywhere else, and not the invention it refused to make.
+ *
+ * ADR-0026 records the counts, the two ungrouped corpus constructions that
+ * fix the precedence, and the four operators the lexicon proposes that the
+ * corpus does NOT have (modulo, `<=`/`>=`, logical and/or/not, bitwise not).
+ * None of those four is added. *)
+
+(* --- the operators ---------------------------------------------------- *)
+
+(* The thirteen binary operators are exactly `ast.t1`'s thirteen
+   `*द्विकर्मभेद` kind constants (`ast.t1:15`-`:27`), and the guard test asserts
+   that correspondence in BOTH directions so neither set can grow alone. Twelve
+   are attested in source; `विषम` (xor) is named by the AST and written by no
+   source, and is frozen on the AST's authority — ADR-0026 says so out loud. *)
+
+mul_op         = "गुणनम्"  | "विभाजनम्" | "शेषः" ;
+add_op         = "योगः"   | "वियोगः" ;
+shift_op       = "वामसृ"  | "दक्षिणसृ" ;
+and_op         = "युक्" ;
+xor_op         = "विषम" ;
+or_op          = "विकल्प" ;
+compare_op     = "समम्" | "असमम्" | "न्यूनम्" | "अधिकम्" | "बृहत्समम्" ;
+
+(* `ऋण` is the ONLY unary operator. It is also the numeral's sign prefix
+   above, and the two are separated in the LEXER by whether a digit follows it
+   with no space — `ऋण१` is one token and `ऋण सीमा` is two. ADR-0026 §`ऋण` has
+   two roles. *)
+unary_op       = "ऋण" ;
+
+(* THE LEXICON HAS BEEN BROUGHT TO THESE WORDS — ADR-0028. `spec/lexicon.tsv`
+   proposed `अधि`/`ऊन`/`गुण`/`भाग`/`विषमम्` from doc 15 for five of the senses
+   above; no source writes any of them, so they are retired in favour of
+   `योगः`/`वियोगः`/`गुणनम्`/`विभाजनम्`/`असमम्`. The first three are T0 mnemonic
+   rows that now serve both tiers rather than new operator rows. Nine lexicon
+   operators SURVIVE unattested — `शेष`, `च`, `वा`, `न`, `व्यत्यय`, `न्यूनसमम्`,
+   `अधिकसमम्`, `पूर्णक्रमेण`, `परिवृत्तअधि` — because this grammar has no
+   production for their senses at all, so nothing here contradicts them. *)
+
+(* --- the precedence ladder -------------------------------------------- *)
+
+(* Rust's ladder, adopted whole because the corpus is a line-by-line port of
+   Rust and two ungrouped constructions in it agree: `१ वामसृ विस्तारः वियोगः १`
+   (`encode.t1:244`) is `encode.rs:153`'s `1i64 << (width - 1)`, so ADDITIVE
+   BINDS TIGHTER THAN SHIFT; and `कोशः ॱ दैर्घ्य न्यूनम् सूचकाङ्क योगः १`
+   (`artha.t1:367`) is `len < index + 1`, so ADDITIVE BINDS TIGHTER THAN
+   COMPARISON. Each level is left-associative except comparison, which is
+   NON-ASSOCIATIVE: `अ समम् आ समम् इ` has no reading anyone means, and the
+   corpus never writes one. *)
+
+expression     = compare_expr ;
+
+compare_expr   = or_expr , [ compare_op , or_expr ] ;
+or_expr        = xor_expr    , { or_op    , xor_expr } ;
+xor_expr       = and_expr    , { xor_op   , and_expr } ;
+and_expr       = shift_expr  , { and_op   , shift_expr } ;
+shift_expr     = add_expr    , { shift_op , add_expr } ;
+add_expr       = mul_expr    , { add_op   , mul_expr } ;
+mul_expr       = unary_expr  , { mul_op   , unary_expr } ;
+unary_expr     = { unary_op } , call_expr ;
+
+(* Member access and indexing are POSTFIX and bind tighter than any operator:
+   `युग्मम् ॱ मूलांश युक् १` is `(pair.lo) & 1`, not `pair.(lo & 1)`. `अङ्कः …
+   अन्तः` is the frozen `index` production above, reused here rather than
+   respelled. *)
+postfix_expr   = primary , { member_mark , identifier | slice | index } ;
+
+primary        = identifier | numeral | string | group ;
+
+(* THE SLICE — added 2026-09-04 by W-228, and it is the INTERPRETER'S rule
+   written down, not a new one: `nirvahana.rs`'s `postfix` reads `अङ्कः … अन्तः`
+   and then, "if the next token can open an atom", takes a second postfix
+   expression as the LIMIT and builds a slice; otherwise the index closes.
+   The corpus has 20 such sites (W-208) — `पाठ्यम् अङ्कः आरम्भः अन्तः सीमा` —
+   and the T1 parser, having no production for them, read each as a call
+   applied to an index. Now both readers build one tree.
+
+   THE RULE THAT MAKES IT DECIDABLE, measured against every `अङ्कः … अन्तः` in
+   the corpus and stated on the interpreter's side first: an `index` followed
+   by anything that can begin a `primary` is a `slice`, NEVER an index that
+   happens to precede a further call argument. The corpus never writes the
+   latter. The limit is a `postfix_expr` — a name, a member chain, an index —
+   and not an `expression`, because an operator after it must still bind the
+   whole slice as its left operand: `क अङ्कः १ अन्तः २ ॱ दैर्घ्य` is
+   `(क[1..2.length])`, `… अन्तः २ योगः ३` is `(क[1..2]) + 3`.
+
+   REFUSED: `क अङ्कः अन्तः २` — an index with no lower bound is refused where
+   the empty `अङ्कः अन्तः` would be read (`W-228`'s refused case in
+   `t1_paradigm_calls.rs`); `अङ्कः अन्तः <type>` is the `slice_type`, a
+   different production in a different position. *)
+slice          = index , postfix_expr ;
+
+(* THE SPACED QUALIFIER, `सङ्केतन ॱ स्थापनम्`, READS AS `qualified_name` AND
+   BUILDS THE SAME TREE AS `सङ्केतनॱस्थापनम्` — stated 2026-09-04 by W-228,
+   applying ADR-0027 ("the head is a module only when it names one, so the
+   distinction is settled at RESOLUTION against the set of declared modules")
+   to the parser's TREE rather than only to its resolver. 127 call sites
+   (W-208) write the qualifier with spaces; the T1 parser read them as a
+   member reached on the module's name, the interpreter as a qualified call,
+   and the two met the same routine by two trees. Rule X1 — a span is named
+   by its pair — applied to the member mark: one construct, one tree. So
+   `व्याकर` folds `identifier , member_mark , identifier` into one `identifier`
+   node whenever the head names a module this file IMPORTS (`आयातः`), and
+   the resolver reaches that node through the same arm as the unspaced
+   spelling. A head that is not an imported module stays a member access —
+   which is what it is. The fold is decided by the import list alone, so it
+   is sound only while no local or parameter is named like an imported
+   module; the corpus has none, and `t1_paradigm_calls.rs` pins that as the
+   precondition. *)
+
+(* --- the call, which `statement` had to answer first ------------------ *)
+
+(* ADDED 2026-08-30 by ADR-0027 (`D-002h`). ADR-0026 left this out and said
+   why: T1 spells a call as a bare juxtaposition, so *where the argument list
+   ENDS* was open, and the note above ruled that "that decision belongs with
+   `statement`". `statement` is below, and the answer fell out of writing it.
+
+   IT IS NOT OPTIONAL AND IT IS NOT SMALL. Of the corpus's 1,788 `भवति`
+   right-hand sides, 299 contain a juxtaposition — `चरः विस्तारः ॱॱ अ६४ भवति
+   अवकाशविस्तारः अवकाशः ।` (`encode.t1:213`) — and a further 200 sites write
+   the BRACKETED form. Without `call_expr` the frozen `expression` cannot read
+   any of them, so `statement` would have been a production that parses no
+   assignment the corpus actually writes.
+
+   WHERE THE JUXTAPOSED LIST ENDS, measured rather than chosen: at the first
+   token that cannot begin a `primary`. Every terminator in the corpus is one
+   of those — `।` (`अष्टकान्वेषणम् पाठ्यम् स्थितिः सीमा ९ ।`), an operator
+   (`यदि चिह्नितावकाशः अवकाशः ॱ भेद समम् असत्यम् आदि`, where the list stops at
+   `समम्`), `समाप्तम्`, `अन्तः`, `ऽ` and `आदि`. So the rule is MAXIMAL MUNCH
+   and nothing else, and it needs no delimiter to be decidable.
+
+   THE LIST IS FLAT, SAID OUT LOUD: `घ क ख` is `घ(क, ख)` and never `घ(क)(ख)`.
+   The corpus has no value that is itself callable, so the two readings are not
+   distinguishable from it; the flat one is frozen because it is the one every
+   site means. A nested call is written with the bracket — `मूल्याङ्कनम् ०`
+   appears as an argument INSIDE `आज्ञायोजनम् आरभ्य … समाप्तम्` at
+   `ir.t1:338`.
+
+   THE BRACKETED FORM REQUIRES TWO ARGUMENTS, and that is what removes the
+   ambiguity with `group` rather than a lookahead. `घ आरभ्य क समाप्तम्` is
+   already a juxtaposed call over a `group`, and the two readings AGREE, so
+   only `n >= 2` — which needs `ऽ` and which `group` cannot be — is given to
+   the bracket. 200 sites write it; all 200 carry at least one `ऽ`. *)
+
+call_expr      = postfix_expr , [ argument_list ] ;
+
+argument_list  = "आरभ्य" , expression , separator , expression ,
+                             { separator , expression } , "समाप्तम्"
+               | postfix_expr , { postfix_expr } ;
+
+(* --- what this deliberately leaves out -------------------------------- *)
+
+(* `भवति` (1,788 occurrences) IS NOT AN EXPRESSION OPERATOR. Every one of its
+ * occurrences is statement-initial or declarative — `चरः क्ष ॱॱ ट भवति ङ ।`,
+ * `क्ष भवति ङ ।`, `क्ष ॱ फ भवति ङ ।` — and none is inside an operand. It is the
+ * assignment STATEMENT's verb, so it belongs to `statement`, which is still
+ * deferred. Putting it on the ladder as a right-associative bottom level would
+ * describe a language the corpus does not write.
+ *
+ * `call` WAS likewise absent, and for a sharper reason: T1 spells a call as a
+ * bare juxtaposition — `परिसरान्वेषणम् अन्तिमः नाम` — with no delimiter of any
+ * kind, so `primary` above could not be extended to it without deciding how a
+ * call's argument list ends. That decision was said to belong with
+ * `statement`, and it did: ADR-0027 answers it in `call_expr` below, where
+ * the terminator turns out to be measurable rather than choosable. This
+ * paragraph is kept in the past tense rather than deleted, because a reader
+ * who remembers `call` as open should find out here that it is not. *)
+
+
+(* ===================================================================== *)
+(* STATEMENTS AND TYPES. Task `D-002h`, ADDED 2026-08-30 by ADR-0027.      *)
+(* Frozen on the same terms as everything above: changing a production     *)
+(* below is an ADR, not an edit.                                           *)
+(*                                                                         *)
+(* MEASURED, NOT DESIGNED, on the same corpus and by the same method       *)
+(* ADR-0026 used — comments and `उक्तम् … इति` strings stripped first,      *)
+(* whole tokens counted over `crates/sadhana-t1/src/*.t1`.                 *)
+(* ===================================================================== *)
+
+(* --- the statement ---------------------------------------------------- *)
+
+(* THE SIX FORMS ARE THE SIX THE CORPUS WRITES, and the count is closed.
+   Nothing else leads a statement.
+
+   THE FIGURES BELOW ARE RE-TAKEN BY THE GATE, NOT BY A READER — `W-268`,
+   2026-09-05. Each stands on a line whose first word is the marker, and
+   `crates/sadhana-t1/tests/w268-census.rs` re-measures every one of them from
+   `crates/sadhana-t1/src/*.t1` on each run of `cargo test -p sadhana-t1`,
+   which `tools/light-gate.sh` runs WHOLE for every change in the T1 world,
+   this file included. A disagreement in either direction is a RED GATE naming
+   the key. Change a number here only because the corpus moved, and keep the
+   superseded one with its date, as the block below does.
+
+   THE COUNT, 2026-09-07 (the driver merge — `shrinkhala.t1`, the twentieth
+   source and the first module that sits ABOVE the passes rather than beside
+   them). The reading it supersedes is kept below with its date.
+
+   `यावत्` MOVED, 314 -> 315, AND IT IS THE ONE TO READ. It had held at 314
+   across three readings. The one new walk is `नामसञ्चयः` walking a module's
+   routines to fill `यन्त्रनामकोश`, which the emitter REFUSES to run without.
+   A stage sequence is otherwise seven calls and no loop, so a second `यावत्`
+   here would have meant the driver grew a walk nobody accounted for.
+   agent/nameglobal and agent/vastu-objects). Fourth reading, superseded:
+     चरः 3187 · भवति 5191 · यदि 2021 · अन्यथा 126 · यावत् 314
+     प्रत्यागमनम् 1812 · bindings 3187 · assignments 2004 · public-bindings 550
+
+   `यावत्` IS 314 AND WAS PREDICTED TO BE. agent/nameglobal grew exactly one
+   walk (313 -> 314) and agent/vastu-objects grew none — its join is a guarded
+   call, a branch and a binding. A 313 here would have meant one of the two
+   changes did not land; a 315 would have meant a walk nobody accounted for.
+   `यदि` +2 and `भवति` +3 are that guarded call arriving.
+
+   `भवति` reads 5194 here and 5194 in `w250-shares.rs`. Two instruments over
+   one corpus, agreeing — which is what makes either worth quoting.
+   agent/kosha and agent/nameglobal). The third reading, superseded and kept:
+     चरः 3168 · भवति 5160 · यदि 1997 · अन्यथा 126 · यावत् 313
+     प्रत्यागमनम् 1808 · bindings 3168 · assignments 1992 · public-bindings 545
+   It was correct for the tree it was taken in. Both branches added corpus, so
+   neither lane's figures hold on the tree that carries both — not staleness,
+   because there was no moment when both sets were true together.
+   2026-09-07, THE BAD-FIELD REFUSAL. The fourth reading, superseded and kept:
+     चरः 3189 · भवति 5194 · यदि 2023 · अन्यथा 126 · यावत् 314
+     प्रत्यागमनम् 1812 · bindings 3189 · assignments 2005 · public-bindings 550
+   TAKEN FROM THE TEST'S OWN FAILURE, never edited to fit. One change in
+   `artha.t1` moved seven of the eleven keys: the `असत्क्षेत्र…` family's five
+   declarations, its zeroing in `प्रकारपरीक्षकारम्भः`, and the क्षेत्र arm recording
+   a refusal it had been claiming in a margin and not making.
+
+   `यावत्` AND `अन्यथा` BOTH UNMOVED, AND THAT IS THE READING THAT CHECKS THE
+   REST. The change adds guards and records — `यदि` +4 — and not one loop and
+   not one alternative. A `यावत्` that moved here would mean the arm had grown
+   a walk it does not need, since the field comparison already had its loop.
+
+   `भवति` reads 5209 here and 5209 in `w250-shares.rs`. Two instruments over
+   one corpus, agreeing again — the same pairing the third reading noted, and
+   the reason either is worth quoting at all.
+
+   `public-bindings` +5 IS THE WHOLE OF THE NEW FAMILY and can be read as a
+   check on the intent: five globals were declared, no more, so nothing else
+   in this change reached module scope.
+   2026-09-08, THE DRIVER'S BACK HALF, ALONE — and being alone is what makes
+   this reading worth more than the last several. The superseded figures are
+   `चरः 3315 · भवति 5394 · यदि 2093 · अन्यथा 127 · यावत् 323 · प्रत्यागमनम् 1877 ·
+   bindings 3315 · assignments 2079 · public-bindings 567`.
+
+   ONE LANE, SO EVERY DELTA IS ATTRIBUTABLE. Previous readings carried two or
+   three lanes' growth arriving in one merge and said so; this one does not, and
+   the difference is not cosmetic — a figure nobody can attribute is a figure
+   nobody can use to check a prediction next time.
+
+   `bindings`/`चरः` +12, `assignments` +1, `प्रत्यागमनम्` +10, `यदि` +6,
+   `भवति` +13. THE PARTITION CLOSES EXACTLY: 12 + 1 = 13 = the `भवति` move, so
+   every new site is a binding or an assignment and NOTHING WAS RESPELLED.
+
+   `public-bindings` UNMOVED AT 567, and that is the reading that says what the
+   row did NOT do: the back half reaches two more modules and declares no new
+   name at module scope to do it. `यावत्` and `अन्यथा` both unmoved — the change
+   adds calls and bindings, not one loop and not one alternative, which is the
+   same check the object-builder reading used and the same answer.
+
+   `keyword-alternatives` 32 and `keyword-written` 15 UNMOVED: the frozen grammar
+   was not touched. That pair is the one figure here that should never move
+   without a row saying it will.
+   2026-09-08, THE CORPUS WALK AND THE `%pcrel_lo12` EMITTER. THE SUPERSEDED
+   READING IS THE ONE ABOVE, correct for a tree holding neither.
+
+   `public-bindings` 567 -> 569 AND THAT IS THE READING THAT PREDICTED THE REST.
+   The note above says these figures normally differ from `w250-shares`'s split
+   BY the public bindings, and that the two agreed last time because none moved.
+   Two move here — `संयोजितवस्तुसंख्या` in `शृङ्खला` and `पाठखण्डसंज्ञाङ्कः` in
+   `सङ्केतन` — so the two censuses' DELTAS should differ by exactly two. Written
+   down before the run, and they do:
+
+     bindings      w250 +13   w268 +15    gap 2
+     assignments   w250 +14   w268 +12    gap 2
+     `भवति` total  w250 +27   w268 +27    gap 0, both 5434
+
+   TWO INSTRUMENTS AGREEING PROVES LESS THAN TWO DIFFERING BY A PREDICTED
+   AMOUNT. Agreement can come of both being wrong the same way; a gap of exactly
+   the public bindings can only come of the mechanism being understood.
+
+   `अन्यथा` 127 -> 128, ONE ALTERNATIVE, and it is nameable: the `यदि`/`अन्यथा`
+   in `वस्तुपुनःस्थापनानि` that gives a `%pcrel_lo` the section symbol and every
+   other kind its named one. The corpus had exactly one other `अन्यथा आदि`
+   before it, at `sanskrit_text.t1:219` — which is why the form was easy to get
+   wrong and why it faulted only when CALLED.
+
+   `यावत्` 323 -> 324, one loop: the corpus walk's own. `keyword-alternatives`
+   32 and `keyword-written` 15 UNMOVED — the frozen grammar was not touched.
+   2026-09-09, THE SYMBOL-MAPPING ROW. THE READING ABOVE IS SUPERSEDED and its
+   paragraph describes the move before this one, not the figures below. One
+   `.t1` file changed against `origin/main` — `shrinkhala.t1`, +181/-7 — so
+   every movement here is that file's.
+
+     चरः 3342 -> 3352 (+10) · भवति 5434 -> 5452 (+18)
+     यदि 2104 -> 2111 (+7) · यावत् 324 -> 325 (+1)
+     प्रत्यागमनम् 1890 -> 1891 (+1) · अन्यथा 128 UNMOVED
+     bindings 3342 -> 3352 · assignments 2092 -> 2100
+     public-bindings 569 -> 571 (+2)
+
+   ALL EIGHT WERE PREDICTED FROM THE DIFF BEFORE THE COUNT WAS RUN, and all
+   eight were exact — AGAINST A TREE THAT WAS WRONG. The first reading was
+   `चरः +12`, `भवति +20`, `public-bindings +4`, and it was a correct count of a
+   corpus carrying a DUPLICATE: `शृङ्खला` declared `निर्णायकधारः` and
+   `निर्णायकसिद्धः` twice each. Two branches each declared the pair, the merge
+   was CLEAN because the additions sat in different hunks, and the second pair
+   was removed on 2026-09-09. **A CENSUS CANNOT TELL A CORPUS FROM A CORPUS WITH
+   A DUPLICATE IN IT** — every figure above was accurate and two of them were
+   accurate about a defect. `the_loader_gives_the_same_program_under_every_order_
+   of_the_fifteen_sources` is what separated them, reporting the pair as
+   `declared by [शृङ्खला, शृङ्खला]`: a guard for collisions BETWEEN modules,
+   firing on one module against itself.
+
+   `keyword-alternatives` 32 and `keyword-written` 15 UNMOVED — the frozen
+   grammar was not touched.
+
+   THE SPLIT IS THE PART WORTH READING. `bindings +12 / assignments +8` is THIS
+   census's answer; `w250-shares.rs` measured the same corpus as `+8 / +12` and
+   both are right. That file splits on the statement's FIRST TOKEN, so
+   `सार्वजनिक चरः x ॱॱ T भवति v` begins with `सार्वजनिक` and does not reach the
+   `चरः` bucket; this one skips the prefix because `binding = [ "सार्वजनिक" ] ,
+   "चरः" , …` makes the prefix part of the form. **The two censuses differ by
+   exactly `public-bindings`, and this row moved that number by four** — so the
+   disagreement between the instruments is +4/-4, which is the whole of it.
+
+   THAT IS ALSO WHY A ROW WITHOUT A PUBLIC BINDING CANNOT TELL THE TWO
+   CLASSIFICATIONS APART: they agree on every other site, so such a row confirms
+   both models at once and distinguishes nothing. This row happened to carry the
+   discriminating case, and a prediction testable only by the subset a change
+   happens to touch is a prediction confirmed by luck.
+
+   2026-09-10, W-279 — A ROUTINE-LESS MODULE EMITS, AND THE NAME-COUNT GUARD
+   STOPPED MEASURING ACROSS ITS OWN RESET. The superseded reading is kept below
+   as this block requires. Every key that moved is accounted for member-wise;
+   `keyword-written`, `keyword-alternatives`, `अन्यथा` and `यावत्` did not move.
+
+   THE SUPERSEDED READING, KEPT AS THIS BLOCK REQUIRES — and kept HERE, in the
+   prose, because a `CENSUS` line MUST END IN A NUMBER. A first version of this
+   edit put `(3378, +7)` after each figure and `w268-census.rs:277` refused it by
+   name: "does not end in a number. Every CENSUS line is read by this test." The
+   annotation belongs beside the block, never inside a line the parser reads.
+
+     चरः 3378 → 3385 (+7) · भवति 5497 → 5510 (+13) · यदि 2119 → 2120 (+1)
+     प्रत्यागमनम् 1892 → 1891 (−1) · bindings 3378 → 3385 (+7)
+     assignments 2119 → 2125 (+6) · public-bindings 584 → 592 (+8)
+
+   2026-09-11, W-279 AGAIN, THE SECOND TAKING — A CROSS-MODULE FIELD ACCESS
+   RESOLVES INSTEAD OF REFUSING. The entry above was re-taken on 2026-09-10 and
+   then the row kept editing `ir.t1`; this is the reading after the last source
+   edit. `प्रत्यागमनम्`, `public-bindings`, `keyword-written` and
+   `keyword-alternatives` did not move, and the first two not moving is load-
+   bearing — see the members below.
+
+   THE SUPERSEDED READING, KEPT AS THIS BLOCK REQUIRES:
+
+     चरः 3385 → 3390 (+5) · भवति 5510 → 5520 (+10) · यदि 2120 → 2125 (+5)
+     अन्यथा 128 → 129 (+1) · यावत् 327 → 329 (+2) · bindings 3385 → 3390 (+5)
+     assignments 2125 → 2130 (+5)
+     प्रत्यागमनम् 1891 · public-bindings 592 — UNMOVED
+
+   2026-09-11, W-283 — THE RULED STORAGE MODEL'S THREE KINDS. `research/28`,
+   ruled by the owner the same day: an address is a value, five kinds replace
+   eight. This adds the kind constants and their emitter arms; nothing lowers to
+   them yet.
+
+   THE SUPERSEDED READING, KEPT AS THIS BLOCK REQUIRES:
+
+     चरः 3390 → 3398 (+8) · भवति 5520 → 5528 (+8) · यदि 2125 → 2128 (+3)
+     प्रत्यागमनम् 1891 → 1895 (+4) · bindings 3390 → 3398 (+8)
+     public-bindings 592 → 595 (+3)
+     assignments 2130 · अन्यथा 129 · यावत् 329 — UNMOVED
+
+   2026-09-11, W-283 — THE FIRST LOWERING OF THE RULED STORAGE MODEL: a store to
+   a module-level global, `AddrOfGlobal` २१ then `StoreAt` २३, plus the register
+   allocator's use-arms for २२ and २३ in `utsarjana.t1`.
+
+   THE SUPERSEDED READING, KEPT AS THIS BLOCK REQUIRES:
+
+     चरः 3398 → 3414 (+16) · भवति 5528 → 5550 (+22) · यदि 2128 → 2144 (+16)
+     bindings 3398 → 3414 (+16) · assignments 2130 → 2136 (+6)
+     प्रत्यागमनम् 1895 → 1896 (+1)
+     अन्यथा 129 · यावत् 329 · public-bindings 595 — UNMOVED
+
+     ॰ 2026-09-12, W-293, MEASURED on the merged tree at c4e77929 — the data
+     ॰ relocation path wired in `encode.t1` and global runs given storage in
+     ॰ `ir.t1` / `yantrotsarjana.t1`. SUPERSEDED FIGURES KEPT, as this block is
+     ॰ written to show its own corrections:
+     ॰     चरः 3464 -> 3470   भवति 5617 -> 5630   यदि 2182 -> 2185
+     ॰     यावत् 330 -> 331    bindings 3464 -> 3470   assignments 2153 -> 2160
+     ॰   2026-09-13, two landings, decomposed by member (w268-census failure):
+     ॰     चरः 3470 -> 3473   भवति 5630 -> 5635   यदि 2185 -> 2187
+     ॰     bindings 3470 -> 3473   assignments 2160 -> 2162
+     ॰     W-nil (trunk): +2 bindings +2 भवति — शून्यफलम्, शून्यावगणना
+     ॰     cause 22 (6e):  +1 binding +2 assignments +3 भवति +2 यदि — लक्ष्यलेख्यम् and its two tests
+     ॰     Neither landing's census runs this ratchet; the nil half sat red on main until here.
+     ॰   2026-09-13, the gather ported to the .t1 driver (e58ec658): चरः 3473 -> 3476  भवति 5635 -> 5638
+     ॰     bindings 3473 -> 3476 — shrinkhala.t1's घोषणाः, सङ्गृहीतम्, सञ्चयसिद्धम्. assignments, यदि unmoved.
+     ॰   2026-09-13, task08 parts 1–2 (2a57d72f): चरः/bindings 3476 -> 3486  भवति 5638 -> 5649
+     ॰     यदि 2187 -> 2191  assignments 2162 -> 2163  प्रत्यागमनम् 1906 -> 1907. Net +10 bindings
+     ॰     (eleven added, अवगणनखण्ड edited). Measured from w268-census's failure with task08 merged.
+     ॰   2026-09-13, W-294 (2d, 8dd8f6be, narrow element loads): चरः/bindings 3486 -> 3487  भवति 5649 -> 5655
+     ॰     यदि 2191 -> 2198  assignments 2163 -> 2168  अन्यथा 134 -> 137 — अष्टकविस्तार and its five width
+     ॰     assignments, five width tests less the विस्तार असमम् ६४ refusal they replace, plus three
+     ॰     mnemonic-selecting tests and their अन्यथा in यन्त्रोत्सर्जन. 2d measured 3473/2165/5638/2192/137
+     ॰     on 046f3cfe; the merged tree reads this. Measured from w268-census's failure, not composed.
+     ॰   2026-09-13, the embed store (trunk, lex.t1 + parse.t1): चरः/bindings 3487 -> 3500  भवति 5655 -> 5679
+     ॰     assignments 2168 -> 2179  यदि 2198 -> 2205  यावत् 331 -> 334  प्रत्यागमनम् 1907 -> 1908
+     ॰     public-bindings 605 -> 609 — the four store globals, nine locals of the collapse, its loops and
+     ॰     tests, and parse.t1's शब्दभेद arm. Measured from w268-census's failure.
+     ॰   2026-09-13, the encoder's table index (encode.t1 only — the embedded spec tables are walked
+     ॰     once and indexed, not re-read per lookup): चरः/bindings 3546 -> 3581  भवति 5742 -> 5794
+     ॰     यदि 2221 -> 2229  यावत् 335 -> 338  प्रत्यागमनम् 1910 -> 1922  assignments 2196 -> 2213
+     ॰     public-bindings 615 -> 628 — thirteen index globals (two counts, eleven arenas); the two
+     ॰     index builders (+2 loops, +4 returns, +7 tests), परिधिसाम्यम् (+1 loop, +3 returns, +2 tests),
+     ॰     सूचितकुलपङ्क्तिवत् (+2 returns, +1 test), सूचितांशसाम्यम् (+3 returns, +2 tests); the five
+     ॰     rewritten walkers keep their loop and return counts and lose four tests (सङ्केताः −2,
+     ॰     कोष्ठपङ्क्तिः −2). `अन्यथा` 139, `keyword-alternatives` 32, `keyword-written` 15 UNMOVED.
+     ॰     Every key predicted from the diff by member; MEASURED from w268-census's failure.
+     ॰     Merged over 5cc2c4aa (आरम्भपाठ्यरचना, +1 प्रत्यागमनम् in shrinkhala.t1): प्रत्यागमनम् 1922 -> 1923 on the
+     ॰     merged tree; every other key composes from the two landings and was re-run there, not composed.
+     ॰ `keyword-alternatives` 32, `keyword-written` 15 and `public-bindings` 605
+     ॰ are UNMOVED, and `प्रत्यागमनम्` 1906 with `अन्यथा` 134 likewise — the
+     ॰ control column. This landing GREW the corpus and respelled nothing.
+     ॰ `चरः` and `bindings` move together by +6 because they count the same
+     ॰ thing, and that +6 is independently the ADR-0030 triple's `न६४` move
+     ॰ 1976 -> 1982 — two pins, one delta, composed from +4 in `encode.t1` and
+     ॰ +2 across `ir.t1` and `यन्त्रोत्सर्जन`.
+     CENSUS चरः = 3585
+     CENSUS भवति = 5799
+     CENSUS यदि = 2230
+     CENSUS अन्यथा = 139
+     CENSUS यावत् = 339
+     CENSUS प्रत्यागमनम् = 1923
+     CENSUS bindings = 3585
+     CENSUS assignments = 2214
+     CENSUS public-bindings = 628
+
+   THE MEMBERS, 2026-09-11, W-283 — every figure derived from
+   `git diff c90d4161 -- '*.t1'` BEFORE the assertion's values were read:
+
+     +16 bindings / चरः   the store arm's five resolution locals and the two
+                          allocator arms' six, plus the rest of the guard chain.
+                          23 added `भवति` lines carry 17 `चरः`; ONE of those is
+                          the `सार्वजनिक चरः रचितशेषसीमा` २८ → २९ replacement,
+                          which the `binding` production counts here (the prefix
+                          is part of the form) — so bindings take it and
+                          `w250-shares.rs`, splitting on the FIRST token, does
+                          not. 17 - 1 + 1 = 16 either way, by two different
+                          routes, which is the disagreement this pair exists for.
+     +6  assignments      22 - 16. The one removal is that same modified line.
+     +16 यदि              the store arm's guard chain (fourteen) and the two
+                          allocator arms (one each).
+     +1  प्रत्यागमनम्      the store arm's early return once it lowers.
+     ±0  public-bindings   +1 added, −1 removed: ONE line modified, not a new
+                          module-level global. **This is the control that says
+                          the row added no storage** — a lowering that had
+                          introduced a global would move this and the two
+                          censuses would then disagree by that amount.
+     ±0  यावत् / अन्यथा   no loop, no alternative: both controls.
+
+   The bridge holds on the new values: 2819 + 595 = 3414 and 2731 - 595 = 2136.
+
+   THE MEMBERS, 2026-09-11, W-283 — every figure derived from
+   `git diff 85ee3395 053c73ed -- '*.t1'` and matched against the assertion:
+
+     +3 public-bindings   the three kind constants in `ir.t1` —
+                          `वैश्विकस्थानाज्ञाभेद` २१, `स्थानाहाराज्ञाभेद` २२,
+                          `स्थाननिधानाज्ञाभेद` २३.
+     +8 bindings / चरः    those three PLUS five emitter locals in
+                          `yantrotsarjana.t1`: `गन्तृ` twice, `स्थानम्` twice,
+                          `स्रोतः` once. 3 + 5 = 8, and unlike the entry below
+                          there is no deletion anywhere in this row.
+     ±0 assignments       **AND THIS IS THE ROW THAT DISCRIMINATES THE TWO
+                          CENSUSES.** `w250-shares.rs` splits on the statement's
+                          FIRST token, so the three `सार्वजनिक चरः` land in ITS
+                          assignment column (+3) and it reads +5/+3. Here the
+                          prefix is part of the `binding` production, so the same
+                          three are bindings and this key does not move at all.
+                          The 2026-09-09 entry below says a row without a public
+                          binding confirms both models and distinguishes nothing;
+                          W-279's did not have one and said so. **This one does,
+                          and the two censuses disagree by exactly the three.**
+     +4 प्रत्यागमनम्      one per new routine — `यन्त्राधिकरणपदम्` and the three
+                          emitters. The helper is the fourth and is easy to miss
+                          when counting emitters rather than routines.
+     +3 यदि               the three dispatch arms.
+     ±0 यावत् / अन्यथा    no loop and no alternative added; both are controls.
+
+   The bridge holds on the new values: 2803 + 595 = 3398 and 2725 - 595 = 2130,
+   with `public-bindings` itself moved by the same three constants — one
+   population counted three ways, agreeing.
+
+   THE MEMBERS, 2026-09-11. Every figure below was derived from
+   `git diff 8c4748a4 HEAD -- '*.t1'` BEFORE the assertion's measured side was
+   read, so the agreement is a prediction meeting a measurement and not a
+   fitting.
+
+     +5 bindings / चरः    the field-resolution walk's five locals:
+                          `सञ्चयक्रमः`, `वस्तुप्रविष्टिः`, `दूरक्षेत्रसंख्या`,
+                          `दूरक्रमः`, `दूरनामपाठ`. **`public-bindings` DID NOT
+                          MOVE, AND THAT IS WHAT SAYS ALL FIVE ARE LOCALS** —
+                          had any been `सार्वजनिक चरः` the two keys would have
+                          moved together. The one module-scope line this row
+                          touched, `अपूर्णहेतुसीमा २७ → ४३`, is a MODIFICATION
+                          and is nobody's delta.
+     +5 assignments       the walk's writes: two cursor bumps, the entry
+                          capture, and `क्षेत्रस्थानम्` / `क्षेत्रमिलितम्`.
+     +5 यदि               SIX new conditionals MINUS one refusal that was
+                          replaced rather than renumbered, and the subtraction
+                          is the whole point of this row. 21 `यदि` were added
+                          and 16 removed; **the 16 are not deletions — they are
+                          the cause-25 decomposition rewriting `अपूर्णध्रुवम्
+                          २५` to २८–४३ in place**, so they pair off by their
+                          condition text and contribute nothing. What does not
+                          pair is `यदि घोषणासूचकः समम् ० आदि प्रत्यागमनम्
+                          अपूर्णध्रुवम् २५ । इति`, GONE, and its condition
+                          returning as `यदि घोषणासूचकः समम् ० आदि` — the same
+                          test, now opening the resolving branch instead of
+                          refusing on it. The refusal did not disappear; it
+                          moved inward to `यदि वस्तुप्रविष्टिः समम् ० आदि
+                          प्रत्यागमनम् अपूर्णध्रुवम् ३६ । इति`, which fires
+                          only when the walk actually finds nothing. The other
+                          four new ones are the walk's own tests: the struct-
+                          name match, the field-name compare, the first-write
+                          guard, and `क्षेत्रमिलितम्`.
+     +2 यावत्             the two walks — over `अर्थॱसञ्चयसंज्ञा*` for the
+                          struct, then over its parameter entries for the field.
+     +1 अन्यथा            the branch the former refusal became.
+     ±0 प्रत्यागमनम्      16 rewritten, 16 in place. A cause renumbering cannot
+                          move this key, and its stillness across a change that
+                          touched sixteen `प्रत्यागमनम्` lines is the cleanest
+                          evidence the decomposition renamed rather than added.
+
+   AND IT RECONCILES WITH `w250-shares.rs`, WHICH IS WORTH MORE THAN EITHER PIN.
+   That census splits on the statement's FIRST token and reads
+   (2798, 2722, 5520). The totals agree at 5520; 2798 + 592 = 3390 and
+   2722 − 592 = 2130. The bridge is `public-bindings`, a number neither
+   instrument is free to choose. Note that this row CANNOT distinguish the two
+   classifications on its own evidence — it added no public binding, so the
+   +5/+5 is identical under both models. The paragraph above at the 2026-09-09
+   entry says why that matters: a row without a public binding confirms both
+   models at once and discriminates nothing. The reconciliation here rests on
+   `public-bindings` holding at 592 from a row that DID discriminate, not on
+   this one.
+
+   THE MEMBERS OF THE 2026-09-10 READING ABOVE — and `public-bindings` IS WHAT
+   MAKES THE OTHERS CHECKABLE. (This block explains the 3385/5510/2125 entry,
+   not the 3390/5520/2130 one that now stands. The 2026-09-11 taking placed its
+   own members beside its own figures; this one is kept where it was written so
+   the correction it records is not silently re-parented to a later row.)
+
+     +8 public-bindings   eight module-scope `सार्वजनिक चरः` — the two name
+                          counts behind exit ४, and `वस्तुरचनाविरामभेद` with its
+                          five constants. NOTHING is subtracted here, which is
+                          what proves the eight are the whole of the addition.
+     +7 bindings / चरः    those eight MINUS the deleted local `चरः नामपूर्वम्`.
+                          The one-place gap against `public-bindings` IS that
+                          local, and it is the reason this row exists: it read
+                          the name cursor so the pass could subtract, and the
+                          subtraction spanned `नामसञ्चयः`'s reset-on-entry,
+                          reporting −३९ entries written for `vastu.t1`.
+     +6 assignments       seven added (five exits, two counts) minus the removed
+                          `सङ्कलनविरामभेद भवति सङ्कलनावृत्तिभेद`, which went with
+                          the routine guard.
+     +1 यदि               the object builder's instruction guard NARROWED from
+                          one test to three nested (+2), less the removed
+                          routine guard `यदि वृत्तयः समम् ०` (−1).
+     −1 प्रत्यागमनम्       that routine guard's early return. A guard that
+                          deferred a capability rather than preventing a defect.
+
+   NOT A MEMBER, AND NAMED BECAUSE AN EARLIER MARGIN GOT THIS WRONG:
+   `सङ्कलनगणनाभङ्गभेद`, a sign-guard exit, was added and withdrawn INSIDE the
+   branch. Against main it is net zero and is nobody's −1. Two margins attributed
+   a −1 to it before `public-bindings` moving +8 with no subtraction showed the
+   addition was undiminished. **A delta is only checkable against a key that
+   cannot absorb the error**, and that is this block's whole purpose.
+
+   2026-09-07, THE OBJECT BUILDER MERGED WITH agent/index AND agent/storeprobe.
+   THE SUPERSEDED READING IS THE ONE ABOVE, and it was correct for a tree that
+   held neither this row nor `ir.t1`'s index lowering.
+
+   NOT ATTRIBUTED TO THIS ROW. Three `.t1` sources moved on main between this
+   branch's gate and its merge — `ir.t1`, `utsarjana.t1`, `yantrotsarjana.t1` —
+   so these figures carry three lanes' growth and no single delta here is
+   readable as one row's contribution. `अन्यथा` moved for the first time in
+   four readings, 126 -> 127, and it is NOT this row's: the object builder has
+   nineteen `यदि` and no `अन्यथा` at all, because every guard returns rather
+   than branching. Whoever's arm that is, it is not this one's.
+
+
+   2026-09-07, THE OBJECT BUILDER. The reading above supersedes 3236 · 5257 ·
+   2058 · 126 · 316 · 1844 · 3236 · 2021 · 556, kept because it is the base the
+   deltas were predicted against.
+
+   ALL NINE PREDICTED BEFORE THE RUN, counted from `git diff` over
+   `crates/sadhana-t1/src/*.t1` with margins excluded — 216 code lines: +54
+   bindings, +110 `भवति`, +56 assignments, +12 `यदि`, +7 `यावत्`, +16
+   `प्रत्यागमनम्`, +10 public, and `अन्यथा` STILL. All nine landed.
+
+   `अन्यथा` UNMOVED AT 126 for the third reading running, and it says something
+   about this row: the builder has twelve `यदि` and not one `अन्यथा`. Every
+   guard returns or refuses rather than branching — the empty run, the null
+   symbol's slot, the `%pcrel_lo12` refusal — so a rejected case costs an exit
+   and never an arm.
+
+   `यावत्` +7: three walks over the label arena, two over the pending arena,
+   one over the data entries and one name lookup. A count that had come back
+   +6 or +8 would have meant a loop I did not write or one I wrote twice.
+
+   SIXTH READING, 2026-09-07, `W-chain`: `shrinkhala.t1`, the DRIVER. The fifth
+   reading above is superseded and kept — 3189 · 5194 · 2023 · 126 · 314 · 1812
+   · 3189 · 2005 · 550 — because it is the base this row's deltas were predicted
+   against.
+
+   ALL EIGHT WERE PREDICTED BEFORE THE RUN AND ALL EIGHT LANDED: +19 bindings,
+   +21 `भवति`, +7 `यदि`, +1 `यावत्`, +12 `प्रत्यागमनम्`, +2 assignments, and
+   `अन्यथा` and public-bindings STILL. And the deltas were not derived here —
+   they are the same six measured over this lane's OWN base (3170 · 5163 · 1999
+   · 313 · 1808 · 1993) before any of the other three branches were in the tree.
+
+   THE SAME DELTA ARRIVING ON A DIFFERENT BASE IS WHAT INDEPENDENCE LOOKS LIKE
+   FROM A CENSUS. The driver's contribution does not depend on what else the
+   tree holds, and a figure landing differently here would have been a finding
+   about the interaction rather than a number to type.
+
+   `यावत्` MOVED, 314 -> 315, and the one loop is `नामसञ्चयः` walking a
+   module's routines to fill the emitter's name table. `अन्यथा` STILL at 126:
+   every guard in the driver returns the empty run rather than branching, so a
+   refusing stage costs an exit and no arm.
+
+   SUPERSEDED, the fifth reading of 2026-09-06, kept because it is the witness
+   that `शृङ्खला` and nothing else moved these: चरः/bindings 3170, भवति 5163,
+   यदि 1999, यावत् 313, प्रत्यागमनम् 1808, assignments 1993. Every one of the
+   eight figures above was PREDICTED from `shrinkhala.t1`'s own text before the
+   run — the six deltas (+19 +21 +7 +1 +12 +2) and the two that had to stay
+   still — and every one landed. That is the check the numbers are for: a
+   census agreed with in advance says the corpus moved exactly where I said it
+   did, while a census merely read afterwards says only that it was read.
+
+   `यावत्` MOVED, 313 -> 314, for the first time in three readings, and the one
+   loop is `नामसञ्चयः` walking a module's routines to fill the emitter's name
+   table. `अन्यथा` still 126: every guard in the driver returns the empty run
+   rather than branching, so a refusing stage costs an exit and no arm.
+   `public-bindings` still 545 because a driver publishes routines, not state.
+
+   `यदि` ROSE AND `यावत्` DID NOT, which is the pair to read. The fix asks a
+   question where a constant stood — `कारकपदपठनम्` hardcoded `असत्यम्` for
+   is_numeral — so it adds one `यदि` and one `बूल` binding and no loop. A
+   census that showed a `यावत्` here would mean the fix had grown a walk it
+   did not need.
+
+   `यावत्` FELL, WHICH IS THE ONE TO READ. 314 -> 313: the ELF writer's
+   padding was a walk whose termination rested on a side effect in a called
+   routine, and `no_yavat_in_the_corpus_is_without_a_step_or_an_exit` refused
+   it. The pad count is arithmetic now and `अष्टक`'s own `शून्याष्टकयोजनम्`
+   writes it, so there is no loop left to guard. A census that counts loops
+   going DOWN by one is the cheapest possible confirmation that exactly one
+   was removed.
+
+     CENSUS keyword-alternatives = 32
+     CENSUS keyword-written = 15
+
+   SUPERSEDED 2026-09-06 (`W-kosha` phase 2) — चरः/bindings 3113, भवति 5098,
+   यदि 1992, अन्यथा 126, यावत् 313, प्रत्यागमनम् 1804, assignments 1985,
+   public-bindings 541 — RE-TAKEN FROM THE GATE'S OWN FAILURE. The corpus moved
+   because `kosha.t1` gained an ELF image writer: it had ZERO routines and the
+   census counted it as a module with nothing in it. `keyword-alternatives` and
+   `keyword-written` are UNMOVED at 32 and 15 for the second time today — a
+   module can be written whole without the grammar gaining a word.
+
+   SUPERSEDED 2026-09-06 (`W-254`) — चरः/bindings 3071, भवति 5024, यदि 1976,
+   अन्यथा 125, यावत् 306, प्रत्यागमनम् 1797, assignments 1953,
+   public-bindings 533 — RE-TAKEN FROM THE GATE'S OWN FAILURE and not computed.
+   The corpus moved because `W-254` lowered a string literal: `ir.t1` gained the
+   उक्त arm and three routines, `yantrotsarjana.t1` gained `यन्त्रपाठावतरणम्`
+   and the string pool's section. `keyword-alternatives` and `keyword-written`
+   are UNMOVED at 32 and 15, which is the half of this block that says the row
+   added code and did not touch the grammar — a lowering that moved either of
+   those would be a language change wearing a lowering's clothes.
+
+   SUPERSEDED 2026-09-05 (`W-265`) — चरः/bindings 3014, भवति 4939, यदि 1952,
+   अन्यथा 124, यावत् 301, प्रत्यागमनम् 1773, assignments 1925,
+   public-bindings 517 — RE-TAKEN FROM THE GATE'S OWN FAILURE and not computed.
+   `artha.त१` gained a type-name table and the routines that read and write it,
+   so a named type resolves to a SYMBOL instead of poisoning: 16 new public
+   bindings (four parallel runs and a cursor, five refusal-reason constants,
+   three counters and the two spelling runs beside them), 41 more locals, one
+   more `अन्यथा` and five more `यावत्` — the table's four walks and the store's.
+   THE TWO KEYWORD FIGURES ARE UNMOVED at 32 and 15, which is the half worth
+   saying: this row added no alternative to the frozen keyword production and
+   wrote none of them as a name. It nearly did — `गणना` was bound twice as a
+   counter and `no_t1_source_binds_a_frozen_keyword_as_a_name` refused it.
+
+   SUPERSEDED 2026-09-05 (`W-266`), and the move is FIVE STATEMENTS in one
+   routine. `सङ्कोचः` (`encode.t1:4857`) saved this module's one-slot error
+   state by BINDING a second name to it, which shares; the save is now five
+   field copies onto a fresh record, so five assignments appeared and no
+   binding did. Only the two keys that can move that way moved:
+     was  assignments            1920   ->  1925
+     was  भवति                   4934   ->  4939
+   `bindings`, `चरः` and `public-bindings` are unchanged, which is the check
+   on the claim: a field write is an assignment and never a binding.
+
+   SUPERSEDED 2026-09-05, taken from `w268-census.rs`'s own failing assertion
+   when `W-248` landed a text-to-type reader into `artha.t1` and the corpus
+   grew under the guard. Kept with its date rather than overwritten, because a
+   file that shows its own corrections tells the next reader when each figure
+   was last true:
+     was  assignments            1905   ->  1920
+     was  bindings               3000   ->  3014
+     was  public-bindings        511    ->  516
+     was  चरः                    3000   ->  3014
+     was  प्रत्यागमनम्           1764   ->  1773
+     was  भवति                   4905   ->  4934
+     was  यदि                    1940   ->  1952
+     was  यावत्                  300    ->  301
+     was  public-bindings        516    ->  517   (2026-09-05, the trunk's red-main
+                                                  fix: `प्रकारपाठविवराष्टकम्` hoisted
+                                                  out of a routine body to module
+                                                  scope, so one more binding is
+                                                  `सार्वजनिक`)
+   `keyword-alternatives` and `keyword-written` did not move: the reader added
+   routines, not keywords. THE GUARD CAUGHT THIS ON THE MERGE, which is what it
+   was built for one commit earlier.
+
+
+   SUPERSEDED 2026-08-30 (ADR-0027, `D-002h`), KEPT WITH ITS DATE: `चरः`
+   1,039, `भवति` 1,788, `यदि` 670, `अन्यथा` 29, `यावत्` 120, `प्रत्यागमनम्`
+   779; 1,039 bindings and 749 assignments. Every one is roughly a THIRD of
+   today's, and THE SHAPE OF THE CLAIM SURVIVED ALL OF IT — the six forms are
+   still the six, the two sets still sum to the whole. That is why the old
+   figures are kept rather than overwritten: they show that the sentence was
+   right and only its numbers were dead, which is the harder thing for a
+   reader to learn from a file that shows only its current answer. The defect
+   was never arithmetic. It was that a figure sat in a comment for six days
+   with NOTHING RE-MEASURING IT while the corpus tripled around it, and the
+   sentences resting on it went on being read as current.
+
+   AND THE SPELLINGS FOR THE REST ALREADY EXIST HERE AND ARE UNUSED, which is
+   the finding worth keeping. `keyword` above has 32 alternatives — doc 02
+   §3.2's v0.1 set, frozen by `B-079a`, plus `मण्डलम्` (ADR-0027) and the two
+   layout words (ADR-0018) — and the corpus writes FIFTEEN of them.
+   SUPERSEDED 2026-08-30: "`keyword`'s 24 words … the corpus writes ELEVEN".
+   The 24 never matched the production as printed above under any of its
+   amendments; it is the same defect as the counts, one level up, and it is
+   why the guard reads the alternative list OUT OF THIS FILE rather than
+   keeping a copy of its own.
+
+   The five that would each be a statement form are still written ZERO times:
+   `प्रत्येकम्` (for), `भङ्गः` (break), `अनुवर्तनम्` (continue), `विकल्पना`
+   (switch) and `रक्षा` (defer). The guard checks those five BY NAME rather
+   than counting how many words are unwritten, because one of them appearing
+   while another fell out of use would leave such a count untouched. So T1 as
+   written has ONE loop form and NO loop-exit statement, and this file does not
+   invent the productions — but nothing will need inventing when the corpus
+   grows one, because the word is already ratified.
+
+   THE OTHER TWELVE UNWRITTEN WORDS, listed rather than summarised because the
+   2026-08-30 note said "the other three" and then named seven: declaration-tier
+   `प्रकारः`, `संघः`, `ध्रुवः`; tooling `प्रयत्नः`, `दोषः`, `समयकृत`,
+   `परीक्षा`; the value words `रिक्तः`, `स्वयम्`, `असुरक्षितम्`; and
+   ADR-0018's two layout words `यतिः` and `विवरम्`, which the corpus writes
+   nowhere at all — ratified 2026-08-28 and unspelled by any source since. *)
+
+statement      = binding
+               | assignment
+               | conditional
+               | loop
+               | return_statement
+               | expression_statement ;
+
+(* A BINDING ALWAYS CARRIES ITS TYPE — there is no inference, and that is a
+   count and not an impression. The `भवति` sites partition EXACTLY into the
+   `bindings` and `assignments` figures above: every binding is led by `चरः`,
+   with or without `सार्वजनिक`, and every one of them has a `ॱॱ type` before
+   the verb; the assignments are the remainder and not one of them has a `ॱॱ`.
+   The two sets sum to the whole `भवति` count, so `[ ॱॱ type ]` would describe
+   a form the corpus never writes. All three of those — the sum, the presence
+   in every binding, the absence in every assignment — are asserted by the
+   guard, not just the totals.
+
+   THE DIGITS ARE DELIBERATELY NOT REPEATED IN THIS PARAGRAPH. Until
+   2026-09-05 they were, and a figure written in two places dies in one of them
+   first; the census above is the single site and this paragraph names its
+   keys.
+
+   `सार्वजनिक` IS PART OF THE BINDING, AND A CENSUS THAT DROPS IT SPLITS THE
+   PARTITION WRONG — worth stating because one already did. `public-bindings`
+   of the bindings above are `सार्वजनिक चरः`, so a walk that tests only a
+   statement's FIRST token for `चरः` moves every one of them to the assignment
+   side. `crates/sadhana-t1/tests/w250-shares.rs` does exactly that, which is
+   why its split of this same corpus differs from the one above by exactly that
+   number while its `भवति` total agrees to the site. The structural claim is
+   what decides between the two splits rather than an opinion about the
+   production: under the other one, `public-bindings` "assignments" carry a
+   `ॱॱ`, and the sentence above would be false. *)
+binding        = [ "सार्वजनिक" ] , "चरः" , identifier , annotation , type ,
+                 "भवति" , expression , danda ;
+
+(* --- scope: what a module's names are, and what a local is ------------ *)
+
+(* STATED 2026-09-04 (W-222), HERE AND NOT BESIDE `module_decl`, because the
+   precedence ladder above is cited by line number (673-690) from research/22,
+   doc 15 and the W-217 audit, and a note placed before it would move them.
+   The rule concerns `module_decl` and `binding` equally; it sits by the
+   second. The language has behaved this way since the resolver was ported
+   and no document said so; `W-209` measured it — 51 top-level uses precede
+   their declaration in the same module, 0 local uses precede their `चरः` —
+   and the rule is written here so the measurement has something to be
+   measured AGAINST.
+
+   A MODULE'S TOP-LEVEL NAMES ARE MODULE-SCOPED AND ORDER-FREE. Every routine,
+   type, machine, top-level `binding` and import declared in a module is
+   visible throughout the module, before and after the line that declares it.
+   `crates/sadhana-t1/src/artha.t1`'s `कार्यक्रमनिर्णयः` keeps this in two
+   passes — every top-level name is DECLARED before any body is RESOLVED —
+   and its margin says why: "resolving bodies as they are met would refuse a
+   forward reference that the language permits". The corpus relies on it 51
+   times (`artha.t1` 25, `encode.t1` 9, `parse.t1` 7, `vakyavibhaga.t1` 4,
+   `sanskrit_text.t1` 3, `utsarjana.t1` 2, `samyojana.t1` 1), pinned per
+   file as a CEILING in `crates/sadhana-t1/tests/t1_paradigm_names.rs` —
+   52 since 2026-09-04, when W-204's call arm gave `ir.t1` its first
+   (`ir.t1:696 आह्वानादानरचना`) and the ratchet caught it on the next merge.
+
+   AND THE EXTENT IT RESOLVES IS ONE ITS CALLER PASSES. W-223 part 2,
+   2026-09-04. "Throughout the module" needs the module's own bounds, and
+   `कार्यक्रमनिर्णयः` takes them as the `कार्यक्रमः` it already declared: the
+   count `व्याकर ॱ कार्यक्रमपठनम्` answers, which is that program's last
+   declaration index, so the walk is `१ .. कार्यक्रमः`. It is not the
+   declaration arena's length, and the difference is a rule and not an
+   optimisation: `कार्यक्रमपठनम्` resets `घोषणासूचकाङ्क` on entry but nothing
+   truncates `घोषणाकोश`, so a program parsed after a longer one shares an
+   arena still holding the longer one's tail. Walking the arena declared
+   THOSE names into this program's scope — a name a module never wrote,
+   visible throughout it. One interpreter per program hid it; the shared
+   declaration store is what ends that, since it is filled by parsing every
+   source into one. An extent that cannot be walked — negative, or past the
+   arena's own length — is REFUSED by name and never clamped, because a
+   clamped extent resolves some other program than the one asked for and
+   reports success for it. An extent of ० is not a refusal: it is what
+   `कार्यक्रमपठनम्` answers for a program with no declarations, and walking
+   none of them is the right answer to it. `कार्यक्रमप्रकारपरीक्षा` takes the
+   extent the same way, for the same reason.
+
+   A LOCAL IS VISIBLE FROM ITS `चरः` TO THE END OF ITS BLOCK, AND NOT BEFORE.
+   A `binding` inside a `block` declares its name for the statements that
+   FOLLOW it in that block and in blocks nested there. A use of the name
+   before the `चरः` — in an earlier statement, or in the `चरः`'s own
+   `expression` — is not that local: it resolves outward if an enclosing
+   scope binds the name (a parameter, a module-level name; a shadow-to-come),
+   and is REFUSED as undeclared otherwise. `वाक्यनिर्णयः`'s block arm walks a
+   block's statements in written order for exactly this reason, and its
+   margin records the alternative and rejects it: declaring every `चरः` up
+   front "accepts a use BEFORE its declaration, which is not
+   order-sensitivity but its absence".
+   `a_block_resolves_its_statements_in_written_order` (`t1_execution.rs`)
+   holds the refusal, and `t1_paradigm_names.rs`'s ratchet holds the corpus
+   at ZERO such uses, with the refused case run first.
+
+   Read against research/22 §7: a module's names are the vowels of one run —
+   they sound alone and in any order — and a local is a marker inside its
+   span: it means something only from where it is written to where the span
+   closes. That is this rule, arrived at from the other side. *)
+
+(* The assignable places are exactly the three the corpus assigns to: a bare
+   name (352), a member (151 + 2), and an index (242 + 2). That is
+   `postfix_expr` with `primary` narrowed to `identifier` — the corpus never
+   assigns to a numeral, a string or a group, and `place` says so rather than
+   reusing `postfix_expr` and leaving the impossible cases to a later pass. *)
+place          = identifier , { member_mark , identifier | index } ;
+assignment     = place , "भवति" , expression , danda ;
+
+(* `अन्यथा` NEVER TAKES A CONDITION. All 29 occurrences are the exact three
+   tokens `इति अन्यथा आदि`, so there is no `else if` chain in this language;
+   a nested `यदि` inside the `अन्यथा` block is how the corpus writes one. *)
+conditional    = "यदि" , expression , block , [ "अन्यथा" , block ] ;
+
+(* One loop form. `यावत्` is a while, always over a `block`. *)
+loop           = "यावत्" , expression , block ;
+
+(* `प्रत्यागमनम्` ALWAYS carries a value: 779 of 779 are followed by an
+   expression and NONE by a bare `।`. A void return is not written here, so
+   the expression is required rather than optional. *)
+return_statement = "प्रत्यागमनम्" , expression , danda ;
+
+(* A bare expression is a statement only when it is a CALL — 18 sites, all of
+   them one of `call_expr`'s two shapes. An identifier or a numeral alone is
+   never a statement in the corpus, and admitting `expression` here would make
+   `क्ष ।` legal for no reason anyone wrote down. *)
+expression_statement = postfix_expr , argument_list , danda ;
+
+(* --- the routine ------------------------------------------------------ *)
+
+(* ADDED 2026-09-04 by W-226. THIS FILE HAD NO PRODUCTION FOR A ROUTINE AT ALL:
+   `वृत्तिः` sat in `keyword` since B-079a and nothing said what follows it.
+   What follows it is MEASURED, not chosen, from the 463 routines of the corpus.
+
+   `ददाति type` IS MANDATORY, AND THERE IS NO VOID. 463 of 463 routine headers
+   carry `ददाति` and a type; the class "routine without `ददाति`" does not
+   exist in the corpus, and could not: `वृत्तिपठनम्`'s parameter loop ended
+   only at `ददाति`, so a header without it was not a procedure but a RUNAWAY
+   PARSE that swallowed the body silently (its own margin records the day it
+   was found). The corpus writes no void spelling either — no `ददाति शून्यम्`,
+   no `निष्फलम्`: a routine that exists for effect declares `ददाति अ६४` and
+   its callers bind the result (`nidana.t1`'s header says so). `return_statement`
+   above agrees: 779 of 779 returns carry a value. research/23 §6.5 asked
+   whether procedures exist by omission; they do not, and the grammar says so.
+
+   THE PARSER REFUSES a header without `ददाति` at the routine's NAME — the
+   error record carries the name token's line and column and the reason
+   `वृत्तेः ददाति अपेक्षितम्` — and reads on, so one missing word is one
+   error and not a cascade. `t1_paradigm_calls.rs` holds the refused case.
+
+   PARAMETERS: `आदाय` opens the list, each parameter is `name ॱॱ type`, and the
+   separator between two parameters is OPTIONAL — 132 headers with two or
+   more parameters write `ऽ` between them and 133 do not (`आदाय वामः ॱॱ
+   अर्थप्रकार दक्षिणः ॱॱ अर्थप्रकार`), so `[ separator ]` is the measurement
+   and not a leniency. A parameter's type ends where the next `identifier ,
+   annotation` or `ददाति` begins; `type` is self-delimiting in every shape
+   the corpus writes. *)
+routine        = [ "सार्वजनिक" ] , "वृत्तिः" , identifier ,
+                 [ "आदाय" , parameter , { [ separator ] , parameter } ] ,
+                 "ददाति" , type , block ;
+parameter      = identifier , annotation , type ;
+
+(* --- the type --------------------------------------------------------- *)
+
+(* This one was almost written: `type_name` and the four constructors were
+   already above, needing only to be gathered. Two things were NOT already
+   there, and both are measurements.
+
+   FIRST, A TYPE CAN BE QUALIFIED. 229 tokens in the corpus carry a `ॱ` with
+   no space around it — `पदविभागॱचिह्नक` 61 times, `सङ्केतनॱसङ्केत` 12 — and
+   in type position `postfix_expr` is not available to spell them. `ॱ` is the
+   frozen `member_mark`; whitespace around it is not significant, so these
+   lex as three tokens, and `qualified_name` reads them.
+
+   SECOND, WHAT WAS NOT ADDED HERE AND IS NOW SETTLED ABOVE. This note used
+   to read "`पाठ` appears 145 times against `पाठः`'s 39, both in type position
+   ... recorded here and NOT silently amended". ADR-0029 amended it on
+   2026-08-31, after re-measuring by POSITION: 27 to 9, the other 148 being
+   identifiers. `type_name` now spells `पाठ` and the lexicon follows.
+   `अक्षरम्`, `भ३२` and `भ६४` are still frozen in `type_name` and written ZERO
+   times; that is an unused spelling and not a divergence, so it is left
+   alone — ADR-0027's reason, unchanged. *)
+
+type           = type_name
+               | slice_type
+               | pointer_type
+               | optional_type
+               | error_union
+               | qualified_name ;
+
+qualified_name = identifier , { member_mark , identifier } ;
+
+
+(* --- what is STILL not frozen, and why -------------------------------- *)
+
+(* OPERATORS ARE NO LONGER HERE. This entry used to open "OPERATORS AND THEIR
+ * PRECEDENCE. Doc 02 §3.2 writes them as ASCII `= + * →` … They need their own
+ * row." That row was `D-002h`; ADR-0026 closed the question by MEASURING the
+ * `.t1` corpus the owner ruled canonical, and the section above is frozen. The
+ * entry is REPLACED rather than deleted, because a reader who remembers this
+ * file as the place operators are open should find out here that they are not.
+ *
+ * `expression`, `statement`, `type` AND `call` ARE ALL DEFINED. This entry
+ * used to say the last three were deferred non-terminals "defined nowhere";
+ * ADR-0027 defined them, from the same corpus and by the same method
+ * ADR-0026 used. THE HOLE THIS FILE HAS DESCRIBED SINCE B-079a IS CLOSED.
+ *
+ * WHAT IS STILL OPEN IS DECLARATION BODIES, and they are a different kind of
+ * thing from what stood here — not a missing spelling, but a `आरभ्य … ऽ …
+ * समाप्तम्` shape used by three constructs at once:
+ *
+ *   - `struct_body` and `enum_body`. `संरचना` (51) and `गणना` (3) both open
+ *     with `आरभ्य` and separate with `ऽ`, exactly as `argument_list` does, so
+ *     freezing them means saying how a declaration head is told from a call —
+ *     which the KEYWORD already does, but it should be written down.
+ *   - MATCH ARMS. No word for a match is written in the corpus at all, so
+ *     there is nothing here to measure and this one is genuinely absent
+ *     rather than merely unfrozen.
+ *
+ * AND ONE RECONCILIATION, which is `D-002h`'s remainder and is named in
+ * ADR-0027 §"what this does not do": `spec/lexicon.src.tsv` still carries
+ * `अधि`/`ऊन`/`गुण`/`भाग`/`विषमम्` as the operator words and
+ * `crates/tree-sitter-t1/grammar.js` carries a third set with ASCII
+ * `{ } ( ) ;` delimiters. Both are now WRONG against a frozen grammar rather
+ * than divergent from an unfrozen one. `type_name`'s `पाठः` WAS the same
+ * problem inside this file and is CLOSED: ADR-0029 froze `पाठ`, on 27 to 9
+ * measured in type position rather than the 145 to 39 that counted every
+ * occurrence of the word. What that ADR did NOT settle, and named on its way
+ * past: `integer_type` is `( "अ" | "न" ) , type_width`, and the corpus writes
+ * `इ६४` 56 times in type position while writing `न` — the frozen unsigned
+ * prefix — ZERO times anywhere. That is a THIRD spelling this production
+ * cannot produce, it is larger than the one just closed, and it is its own
+ * decision.
+ *
+ * THAT DECISION IS TAKEN AND IT IS ADR-0030, WHICH ALSO CORRECTS THE SENTENCE
+ * ABOVE: `न` is written ZERO times in the T1 corpus, not zero times ANYWHERE —
+ * `spec/*.sas` writes it 123 times and `tools/gen_levels.py` 52 more, and the
+ * conclusion the wider claim invited (that `इ` is the real signed prefix and
+ * `अ` is not what the lexicon says) does not survive it. The production is NOT
+ * widened; `इ६४` is a transliteration leak and `अ`-for-unsigned is the same
+ * port defect running the other way. The sentence is kept as written rather
+ * than edited in place, because a note that quietly acquires the right number
+ * teaches nothing about how it got the wrong one.
+ *)

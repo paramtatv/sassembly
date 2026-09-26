@@ -1,0 +1,41 @@
+# Sassembly directive set v0.1 — task `B-057`, doc 02 §2.5.
+#
+# AUTHORED. Doc 02 §2.5 fixed these names when the language was designed; this
+# file is that decision made machine-readable, as doc 03 §2 specified it would
+# be. Nothing here is coined and nothing is derivable — a directive is an
+# instruction to the assembler, and no oracle has an opinion about what the
+# assembler should be told.
+#
+# A directive is wrapped in `॥` where an instruction ends in `।`, so a reader
+# can tell the two apart WITHOUT KNOWING THE NAMES. Doc 15 §3.1 calls that a
+# genuinely nice property of the script: two terminator marks already exist for
+# two syntactic categories, and neither had to be invented.
+#
+# Section names use `ॱ` where another assembler writes `.` — `ॱपाठ` is `.text`.
+#
+# `status` is `live` for what the assembler implements today and `planned` for
+# what doc 02 named and nothing yet reads. A planned directive is rejected with
+# a diagnostic that says so, rather than being silently ignored: an assembler
+# that quietly drops `॥ संरेखः ४ ॥` produces a program that is wrong by four
+# bytes and says nothing.
+#
+# Columns: devanagari, gas, operands, status, meaning
+devanagari	gas	operands	status	meaning
+कोष्ठकम्	.section	1	live	switch to a section
+वैश्विकम्	.globl	1	live	the name is visible outside this object
+स्थानीयम्	.local	1	live	the name is not
+संरेखः	.balign	1	live	pad until the address divides by n
+अष्टकाः	.byte	1+	live	emit 8-bit values
+द्वयष्टकाः	.half	1+	live	emit 16-bit values
+चतुरष्टकाः	.word	1+	live	emit 32-bit values
+अष्टाष्टकाः	.quad	1+	live	emit 64-bit values
+स्थानम्	.space	1	live	emit n zero bytes
+समम्	.equ	2	planned	bind a name to a constant
+आस्की	.ascii	1+	live	ASCII string payload
+जाल	(none)	1+	live	Web domain dictionary conversion
+समावेशः	.include	1	planned	textual inclusion
+यदि	.if	1	planned	conditional assembly
+अन्यथा	.else	0	planned	conditional assembly
+अन्तः	.endif	0	planned	conditional assembly
+पुनरावृत्तिः	.rept	1	planned	repeat a block
+कच्चा	(none)	1+	planned	raw bytes; R-02-1 forbids it outside boot/

@@ -1,0 +1,64 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/sanskrit-text",
+    "crates/sadhana",
+    "crates/sadhana-t1",
+    "crates/yantra",
+]
+
+# These four crates are the dependency closure of the Sassembly compiler. The
+# upstream workspace has 32 members; the other 28 are an operating system, a
+# browser engine, a code generator family and their harnesses, and none of them
+# is reachable from `t1_image` or `yantra-run`.
+#
+# Two dev-dependency edges were cut to make that true, and BOTH were
+# dev-dependencies upstream, so no shipped binary differs: `sadhana` -> `darshana`
+# (one test comparing two `Rupa` types), and `sanskrit-text` -> `bench`/`golden`
+# (two text-kernel tests whose golden baselines are not published). Each crate's
+# manifest records the cut where the edge used to be.
+
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.94"
+repository = "https://github.com/paramtatv/sassembly"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_docs = "warn"
+
+[profile.release]
+# Reproducibility (doc 03 §6, doc 16 §3.3) and weight (doc 18 §0) point the same
+# way: no debug info in a shipped binary.
+#
+# `debug = 1` was the original setting and it is what made the build
+# irreproducible — DWARF embeds the absolute target path, so the same source
+# produced different bytes from a different build directory. Measured by
+# tools/check-reproducible.sh (task A-003).
+#
+# Debug info lives in the `dev` profile, where gdb/lldb need it (doc 03 §3).
+debug = 0
+strip = "symbols"
+panic = "abort"          # no unwinding: corpus row RS-05, and smaller binaries
+
+[profile.test]
+# LINE TABLES ONLY FOR TEST BINARIES. Measured 2026-08-29: `cargo test` was the
+# gate's long pole at 1828s of a 2614s run, and `target/debug` is 7.8 GB across
+# 501 artifacts. Test EXECUTION is not the cost — `sadhana --lib` runs 136 tests
+# in 0.17s — so the time is code generation and LINKING, and there are ~98
+# integration test files, each its own separately linked binary carrying full
+# DWARF 5 inherited from `[profile.dev]`.
+#
+# `debug = 1` keeps line tables, so a panic still reports `file:line`. That is
+# not cosmetic here: every assertion message in this tree cites a source line,
+# and the gate's failure reporter greps for `thread ... panicked at file:line`.
+# Dropping to `debug = 0` would save more and blind exactly the thing the gate
+# needs to name a failure.
+#
+# DELIBERATELY NOT TOUCHED: `[profile.dev]` keeps `debug = 2` — doc 03 §3, it is
+# the profile the kernel is brought up under. `[profile.release]` keeps
+# `debug = 0` — `debug = 1` there is what made builds IRREPRODUCIBLE, because
+# DWARF embeds the absolute target path (task A-003).
+debug = 1
+

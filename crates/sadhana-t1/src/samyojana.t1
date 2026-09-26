@@ -1,0 +1,1688 @@
+मण्डलम् संयोजन ॥ ॰ samyojana — the port of crates/sadhana/src/samyojana.rs
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE LINKER, task D-002b, doc 03 §8. It links from OBJECTS — bytes, a
+॰ symbol table and a list of holes — not by re-encoding from source.
+॰
+॰ Applying a relocation is: decode the instruction, find its displacement
+॰ or immediate slot, and place the value with the same code the encoder
+॰ uses. Nothing here knows that a jal scatters its displacement across
+॰ four discontiguous runs — the derived map knows, and the map was
+॰ measured. That is why पदपुनर्निर्माणम् below calls सङ्केतन ॱ स्थापनम्
+॰ rather than transcribing the J-type layout a second time.
+॰
+॰ ── ON THE NAMES THIS FILE IMPORTS ──
+॰ वास्तु and कोश are named here in the spelling their HAND-PORT will
+॰ carry. Both files are still tools/port_encode.py output today
+॰ (मण्डलम् वअसतउ, मण्डलम् कओश), so those two names resolve to nothing
+॰ yet. This is the convention पदविभाग and व्याकर already follow —
+॰ व्याकर names वास्तुॱअभिव्यञ्जककोश, which वअसतउ does not define either.
+॰ Writing the machine transliteration into a hand-written file would
+॰ spread the mistake instead of leaving one file to fix.
+॰
+॰ ── WHAT IS NOT PORTED, AND WHY ── NOTHING IS, SINCE 2026-08-30. This note
+॰ used to read "see the four stubs at the foot of the file; each returns
+॰ अपूर्णम् and names the thing it waits on". All three blockers are
+॰ discharged and each discharge is recorded at the foot rather than deleted,
+॰ because two of the three were STALE: (b) named a decoder that vishlesana.t1
+॰ already carries, and (c) named an allocator decision the language never
+॰ needed — an arena here grows by being written past its end.
+॰ ══════════════════════════════════════════════════════════════════════
+
+आयातः वास्तु ।
+आयातः कोश ।
+आयातः सङ्केतन ।
+आयातः विश्लेषण ।   ॰ the disassembler — संस्कारः decodes before it patches
+आयातः पदविभाग ।   ॰ the spec-table store: `समावेशपाठः` answers a table by name (2026-09-14)
+
+
+॰ ══════════════════ mirrored constants ══════════════════
+
+॰ where an image is loaded — कोश ॱ LOAD_ADDRESS = 0x8000_0000.
+सार्वजनिक चरः भारणस्थानम् ॱॱ न६४ भवति २१४७४८३६४८ ।
+
+॰ where a definition was placed — वास्तु ॱ स्थापन PLUS ONE, and the offset is
+॰ the point rather than a slip.
+॰
+॰ THIS MARGIN READ "mirrors वास्तु ॱ Placement" UNTIL 2026-09-07 AND THAT WAS
+॰ FALSE. The गणना is ZERO-based — `पाठ्यम्` reads ०, as does Rust's
+॰ `Placement::Text`, neither carrying explicit discriminants — and every
+॰ constant below is one higher.
+॰
+॰ WHY THE OFFSET IS RIGHT: a fresh record is `भवति ०`, so `स्थापनम्` starts at
+॰ ० before anything fills it. `स्थापनाधारः` below has arms for १ २ ३ and falls
+॰ through to `शून्यम्`. With Text=० AN UNFILLED RECORD WOULD READ AS ॱपाठ and
+॰ be placed at the text base; with Text=१ it is REFUSED. The numbering buys the
+॰ distinction between UNSET and THE FIRST VARIANT, which is worth more than
+॰ agreeing with the enum's ordinals.
+॰
+॰ AND THE TRAP THE OLD WORDING SET, which is why this is corrected rather than
+॰ deleted: the obvious spelling for a writer who believes the old sentence is
+॰ `संज्ञा ॱ स्थापनम् भवति वास्तुॱपाठ्यम्`. That yields ०, `स्थापनाधारः` answers
+॰ `शून्यम्`, and THE SYMBOL SILENTLY GETS NO ADDRESS — it links and resolves
+॰ nowhere. A margin that describes the intent inaccurately is worse than none,
+॰ because the accurate-sounding version is what the next writer follows.
+॰
+॰ `t1_vastu_build.rs` pins each constant to its variant PLUS ONE. Not to the
+॰ variant — that fails today — and not on its own, which nothing could refute.
+॰ The change it is for is someone correcting the off-by-one in ONE place.
+॰
+॰ integers rather than a गणना for the same reason सङ्केतन mirrors
+॰ RelSection as integers: the enum lives in another module and this file
+॰ must be readable before that module is hand-ported.
+सार्वजनिक चरः पाठनिवेशः ॱॱ न६४ भवति १ ।            ॰ Placement::Text
+सार्वजनिक चरः दत्तनिवेशः ॱॱ न६४ भवति २ ।           ॰ Placement::Data
+सार्वजनिक चरः बीजनिवेशः ॱॱ न६४ भवति ३ ।            ॰ Placement::Bss
+सार्वजनिक चरः शोधनपङ्क्तिनिवेशः ॱॱ न६४ भवति ४ ।     ॰ Placement::DebugLine
+सार्वजनिक चरः अनिर्दिष्टनिवेशः ॱॱ न६४ भवति ५ ।      ॰ Placement::Undefined
+सार्वजनिक चरः अन्यनिवेशः ॱॱ न६४ भवति ६ ।           ॰ Placement::Other
+
+॰ which section a name ends up in — mirrors कोश ॱ SymSection.
+सार्वजनिक चरः संयोजनपाठकोष्ठकम् ॱॱ न६४ भवति १ ।           ॰ SymSection::Text
+सार्वजनिक चरः संयोजनदत्तकोष्ठकम् ॱॱ न६४ भवति २ ।          ॰ SymSection::Data
+सार्वजनिक चरः बीजकोष्ठकम् ॱॱ न६४ भवति ३ ।           ॰ SymSection::Bss
+सार्वजनिक चरः अनिर्दिष्टकोष्ठकम् ॱॱ न६४ भवति ४ ।     ॰ SymSection::Undefined
+
+
+॰ ══════════════════ what a link produces ══════════════════
+
+॰ one name and the absolute address it ended up at.
+॰ Rust holds these in a BTreeMap<String, u64>; T1 has no map, so the
+॰ pairs are a slice and स्थानान्वेषणम् below is the lookup. lossy by
+॰ construction in both: two objects may each define a local चक्रः and
+॰ only one entry survives — सारणी is the truth.
+सार्वजनिक संरचना नामस्थानम् आरभ्य
+  नाम ॱॱ पाठ ऽ
+  स्थान ॱॱ न६४
+समाप्तम् ।
+
+॰ a linked image — Linked.
+सार्वजनिक संरचना संयोजितम् आरभ्य
+  पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ                        ॰ text: every object's instructions, end to end
+  दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ                         ॰ data: likewise
+  बीजम् ॱॱ न६४ ऽ                                   ॰ bss: reserved after the data, in memory only
+  नामानि ॱॱ अङ्कः अन्तः नामस्थानम् ऽ                  ॰ symbols: every defined name, for lookups
+  शोधनम् ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः ऽ             ॰ debug: the debug sections, addresses fixed
+  सारणी ॱॱ अङ्कः अन्तः कोशॱसंज्ञा                     ॰ table: every symbol, in object order
+समाप्तम् ।
+
+
+॰ ══════════════════ laying the sections out ══════════════════
+॰
+॰ ON GROUPING: the operators below are bracketed with आरभ्य ॱ समाप्तम्
+॰ wherever order matters. spec/grammar-t1.ebnf freezes the three phrase
+॰ constructs but says out loud that OPERATORS AND THEIR PRECEDENCE ARE
+॰ NOT FROZEN, so an unbracketed चरः सीमा भवति १ वामसृ विस्तारः वियोगः १
+॰ means one thing to a right-to-left reader and another to a left-to-right
+॰ one. Both readings are present in this crate's siblings today. Bracketing
+॰ is what makes this file mean the same thing under either rule.
+
+॰ round a length up to the next multiple of eight.
+॰ Rust writes next_multiple_of(8); the alignment matters because .bss
+॰ following unaligned data would overlap another object's initialised
+॰ bytes, and a buffer written over live data still runs.
+सार्वजनिक वृत्तिः अष्टकसंरेखणम् आदाय मूल्यम् ॱॱ न६४ ददाति न६४ आदि
+    चरः शेषः ॱॱ न६४ भवति मूल्यम् युक् ७ ।
+    यदि शेषः समम् ० आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    प्रत्यागमनम् मूल्यम् योगः आरभ्य ८ वियोगः शेषः समाप्तम् ।
+इति
+
+॰ ROUND EACH OBJECT'S START — BECAUSE ONLY THE LINKER CAN. `encode.t1:5916`
+॰ puts each object's `.data` at `संरेखान्तरम् पाठसीमा ८`: eight-aligned
+॰ RELATIVE TO THAT OBJECT. This routine then concatenated the objects with a
+॰ BARE SUM of their data lengths, so an object's whole aligned interior landed
+॰ wherever the preceding objects' lengths happened to end.
+॰
+॰ Measured 2026-09-21 (`crates/yantra/src/input.rs`): all three interface tags
+॰ at addresses ≡ ५ (mod ८) — an ODD address, failing even halfword alignment.
+॰ `yantra` tolerates a misaligned load, which is why the corpus ran and nothing
+॰ said a word; many RV64 cores trap on one. After this repair, same instrument
+॰ and same image: ≡ ० (mod ८).
+॰
+॰ EIGHT, NOT SIXTEEN, AND THE FIRST ATTEMPT USED SIXTEEN.
+॰ The margin that reported the defect blamed `॥ संरेखः १६ ॥`. That directive is
+॰ `.text` ONLY — `संरेखपूरणाष्टकम्` pads with `nop`, because 0x00000000 traps
+॰ on RISC-V — and it never governed a data word. Reading it as a data promise
+॰ cost a round: `दत्ताधारः` was moved to sixteen and `t1_exec_link` went red in
+॰ two places, one of them a MUTATION test that neuters the `८` inside
+॰ `अष्टकसंरेखणम्` and asserts `.data` then begins at the text end. Eight is a
+॰ contract twinned across the assembler, this linker and the way `kosha` lays
+॰ an image out, and a twin moved on one side only is how this corpus makes
+॰ silent defects. `दत्ताधारः` was never part of the defect and is untouched.
+॰
+॰ So eight here too: with an eight-aligned section base, a sixteen on the
+॰ objects would claim a boundary the base cannot deliver. Eight is what the
+॰ assembler promises and what `ld`/`sd` require.
+
+॰ where object क्रमः begins in the concatenated text — text_at.
+॰ called with क्रमः equal to the object count it is the TOTAL text
+॰ length, which is how Rust's text_len is read off the same walk.
+सार्वजनिक वृत्तिः पाठारम्भः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु क्रमः ॱॱ न६४ ददाति न६४ आदि
+    चरः योगफलम् ॱॱ न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् क्रमः आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः सूचकाङ्क अन्तः ।
+        योगफलम् भवति योगफलम् योगः वस्तु ॱ पाठ्यम् ॱ दैर्घ्य ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् योगफलम् ।
+इति
+
+॰ where object क्रमः begins in the concatenated data — data_at.
+सार्वजनिक वृत्तिः दत्तारम्भः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु क्रमः ॱॱ न६४ ददाति न६४ आदि
+    ॰ THIS ROUTINE ANSWERS TWO QUESTIONS AND THEY ROUND DIFFERENTLY.
+    ॰ For क्रमः below the count it gives object क्रमः's START, which must be
+    ॰ aligned or that object's whole eight-aligned interior lands askew. For
+    ॰ क्रमः EQUAL to the count it gives the section's LENGTH (`:1586`), and a
+    ॰ length is a count of octets, not an address: padding it over-reserves.
+    ॰ A first version rounded after every add and reported `.bss` as ८ where
+    ॰ the object asked for ५ — caught by `t1_exec_link`'s "the reservation is
+    ॰ carried, in memory and not in the file".
+    ॰ NO SECOND ACCUMULATOR — AND THE REASON FIRST GIVEN HERE WAS WRONG.
+    ॰ A version that carried the true end in a `चरः` beside the aligned one
+    ॰ appeared to break the FIXPOINT, and this margin blamed the extra local:
+    ॰ 4 of 873 routines disagreed on frame size, three by exactly two slots,
+    ॰ matching the three `चरः` that version added. THAT WAS A MEASUREMENT
+    ॰ ERROR, not a divergence. `tools/pack-corpus.py` had packed the blob four
+    ॰ hours BEFORE the edit, and `t1_image` builds Stage 1 from the working
+    ॰ tree while `yantra-run` feeds Stage 2 the BLOB — so Stage 1 held the new
+    ॰ locals and Stage 2 compiled sources without them. Three routines two
+    ॰ slots smaller is exactly right when the locals are genuinely absent.
+    ॰ The accumulator version would very likely have been fine.
+    ॰ The recursion stays because it is SIMPLER, not because it was forced:
+    ॰ the length is asked for ONCE per section, so one call costs nothing and
+    ॰ the routine keeps a single cursor. Measured after the repair, with a
+    ॰ blob packed from the same tree: Stage 1 == Stage 2, 1,393,602 octets.
+    यदि क्रमः समम् वस्तुसंख्या वस्तूनि आदि
+        यदि क्रमः समम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        प्रत्यागमनम् आरभ्य दत्तारम्भः वस्तूनि आरभ्य क्रमः वियोगः १ समाप्तम् समाप्तम् योगः आरभ्य वस्तूनि अङ्कः आरभ्य क्रमः वियोगः १ समाप्तम् अन्तः ॱ दत्तम् ॱ दैर्घ्य समाप्तम् ।
+    इति
+
+    चरः योगफलम् ॱॱ न६४ भवति ० ।     ॰ the aligned end — the next object's start
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् क्रमः आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः सूचकाङ्क अन्तः ।
+        योगफलम् भवति अष्टकसंरेखणम् आरभ्य योगफलम् योगः वस्तु ॱ दत्तम् ॱ दैर्घ्य समाप्तम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् योगफलम् ।
+इति
+
+॰ where object क्रमः begins in the reserved bytes — bss_at.
+सार्वजनिक वृत्तिः बीजारम्भः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु क्रमः ॱॱ न६४ ददाति न६४ आदि
+    ॰ the same shape as दत्तारम्भः, and declaring nothing for the same reason.
+    यदि क्रमः समम् वस्तुसंख्या वस्तूनि आदि
+        यदि क्रमः समम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        प्रत्यागमनम् आरभ्य बीजारम्भः वस्तूनि आरभ्य क्रमः वियोगः १ समाप्तम् समाप्तम् योगः आरभ्य वस्तूनि अङ्कः आरभ्य क्रमः वियोगः १ समाप्तम् अन्तः ॱ शून्यक्षेत्रम् समाप्तम् ।
+    इति
+
+    चरः योगफलम् ॱॱ न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् क्रमः आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः सूचकाङ्क अन्तः ।
+        ॰ वास्तु SPELLS THIS FIELD शून्यक्षेत्रम् AND THIS FILE READ वस्तु ॱ बीजम्,
+        ॰ which वास्तु has never declared. The image's own field is बीजम्
+        ॰ (संयोजितम् above); an OBJECT's is शून्यक्षेत्रम् (vastu.t1:73). The two
+        ॰ were written as one name and nothing could notice while no body ran.
+        योगफलम् भवति अष्टकसंरेखणम् आरभ्य योगफलम् योगः वस्तु ॱ शून्यक्षेत्रम् समाप्तम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् योगफलम् ।
+इति
+
+॰ where the data begins, relative to the image — data_base.
+सार्वजनिक वृत्तिः दत्ताधारः आदाय पाठदैर्घ्यम् ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् अष्टकसंरेखणम् पाठदैर्घ्यम् ।
+इति
+
+॰ where the reserved bytes begin — bss_base. after ALL of the data.
+सार्वजनिक वृत्तिः बीजाधारः आदाय पाठदैर्घ्यम् ॱॱ न६४ दत्तदैर्घ्यम् ॱॱ न६४ ददाति न६४ आदि
+    चरः आधारः ॱॱ न६४ भवति दत्ताधारः पाठदैर्घ्यम् ।
+    प्रत्यागमनम् अष्टकसंरेखणम् आरभ्य आधारः योगः दत्तदैर्घ्यम् समाप्तम् ।
+इति
+
+
+॰ ══════════════════ giving every name an address ══════════════════
+
+॰ the absolute base a definition counts from, by where the reader placed
+॰ it — the match on s.placement.
+॰ this asks WHAT THE READER RESOLVED, not a section number. Rust matched
+॰ s.section == 1 against .text on the reasoning that ours and GNU's both
+॰ put it there — true while .bss and .rela.data were absent, and false the
+॰ moment either is written, because every index after .data shifts (B-099).
+॰ a section this reader does not model is NOT PLACED: शून्यम्, not a
+॰ guess. guessing .data would give the name a real address in the wrong
+॰ place, which is worse than refusing to define it.
+सार्वजनिक वृत्तिः स्थापनाधारः आदाय निवेशः ॱॱ न६४ भारणम् ॱॱ न६४ पाठस्थानम् ॱॱ न६४ दत्ताधारम् ॱॱ न६४ दत्तस्थानम् ॱॱ न६४ बीजाधारम् ॱॱ न६४ बीजस्थानम् ॱॱ न६४ ददाति सम्भाव्य न६४ आदि
+    यदि निवेशः समम् पाठनिवेशः आदि
+        प्रत्यागमनम् भारणम् योगः पाठस्थानम् ।
+    इति
+    यदि निवेशः समम् दत्तनिवेशः आदि
+        चरः आधारः ॱॱ न६४ भवति भारणम् योगः दत्ताधारम् ।
+        प्रत्यागमनम् आधारः योगः दत्तस्थानम् ।
+    इति
+    यदि निवेशः समम् बीजनिवेशः आदि
+        चरः आधारः ॱॱ न६४ भवति भारणम् योगः बीजाधारम् ।
+        प्रत्यागमनम् आधारः योगः बीजस्थानम् ।
+    इति
+    प्रत्यागमनम् शून्यम् ।
+इति
+
+॰ which section of the image a definition's placement names — the
+॰ SymSection the image's .symtab records.
+॰ the fallthrough is संयोजनदत्तकोष्ठकम्, which is Rust's own _ arm.
+सार्वजनिक वृत्तिः कोष्ठकभेदः आदाय निवेशः ॱॱ न६४ ददाति न६४ आदि
+    यदि निवेशः समम् पाठनिवेशः आदि
+        प्रत्यागमनम् संयोजनपाठकोष्ठकम् ।
+    इति
+    यदि निवेशः समम् बीजनिवेशः आदि
+        प्रत्यागमनम् बीजकोष्ठकम् ।
+    इति
+    प्रत्यागमनम् संयोजनदत्तकोष्ठकम् ।
+इति
+
+॰ the address one object symbol ends up at, or शून्यम् if it defines
+॰ nothing — the whole body of Rust's inner symbol loop, skips included.
+॰ an empty name and an undefined symbol are both skipped: an object names
+॰ what it needs as well as what it has, and a hole is not a definition.
+सार्वजनिक वृत्तिः संज्ञास्थानम् आदाय संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा भारणम् ॱॱ न६४ पाठस्थानम् ॱॱ न६४ दत्ताधारम् ॱॱ न६४ दत्तस्थानम् ॱॱ न६४ बीजाधारम् ॱॱ न६४ बीजस्थानम् ॱॱ न६४ ददाति सम्भाव्य न६४ आदि
+    यदि संज्ञा ॱ नाम ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    ॰ वास्तु SPELLS THE FIELD स्थापनम् (vastu.t1:41) AND THIS FILE READ
+    ॰ संज्ञा ॱ निवेशः, which no record carries. निवेशः is this file's own word
+    ॰ for the MIRRORED CONSTANTS above — पाठनिवेशः and its five siblings — and
+    ॰ it leaked into the field read. The parameter of स्थापनाधारः keeps the
+    ॰ constant's word, because that is what it is handed.
+    यदि संज्ञा ॱ स्थापनम् समम् अनिर्दिष्टनिवेशः आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः आधारः ॱॱ सम्भाव्य अ६४ भवति स्थापनाधारः संज्ञा ॱ स्थापनम् भारणम् पाठस्थानम् दत्ताधारम् दत्तस्थानम् बीजाधारम् बीजस्थानम् ।
+    यदि आधारः समम् शून्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    प्रत्यागमनम् आधारः योगः संज्ञा ॱ मूल्यम् ।
+इति
+
+॰ the address recorded for a name, or शून्यम् — one scope's lookup.
+॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY: `भवति ०` gives it one slot and
+॰ nothing shrinks it, so a scope with NO names and a scope with ONE both report
+॰ ॱ दैर्घ्य १ and only the entry tells them apart. An object that exports
+॰ nothing is ordinary — every object with no ॥ वैश्विकम् … ॥ is one — so the
+॰ शून्यम् entry is a normal reading here and not a fault. Without the guard the
+॰ first link of an object that defines no global asks a शून्यम् for ॱ नाम.
+सार्वजनिक वृत्तिः स्थानान्वेषणम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ ददाति सम्भाव्य न६४ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति नामानि ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः प्रविष्टिः ॱॱ नामस्थानम् भवति नामानि अङ्कः सूचकाङ्क अन्तः ।
+        यदि प्रविष्टिः असमम् शून्यम् आदि
+            यदि प्रविष्टिः ॱ नाम समम् नाम आदि
+                प्रत्यागमनम् प्रविष्टिः ॱ स्थान ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् शून्यम् ।
+इति
+
+॰ how many live entries a name table holds — the count स्थानान्वेषणम् walks
+॰ and the one a caller appends at. Same reading as above: ० entries and १
+॰ entry both report ॱ दैर्घ्य १, and entry ० separates them.
+सार्वजनिक वृत्तिः नामसंख्या आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् ददाति अ६४ आदि
+    यदि नामानि अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् नामानि ॱ दैर्घ्य ।
+इति
+
+॰ record नाम at स्थान, replacing any entry that already carries it — Rust's
+॰ BTreeMap::insert, which is what both `symbols` and `exported` are. answers
+॰ the new live count, so a caller keeps its own cursor without asking दैर्घ्य.
+॰ REPLACING RATHER THAN APPENDING is the map's behaviour and not a tidiness:
+॰ two entries for one name would make स्थानान्वेषणम् answer whichever was
+॰ written first, where Rust's map answers the last.
+॰ THE RUN IS RETURNED, THE COUNT PUBLISHED (2026-09-22). This routine used to
+॰ return the COUNT and rely on the caller seeing its append — true in the
+॰ interpreter, which shares a run by reference, and false natively: an index
+॰ store past a run's capacity cuts a NEW block and writes the new base back into
+॰ the run's own location (ir.t1, "GROWTH"), which here is this PARAMETER. The
+॰ caller kept the old one-element block, every lookup in `स्थानान्वेषणम्` walked a
+॰ table of length १, and the native link refused every relocation — the stack
+॰ symbol `स्तूपान्तः` and the entry among them — so the native self-image build
+॰ answered no image. Every other routine in the corpus that stores into a run
+॰ parameter already returns the run and has its caller assign it (census
+॰ 2026-09-22: 9 such sites, 8 of that shape or never growing); this one now
+॰ does too, and the count it used to return is `नामस्थानगणना`.
+सार्वजनिक चरः नामस्थानगणना ॱॱ अ६४ भवति ० ।
+सार्वजनिक वृत्तिः नामस्थानयोजनम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् संख्यानम् ॱॱ अ६४ नाम ॱॱ पाठ स्थान ॱॱ अ६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        चरः पूर्वा ॱॱ नामस्थानम् भवति नामानि अङ्कः सूचकाङ्क अन्तः ।
+        यदि पूर्वा असमम् शून्यम् आदि
+            यदि पूर्वा ॱ नाम समम् नाम आदि
+                पूर्वा ॱ स्थान भवति स्थान ।
+                नामस्थानगणना भवति संख्यानम् ।
+                प्रत्यागमनम् नामानि ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    चरः नवा ॱॱ नामस्थानम् भवति ० ।
+    नवा ॱ नाम भवति नाम ।
+    नवा ॱ स्थान भवति स्थान ।
+    नामानि अङ्कः संख्यानम् अन्तः भवति नवा ।
+    नामस्थानगणना भवति संख्यानम् योगः १ ।
+    प्रत्यागमनम् नामानि ।
+इति
+
+॰ the object's OWN names first, then what any object exported.
+॰ a file's own चक्रः is the one it means, and shadowing is what makes a
+॰ local name local — B-014's rule, and the reason a LOCAL defined twice
+॰ is ordinary where a GLOBAL defined twice is refused.
+सार्वजनिक वृत्तिः निर्णीतस्थानम् आदाय परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ ददाति सम्भाव्य न६४ आदि
+    चरः स्वकीयम् ॱॱ सम्भाव्य न६४ भवति स्थानान्वेषणम् परिसरः नाम ।
+    यदि स्वकीयम् असमम् शून्यम् आदि
+        प्रत्यागमनम् स्वकीयम् ।
+    इति
+    प्रत्यागमनम् स्थानान्वेषणम् निर्यातानि नाम ।
+इति
+
+॰ whether a GLOBAL is being defined a second time — the collision the
+॰ linker must refuse. silently taking one makes which file was listed
+॰ first into program behaviour.
+सार्वजनिक वृत्तिः पुनरुक्तनिर्यातम् आदाय निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ वैश्विकम् ॱॱ बूल ददाति बूल आदि
+    यदि वैश्विकम् समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः पूर्वम् ॱॱ सम्भाव्य न६४ भवति स्थानान्वेषणम् निर्यातानि नाम ।
+    यदि पूर्वम् समम् शून्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ what a relocation computes ══════════════════
+
+॰ the pc-relative value a record asks for — target + addend - pc.
+सार्वजनिक वृत्तिः अन्तरमूल्यम् आदाय लक्ष्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ क्रमसूचकः ॱॱ इ६४ ददाति इ६४ आदि
+    चरः योगफलम् ॱॱ इ६४ भवति लक्ष्यम् योगः योज्यम् ।
+    प्रत्यागमनम् योगफलम् वियोगः क्रमसूचकः ।
+इति
+
+॰ the absolute value .rela.data asks for — target + addend, and NOT a
+॰ displacement (B-098). a pointer in a table is dereferenced, never added
+॰ to a pc.
+सार्वजनिक वृत्तिः निरपेक्षमूल्यम् आदाय लक्ष्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+    प्रत्यागमनम् लक्ष्यम् योगः योज्यम् ।
+इति
+
+॰ the upper twenty bits an auipc must carry — R_RISCV_PCREL_HI20.
+॰ rounded so that adding a SIGNED lower twelve reaches the target: addi
+॰ sign-extends, so a low half above 0x7ff must be borrowed against.
+सार्वजनिक वृत्तिः उपरिभागः आदाय मूल्यम् ॱॱ इ६४ ददाति इ६४ आदि
+    चरः समायोजितम् ॱॱ इ६४ भवति मूल्यम् योगः २०४८ ।    ॰ 0x800
+    प्रत्यागमनम् समायोजितम् दक्षिणसृ १२ ।
+इति
+
+॰ the lower twelve an addi must carry — R_RISCV_PCREL_LO12_I.
+॰ whole - ((whole + 0x800) >> 12 << 12): what the rounded upper half did
+॰ not already reach.
+सार्वजनिक वृत्तिः अधोभागः आदाय पूर्णम् ॱॱ इ६४ ददाति इ६४ आदि
+    चरः उपरि ॱॱ इ६४ भवति उपरिभागः पूर्णम् ।
+    प्रत्यागमनम् पूर्णम् वियोगः आरभ्य उपरि वामसृ १२ समाप्तम् ।
+इति
+
+॰ the pc the pair's low half is measured from — the auipc's, not its own.
+॰ ॱअधः completes the register the PRECEDING instruction set, so the pair
+॰ is positional and the low half is computed against that pc. computing
+॰ it against its own would be wrong by four.
+सार्वजनिक वृत्तिः उपरिपदस्थानम् आदाय भारणम् ॱॱ इ६४ पाठस्थानम् ॱॱ इ६४ संज्ञामूल्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+    चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठस्थानम् ।
+    चरः स्थानाङ्कः ॱॱ इ६४ भवति आधारः योगः संज्ञामूल्यम् ।
+    प्रत्यागमनम् स्थानाङ्कः योगः योज्यम् ।
+इति
+
+॰ WHERE, ONE-BASED, the %pcrel_hi record a %pcrel_lo names — ० means none.
+॰
+॰ IT EXISTS BECAUSE AN INDEX CANNOT CARRY PRESENCE. The search it replaced
+॰ answered the record's 0-BASED index as `सम्भाव्य न६४`, and `ir.t1` lowers that
+॰ kind as one word with ० meaning absent. When the %pcrel_hi is an object's
+॰ FIRST relocation — often its first `auipc` — the index is ०: PRESENT to the
+॰ interpreter, ABSENT in the image, where the link raised `अनुपरिकूटः` and
+॰ refused the whole image. Found 2026-09-21 by the zero-optional witness on the
+॰ FIRST run that went through the LINKER (the self-image rung): no per-module
+॰ compile reaches it, because none of them links. The third site of this class
+॰ today, after `c.addi4spn`'s pattern and a call to a module's first routine.
+॰
+॰ `उपरिलेखान्वेषणम्` — the 0-based search this replaced — WAS DELETED
+॰ 2026-09-21, not kept: once its one caller moved here it was referenced
+॰ nowhere (the public-name census said so), and its only possible use was the
+॰ question that caused the defect. A routine whose answer can only be asked
+॰ the wrong way is a trap for the next caller, so it went, and this is the one
+॰ statement of the search. (The %pcrel_lo/%pcrel_hi reasoning it carried —
+॰ B-105: a %pcrel_lo names WHERE its %pcrel_hi is, which lets GNU ld read these
+॰ objects — is the reason this search exists at all.)
+सार्वजनिक वृत्तिः उपरिलेखक्रमाङ्कः आदाय लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् उपरिभेदः ॱॱ न६४ लक्षितम् ॱॱ इ६४ ददाति न६४ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति लेखाः ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः लेखः ॱॱ वास्तुॱपुनःस्थापनम् भवति लेखाः अङ्कः सूचकाङ्क अन्तः ।
+        ॰ वास्तु SPELLS THIS FIELD भेदः (vastu.t1:49) and this read भेद.
+        ॰ The same class of miss as संज्ञा ॱ निवेशः above: the word without its
+        ॰ visarga is सङ्केतन ॱ अवकाश's field, and a reader who knows that file
+        ॰ writes it from memory.
+        यदि लेखः असमम् शून्यम् आदि
+            यदि लेखः ॱ भेदः समम् उपरिभेदः आदि
+                यदि लेखः ॱ स्थानाङ्कः समम् लक्षितम् आदि
+                    प्रत्यागमनम् सूचकाङ्क योगः १ ।
+                इति
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ a %pcrel_lo's addend belongs to the address it NAMES, not to the value
+॰ it writes, so it is not added a second time here.
+सार्वजनिक वृत्तिः लेखयोज्यम् आदाय भेदः ॱॱ न६४ अधोभेदः ॱॱ न६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+    यदि भेदः समम् अधोभेदः आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् योज्यम् ।
+इति
+
+
+॰ ══════════════════ writing bytes into a section ══════════════════
+
+॰ ── WHY THESE ANSWER A RUN AND NOT A बूल ──
+॰ Rust writes `slot.copy_from_slice(…)` through a `&mut [u8]` and reports only
+॰ whether the slot existed. T1 HAS NO SUCH REFERENCE: `अङ्कः अन्तः अ८` is a
+॰ VALUE, and `दत्तम् अङ्कः क अन्तः भवति ब` rebinds the callee's own name — the
+॰ caller's run is untouched. A बूल here would report सत्यम् over bytes nobody
+॰ can see, which is the worst of the three possible answers.
+॰ So each answers THE RUN IT WROTE, and शून्यम् where Rust answers Err. The
+॰ caller writes `दत्तम् भवति अष्टाष्टकनिधानम् …`, which is the same sentence
+॰ Rust's `&mut` writes with the mutation made explicit.
+
+॰ put eight little-endian octets at स्थानाङ्कः — the .rela.data write.
+॰ शून्यम् when the record points past the section, which Rust reports as
+॰ "a data relocation points past .data".
+सार्वजनिक वृत्तिः अष्टाष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+    चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः ८ ।
+    यदि दत्तम् ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् ८ आदि
+        चरः सरणम् ॱॱ न६४ भवति सूचकाङ्क वामसृ ३ ।
+        चरः अष्टकम् ॱॱ न६४ भवति आरभ्य मूल्यम् दक्षिणसृ सरणम् समाप्तम् युक् २५५ ।
+        दत्तम् अङ्कः आरभ्य स्थानाङ्कः योगः सूचकाङ्क समाप्तम् अन्तः भवति अष्टकम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दत्तम् ।
+इति
+
+॰ put four little-endian octets at स्थानाङ्कः — DW_AT_stmt_list, which is
+॰ an OFFSET into the merged .debug_line and not an address, and so is four
+॰ octets where every other debug record is eight. It is also the width of an
+॰ instruction word, so संस्कारः writes its rebuilt पदम् through this.
+सार्वजनिक वृत्तिः चतुरष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+    चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः ४ ।
+    यदि दत्तम् ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् ४ आदि
+        चरः सरणम् ॱॱ न६४ भवति सूचकाङ्क वामसृ ३ ।
+        चरः अष्टकम् ॱॱ न६४ भवति आरभ्य मूल्यम् दक्षिणसृ सरणम् समाप्तम् युक् २५५ ।
+        दत्तम् अङ्कः आरभ्य स्थानाङ्कः योगः सूचकाङ्क समाप्तम् अन्तः भवति अष्टकम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दत्तम् ।
+इति
+
+॰ the offset a debug record writes at, given which unit it came from.
+॰ .debug_line's own record is a DW_LNE_set_address, a TEXT address,
+॰ applied against this object's text base.
+सार्वजनिक वृत्तिः शोधनस्थानम् आदाय भारणम् ॱॱ इ६४ पाठस्थानम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+    चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठस्थानम् ।
+    प्रत्यागमनम् आधारः योगः योज्यम् ।
+इति
+
+
+॰ ══════════════════ rebuilding one instruction ══════════════════
+
+॰ the slot a relocation means, by kind — Rust's find over e.slots.
+॰ imm and simm are both immediates; the derivation splits them by whether
+॰ the field accepts a negative, which is not a distinction a relocation
+॰ makes. returns the slot count as the not-found answer, T1 having no
+॰ reference to return — सङ्केतन ॱ आवरणावकाशः reports the same way.
+सार्वजनिक वृत्तिः पूरणीयावकाशः आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत भेदः ॱॱ न६४ ददाति न६४ आदि
+    ॰ ecall, ebreak and fence.i fix every bit and have NO slots, and an arena
+    ॰ in this language cannot be empty — so their ॱ अवकाशाः reports दैर्घ्य १
+    ॰ with शून्यम् at entry ०. Asked without this the loop below reads ॱ भेद
+    ॰ from a शून्यम्; those three are exactly the instructions a relocation can
+    ॰ never name, so the honest answer is "no such slot" and not a fault.
+    ॰ ० IS THE NOT-FOUND ANSWER HERE AND NOT AN INDEX, which is consistent
+    ॰ with the दैर्घ्य this returns below only because a caller compares
+    ॰ against अवकाशसंख्या — ० for a slotless row, दैर्घ्य for every other.
+    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि अवकाशः ॱ भेद समम् भेदः आदि
+            प्रत्यागमनम् सूचकाङ्क ।
+        इति
+        यदि भेदः समम् सङ्केतनॱतत्कालभेद आदि
+            यदि अवकाशः ॱ भेद समम् सङ्केतनॱसचिह्नतत्कालभेद आदि
+                प्रत्यागमनम् सूचकाङ्क ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
+॰ how many slots an encoding really has — ० for the four rows that fix every
+॰ bit. The partner of पूरणीयावकाशः: "not found" is this number, so the two
+॰ must be read together.
+सार्वजनिक वृत्तिः अवकाशसंख्या आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत ददाति अ६४ आदि
+    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+इति
+
+॰ rebuild an instruction word with one slot replaced — the arithmetic
+॰ half of संस्कारः.
+॰ REBUILT FROM THE PATTERN, not OR-ed into the existing word: the field is
+॰ zero in an object, but a linker that assumed so and met a non-zero one
+॰ would add to it silently.
+॰ मूल्यानि is the decoded operand list, one entry per slot in written
+॰ order — Rust zips e.slots with decoded.operands.
+सार्वजनिक वृत्तिः पदपुनर्निर्माणम् आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत मूल्यानि ॱॱ अङ्कः अन्तः अ६४ पूरणीयः ॱॱ न६४ मूल्यम् ॱॱ अ६४ ददाति अ३२ आदि
+    चरः पदम् ॱॱ अ३२ भवति सङ्केतः ॱ आकृति ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+॰ ADR-0030: LEFT ALONE — `let v = if ptr::eq(s, slot) { value } else { *v }`
+॰ (`samyojana.rs:495`) is signed on both arms. It is then passed to
+॰ सङ्केतन ॱ स्थापनम्, whose twin is `Slot::place(v: u64)`: Rust bridges
+॰ that with `as u64` at `:497` and T1 cannot.
+॰ THE `encode.t1` CYCLE HAS NOW ARRIVED AND THE BOUNDARY IS OPEN RATHER THAN
+॰ PENDING. सङ्केतन ॱ स्थापनम् is declared `मूल्यम् ॱॱ न६४` as of that cycle,
+॰ so this line passes an `अ६४` into an `न६४` parameter and the disagreement is
+॰ VISIBLE — which is the point of taking the callee first.
+॰ AND IT IS *NOT* CLOSED BY A CONVERSION ROUTINE, WHICH IS WHAT THE SENTENCE
+॰ THAT STOOD HERE PREDICTED. ADR-0031 asked for that routine and answered NO:
+॰ no T1 expression can change a type (`type` is reachable from `binding` and
+॰ the four type constructors and from no expression production at all), and
+॰ vishlesana's own two's-complement bridge stops below width 64, so a
+॰ conversion routine's body would need the very thing it exists to provide.
+॰ WHAT CLOSES IT IS THE PRODUCER. `पदरचना` takes मूल्यानि and चिह्नितानि —
+॰ the same numbers twice, unsigned and signed — where विश्लेषण ॱ
+॰ अवकाशमूल्यानि fills ONE signed slice. That producer must offer the second
+॰ reader beside the first, as `sanskrit_text.t1` offers `अंशाः` beside
+॰ `मानम्`. It is item 4's own remaining work; PROTOCOL §3 forbids splitting
+॰ `D-002h` to file a row for it.
+        चरः अंशदानम् ॱॱ अ६४ भवति ० ।
+        यदि सूचकाङ्क समम् पूरणीयः आदि
+            अंशदानम् भवति मूल्यम् ।
+        इति अन्यथा आदि
+            अंशदानम् भवति मूल्यानि अङ्कः सूचकाङ्क अन्तः ।
+        इति
+        पदम् भवति पदम् विकल्प आरभ्य सङ्केतनॱस्थापनम् अवकाशः अंशदानम् समाप्तम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति
+
+
+॰ ══════════════════ what was NOT ported, and now is ══════════════════
+॰
+॰ THERE IS NO STUB LEFT IN THIS FILE, as of 2026-08-30. All three blockers
+॰ below are discharged and the discharge of each is recorded rather than
+॰ deleted, because two of the three were STALE — they named a thing that had
+॰ already arrived, and only an audit of the blocker against the code found it.
+॰
+॰ (a) DISCHARGED 2026-08-29 — the relocation-number table. IT READ "T1 has
+॰     no include and no file reader, which is the same blocker
+॰     सङ्केतन ॱ सङ्केताः names", AND `D-002i2` HAD ALREADY REMOVED IT IN
+॰     THIS FILE: भेदाङ्कः below opens spec/relocations-riscv64.tsv through
+॰     `समावेशः आरभ्य संस्कारकोशः समाप्तम्` (line 513) and भेदपङ्क्तिः
+॰     walks it. The two stubs below still said "awaits (a) and (c)" for a
+॰     day after the thing (a) named was gone; `D-002k` found it while
+॰     auditing the blocker rather than the code, and corrected both.
+॰     ONE CLAUSE OF IT SURVIVES AND IS KEPT: MIRRORING THE NUMBERS HERE
+॰     WOULD STILL BE THE WRONG FIX — this module's whole argument is that
+॰     the derived table is the authority, and a hand-typed copy is the
+॰     second transcription that took four cycles to get right once.
+॰ (b) DISCHARGED 2026-08-30 — the instruction decoder. IT READ "संस्कारः
+॰     needs विश्लेषण ॱ decode to say which encoding is at an offset, and a
+॰     way to find that encoding's 32-bit form. विश्लेषण is still
+॰     port_encode.py output, so the lookup half of the patcher has nowhere
+॰     to ask." vishlesana.t1 HAS NO STUB IN IT — it is the hand-written
+॰     disassembler, and it gives संस्कारः all three things it wanted:
+॰       * विश्लेषण ॱ पदग्रहणम् — the four octets at an offset, or शून्यम्.
+॰       * विश्लेषण ॱ विश्लेषणम् — Rust's `decode`, विश्लिष्टम् or शून्यम्.
+॰       * विश्लेषण ॱ नामपङ्क्तिः नाम विस्तृतांशाः — samyojana.rs:472's
+॰         `find(|e| e.insn == decoded.insn && e.bits == 32)`, as ONE ROW
+॰         NUMBER, which विश्लेषण ॱ पङ्क्तिसङ्केतः then makes a सङ्केत of.
+॰     So the lookup half is a lookup and never was a collection.
+॰     THE SECOND HALF OF THAT SENTENCE USED TO READ "and सङ्केतन ॱ
+॰     सङ्केताः … is itself a stub", WHICH OVERSTATED IT. `D-002k` checked
+॰     what Rust does here: samyojana.rs:472 is `all.iter().find(|e| e.insn
+॰     == decoded.insn && e.bits == 32)`, ONE ROW, and the range idiom
+॰     भेदाङ्कः already uses answers it without any collection. संस्कारः
+॰     waits on the DECODER and on nothing else in this language.
+॰     The ARITHMETIC half is ported: पूरणीयावकाशः and पदपुनर्निर्माणम्.
+॰ (c) DISCHARGED 2026-08-30 — "T1 has no push" WAS FALSE WHEN WRITTEN.
+॰     संयोजनम् and स्थानसंयोजनम् accumulate a text buffer, a data buffer, a
+॰     symbol table, a scope per object and an error list, and report EVERY
+॰     unresolved name rather than the first. All of that is push, and push
+॰     is in the corpus: वाक्यविभाग has SIX appenders — पाठांशयोजनम्:421 and
+॰     five beside it — that make a record, advance a global cursor, write at
+॰     the cursor and return the index.
+॰
+॰     This note named the mechanism itself and then waited on it: "व्याकर
+॰     grows an array by writing past a global सूचकाङ्क into a preallocated
+॰     कोश, which needs an allocator decision this file will not take alone."
+॰     The first clause is right. The second sent two entry points to sleep
+॰     for days. अर्थ carried the identical sentence as its (a) — one note
+॰     copied into two files, and neither re-measured.
+॰
+॰     PROVEN BY EXECUTION, not by reading: tests/t1_execution.rs calls
+॰     पाठांशयोजनम् twice and gets १ then २, and a mutation pinning the
+॰     cursor makes both calls collide. Every step INSIDE these two loops was
+॰     already ported; the loops themselves are now unwritten, not blocked.
+॰     ADR-0026 (`D-002k`) GAVE THAT कोश A CAPACITY AND DID NOT UNBLOCK
+॰     THESE TWO, and the reason is worth writing down rather than
+॰     rediscovering. A fixed capacity is a COMPILE-TIME bound; these two
+॰     size their stores from `objects.len()` and from the sum of the
+॰     inputs' text lengths (samyojana.rs:97, :125, :170, :174), which are
+॰     RUNTIME values. A compile-time bound serves them only as an
+॰     arbitrary cap on how large a program may be linked, and no row has
+॰     taken that decision. They also want a name-keyed lookup where Rust
+॰     uses three BTreeMaps; a linear scan over a bounded array answers
+॰     that, but the cap comes first.
+॰
+॰     THE CAP WAS NEVER NEEDED. An arena in this language GROWS BY BEING
+॰     WRITTEN PAST ITS END — that is what `कोश अङ्कः सूचकाङ्क अन्तः भवति नव`
+॰     does — so `objects.len()` and the sum of the inputs' text lengths are
+॰     not bounds anything has to know in advance. The three BTreeMaps are
+॰     नामस्थानयोजनम् above, which is `insert` (replace-or-append) over an
+॰     arena, and स्थानान्वेषणम्, which is `get`. That is the whole of what
+॰     the note called an allocator decision.
+॰
+॰ ── WHAT A दोषयुक्त CARRIES HERE ──
+॰ Rust answers `Result<Linked, Vec<String>>` and REPORTS EVERY PROBLEM, not
+॰ the first — one run should report one link's problems. This interpreter has
+॰ no error propagation and this language has no string concatenation
+॰ (योगः on two पाठ is not implemented), so a formatted message cannot be
+॰ built here at all. The port keeps the PLURALITY, which is the part that
+॰ carries the argument, and drops the prose:
+॰   * the refusal is शून्यम्, which is what a दोषयुक्त carries in this corpus
+॰     already — अर्थ ॱ घोषणम् (artha.t1:611) answers the same way and says so.
+॰   * every problem is APPENDED to संयोजनदोषकोश as a record with a stable
+॰     code, the name it is about and the offset it is at. निदान's rule —
+॰     "वाक्यदोष ॱ कूट is a stable code" — is the one followed, so a caller
+॰     that wants prose renders the code and a test asserts the code.
+॰ A link that reports nothing is a link that succeeded, and the two are
+॰ told apart by संयोजनदोषसूचकाङ्क and not by the शून्यम् alone.
+
+॰ the diagnostics this linker can raise, by number. Each is one alloc::format!
+॰ in samyojana.rs, in the order that file writes them.
+सार्वजनिक चरः अपरिभाषितकूटः ॱॱ अ६४ भवति १ ।        ॰ `{}` is not defined by any object
+सार्वजनिक चरः पुनरुक्तकूटः ॱॱ अ६४ भवति २ ।          ॰ `{}` is defined by more than one object
+सार्वजनिक चरः असत्संज्ञाकूटः ॱॱ अ६४ भवति ३ ।        ॰ a relocation names symbol {}, which does not exist
+सार्वजनिक चरः अनुपयुक्तभेदकूटः ॱॱ अ६४ भवति ४ ।      ॰ relocation type {} is not applied yet
+सार्वजनिक चरः दत्तातिक्रमकूटः ॱॱ अ६४ भवति ५ ।       ॰ a data relocation points past .data
+सार्वजनिक चरः पाठातिक्रमकूटः ॱॱ अ६४ भवति ६ ।        ॰ a relocation points past the text
+सार्वजनिक चरः अविश्लेष्यकूटः ॱॱ अ६४ भवति ७ ।        ॰ nothing decodes at {}, so nothing can be patched
+सार्वजनिक चरः असङ्केतकूटः ॱॱ अ६४ भवति ८ ।           ॰ `{}` has no 32-bit encoding
+सार्वजनिक चरः अनवकाशकूटः ॱॱ अ६४ भवति ९ ।            ॰ `{}` has no {kind} to patch
+सार्वजनिक चरः अगम्यकूटः ॱॱ अ६४ भवति १० ।            ॰ `{}` at {} cannot reach {} bytes
+सार्वजनिक चरः अनुपरिकूटः ॱॱ अ६४ भवति ११ ।           ॰ a %pcrel_lo at {} names {}, where no %pcrel_hi is
+सार्वजनिक चरः शोधनातिक्रमकूटः ॱॱ अ६४ भवति १२ ।      ॰ a record points past {}, at {}
+सार्वजनिक चरः संक्षेपविरोधकूटः ॱॱ अ६४ भवति १३ ।     ॰ objects disagree about .debug_abbrev
+
+॰ one refusal — the Vec<String> Rust returns, one entry at a time.
+सार्वजनिक संरचना संयोजनदोष आरभ्य
+  कूट ॱॱ अ६४ ऽ                  ॰ which diagnostic, from the numbers above
+  नाम ॱॱ पाठः ऽ                 ॰ the name it is about, empty where there is none
+  स्थानाङ्कः ॱॱ अ६४ ऽ           ॰ where in the image, ० where it is not about a place
+  मूल्यम् ॱॱ इ६४                 ॰ the number the message would have shown
+समाप्तम् ।
+
+॰ every refusal of the CURRENT link, and how many there are.
+॰ ONE INTERPRETER IS ONE RUN, so this is module state exactly as
+॰ वाक्यविभाग ॱ वाक्यविभागदोषकोश is; स्थानसंयोजनम् zeroes the cursor on entry,
+॰ which is
+॰ what makes a second link on the same interpreter report its own problems and
+॰ not the first link's. THE ARENA IS NOT CLEARED and does not need to be: it
+॰ never shrinks in this language, and nothing reads past the cursor.
+सार्वजनिक चरः संयोजनदोषकोश ॱॱ अङ्कः अन्तः संयोजनदोष भवति ० ।
+सार्वजनिक चरः संयोजनदोषसूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+॰ the empty name, for a refusal that is not about one.
+सार्वजनिक चरः रिक्तनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+
+
+॰ ══════════════════ the names this file has to spell ══════════════════
+॰
+॰ THE NAMES BELOW ARE BUILT ONE OCTET AT A TIME, AND THAT IS FORCED. Rust
+॰ writes kind_named("R_RISCV_JAL") and `name.as_str() == ".debug_info"`; T1
+॰ HAS NO STRING LITERAL THAT CAN HOLD THEM. `उक्तम् … इति` exists — अर्थ:338
+॰ compares against `उक्तम् अ३२ इति` — but its content is lexed as ordinary
+॰ words, and every word must be in the doc 15 repertoire. `R` is not, and
+॰ neither is `.`; a literal `उक्तम् R_RISCV_JAL इति` fails
+॰ every_t1_source_lexes_and_parses with "`R` is outside the doc 15 repertoire".
+॰ MEASURED, not assumed: that is the error this file produced when it was
+॰ first written with the literals in it.
+॰
+॰ The idiom is वाक्यविभाग's own — दत्तक्षेत्रआज्ञाकूटः (vakyavibhaga.t1:915)
+॰ is an `अङ्कः अन्तः अ८` filled with ८०, ४८, ४९, the octets of `P01`. These
+॰ are ASCII, and ASCII is what the derived tables and DWARF are written in;
+॰ the octet is the only thing about them this language can say.
+
+॰ append one octet to a run — the one-octet half of अष्टकसंयोगः, so the
+॰ spellings below read as a list of characters and not as an index walk.
+सार्वजनिक वृत्तिः अष्टकवर्धनम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ अष्टकम् ॱॱ अ८ ददाति अङ्कः अन्तः अ८ आदि
+    पाठ्यम् अङ्कः पाठ्यम् ॱ दैर्घ्य अन्तः भवति अष्टकम् ।
+    प्रत्यागमनम् पाठ्यम् ।
+इति
+
+॰ `R_RISCV_`, the prefix every row of spec/relocations-riscv64.tsv carries.
+सार्वजनिक वृत्तिः संस्कारोपपदम् ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    नाम भवति अष्टकवर्धनम् नाम ८२ ।    ॰ R
+    नाम भवति अष्टकवर्धनम् नाम ९५ ।    ॰ _
+    नाम भवति अष्टकवर्धनम् नाम ८२ ।    ॰ R
+    नाम भवति अष्टकवर्धनम् नाम ७३ ।    ॰ I
+    नाम भवति अष्टकवर्धनम् नाम ८३ ।    ॰ S
+    नाम भवति अष्टकवर्धनम् नाम ६७ ।    ॰ C
+    नाम भवति अष्टकवर्धनम् नाम ८६ ।    ॰ V
+    नाम भवति अष्टकवर्धनम् नाम ९५ ।    ॰ _
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `R_RISCV_64` — the absolute 64-bit pointer .rela.data carries.
+सार्वजनिक वृत्तिः निरपेक्षभेदनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति संस्कारोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ५४ ।    ॰ 6
+    नाम भवति अष्टकवर्धनम् नाम ५२ ।    ॰ 4
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `R_RISCV_JAL`.
+सार्वजनिक वृत्तिः आह्वानभेदनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति संस्कारोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ७४ ।    ॰ J
+    नाम भवति अष्टकवर्धनम् नाम ६५ ।    ॰ A
+    नाम भवति अष्टकवर्धनम् नाम ७६ ।    ॰ L
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `R_RISCV_PCREL_`, shared by the two halves of an auipc/addi pair.
+सार्वजनिक वृत्तिः अन्तरोपपदम् ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति संस्कारोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ८० ।    ॰ P
+    नाम भवति अष्टकवर्धनम् नाम ६७ ।    ॰ C
+    नाम भवति अष्टकवर्धनम् नाम ८२ ।    ॰ R
+    नाम भवति अष्टकवर्धनम् नाम ६९ ।    ॰ E
+    नाम भवति अष्टकवर्धनम् नाम ७६ ।    ॰ L
+    नाम भवति अष्टकवर्धनम् नाम ९५ ।    ॰ _
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `R_RISCV_PCREL_HI20` — the upper twenty an auipc carries.
+सार्वजनिक वृत्तिः उपरिभेदनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति अन्तरोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ७२ ।    ॰ H
+    नाम भवति अष्टकवर्धनम् नाम ७३ ।    ॰ I
+    नाम भवति अष्टकवर्धनम् नाम ५० ।    ॰ 2
+    नाम भवति अष्टकवर्धनम् नाम ४८ ।    ॰ 0
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `R_RISCV_PCREL_LO12_I` — the lower twelve its addi carries.
+सार्वजनिक वृत्तिः अधोभेदनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति अन्तरोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ७६ ।    ॰ L
+    नाम भवति अष्टकवर्धनम् नाम ७९ ।    ॰ O
+    नाम भवति अष्टकवर्धनम् नाम ४९ ।    ॰ 1
+    नाम भवति अष्टकवर्धनम् नाम ५० ।    ॰ 2
+    नाम भवति अष्टकवर्धनम् नाम ९५ ।    ॰ _
+    नाम भवति अष्टकवर्धनम् नाम ७३ ।    ॰ I
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `.debug_`, the prefix of every DWARF section this carries through.
+सार्वजनिक वृत्तिः शोधनोपपदम् ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    नाम भवति अष्टकवर्धनम् नाम ४६ ।    ॰ .
+    नाम भवति अष्टकवर्धनम् नाम १०० ।   ॰ d
+    नाम भवति अष्टकवर्धनम् नाम १०१ ।   ॰ e
+    नाम भवति अष्टकवर्धनम् नाम ९८ ।    ॰ b
+    नाम भवति अष्टकवर्धनम् नाम ११७ ।   ॰ u
+    नाम भवति अष्टकवर्धनम् नाम १०३ ।   ॰ g
+    नाम भवति अष्टकवर्धनम् नाम ९५ ।    ॰ _
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `.debug_info` — the DIEs, one unit after another.
+सार्वजनिक वृत्तिः शोधनविवरनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति शोधनोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम १०५ ।   ॰ i
+    नाम भवति अष्टकवर्धनम् नाम ११० ।   ॰ n
+    नाम भवति अष्टकवर्धनम् नाम १०२ ।   ॰ f
+    नाम भवति अष्टकवर्धनम् नाम १११ ।   ॰ o
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `.debug_line` — the line programs, likewise.
+सार्वजनिक वृत्तिः शोधनपङ्क्तिनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति शोधनोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम १०८ ।   ॰ l
+    नाम भवति अष्टकवर्धनम् नाम १०५ ।   ॰ i
+    नाम भवति अष्टकवर्धनम् नाम ११० ।   ॰ n
+    नाम भवति अष्टकवर्धनम् नाम १०१ ।   ॰ e
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ `.debug_abbrev` — taken once, and refused when two objects disagree.
+सार्वजनिक वृत्तिः शोधनसंक्षेपनाम ददाति अङ्कः अन्तः अ८ आदि
+    चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति शोधनोपपदम् ।
+    नाम भवति अष्टकवर्धनम् नाम ९७ ।    ॰ a
+    नाम भवति अष्टकवर्धनम् नाम ९८ ।    ॰ b
+    नाम भवति अष्टकवर्धनम् नाम ९८ ।    ॰ b
+    नाम भवति अष्टकवर्धनम् नाम ११४ ।   ॰ r
+    नाम भवति अष्टकवर्धनम् नाम १०१ ।   ॰ e
+    नाम भवति अष्टकवर्धनम् नाम ११८ ।   ॰ v
+    प्रत्यागमनम् नाम ।
+इति
+
+॰ push one refusal — errors.push(alloc::format!(…)).
+॰ Written as वाक्यविभाग writes its six appenders: make the record, fill it,
+॰ advance the cursor, write at the cursor, answer the index. THE CODE IS THE
+॰ FIRST PARAMETER for the reason that file gives — a test can see which
+॰ diagnostics are actually raised only if the code is at the call site.
+सार्वजनिक वृत्तिः संयोजनदोषयोजनम् आदाय कूट ॱॱ अ६४ ऽ नाम ॱॱ पाठः ऽ स्थानाङ्कः ॱॱ अ६४ ऽ मूल्यम् ॱॱ इ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ संयोजनदोष भवति ० ।
+    नव ॱ कूट भवति कूट ।
+    नव ॱ नाम भवति नाम ।
+    नव ॱ स्थानाङ्कः भवति स्थानाङ्कः ।
+    नव ॱ मूल्यम् भवति मूल्यम् ।
+    संयोजनदोषसूचकाङ्क भवति आरभ्य संयोजनदोषसूचकाङ्क योगः १ समाप्तम् ।
+    संयोजनदोषकोश अङ्कः संयोजनदोषसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् संयोजनदोषसूचकाङ्क ।
+इति
+
+सार्वजनिक वृत्तिः भेदपङ्क्तिः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् संस्कारकोशः इति ।
+    चरः आरम्भः ॱॱ न६४ भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ न६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतन ॱ उपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् १ आदि
+                यदि सङ्केतन ॱ क्षेत्रसाम्यम् पाठ्यम् आरम्भः सीमा ० नाम समम् सत्यम् आदि
+                    प्रत्यागमनम् आरम्भः योगः १ ।
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ the number of a named relocation type — kind_named.
+सार्वजनिक वृत्तिः भेदाङ्कः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति सम्भाव्य अ३२ आदि
+    चरः पङ्क्तिः ॱॱ न६४ भवति भेदपङ्क्तिः नाम ।
+
+    यदि पङ्क्तिः समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् संस्कारकोशः इति ।
+    चरः आरम्भः ॱॱ न६४ भवति पङ्क्तिः वियोगः १ ।
+    चरः सीमा ॱॱ न६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+    चरः क्षेत्रादिः ॱॱ न६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+    चरः क्षेत्रान्तः ॱॱ न६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+
+    प्रत्यागमनम् सङ्केतन ॱ दशाङ्कमूल्यम् पाठ्यम् क्षेत्रादिः क्षेत्रान्तः ।
+इति
+
+॰ write a value into the named field of the instruction at स्थानाङ्कः — patch.
+॰
+॰ THIS ANSWERS THE PATCHED RUN, where Rust writes through `text: &mut [u8]`
+॰ and answers Result<(), String>. See the note above अष्टाष्टकनिधानम्: a T1
+॰ routine cannot write into its caller's octets, so a बूल here would report
+॰ success over bytes the caller does not have. शून्यम् is the refusal and the
+॰ reason is appended to संयोजनदोषकोश.
+॰
+॰ भेदः IS A SLOT KIND IN सङ्केतन'S NUMBERING — सङ्केतनॱअन्तरभेद where Rust
+॰ writes "disp", सङ्केतनॱतत्कालभेद where it writes "imm". That is not a
+॰ translation choice made here: विश्लेषण already carries the kinds as
+॰ numbers because T1 has no string equality, and one comparison has to serve
+॰ both files.
+॰
+॰ ON READING FOUR OCTETS UNCONDITIONALLY, which is Rust's own long note:
+॰ a relocation is only ever recorded for an instruction naming a symbol the
+॰ file does not define, and सङ्केतन ॱ सङ्कोचः begins by encoding the wide
+॰ form — which fails for exactly those. So an instruction carrying a
+॰ relocation cannot have been compressed. IF A FUTURE LINKER RELAXES ACROSS
+॰ OBJECTS that property dies and this silently re-encodes over two
+॰ instructions; ask विश्लेषण ॱ आज्ञादैर्घ्यम् with that change, not after it.
+सार्वजनिक वृत्तिः संस्कारः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ भेदः ॱॱ न६४ मूल्यम् ॱॱ इ६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+    चरः पदम् ॱॱ सम्भाव्य अ३२ भवति विश्लेषण ॱ पदग्रहणम् पाठ्यम् स्थानाङ्कः ।
+    यदि पदम् समम् शून्यम् आदि
+        संयोजनदोषयोजनम् आरभ्य पाठातिक्रमकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः विश्लिष्टः ॱॱ सम्भाव्य विश्लेषणॱविश्लिष्टम् भवति विश्लेषण ॱ विश्लेषणम् पदम् ।
+    यदि विश्लिष्टः समम् शून्यम् आदि
+        संयोजनदोषयोजनम् आरभ्य अविश्लेष्यकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ पदम् समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    ॰ samyojana.rs:472 — find(|e| e.insn == decoded.insn && e.bits == 32).
+    ॰ ONE ROW, so a row number and not a collection.
+    चरः पङ्क्तिः ॱॱ न६४ भवति विश्लेषण ॱ नामपङ्क्तिः विश्लिष्टः ॱ आज्ञा विश्लेषणॱविस्तृतांशाः ।
+    यदि पङ्क्तिः समम् ० आदि
+        संयोजनदोषयोजनम् आरभ्य असङ्केतकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः कोशपाठः ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
+    चरः आरम्भः ॱॱ न६४ भवति पङ्क्तिः वियोगः १ ।
+    चरः सीमा ॱॱ न६४ भवति सङ्केतन ॱ पङ्क्तिसीमा कोशपाठः आरम्भः ।
+    चरः सङ्केतः ॱॱ सङ्केतनॱसङ्केत भवति विश्लेषण ॱ पङ्क्तिसङ्केतः कोशपाठः आरम्भः सीमा ।
+
+    चरः संख्यानम् ॱॱ अ६४ भवति अवकाशसंख्या सङ्केतः ।
+    चरः पूरणीयः ॱॱ अ६४ भवति पूरणीयावकाशः सङ्केतः भेदः ।
+    यदि पूरणीयः बृहत्समम् संख्यानम् आदि
+        संयोजनदोषयोजनम् आरभ्य अनवकाशकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ भेदः समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः पूरणीयः अन्तः ।
+    यदि सङ्केतन ॱ अन्तर्भावः अवकाशः मूल्यम् मूल्यम् समम् असत्यम् आदि
+        संयोजनदोषयोजनम् आरभ्य अगम्यकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ मूल्यम् समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    ॰ Rust zips e.slots with decoded.operands; पदपुनर्निर्माणम् wants the
+    ॰ VALUES alone, in written order, which is what this fill is.
+    चरः मूल्यानि ॱॱ अङ्कः अन्तः इ६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        चरः क्रिया ॱॱ विश्लेषणॱक्रियामूल्यम् भवति विश्लिष्टः ॱ मूल्यानि अङ्कः सूचकाङ्क अन्तः ।
+        मूल्यानि अङ्कः सूचकाङ्क अन्तः भवति क्रिया ॱ मूल्यम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    चरः नवपदम् ॱॱ अ३२ भवति पदपुनर्निर्माणम् आरभ्य सङ्केतः ऽ मूल्यानि ऽ पूरणीयः ऽ मूल्यम् समाप्तम् ।
+    प्रत्यागमनम् चतुरष्टकनिधानम् पाठ्यम् स्थानाङ्कः नवपदम् ।
+इति
+
+
+॰ ══════════════════ laying an image out, one object at a time ══════════════════
+
+॰ how many objects there are. AN ARENA CANNOT BE EMPTY, so ० objects and १
+॰ both report ॱ दैर्घ्य १ and only entry ० tells them apart — the reading
+॰ विश्लेषण ॱ मूल्यसंख्या states for its own store.
+सार्वजनिक वृत्तिः वस्तुसंख्या आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ददाति अ६४ आदि
+    यदि वस्तूनि ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि वस्तूनि अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् वस्तूनि ॱ दैर्घ्य ।
+इति
+
+॰ copy स्रोतः into लक्ष्यम् at स्थानम् — Vec::extend_from_slice, and the
+॰ answer is the grown run for the reason अष्टाष्टकनिधानम् gives.
+सार्वजनिक वृत्तिः अष्टकसंयोगः आदाय लक्ष्यम् ॱॱ अङ्कः अन्तः अ८ ऽ स्थानम् ॱॱ अ६४ ऽ स्रोतः ॱॱ अङ्कः अन्तः अ८ ददाति अङ्कः अन्तः अ८ आदि
+    ॰ NO EXPLICIT GAP FILL. Since `दत्तारम्भः` rounds, `स्थानम्` can sit past
+    ॰ the end of what is written, and the indexed store below grows the run to
+    ॰ reach it. A version filled the gap by hand and this margin blamed its
+    ॰ extra `चरः` for a fixpoint divergence — see `दत्तारम्भः` above: that
+    ॰ divergence was a stale blob, not the declaration. The hand fill is gone
+    ॰ because it was redundant, which is reason enough.
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् स्रोतः ॱ दैर्घ्य आदि
+        लक्ष्यम् अङ्कः आरभ्य स्थानम् योगः सूचकाङ्क समाप्तम् अन्तः भवति स्रोतः अङ्कः सूचकाङ्क अन्तः ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् लक्ष्यम् ।
+इति
+
+॰ every object's .text, end to end — Rust's first extend loop.
+सार्वजनिक वृत्तिः पाठसंयोगः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ददाति अङ्कः अन्तः अ८ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः संख्यानम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् संख्यानम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        फलम् भवति अष्टकसंयोगः आरभ्य फलम् ऽ पाठारम्भः वस्तूनि क्रमः ऽ वस्तु ॱ पाठ्यम् समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ every object's .data, end to end.
+सार्वजनिक वृत्तिः दत्तसंयोगः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ददाति अङ्कः अन्तः अ८ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः संख्यानम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् संख्यानम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        फलम् भवति अष्टकसंयोगः आरभ्य फलम् ऽ दत्तारम्भः वस्तूनि क्रमः ऽ वस्तु ॱ दत्तम् समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+
+॰ ══════════════════ every name, and where it ended up ══════════════════
+
+॰ the names object क्रमः defines, with their final addresses — Rust's
+॰ scopes[n], which is the object's OWN scope and the one a relocation in it
+॰ asks first. B-014: a label is local to its file unless exported, precisely
+॰ so two files may each carry a चक्रः.
+सार्वजनिक वृत्तिः वस्तुपरिसरः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ क्रमः ॱॱ अ६४ ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः नामस्थानम् भवति ० ।
+    चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+    चरः पाठस्थानम् ॱॱ अ६४ भवति पाठारम्भः वस्तूनि क्रमः ।
+    चरः दत्तस्थानम् ॱॱ अ६४ भवति दत्तारम्भः वस्तूनि क्रमः ।
+    चरः बीजस्थानम् ॱॱ अ६४ भवति बीजारम्भः वस्तूनि क्रमः ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् वस्तु ॱ संज्ञाः ॱ दैर्घ्य आदि
+        चरः संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा भवति वस्तु ॱ संज्ञाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि संज्ञा असमम् शून्यम् आदि
+            चरः स्थान ॱॱ सम्भाव्य अ६४ भवति संज्ञास्थानम् आरभ्य संज्ञा ऽ भारणम् ऽ पाठस्थानम् ऽ दत्ताधारम् ऽ दत्तस्थानम् ऽ बीजाधारम् ऽ बीजस्थानम् समाप्तम् ।
+            यदि स्थान असमम् शून्यम् आदि
+                फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान समाप्तम् ।
+                संख्यानम् भवति नामस्थानगणना ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ what any object EXPORTED, and the refusal of a global defined twice —
+॰ Rust's `exported`, built by the same walk that fills scopes.
+॰ silently taking one makes which file was listed first into program
+॰ behaviour, which is why this is a refusal and a duplicate LOCAL is not.
+सार्वजनिक वृत्तिः निर्यातसञ्चयः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः नामस्थानम् भवति ० ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        चरः पाठस्थानम् ॱॱ अ६४ भवति पाठारम्भः वस्तूनि क्रमः ।
+        चरः दत्तस्थानम् ॱॱ अ६४ भवति दत्तारम्भः वस्तूनि क्रमः ।
+        चरः बीजस्थानम् ॱॱ अ६४ भवति बीजारम्भः वस्तूनि क्रमः ।
+        चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+        यावत् सूचकाङ्क न्यूनम् वस्तु ॱ संज्ञाः ॱ दैर्घ्य आदि
+            चरः संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा भवति वस्तु ॱ संज्ञाः अङ्कः सूचकाङ्क अन्तः ।
+            यदि संज्ञा असमम् शून्यम् आदि
+                चरः स्थान ॱॱ सम्भाव्य अ६४ भवति संज्ञास्थानम् आरभ्य संज्ञा ऽ भारणम् ऽ पाठस्थानम् ऽ दत्ताधारम् ऽ दत्तस्थानम् ऽ बीजाधारम् ऽ बीजस्थानम् समाप्तम् ।
+                यदि स्थान असमम् शून्यम् आदि
+                    यदि पुनरुक्तनिर्यातम् आरभ्य फलम् ऽ संज्ञा ॱ नाम ऽ संज्ञा ॱ वैश्विकम् समाप्तम् आदि
+                        संयोजनदोषयोजनम् आरभ्य पुनरुक्तकूटः ऽ संज्ञा ॱ नाम ऽ स्थान ऽ ० समाप्तम् ।
+                    इति
+                    यदि संज्ञा ॱ वैश्विकम् समम् सत्यम् आदि
+                        फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान समाप्तम् ।
+                        संख्यानम् भवति नामस्थानगणना ।
+                    इति
+                इति
+            इति
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ every defined name and its absolute address — Linked::symbols.
+॰ A CONVENIENCE AND LOSSY BY CONSTRUCTION, as Rust says at the field: two
+॰ objects may each define a local चक्रः and a map holds one. सारणी below is
+॰ the truth. The one that survives is the LAST written, which is what
+॰ नामस्थानयोजनम् does and what BTreeMap::insert does.
+सार्वजनिक वृत्तिः सर्वस्थानानि आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः नामस्थानम् भवति ० ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् भवति वस्तुपरिसरः आरभ्य वस्तूनि ऽ क्रमः ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+        चरः दैर्घ्य ॱॱ न६४ भवति नामसंख्या परिसरः ।
+        चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+        यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+            चरः प्रविष्टिः ॱॱ नामस्थानम् भवति परिसरः अङ्कः सूचकाङ्क अन्तः ।
+            फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ प्रविष्टिः ॱ नाम ऽ प्रविष्टिः ॱ स्थान समाप्तम् ।
+            संख्यानम् भवति नामस्थानगणना ।
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ every symbol, in object order, for the image's .symtab — Linked::table,
+॰ task B-103. Without it `nm` on an image linked from objects reports
+॰ nothing while a single-file build of the same program shows मुख्यम्.
+॰ NOT DEDUPLICATED, which is the whole difference from सर्वस्थानानि: two
+॰ objects each defining a local चक्रः put two rows here and one there.
+सार्वजनिक वृत्तिः संज्ञासारणी आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः कोशॱसंज्ञा आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः कोशॱसंज्ञा भवति ० ।
+    चरः स्थानम् ॱॱ अ६४ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        चरः पाठस्थानम् ॱॱ अ६४ भवति पाठारम्भः वस्तूनि क्रमः ।
+        चरः दत्तस्थानम् ॱॱ अ६४ भवति दत्तारम्भः वस्तूनि क्रमः ।
+        चरः बीजस्थानम् ॱॱ अ६४ भवति बीजारम्भः वस्तूनि क्रमः ।
+        चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+        यावत् सूचकाङ्क न्यूनम् वस्तु ॱ संज्ञाः ॱ दैर्घ्य आदि
+            चरः संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा भवति वस्तु ॱ संज्ञाः अङ्कः सूचकाङ्क अन्तः ।
+            यदि संज्ञा असमम् शून्यम् आदि
+                चरः स्थान ॱॱ सम्भाव्य अ६४ भवति संज्ञास्थानम् आरभ्य संज्ञा ऽ भारणम् ऽ पाठस्थानम् ऽ दत्ताधारम् ऽ दत्तस्थानम् ऽ बीजाधारम् ऽ बीजस्थानम् समाप्तम् ।
+                यदि स्थान असमम् शून्यम् आदि
+                    ॰ THE BARE STRUCT NAME, because a qualified one does not
+                    ॰ construct: कोशॱसंज्ञा names no संरचना this reader can
+                    ॰ find, and a `भवति ०` under it would be the number ०.
+                    चरः पङ्क्तिः ॱॱ कोशॱसंज्ञा भवति ० ।
+                    पङ्क्तिः ॱ नाम भवति संज्ञा ॱ नाम ।
+                    पङ्क्तिः ॱ मूल्यम् भवति स्थान ।
+                    पङ्क्तिः ॱ खण्डः भवति कोष्ठकभेदः संज्ञा ॱ स्थापनम् ।
+                    पङ्क्तिः ॱ वैश्विकम् भवति संज्ञा ॱ वैश्विकम् ।
+                    फलम् अङ्कः स्थानम् अन्तः भवति पङ्क्तिः ।
+                    स्थानम् भवति स्थानम् योगः १ ।
+                इति
+            इति
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+
+॰ ══════════════════ applying what an object asked for ══════════════════
+
+॰ the symbol a record names, or शून्यम् when the file has no such index —
+॰ Rust's `o.symbols.get(r.symbol as usize)`, and its else-branch is
+॰ "a relocation names symbol {}, which does not exist".
+सार्वजनिक वृत्तिः लेखसंज्ञा आदाय वस्तु ॱॱ वास्तुॱवस्तु ऽ संज्ञाङ्कः ॱॱ अ६४ ददाति सम्भाव्य वास्तुॱवस्तुसंज्ञा आदि
+    यदि संज्ञाङ्कः न्यूनम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    यदि संज्ञाङ्कः बृहत्समम् वस्तु ॱ संज्ञाः ॱ दैर्घ्य आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    प्रत्यागमनम् वस्तु ॱ संज्ञाः अङ्कः संज्ञाङ्कः अन्तः ।
+इति
+
+॰ .rela.data — an absolute 64-bit pointer, not a displacement (B-098).
+॰ applied BEFORE the text records because the data bytes are already laid out
+॰ and nothing about it depends on relaxation.
+सार्वजनिक वृत्तिः दत्तपुनःस्थापनम् आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः निरपेक्षभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः निरपेक्षभेदनाम ।
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति दत्तम् ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        चरः दत्तस्थानम् ॱॱ अ६४ भवति दत्तारम्भः वस्तूनि क्रमः ।
+        चरः परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् भवति वस्तुपरिसरः आरभ्य वस्तूनि ऽ क्रमः ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+        चरः लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति वस्तु ॱ दत्तपुनःस्थापनानि ।
+        चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+        यावत् सूचकाङ्क न्यूनम् लेखाः ॱ दैर्घ्य आदि
+            चरः लेखः ॱॱ वास्तुॱपुनःस्थापनम् भवति लेखाः अङ्कः सूचकाङ्क अन्तः ।
+            यदि लेखः असमम् शून्यम् आदि
+                चरः संज्ञा ॱॱ सम्भाव्य वास्तुॱवस्तुसंज्ञा भवति लेखसंज्ञा आरभ्य वस्तु ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+                यदि संज्ञा समम् शून्यम् आदि
+                    संयोजनदोषयोजनम् आरभ्य असत्संज्ञाकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+                इति अन्यथा आदि
+                    चरः लक्ष्यम् ॱॱ सम्भाव्य अ६४ भवति निर्णीतस्थानम् परिसरः निर्यातानि संज्ञा ॱ नाम ।
+                    यदि लक्ष्यम् समम् शून्यम् आदि
+                        संयोजनदोषयोजनम् आरभ्य अपरिभाषितकूटः ऽ संज्ञा ॱ नाम ऽ लेखः ॱ स्थानाङ्कः ऽ ० समाप्तम् ।
+                    इति अन्यथा आदि
+                        ॰ REFUSED, NOT APPROXIMATED. .rela.data carries one
+                        ॰ kind today and a second arriving unhandled would be
+                        ॰ written by whichever rule happened to be first.
+                        यदि लेखः ॱ भेदः असमम् निरपेक्षभेदः आदि
+                            संयोजनदोषयोजनम् आरभ्य अनुपयुक्तभेदकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ भेदः समाप्तम् ।
+                        इति अन्यथा आदि
+                            चरः स्थानाङ्कः ॱॱ अ६४ भवति दत्तस्थानम् योगः लेखः ॱ स्थानाङ्कः ।
+                            चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति अष्टाष्टकनिधानम् फलम् स्थानाङ्कः आरभ्य निरपेक्षमूल्यम् लक्ष्यम् लेखः ॱ योज्यम् समाप्तम् ।
+                            यदि नवम् समम् शून्यम् आदि
+                                संयोजनदोषयोजनम् आरभ्य दत्तातिक्रमकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
+                            इति अन्यथा आदि
+                                फलम् भवति नवम् ।
+                            इति
+                        इति
+                    इति
+                इति
+            इति
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ what a .rela.text record resolves to, in ADDRESS — the whole of Rust's
+॰ `resolved`, both arms.
+॰ A %pcrel_lo NAMES WHERE ITS %pcrel_hi IS, not what the pair reaches
+॰ (B-105). Following the record makes the pair's own claim the authority and
+॰ replaces reading pc - 4 on the assembler's promise that the two are
+॰ adjacent — which is what lets GNU ld read these objects.
+॰ शून्यम् is the refusal, and the diagnostic is already appended when it is.
+सार्वजनिक वृत्तिः लेखलक्ष्यम् आदाय वस्तु ॱॱ वास्तुॱवस्तु ऽ लेखः ॱॱ वास्तुॱपुनःस्थापनम् ऽ संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा ऽ परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् ऽ निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् ऽ उपरिभेदः ॱॱ अ६४ ऽ अधोभेदः ॱॱ अ६४ ददाति सम्भाव्य अ६४ आदि
+    चरः नाम ॱॱ पाठः भवति संज्ञा ॱ नाम ।
+
+    यदि लेखः ॱ भेदः समम् अधोभेदः आदि
+        चरः लक्षितम् ॱॱ इ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।
+        ॰ PRESENCE FROM THE ONE-BASED POSITION — see `उपरिलेखक्रमाङ्कः`. The
+        ॰ first relocation is index ०, which the image reads as absent.
+        चरः उपरिस्थानम् ॱॱ न६४ भवति उपरिलेखक्रमाङ्कः आरभ्य वस्तु ॱ पुनःस्थापनानि ऽ उपरिभेदः ऽ लक्षितम् समाप्तम् ।
+        चरः उपरिक्रमः ॱॱ अ६४ भवति ० ।
+        यदि उपरिस्थानम् असमम् ० आदि
+            उपरिक्रमः भवति उपरिस्थानम् वियोगः १ ।
+        इति
+        यदि उपरिस्थानम् समम् ० आदि
+            संयोजनदोषयोजनम् आरभ्य अनुपरिकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लक्षितम् समाप्तम् ।
+            प्रत्यागमनम् शून्यम् ।
+        इति
+        चरः उपरिलेखः ॱॱ वास्तुॱपुनःस्थापनम् भवति वस्तु ॱ पुनःस्थापनानि अङ्कः उपरिक्रमः अन्तः ।
+        चरः उपरिसंज्ञा ॱॱ सम्भाव्य वास्तुॱवस्तुसंज्ञा भवति लेखसंज्ञा आरभ्य वस्तु ऽ उपरिलेखः ॱ संज्ञाङ्कः समाप्तम् ।
+        यदि उपरिसंज्ञा समम् शून्यम् आदि
+            संयोजनदोषयोजनम् आरभ्य असत्संज्ञाकूटः ऽ रिक्तनाम ऽ उपरिलेखः ॱ स्थानाङ्कः ऽ उपरिलेखः ॱ संज्ञाङ्कः समाप्तम् ।
+            प्रत्यागमनम् शून्यम् ।
+        इति
+        नाम भवति उपरिसंज्ञा ॱ नाम ।
+    इति
+
+    चरः लक्ष्यम् ॱॱ सम्भाव्य अ६४ भवति निर्णीतस्थानम् परिसरः निर्यातानि नाम ।
+    यदि लक्ष्यम् समम् शून्यम् आदि
+        संयोजनदोषयोजनम् आरभ्य अपरिभाषितकूटः ऽ नाम ऽ लेखः ॱ स्थानाङ्कः ऽ ० समाप्तम् ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    प्रत्यागमनम् लक्ष्यम् ।
+इति
+
+॰ .rela.text — the three kinds this linker applies, and a refusal for the
+॰ rest. A relocation applied by the wrong rule produces a program that runs
+॰ and goes somewhere else, so an unhandled kind is REFUSED, not approximated.
+सार्वजनिक वृत्तिः पाठपुनःस्थापनम् आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः आह्वानभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः आह्वानभेदनाम ।
+    चरः उपरिभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः उपरिभेदनाम ।
+    चरः अधोभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः अधोभेदनाम ।
+
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति पाठ्यम् ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        चरः पाठस्थानम् ॱॱ अ६४ भवति पाठारम्भः वस्तूनि क्रमः ।
+        चरः परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् भवति वस्तुपरिसरः आरभ्य वस्तूनि ऽ क्रमः ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+        चरः लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति वस्तु ॱ पुनःस्थापनानि ।
+        चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+        यावत् सूचकाङ्क न्यूनम् लेखाः ॱ दैर्घ्य आदि
+            चरः लेखः ॱॱ वास्तुॱपुनःस्थापनम् भवति लेखाः अङ्कः सूचकाङ्क अन्तः ।
+            यदि लेखः असमम् शून्यम् आदि
+                चरः संज्ञा ॱॱ सम्भाव्य वास्तुॱवस्तुसंज्ञा भवति लेखसंज्ञा आरभ्य वस्तु ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+                यदि संज्ञा समम् शून्यम् आदि
+                    संयोजनदोषयोजनम् आरभ्य असत्संज्ञाकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+                इति अन्यथा आदि
+                    चरः लक्ष्यम् ॱॱ सम्भाव्य अ६४ भवति लेखलक्ष्यम् आरभ्य वस्तु ऽ लेखः ऽ संज्ञा ऽ परिसरः ऽ निर्यातानि ऽ उपरिभेदः ऽ अधोभेदः समाप्तम् ।
+                    यदि लक्ष्यम् असमम् शून्यम् आदि
+                        चरः स्थानाङ्कः ॱॱ अ६४ भवति पाठस्थानम् योगः लेखः ॱ स्थानाङ्कः ।
+                        चरः क्रमसूचकः ॱॱ अ६४ भवति भारणम् योगः स्थानाङ्कः ।
+                        चरः योज्यम् ॱॱ इ६४ भवति लेखयोज्यम् लेखः ॱ भेदः अधोभेदः लेखः ॱ योज्यम् ।
+                        चरः अन्तरम् ॱॱ इ६४ भवति अन्तरमूल्यम् लक्ष्यम् योज्यम् क्रमसूचकः ।
+                        चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति शून्यम् ।
+                        चरः ज्ञातम् ॱॱ बूल भवति सत्यम् ।
+
+                        यदि लेखः ॱ भेदः समम् आह्वानभेदः आदि
+                            नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱअन्तरभेद ऽ अन्तरम् समाप्तम् ।
+                        इति अन्यथा आदि
+                            यदि लेखः ॱ भेदः समम् उपरिभेदः आदि
+                                नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ उपरिभागः अन्तरम् समाप्तम् ।
+                            इति अन्यथा आदि
+                                यदि लेखः ॱ भेदः समम् अधोभेदः आदि
+                                    ॰ MEASURED FROM THE auipc, not from here.
+                                    ॰ ॱअधः completes the register the preceding
+                                    ॰ instruction set, so the pair is positional
+                                    ॰ and computing the low half against its own
+                                    ॰ pc would be wrong by four.
+                                    चरः उपरिस्थानम् ॱॱ इ६४ भवति उपरिपदस्थानम् भारणम् पाठस्थानम् संज्ञा ॱ मूल्यम् लेखः ॱ योज्यम् ।
+                                    चरः पूर्णम् ॱॱ इ६४ भवति लक्ष्यम् वियोगः उपरिस्थानम् ।
+                                    नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ अधोभागः पूर्णम् समाप्तम् ।
+                                इति अन्यथा आदि
+                                    ज्ञातम् भवति असत्यम् ।
+                                    संयोजनदोषयोजनम् आरभ्य अनुपयुक्तभेदकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ लेखः ॱ भेदः समाप्तम् ।
+                                इति
+                            इति
+                        इति
+
+                        यदि ज्ञातम् समम् सत्यम् आदि
+                            यदि नवम् असमम् शून्यम् आदि
+                                फलम् भवति नवम् ।
+                            इति
+                        इति
+                    इति
+                इति
+            इति
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+
+॰ ══════════════════ carrying the debug sections through ══════════════════
+॰
+॰ -g reached the object in B-100b and stopped there: --संयोजय wrote text and
+॰ data and dropped .debug_line with it, so a program linked from objects had
+॰ no line table at all (B-104).
+॰ Concatenated, unit by unit: DWARF puts one complete unit after another in
+॰ both sections and a reader walks them, so merging is appending — with one
+॰ field moved per unit. DW_AT_stmt_list is the offset of that unit's line
+॰ program, and the second unit's program is no longer at zero.
+॰ .debug_abbrev is taken ONCE. Every unit this toolchain writes uses the same
+॰ table and points at offset ०, so appending a second copy would be bytes
+॰ nobody reads — and two DIFFERENT tables cannot both be reachable, which is
+॰ why disagreeing objects are refused rather than silently given the first.
+
+॰ the bytes of the debug section named नाम, or an empty run — Rust's
+॰ `section` closure, `unwrap_or_default` included.
+सार्वजनिक वृत्तिः शोधनखण्डपाठः आदाय खण्डाः ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः ऽ नाम ॱॱ पाठः ददाति अङ्कः अन्तः अ८ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् खण्डाः ॱ दैर्घ्य आदि
+        चरः खण्डः ॱॱ वास्तुॱशोधनखण्डः भवति खण्डाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि खण्डः असमम् शून्यम् आदि
+            यदि खण्डः ॱ नाम समम् नाम आदि
+                प्रत्यागमनम् खण्डः ॱ दत्तम् ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् रिक्तनाम ।
+इति
+
+॰ the records this object holds against the debug section named नाम, or
+॰ शून्यम् — one entry of Rust's `o.debug_relocations`.
+सार्वजनिक वृत्तिः शोधनलेखाः आदाय खण्डाः ॱॱ अङ्कः अन्तः वास्तुॱशोधनपुनःस्थापनखण्डः ऽ नाम ॱॱ पाठः ददाति सम्भाव्य अङ्कः अन्तः वास्तुॱपुनःस्थापनम् आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् खण्डाः ॱ दैर्घ्य आदि
+        चरः खण्डः ॱॱ वास्तुॱशोधनपुनःस्थापनखण्डः भवति खण्डाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि खण्डः असमम् शून्यम् आदि
+            यदि खण्डः ॱ नाम समम् नाम आदि
+                प्रत्यागमनम् खण्डः ॱ पुनःस्थापनानि ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् शून्यम् ।
+इति
+
+॰ apply one object's records against one debug section.
+॰ DW_AT_stmt_list is four octets and an OFFSET into the merged .debug_line;
+॰ every other record is eight and an ADDRESS in .text. ONE symbol serving
+॰ both would hand the linker the wrong base for one of them, which is why
+॰ वास्तु ॱ स्थापन carries शोधनपङ्क्तिः at all (B-104b).
+सार्वजनिक वृत्तिः शोधनसंस्कारः आदाय वस्तु ॱॱ वास्तुॱवस्तु ऽ अष्टकाः ॱॱ अङ्कः अन्तः अ८ ऽ लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् ऽ आधारः ॱॱ इ६४ ऽ पङ्क्त्याधारः ॱॱ इ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति अष्टकाः ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् लेखाः ॱ दैर्घ्य आदि
+        चरः लेखः ॱॱ वास्तुॱपुनःस्थापनम् भवति लेखाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि लेखः असमम् शून्यम् आदि
+            चरः संज्ञा ॱॱ सम्भाव्य वास्तुॱवस्तुसंज्ञा भवति लेखसंज्ञा आरभ्य वस्तु ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+            यदि संज्ञा समम् शून्यम् आदि
+                संयोजनदोषयोजनम् आरभ्य असत्संज्ञाकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
+            इति अन्यथा आदि
+                चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति शून्यम् ।
+                यदि संज्ञा ॱ स्थापनम् समम् शोधनपङ्क्तिनिवेशः आदि
+                    नवम् भवति चतुरष्टकनिधानम् फलम् लेखः ॱ स्थानाङ्कः आरभ्य पङ्क्त्याधारः योगः लेखः ॱ योज्यम् समाप्तम् ।
+                इति अन्यथा आदि
+                    नवम् भवति अष्टाष्टकनिधानम् फलम् लेखः ॱ स्थानाङ्कः आरभ्य शोधनस्थानम् आधारः ० लेखः ॱ योज्यम् समाप्तम् ।
+                इति
+                यदि नवम् समम् शून्यम् आदि
+                    संयोजनदोषयोजनम् आरभ्य शोधनातिक्रमकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ ० समाप्तम् ।
+                इति अन्यथा आदि
+                    फलम् भवति नवम् ।
+                इति
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ the merged debug sections, with every address fixed — Linked::debug.
+॰ EMPTY WHEN NO OBJECT CARRIES A .debug_abbrev, which is Rust's own guard:
+॰ an image with three empty debug sections is worse than an image with none,
+॰ because a reader believes the first.
+॰ THE MERGED .debug_info IS विवरणम् AND NOT विवरम्, WHICH IS A NOTE ABOUT
+॰ THE LANGUAGE. `विवरम्` is one of ADR-0018's two LAYOUT WORDS: the lexer
+॰ emits it as a Kind::Str holding a single space, so it is never an
+॰ identifier and `चरः विवरम् …` reported "Str([32]) is not something that can
+॰ be assigned to" — a diagnostic that names the value and not the word.
+॰ `यतिः` is the other one. Both are in the frozen token production, and
+॰ no_t1_source_binds_a_frozen_keyword_as_a_name does not cover them.
+सार्वजनिक वृत्तिः शोधनसंयोगः आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ भारणम् ॱॱ अ६४ ददाति अङ्कः अन्तः वास्तुॱशोधनखण्डः आदि
+    चरः विवरनाम ॱॱ पाठः भवति शोधनविवरनाम ।
+    चरः पङ्क्तिनाम ॱॱ पाठः भवति शोधनपङ्क्तिनाम ।
+    चरः संक्षेपनाम ॱॱ पाठः भवति शोधनसंक्षेपनाम ।
+
+    चरः विवरणम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः पङ्क्तयः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः संक्षेपः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
+        चरः खण्डाः ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः भवति वस्तु ॱ शोधनम् ।
+
+        यदि खण्डाः अङ्कः ० अन्तः असमम् शून्यम् आदि
+            चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठारम्भः वस्तूनि क्रमः ।
+            चरः पङ्क्त्याधारः ॱॱ इ६४ भवति पङ्क्तयः ॱ दैर्घ्य ।
+
+            चरः एतद्विवरणम् ॱॱ अङ्कः अन्तः अ८ भवति शोधनखण्डपाठः खण्डाः विवरनाम ।
+            चरः एतत्पङ्क्तिः ॱॱ अङ्कः अन्तः अ८ भवति शोधनखण्डपाठः खण्डाः पङ्क्तिनाम ।
+            चरः एतत्संक्षेपः ॱॱ अङ्कः अन्तः अ८ भवति शोधनखण्डपाठः खण्डाः संक्षेपनाम ।
+
+            चरः विवरलेखाः ॱॱ सम्भाव्य अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति शोधनलेखाः वस्तु ॱ शोधनपुनःस्थापनानि विवरनाम ।
+            यदि विवरलेखाः असमम् शून्यम् आदि
+                एतद्विवरणम् भवति शोधनसंस्कारः आरभ्य वस्तु ऽ एतद्विवरणम् ऽ विवरलेखाः ऽ आधारः ऽ पङ्क्त्याधारः समाप्तम् ।
+            इति
+
+            ॰ .debug_line's own record is a DW_LNE_set_address — a TEXT
+            ॰ address, applied against this object's text base, and never an
+            ॰ offset into itself.
+            चरः पङ्क्तिलेखाः ॱॱ सम्भाव्य अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति शोधनलेखाः वस्तु ॱ शोधनपुनःस्थापनानि पङ्क्तिनाम ।
+            यदि पङ्क्तिलेखाः असमम् शून्यम् आदि
+                एतत्पङ्क्तिः भवति शोधनसंस्कारः आरभ्य वस्तु ऽ एतत्पङ्क्तिः ऽ पङ्क्तिलेखाः ऽ आधारः ऽ पङ्क्त्याधारः समाप्तम् ।
+            इति
+
+            यदि संक्षेपः ॱ दैर्घ्य समम् ० आदि
+                संक्षेपः भवति एतत्संक्षेपः ।
+            इति अन्यथा आदि
+                यदि संक्षेपः असमम् एतत्संक्षेपः आदि
+                    संयोजनदोषयोजनम् आरभ्य संक्षेपविरोधकूटः ऽ संक्षेपनाम ऽ क्रमः ऽ ० समाप्तम् ।
+                इति
+            इति
+
+            विवरणम् भवति अष्टकसंयोगः आरभ्य विवरणम् ऽ विवरणम् ॱ दैर्घ्य ऽ एतद्विवरणम् समाप्तम् ।
+            पङ्क्तयः भवति अष्टकसंयोगः आरभ्य पङ्क्तयः ऽ पङ्क्तयः ॱ दैर्घ्य ऽ एतत्पङ्क्तिः समाप्तम् ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    चरः फलम् ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः भवति ० ।
+    यदि संक्षेपः ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् फलम् ।
+    इति
+
+    चरः प्रथमः ॱॱ वास्तुॱशोधनखण्डः भवति ० ।
+    प्रथमः ॱ नाम भवति संक्षेपनाम ।
+    प्रथमः ॱ दत्तम् भवति संक्षेपः ।
+    फलम् अङ्कः ० अन्तः भवति प्रथमः ।
+
+    चरः द्वितीयः ॱॱ वास्तुॱशोधनखण्डः भवति ० ।
+    द्वितीयः ॱ नाम भवति विवरनाम ।
+    द्वितीयः ॱ दत्तम् भवति विवरणम् ।
+    फलम् अङ्कः १ अन्तः भवति द्वितीयः ।
+
+    चरः तृतीयः ॱॱ वास्तुॱशोधनखण्डः भवति ० ।
+    तृतीयः ॱ नाम भवति पङ्क्तिनाम ।
+    तृतीयः ॱ दत्तम् भवति पङ्क्तयः ।
+    फलम् अङ्कः २ अन्तः भवति तृतीयः ।
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+
+॰ ══════════════════ the link itself ══════════════════
+
+॰ link objects into one image at the default load address — link.
+सार्वजनिक वृत्तिः संयोजनम् आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ददाति दोषयुक्त संयोजितम् आदि
+    प्रत्यागमनम् स्थानसंयोजनम् वस्तूनि भारणस्थानम् ।
+इति
+
+॰ as संयोजनम्, placing the image at a chosen address — link_at, task C-001a1.
+॰ a symbol's value is absolute, so the address the image will be written at
+॰ has to be known here. the relocations do not care: every one this applies
+॰ is pc-relative and the base cancels — which is why an image can be moved.
+॰
+॰ THE REFUSAL IS शून्यम् AND THE REASONS ARE IN संयोजनदोषकोश — see the note
+॰ above अपरिभाषितकूटः. Every problem is reported and not the first: the
+॰ passes below all run, each appending, and only the last line asks whether
+॰ anything did.
+सार्वजनिक वृत्तिः स्थानसंयोजनम् आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु भारणम् ॱॱ न६४ ददाति दोषयुक्त संयोजितम् आदि
+    ॰ ONE LINK IS ONE REPORT. The arena keeps its old rows — nothing shrinks
+    ॰ in this language — and the cursor is what says which of them are this
+    ॰ run's.
+    संयोजनदोषसूचकाङ्क भवति ० ।
+
+    चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+    चरः पाठदैर्घ्यम् ॱॱ अ६४ भवति पाठारम्भः वस्तूनि वस्तूनाम् ।
+    चरः दत्तदैर्घ्यम् ॱॱ अ६४ भवति दत्तारम्भः वस्तूनि वस्तूनाम् ।
+    चरः बीजदैर्घ्यम् ॱॱ अ६४ भवति बीजारम्भः वस्तूनि वस्तूनाम् ।
+
+    ॰ .data follows all of the text, eight-aligned, and .bss follows all of
+    ॰ the data — exactly as कोश lays an image out. A reservation that
+    ॰ overlapped another object's data would be a buffer writing over
+    ॰ initialised bytes, which RUNS.
+    चरः दत्ताधारम् ॱॱ अ६४ भवति दत्ताधारः पाठदैर्घ्यम् ।
+    चरः बीजाधारम् ॱॱ अ६४ भवति बीजाधारः पाठदैर्घ्यम् दत्तदैर्घ्यम् ।
+
+    चरः निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् भवति निर्यातसञ्चयः आरभ्य वस्तूनि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पाठसंयोगः वस्तूनि ।
+    चरः दत्तम् ॱॱ अङ्कः अन्तः अ८ भवति दत्तसंयोगः वस्तूनि ।
+
+    दत्तम् भवति दत्तपुनःस्थापनम् आरभ्य वस्तूनि ऽ दत्तम् ऽ निर्यातानि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+    पाठ्यम् भवति पाठपुनःस्थापनम् आरभ्य वस्तूनि ऽ पाठ्यम् ऽ निर्यातानि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+
+    चरः फलम् ॱॱ संयोजितम् भवति ० ।
+    फलम् ॱ पाठ्यम् भवति पाठ्यम् ।
+    फलम् ॱ दत्तम् भवति दत्तम् ।
+    फलम् ॱ बीजम् भवति बीजदैर्घ्यम् ।
+    फलम् ॱ नामानि भवति सर्वस्थानानि आरभ्य वस्तूनि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+    फलम् ॱ सारणी भवति संज्ञासारणी आरभ्य वस्तूनि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
+    फलम् ॱ शोधनम् भवति शोधनसंयोगः वस्तूनि भारणम् ।
+
+    यदि संयोजनदोषसूचकाङ्क अधिकम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति

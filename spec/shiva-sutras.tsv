@@ -1,0 +1,80 @@
+# The fourteen Māheśvara sūtras — task B-046, doc 01 §2.
+#
+# AUTHORED. This is a 2500-year-old text and the one file in spec/ that cannot
+# be derived from anything: no oracle emits it and no measurement produces it.
+# It is transcribed here from the standard recension rather than vendored, so
+# the project owns its own copy under its own licence.
+#
+# The last entry of each line is the ANUBANDHA (it-marker) — a boundary sign,
+# not a sound. Everything else is a phoneme. A pratyāhāra is then simply a
+# range: start at some phoneme, run forward, stop at a named marker, and drop
+# the markers passed on the way. अच् is every phoneme from अ to the marker च्,
+# which is the nine vowels; हल् is every phoneme from ह to the marker ल्, which
+# is every consonant there is.
+#
+# That is the whole mechanism, and it is why the ordering is not arbitrary: the
+# sūtras are arranged so that the classes a grammar needs are contiguous.
+#
+# ह appears TWICE, in sūtra 5 and sūtra 14, and that is not a transcription
+# error — it is what lets हल् cover the consonants while अच् stops short of
+# them. A pratyāhāra starting at ह takes the first occurrence.
+#
+# Columns: line, pos, devanagari, iast, kind
+line	pos	devanagari	iast	kind
+1	1	अ	a	phoneme
+1	2	इ	i	phoneme
+1	3	उ	u	phoneme
+1	4	ण्	Ṇ	it
+2	1	ऋ	ṛ	phoneme
+2	2	ऌ	ḷ	phoneme
+2	3	क्	K	it
+3	1	ए	e	phoneme
+3	2	ओ	o	phoneme
+3	3	ङ्	Ṅ	it
+4	1	ऐ	ai	phoneme
+4	2	औ	au	phoneme
+4	3	च्	C	it
+5	1	ह	ha	phoneme
+5	2	य	ya	phoneme
+5	3	व	va	phoneme
+5	4	र	ra	phoneme
+5	5	ट्	Ṭ	it
+6	1	ल	la	phoneme
+6	2	ण्	Ṇ	it
+7	1	ञ	ña	phoneme
+7	2	म	ma	phoneme
+7	3	ङ	ṅa	phoneme
+7	4	ण	ṇa	phoneme
+7	5	न	na	phoneme
+7	6	म्	M	it
+8	1	झ	jha	phoneme
+8	2	भ	bha	phoneme
+8	3	ञ्	Ñ	it
+9	1	घ	gha	phoneme
+9	2	ढ	ḍha	phoneme
+9	3	ध	dha	phoneme
+9	4	ष्	Ṣ	it
+10	1	ज	ja	phoneme
+10	2	ब	ba	phoneme
+10	3	ग	ga	phoneme
+10	4	ड	ḍa	phoneme
+10	5	द	da	phoneme
+10	6	श्	Ś	it
+11	1	ख	kha	phoneme
+11	2	फ	pha	phoneme
+11	3	छ	cha	phoneme
+11	4	ठ	ṭha	phoneme
+11	5	थ	tha	phoneme
+11	6	च	ca	phoneme
+11	7	ट	ṭa	phoneme
+11	8	त	ta	phoneme
+11	9	व्	V	it
+12	1	क	ka	phoneme
+12	2	प	pa	phoneme
+12	3	य्	Y	it
+13	1	श	śa	phoneme
+13	2	ष	ṣa	phoneme
+13	3	स	sa	phoneme
+13	4	र्	R	it
+14	1	ह	ha	phoneme
+14	2	ल्	L	it

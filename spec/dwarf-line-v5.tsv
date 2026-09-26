@@ -1,0 +1,30 @@
+# DWARF 5 line-program header — DERIVED, do not edit.
+#
+# Produced by tools/gen-dwarf-line.py from what riscv64-elf-as
+# -gdwarf-5 actually emits, read back with readelf.
+#
+# `line_base` and `line_range` are the producer's choice rather than
+# the standard's, and a special opcode computed with different values
+# decodes to a different line — wrong, and still parseable.
+field	value
+version	5
+address_size	8
+segment_selector_size	0
+min_instruction_length	1
+max_ops_per_instruction	1
+default_is_stmt	1
+line_base	-5
+line_range	14
+opcode_base	13
+opcode_1_args	0
+opcode_2_args	1
+opcode_3_args	1
+opcode_4_args	1
+opcode_5_args	1
+opcode_6_args	0
+opcode_7_args	0
+opcode_8_args	0
+opcode_9_args	1
+opcode_10_args	0
+opcode_11_args	0
+opcode_12_args	1

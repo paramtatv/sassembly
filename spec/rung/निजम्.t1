@@ -1,0 +1,25 @@
+मण्डलम् निजम् ॥   ॰ nijam — THE CONTROL: the same arithmetic, written INLINE
+
+॰ THE ANSWER IS ४२, and it is reached: run 3 in `सेतुः.t1`'s margin builds this
+॰ file beside the same `पारम्.t1` and reports `0 source(s) failed to compile,
+॰ 3 object(s) linked`, and
+॰ `yantra-run` on that image halts with `Finisher { status: Some(42) }`.
+॰ `सेतुः.t1` differs from this file in ONE thing — the call
+॰ crosses a module boundary. That is what makes the
+॰ measurement a control and not an anecdote.
+॰
+॰ UPDATED 2026-09-21T16:22Z, tree `2d116943`: `सेतुः.t1` NO LONGER FAILS. This
+॰ margin used to end "— and fails to compile", which was true of the four runs
+॰ of 2026-09-20 and stopped being true when that file gained `आयातः पारम् ।`.
+॰ The pair now links (3 objects) and halts `Finisher { value: 2765619,
+॰ status: Some(42) }` — the SAME finisher word this file produces, not merely
+॰ the same status. So the control has done its job: it no longer separates a
+॰ failure from a success, it shows that the cross-module path and the inline
+॰ path arrive at the identical halt. Its remaining use is the step and octet
+॰ delta — 42,531,668 steps / 65,776 octets here against 45,368,677 / 65,832
+॰ for the pair, which is what one extra object costs.
+
+सार्वजनिक वृत्तिः मुख्य ददाति न६४ आदि
+    चरः संख्या ॱॱ न६४ भवति २१ ।
+    प्रत्यागमनम् संख्या योगः संख्या ।
+इति

@@ -1,0 +1,29 @@
+#	Weight budgets — enforced by CI under rule R-18-1 (research/18-superiority-test-stack.md §0.2).
+#	Exceeding a budget FAILS THE BUILD. Raising one requires an ADR stating what was
+#	gained and why the mass is not removable. This file is the anti-accretion mechanism:
+#	software grows because no one is accountable for size. Here, growth has an owner.
+#
+#	unit: B | KiB | MiB | LOC | ratio | ms | count
+artifact	budget	unit	doc	reference_today	status
+nucleus_binary	64	KiB	11	linux vmlinux 10-100 MB	future
+nucleus_source	15000	LOC	11	linux ~30 MLOC	future
+hello_world_static_stripped	4	KiB	03	rust ~300 KB, go ~1.2 MB	live
+toolchain_sadhana	12	MiB	03	rustc+llvm ~200 MB	future
+terminal_dvarapala	512	KiB	04	-	future
+shell_niyanta	256	KiB	04	-	future
+network_jala	512	KiB	06	-	future
+graphics_chitra_mandapa	2	MiB	05	-	future
+shaper_varna	256	KiB	05	harfbuzz ~1.5 MB	future
+file_browser_bhandara	1	MiB	08	-	future
+browser_gavaksha	64	MiB	09	chrome ~200 MB+	future
+media_nada_rupa	8	MiB	10	ffmpeg ~70 MB	future
+full_os_install_gui	256	MiB	11	ubuntu ~4 GB, macos ~15 GB	future
+build_mass_ratio	2	ratio	18	cargo 100-1000x, chromium ~400x	future
+runtime_dependency_count	0	count	03	typical rust app 100-400 crates	active
+update_delta_one_function_fix	64	KiB	16	full-image OTA: 100s of MB	future
+cold_boot_to_shell	1000	ms	11	15000-60000 ms	future
+idle_rss_full_desktop	32	MiB	11	2-8 GB	future
+toolchain_self_host_build	60000	ms	03	rustc bootstrap ~1 h	future
+dead_code_bytes_shipped	0	B	18	-	future
+duplicate_function_bodies	0	count	18	rust monomorphization: many	future
+rust_port_path_source	72000	LOC	03	ADR-0022; W-137 is the real fix	active

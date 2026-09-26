@@ -1,0 +1,38 @@
+मण्डलम् क्रमगुणितम् ॥   ॰ factorial — recursion and a call with an argument
+
+॰ THE ANSWER IS १२०. ५! = ५ × ४ × ३ × २ × १ = १२०.
+॰ MEASURED 2026-09-04, by the chain in `crates/yantra/tests/paradigm_encode.rs`
+॰ run over this directory: lex, parse, resolve, typecheck, IR, emit, assemble,
+॰ link, load, run — every stage passes, and both emitter twins write the same
+॰ octets. IT RETURNS 120.
+॰
+॰ RE-MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file:
+॰ 2 routines, 7 blocks, FOURTEEN IR instructions, 4 constants (all non-zero), and the machine halts with status 120.
+॰ UNTIL 2026-09-05 THIS LINE READ "It reaches the machine and returns ०", and it
+॰ was true when measured. Three changes made it false, in order: `W-257` opened
+॰ `ir.t1:454`, a numeral guard testing a token kind `lex.t1` never emits by
+॰ design; 47bad575 taught `अक्षरकोशॱसङ्ख्या` to accumulate its digits rather than
+॰ answer the radix; and `W-245` gave `ir.t1` the statement kinds and instruction
+॰ forms it lacked, so `चरः`, `यदि` and `यावत्` lower rather than vanishing.
+॰ the argument and the return are built, and every constant in them is ०.
+॰
+॰ WHY THE ANSWER IS ० AND NOT THE ONE ABOVE: a numeral literal lowers to a ZERO
+॰ constant. `प्रत्यागमनम् ७ ।` alone builds one IR instruction and that
+॰ instruction is the constant ०. So no program here can return a number a
+॰ person chose, and that is upstream of arithmetic, loops and calls alike.
+॰
+॰ A ट loop that returns to its own entry: `क्रमगुणितम्` calls itself with a
+॰ smaller argument until the base case. The call carries an ARGUMENT, which
+॰ `नमस्कारः` does not — its `पञ्च` takes none — so this is the first demo
+॰ program whose call has to pass a value and get one back.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    प्रत्यागमनम् गुणितम् ५ ।
+इति
+
+सार्वजनिक वृत्तिः गुणितम् आदाय संख्या ॱॱ न६४ ददाति न६४ आदि
+    यदि संख्या न्यूनम् २ आदि
+        प्रत्यागमनम् १ ।
+    इति
+    प्रत्यागमनम् संख्या गुणनम् आरभ्य गुणितम् आरभ्य संख्या वियोगः १ समाप्तम् समाप्तम् ।
+इति

@@ -1,0 +1,13 @@
+# ELF e_flags for RISC-V — DERIVED, do not edit.
+#
+# Produced by tools/gen-relocations.py: assemble an empty function at
+# each march and read what the assembler puts in the header.
+#
+# `ld` refuses to merge objects whose float ABI disagrees. Ours said
+# 0x0 — soft float — so no object we emitted could link against
+# anything GNU built, and nothing noticed until one was offered to it.
+#
+# Columns: target, flags
+target	flags
+norvc	0x4
+rvc	0x5

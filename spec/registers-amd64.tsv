@@ -1,0 +1,44 @@
+# AMD64 register names — the table ADR-0029 calls for.
+#
+# The NUMBER column is NOT the x86 encoding. It is the index
+# `X86_64Emitter::reg_name` matches on (crates/sadhana/src/t1/x86_64.rs:102),
+# which is what the register allocator hands out: 0..13, fourteen allocatable
+# registers, panicking past 13 with "out of registers". A reader that takes
+# these for ModRM numbers will emit the wrong instruction.
+#
+# ON THE SPELLING, because ADR-0029 says "transliterated" and these are not.
+#
+# The decision ADR-0029 records is the one that matters and is kept: the names
+# are DEVANAGARI, and no Latin escape hatch is opened. How they are formed was
+# then settled by the tree rather than by this file — spec/registers-riscv64.tsv
+# was already generated with roles TRANSLATED, not sounds transcribed:
+# शून्यः is `zero`, स्तूपसूचकः is `sp`, विश्वसूचकः is `gp`, and its source
+# column reads `lexicon`. Two register tables in one compiler spelled by two
+# different principles would be worse than either principle alone.
+#
+# It also applies here without strain, because the x86 names are role
+# abbreviations exactly as the RISC-V ABI names are: rax is the Accumulator,
+# rbx the Base, rcx the Counter, rdx Data, rsi and rdi the Source and
+# Destination Index. r8-r15 have no role and are numbered, so they are numbered
+# here too, in Devanagari digits per ADR-0023.
+#
+# A phonetic transcription was the alternative and is rejected for a reason
+# this repository learned the same day: रक्स् for `rax` is formed the way
+# kosha.t1's सयमबओलसएकशअन was formed, and that file broke the linker's imports
+# for days while reading as neither language. The ABI column below carries the
+# Latin, so the boundary pass ADR-0029 requires is a column read, not a guess.
+devanagari	abi	number	class	role	source
+सञ्चयः	rax	0	int	accumulator	lexicon
+आधारः	rbx	1	int	base	lexicon
+गणकः	rcx	2	int	counter	lexicon
+दत्तम्	rdx	3	int	data	lexicon
+मूलाङ्कः	rsi	4	int	source index	lexicon
+लक्ष्याङ्कः	rdi	5	int	destination index	lexicon
+कोष्ठ८	r8	6	int	numbered, no role	derived
+कोष्ठ९	r9	7	int	numbered, no role	derived
+कोष्ठ१०	r10	8	int	numbered, no role	derived
+कोष्ठ११	r11	9	int	numbered, no role	derived
+कोष्ठ१२	r12	10	int	numbered, no role	derived
+कोष्ठ१३	r13	11	int	numbered, no role	derived
+कोष्ठ१४	r14	12	int	numbered, no role	derived
+कोष्ठ१५	r15	13	int	numbered, no role	derived

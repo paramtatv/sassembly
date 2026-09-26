@@ -1,0 +1,19 @@
+[package]
+name = "sadhana-t1"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[dependencies]
+
+# The T1 sources in `src/` are read by `tests/t1_sources.rs`, which lexes and
+# parses each one with the assembler's own front end. It is a DEV dependency:
+# nothing this crate ships at runtime links `sadhana`, and the self-hosting path
+# ends with T1 reading T1. Until then the Rust front end is the only oracle that
+# can say whether a `.t1` file is inside the language.
+[dev-dependencies]
+sadhana = { path = "../sadhana" }
+
+[lints]
+workspace = true

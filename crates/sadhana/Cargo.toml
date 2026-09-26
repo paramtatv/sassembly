@@ -1,0 +1,28 @@
+[package]
+name = "sadhana"
+description = "साधनम् — the SANSOS toolchain (doc 17): assembler, linker and compiler as one instrument. T0 lexer for the frozen grammar in spec/grammar-t0.ebnf."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+# The fork added `src/bin/t1_parse.rs` beside `src/main.rs`, which made a bare
+# `cargo run -p sadhana` ambiguous — and two gate steps (`sassembly identity`
+# and `round trip`) run exactly that, so both failed reading "could not
+# determine which binary to run". The toolchain's binary is `sadhana`;
+# `t1_parse` is a T1 development aid and was never the thing to run by default.
+default-run = "sadhana"
+
+[dependencies]
+sanskrit-text = { path = "../sanskrit-text" }
+
+# NOTE (public release): the upstream tree carries a dev-dependency on
+# `darshana`, the browser engine, used by ONE test that compares two `Rupa`
+# types with `==`. Neither that crate nor that test is part of this
+# repository. It was a dev-dependency upstream too, so nothing that ships
+# changes: it never linked into a binary and was never transitive.
+
+[lib]
+path = "src/lib.rs"
+
+[lints]
+workspace = true

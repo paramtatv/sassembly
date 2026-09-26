@@ -1,0 +1,167 @@
+(* ===================================================================== *)
+(* Sassembly T0 — token grammar, FROZEN v0.1.                            *)
+(* Task B-002 / FastBuild "Freeze the T0 token grammar".                 *)
+(*                                                                        *)
+(* Frozen means the assembler (B-012) may depend on this shape. Changing  *)
+(* a production after this point is an ADR, not an edit.                  *)
+(*                                                                        *)
+(* Three sources are binding, and nothing here is invented:               *)
+(*   - doc 02 §2.2 decision D-02-C  : Surface C, kāraka sigils, free order*)
+(*   - ADR-0003                     : the punctuation that may exist      *)
+(*   - crates/sanskrit-text         : numerals and the repertoire, as     *)
+(*                                    already implemented and tested      *)
+(*                                                                        *)
+(* Every terminal below is checked against those by                       *)
+(* crates/sanskrit-text/tests/grammar_t0.rs, so this file cannot drift    *)
+(* away from the code that has to read it.                               *)
+(* ===================================================================== *)
+
+(* --- structure ------------------------------------------------------- *)
+
+program        = { statement } ;
+
+(* A statement is one sentence (वाक्य): a verb and its kāraka-marked
+   arguments. Free operand order is the point of D-02-C — the role lives in
+   the token, so position carries no meaning and cannot be misread. *)
+statement      = comment
+               | label
+               | directive
+               | instruction ;
+
+instruction    = mnemonic , { operand } , danda ;
+
+(* Labels take the colon role. ADR-0003 gives that to a doubled ॱ, because
+   U+003A is Latin and doc 15 admits no Latin at all. *)
+label          = identifier , label_mark ;
+
+(* Directives are assembler-level rather than architectural, so they are
+   WRAPPED in the double daṇḍa: a reader must be able to tell a directive
+   from an instruction without knowing the directive names, and a closing
+   mark alone only says so once the statement has been read to its end.
+   `॥` frames a verse number in every printed Devanagari text — material
+   addressed to the reader rather than part of the work — which is what a
+   directive is. ADR-0012; the opening mark was missing here until then. *)
+directive      = double_danda , directive_name ,
+                 { directive_argument } , double_danda ;
+
+(* An argument to a directive is an argument to the ASSEMBLER, not a rôle in
+   a sentence, so it carries no kāraka: `॥ अष्टकाः ७ ॥`, never `७न`. This
+   production said `{ operand }` until ADR-0013 and therefore described no
+   directive that has ever been written.
+
+   A name is the ADDRESS of what it names — `॥ अष्टाष्टकाः मुख्यम् ॥` — which
+   is what makes a jump table and a table of string pointers writable. A
+   token beginning with a digit or a radix prefix is a numeral; one beginning
+   with a letter is a name, which is the same rule that makes `अर्थ०` one
+   name rather than a word and a number. *)
+directive_argument = identifier | numeral | string ;
+
+comment        = comment_mark , { non_newline } , newline ;
+
+(* --- operands -------------------------------------------------------- *)
+
+(* The kāraka sigil is the whole design. `कम्` is "into क" and `कन` is
+   "from क"; there is no positional src/dst convention to remember and no
+   direction to get backwards. Because अपादान and सम्प्रदान already mean
+   "from" and "to" an address, memory operands need no brackets. *)
+operand        = ( register | identifier | numeral ) , karaka ;
+
+karaka         = destination        (* कर्म     — write here            *)
+               | source             (* करण     — read from             *)
+               | source_address     (* अपादान  — load from this address *)
+               | dest_address       (* सम्प्रदान — store to this address  *)
+               | locus ;            (* अधिकरण  — at / in                *)
+
+destination    = "म्" ;
+source         = "न" ;
+source_address = "त्" ;
+dest_address   = "य्" ;
+locus          = "ए" ;
+
+(* --- lexical --------------------------------------------------------- *)
+
+(* A mnemonic is valid only if spec/mnemonics-riscv64.src.tsv names it.
+   Rule R-02-1: there is no `.insn 0x…` escape hatch, so the ISA surface is
+   exactly that file and an unnamed instruction cannot be written at all. *)
+mnemonic       = aksara_word , [ type_suffix ] , [ type_suffix ] ;
+
+(* A type name from doc 02 §2.5: अ signed, न unsigned, भ float, and a width.
+   The class letter may be omitted and then means अ, which is what ॱ३२ always
+   meant. The first suffix is व्याप्ति, "extent" — default ॱअ६४ when omitted,
+   which is how R-02-2 lets one name cover add/addi/addw/addiw.
+
+   A SECOND suffix names what the instruction reads, and only a conversion
+   takes one: `fcvt` writes one type and reads another, and no operand can say
+   which — both fcvt.w.s and fcvt.w.d write an integer register from a float
+   one. See ADR-0010 (`B-075`). *)
+type_suffix    = member_mark , [ "अ" | "न" | "भ" ] , decimal ;
+
+register       = aksara_word ;
+identifier     = aksara_word ;
+directive_name = aksara_word ;
+
+(* An akṣara word is one or more extended grapheme clusters from the doc 15
+   repertoire. The cluster, not the code point, is the atom: क्ष is one
+   akṣara, and splitting it would let two spellings of one word exist. *)
+aksara_word    = aksara , { aksara } ;
+
+(* --- numerals -------------------------------------------------------- *)
+
+(* Exactly what crates/sanskrit-text/src/numeral.rs already accepts. The
+   prefixes are Sanskrit words rather than Latin letters (0x, 0b), and hex
+   digits 10–15 are अ आ इ ई उ ऊ — never free-standing, always behind the
+   ०षोड् prefix, so a reader cannot mistake them for an identifier. *)
+(* ऋण is doc 15's negative operator and Brahmagupta's word for a negative
+   quantity. It sits OUTSIDE the radix prefix, so `ऋण०षोड्ऊ` reads in the order
+   it is said: negative, hexadecimal, fifteen. ADR-0009. *)
+numeral        = [ negative ] , ( binary | octal | hexadecimal | decimal ) ;
+
+negative       = "ऋण" ;
+
+(* String literal. Doc 15 §3.1 proposed a gap-filler pair (U+A8F9); A-033
+   measured it at 0 of 27 faces and ADR-0003 replaced it with words. `इति` is
+   how classical Sanskrit closes a quotation, so the delimiter is one the
+   language already used.
+
+   ADR-0003 also gave `॰` as the in-string escape, and it could never work: `॰`
+   is the comment mark and the lexer strips it before the parser is reached, so
+   the escape was deleted on the way in. ADR-0011 replaces it with DOUBLING —
+   `इति इति` is the word itself and a lone `इति` closes — which coins no
+   character and is the rule ADR-0003 already used to make the label mark `ॱॱ`.
+
+   `॰` and `॥` therefore cannot appear inside a string; both are structural
+   signs, and a program needing one as data writes the byte. *)
+string         = "उक्तम्" , { aksara_word | "इति" , "इति" } , "इति" ;
+
+binary         = "०द्वि"  , bin_digit , { bin_digit } ;
+octal          = "०अष्ट" , oct_digit , { oct_digit } ;
+hexadecimal    = "०षोड्" , hex_digit , { hex_digit } ;
+decimal        = dec_digit , { dec_digit } ;
+
+bin_digit      = "०" | "१" ;
+oct_digit      = "०" | "१" | "२" | "३" | "४" | "५" | "६" | "७" ;
+dec_digit      = "०" | "१" | "२" | "३" | "४" | "५" | "६" | "७" | "८" | "९" ;
+hex_digit      = dec_digit | "अ" | "आ" | "इ" | "ई" | "उ" | "ऊ" ;
+
+(* --- terminals from ADR-0003 ----------------------------------------- *)
+
+(* No Latin punctuation exists in Sassembly source. These are the signs
+   ADR-0003 ratified, chosen because all 27 measured Devanagari faces render
+   them — the Vedic-extension signs that would have been more elegant are
+   rendered by none. *)
+danda          = "।"  ;   (* U+0964  statement end                       *)
+double_danda   = "॥"  ;   (* U+0965  directive end                       *)
+comment_mark   = "॰"  ;   (* U+0970  comment to end of line              *)
+member_mark    = "ॱ"  ;   (* U+0971  member access                       *)
+label_mark     = "ॱॱ" ;   (* U+0971 ×2  the colon role                   *)
+separator      = "ऽ"  ;   (* U+093D  argument separator                  *)
+
+(* --- examples, from doc 02 §2.2 -------------------------------------- *)
+(*                                                                        *)
+(*   योगः     कम्   खन   गन ।          क ← ख + ग                          *)
+(*   आहारः    कम्   खत्   ०षोड्८ ।      load क from [ख + 0x8]              *)
+(*   निधानम्  खय्   ०षोड्८   कन ।       store क to [ख + 0x8]               *)
+(*                                                                        *)
+(* The second and third differ only in which sigil each register carries,  *)
+(* and that difference is the entire load/store distinction. No bracket    *)
+(* convention, and no way to write a store that looks like a load.         *)

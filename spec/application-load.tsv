@@ -1,0 +1,14 @@
+# The load addresses used to link applications — W-121.
+#
+# An application is linked outside the supervisor's gigabyte (0x8000_0000).
+# It does not know its own load address (A1), and these addresses are what the
+# tooling (the VSCode extension, check-roundtrip.sh) and the tests
+# (crates/yantra/tests/application.rs) use to prove it.
+#
+# The first address is the primary one used by the tools.
+# The second address is used by tests to prove position independence.
+#
+# Columns: hex, sanskrit
+hex	sanskrit
+0x2000_0000	०षोड्२०००००००
+0x4000_2000	०षोड्४०००२०००

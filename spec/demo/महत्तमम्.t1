@@ -1,0 +1,39 @@
+मण्डलम् महत्तमम् ॥   ॰ the larger of two — a comparison and a branch, no arithmetic
+
+॰ THE ANSWER IS ८. महत्तमम् आरभ्य ३ ऽ ८ समाप्तम् = ८.
+॰ MEASURED 2026-09-04, by the chain in `crates/yantra/tests/paradigm_encode.rs`
+॰ run over this directory: lex, parse, resolve, typecheck, IR, emit, assemble,
+॰ link, load, run — every stage passes, and both emitter twins write the same
+॰ octets. IT RETURNS 8.
+॰
+॰ RE-MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file:
+॰ 2 routines, 7 blocks, TWELVE IR instructions, 2 constants (both non-zero), and the machine halts with status 8.
+॰ UNTIL 2026-09-05 THIS LINE READ "It reaches the machine and returns ०", and it
+॰ was true when measured. Three changes made it false, in order: `W-257` opened
+॰ `ir.t1:454`, a numeral guard testing a token kind `lex.t1` never emits by
+॰ design; 47bad575 taught `अक्षरकोशॱसङ्ख्या` to accumulate its digits rather than
+॰ answer the radix; and `W-245` gave `ir.t1` the statement kinds and instruction
+॰ forms it lacked, so `चरः`, `यदि` and `यावत्` lower rather than vanishing.
+॰ five, so the comparison and both arms of the `यदि` do build.
+॰
+॰ WHY THE ANSWER IS ० AND NOT THE ONE ABOVE: a numeral literal lowers to a ZERO
+॰ constant. `प्रत्यागमनम् ७ ।` alone builds one IR instruction and that
+॰ instruction is the constant ०. So no program here can return a number a
+॰ person chose, and that is upstream of arithmetic, loops and calls alike.
+॰
+॰ DELIBERATELY WITHOUT ARITHMETIC. Every other program here adds, multiplies or
+॰ takes a remainder; this one only COMPARES and BRANCHES, and it takes two
+॰ arguments. If it reaches the machine and the others do not, the blocker is
+॰ arithmetic and not calls, branches or the ट loop — which is the one thing a
+॰ report of "they all stop at the IR" could not tell you.
+
+सार्वजनिक वृत्तिः महत्तमम् ददाति न६४ आदि
+    प्रत्यागमनम् अधिकतरः आरभ्य ३ ऽ ८ समाप्तम् ।
+इति
+
+सार्वजनिक वृत्तिः अधिकतरः आदाय वामः ॱॱ न६४ ऽ दक्षिणः ॱॱ न६४ ददाति न६४ आदि
+    यदि वामः अधिकम् दक्षिणः आदि
+        प्रत्यागमनम् वामः ।
+    इति
+    प्रत्यागमनम् दक्षिणः ।
+इति

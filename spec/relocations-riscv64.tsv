@@ -1,0 +1,22 @@
+# RISC-V relocation types — DERIVED, do not edit.
+#
+# Produced by tools/gen-relocations.py from what riscv64-elf-as emits
+# when a symbol cannot be resolved, read back with readelf -r. The
+# number is the low byte of the `info` field, not a transcribed table.
+#
+# R_RISCV_BRANCH is absent because the assembler never emits one: a
+# branch it cannot resolve is REWRITTEN into an inverted branch over a
+# jump, in every form tried — another section, an undefined symbol,
+# and with .option norelax. If it never leaves a branch for the linker
+# to patch, neither must we.
+#
+# Columns: name, number
+name	number
+R_RISCV_32	1
+R_RISCV_64	2
+R_RISCV_JAL	17
+R_RISCV_PCREL_HI20	23
+R_RISCV_PCREL_LO12_I	24
+R_RISCV_HI20	26
+R_RISCV_LO12_I	27
+R_RISCV_RELAX	51

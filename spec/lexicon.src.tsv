@@ -1,0 +1,478 @@
+#	Lexicon source — authored. spec/lexicon.tsv is GENERATED from this by
+#	`cargo run -p lexgen`, which adds the slp1 and iast columns.
+#	Method: doc 01 §4. One word, one sense; one sense, one word.
+devanagari	english	category	source	notes
+अंश	bit	concept	attested	
+अंशगणना	population count	mnemonic	dhatu	
+अकर्म	no-op	mnemonic	dhatu	
+अक्षरम्	akshara	type	derived	
+अक्षररूप	font	graphics	doc05	
+अक्षररूपम्	system font	name	doc17	
+अक्षरविभागः	akshara segmentation	terminal	doc04	
+अक्षराणि	aksharas of	terminal	doc04	
+अङ्कः	index open	keyword	attested	
+अङ्कनम्	rasterization	graphics	doc05	
+अज्ञातनाम	undefined symbol	error	derived	
+अज्ञातसंज्ञा	unknown mnemonic	error	derived	
+अतिप्रवाहः	overflow	error	derived	
+अधिकम्	greater than	operator	doc15	
+अधिकार	capability	concept	attested	
+अधिकाराभावः	capability denied	error	derived	
+अधिष्ठाता	supervisor	name	doc17	
+अधिष्ठापनम्	deployment	storage	doc08	
+अनपेक्षितचिह्नम्	unexpected token	error	derived	
+अनिश्चितमूल्यम्	uninitialized	error	derived	
+अनुक्रम	sequence	concept	attested	
+अनुक्रमणिका	index	storage	doc08	
+अनुपलब्धम्	unavailable	error	derived	
+अनुमतिः	permission	storage	doc08	
+अनुमोदनम्	authorization	security	doc13,16	
+अनुवर्तनम्	continue	keyword	attested	
+अनुसूचकः	scheduler	kernel	doc11	
+अन्तः	index close	keyword	attested	
+अन्तरम्	delta	security	doc13,16	
+अन्तर्गमनम्	inbound	network	doc06	
+अन्यथा	else	keyword	attested	
+अन्वेषकः	debugger	name	doc17	
+अपप्रवाहः	underflow	error	derived	
+अपवाद	exception	concept	attested	
+अपूर्णवाक्यम्	unterminated statement	error	derived	
+अपेक्षा	requires, capability set	keyword	attested	
+अर्थ	argument register	register	derived	
+अवतरणम्	download	security	doc13,16	
+अवस्था	state	concept	attested	
+अवस्थानम्	state directory	storage	doc08	
+अवैधरूपम्	malformed	error	derived	
+अव्यक्तम्	untyped memory	kernel	doc11	
+अशुद्धाक्षरम्	character outside repertoire	error	derived	
+अष्टक	byte	concept	attested	
+अष्टकाः	byte data	directive	attested	
+अष्टाष्टकाः	quad data	directive	attested	
+असत्यम्	false	keyword	attested	
+असमम्	not equal	operator	ADR-0026	T1's inequality operator, frozen from the corpus by ADR-0026. Replaces doc 15's proposed `विषमम्`, which no source writes.
+असमर्थितम्	unsupported	error	derived	
+असामान्यरूपम्	not normalized	error	derived	
+असुरक्षितम्	unsafe	keyword	attested	
+अस्थिर	volatile	keyword	attested	
+अ१२८	i128	type	derived	
+अ१६	i16	type	derived	
+अ३२	i32	type	derived	
+अ६४	i64	type	derived	
+अ८	i8	type	derived	
+आ	range, up to	keyword	attested	
+आकारणम्	shaping	graphics	doc05	
+आज्ञा	instruction	concept	attested	
+आज्ञापनम्	system call	mnemonic	dhatu	
+आदि	begin	keyword	attested	
+आदिकर्ता	root task	kernel	doc11	
+आयातः	import	keyword	attested	
+आरभ्य	group open	keyword	attested	
+आरम्भकः	bootloader	name	doc17	
+आवण्टकः	allocator	kernel	doc11	
+आहारः	load	mnemonic	dhatu	
+आह्वानम्	call	mnemonic	dhatu	
+इति	end, thus	keyword	attested	
+इति सूचिः	in list	keyword	attested	
+उक्तम्	string open	keyword	attested	
+उपयोक्ता	user	storage	doc08	
+उपसर्गे	at base address	directive	attested	
+ऋण	negative	operator	doc15	
+एतत्	Self type	keyword	attested	
+कच्चा	raw asm	keyword	attested	
+कर्म	operation	concept	attested	
+कारक	operand	concept	attested	
+काल	column	terminal	doc04	
+कालखण्डः	time slice	kernel	doc11	
+कालमुद्रा	timestamp	media	doc10	
+कालातीतम्	timed out	error	derived	
+कुञ्जिका	key, button	terminal	doc04	
+कुञ्जी	key	security	doc13,16	
+केवलपठनम्	read-only	directive	attested	
+कोश	storage	concept	attested	
+कोशः	object format	name	doc17	
+कोशतन्त्रम्	filesystem, the concept	storage	doc08	
+कोशागारम्	content store	storage	doc08	
+कोष्ठ	register	concept	attested	
+कोष्ठक	directory	concept	attested	
+कोष्ठकम्	section	directive	attested	
+क्रम	order	concept	attested	
+क्रमसूचकः	program counter	register	derived	
+क्रमिकम्	sequential	kernel	doc11	
+क्रिया	opcode	concept	attested	
+क्षणिक	temporary register	register	derived	
+क्षणिकम्	temporary	storage	doc08	
+खण्डनम्	fragmentation	network	doc06	
+गणना	enum	keyword	attested	
+गर्भः	kernel	name	doc17	
+गवाक्ष	window	concept	attested	
+गवाक्षः	browser	name	doc17	
+गुणधर्मः	attribute	storage	doc08	
+गुणनम्	multiply	mnemonic+operator	dhatu	ADR-0028: also T1's multiplication operator (`mul_op`). Doc 15's proposed `गुण` is retired — unwritten by any source.
+गृहम्	home directory	storage	doc08	
+गोपनम्	encryption	network	doc06	
+गोवर्धनः	Govardhan	name	doc17	
+ग्रहणम्	receive	network+kernel	doc06	
+घटना	event	concept	attested	
+च	and	operator	doc15	
+चतुरष्टकाः	word data	directive	attested	
+चर	variable	concept	attested	
+चरः	var	keyword	attested	
+चित्रम्	graphics	name	doc17	
+चिह्न	label	concept	attested	
+चिह्नकः	cursor	terminal	doc04	
+चौखटदरः	frame rate	media	doc10	
+चौखटम्	frame	graphics	doc05	
+छेदनम्	clip	graphics	doc05	
+जागरणम्	wake	kernel	doc11	
+जाल	network	concept	attested	
+जालतन्त्रम्	network stack, the concept	network	doc06	
+जालम्	Jala, the SANSOS network stack	name	doc17	
+ततः	then, match arm	keyword	attested	
+तन्तु	thread	concept	attested	
+तन्तुसूचकः	thread pointer	register	derived	
+तन्त्रम्	system directory	storage	doc08	
+तालम्	lock	kernel	doc11	
+तुलना	compare	mnemonic	dhatu	
+दक्षिणभ्रमणम्	rotate right	mnemonic	dhatu	
+दक्षिणसरणम्	shift right (T0 mnemonic)	mnemonic	dhatu	
+दक्षिणसृ	shift right (T1 operator)	operator	doc15	
+दर्शनम्	render engine	name	doc17	
+दैर्घ्य	length	concept	attested	
+दोष	fault	concept	attested	
+दोषः	error	keyword	attested	
+दोषयुक्त	error union	type	derived	
+द्वयष्टकाः	half-word data	directive	attested	
+द्वार	port	concept	attested	
+द्वारदास	pty slave	terminal	doc04	
+द्वारपट्टिका	terminal device	terminal	doc04	
+द्वारपालः	terminal	name	doc17	
+द्वारयुग्म	pty pair	terminal	doc04	
+द्वारस्वामी	pty master	terminal	doc04	
+द्विरुक्तनाम	duplicate symbol	error	derived	
+धारा	stream	media	doc10	
+धाराविश्लेषकः	demuxer	media	doc10	
+ध्रुव	constant	concept	attested	
+ध्रुवः	const	keyword	attested	
+ध्वज	flag	concept	attested	
+न	not	operator	doc15	
+न प्राप्तम्	not found	error	derived	
+नवीकरणम्	OTA update	name	doc17	
+नादः	media stack	name	doc17	
+नादपटलम्	audio device	media	doc10	
+नादरूपतन्त्रम्	media system	media	doc10	
+नाभिः	nucleus	kernel	doc11	
+नाम	name	directive	attested	
+नामनिर्देशः	DNS	network	doc06	
+नामपरिवर्तनम्	rename	storage	doc08	
+नामाङ्कितः	labelled	keyword	attested	
+नालन्दा	Nalanda	name	doc17	
+निधानम्	store	mnemonic	dhatu	
+निधिः	Nidhi, the SANSOS filesystem	name	doc17	
+नियन्ता	shell	name	doc17	
+नियन्त्रणम्	playback control	media	doc10	
+निर्गमः	port out	mnemonic	dhatu	
+आगमः	device input domain	mnemonic	derived	आ+√गम् (coming in); the fence domain RISC-V spells `i` (B-045)
+पठनम्	memory read domain	mnemonic	derived	√पठ् (to read) + अनम्; the fence domain RISC-V spells `r` (B-045)
+लेखनम्	memory write domain	mnemonic	derived	√लिख् (to write) + अनम्; the fence domain RISC-V spells `w` (B-045)
+निर्गमद्वारम्	sink, output	media	doc10	
+निर्देश	directive	concept	attested	
+निर्माता	build system	name	doc17	
+निवेशः	port in	mnemonic	dhatu	
+निश्चयः	assert	keyword	attested	
+निषिद्धम्	forbidden	error	derived	
+नूतनम्	new, allocate	kernel	doc11	
+न्यूनम्	less than	operator	doc15	
+न्यूनसमम्	less or equal	operator	doc15	
+न्यूनाधिकारः	attenuation	security	doc13,16	
+न१	u1 bitfield	type	derived	
+न१२८	u128	type	derived	
+न१६	u16	type	derived	
+न२	u2 bitfield	type	derived	
+न२२	u22 bitfield	type	derived	
+न३२	u32	type	derived	
+न६	u6 bitfield	type	derived	
+न६४	u64	type	derived	
+न८	u8	type	derived	
+पङ्क्ति	row	terminal	doc04	
+पङ्क्तिविन्यासः	line layout	graphics	doc05	
+पटलम्	display device	graphics	doc05	
+पठ	read	terminal	doc04	
+पठनलेखनम्	read-write	directive	attested	
+पत्र	file	concept	attested	
+पद	machine word	concept	attested	
+परमाणु	atomic	keyword	attested	
+परमाणुतुलनाविनिमयः	compare and swap	mnemonic	dhatu	
+परमाणुपठनम्	atomic load	mnemonic	dhatu	
+परमाणुलेखनम्	atomic store	mnemonic	dhatu	
+परमाणुविनिमयः	atomic exchange	mnemonic	dhatu	
+परिमाण	size	concept	attested	
+परिवृत्तअधि	wrapping plus	concept	doc15	
+परिवृत्तयोगः	wrapping add	mnemonic	dhatu	
+परिवेष्टन	sandbox	concept	attested	
+परिष्कारः	post-process	media	doc10	
+परीक्षा	test	keyword+name	attested	
+परीक्षायोगः	checksum	network	doc06	
+पाठ	string	type	derived	ADR-0029: T1's `type_name`. Spelled `पाठः` until 2026-08-31; the corpus writes the stem 26 to 2 in the one type position `binding` freezes, and doc 01 §4 rule 5 forbids carrying both words for this one sense.
+पारदर्शिता	opacity	graphics	doc05	
+पिण्ड	packet	concept	attested	
+पिण्डधारा	object stream	terminal	doc04	
+पुनःनमूनाकरणम्	resampling	media	doc10	
+पुनःप्रयत्नः	retry	error	derived	
+पुनःसंयोजनम्	reassembly	network	doc06	
+पुनःस्थानम्	return address	register	derived	
+पुनरारम्भः	restart	security	doc13,16	
+पुनरावृत्तिः	repeat	directive	attested	
+पुनरुद्धारम्	trash, restore	storage	doc08	
+पूर्णक्रमेण	by total order	operator	doc15	
+पूर्णम्	full	error	derived	
+पृष्ठकः	pager	kernel	doc11	
+पृष्ठदोषः	page fault	kernel	doc11	
+पृष्ठम्	surface	graphics	doc05	
+प्रकारः	type	keyword	attested	
+प्रकारभेदः	type mismatch	error	derived	
+प्रक्रिया	process	concept	attested	
+प्रतिध्वनिः	echo	terminal	doc04	
+प्रतिबिम्बम्	snapshot	security	doc13,16	
+प्रतिलिपिः	copy	storage	doc08	
+प्रतीक्षा	wait	kernel	doc11	
+प्रत्यागमनम्	return	mnemonic+keyword	dhatu	
+प्रत्यायनम्	commit	security	doc13,16	
+प्रत्यावर्तनम्	rollback	security	doc13,16	
+प्रत्येकम्	for	keyword	attested	
+प्रदेशः	region, area	graphics	doc05	
+प्रमाणपत्रम्	certificate	network	doc06	
+प्रमाणम्	attestation	security	doc13,16	
+प्रयत्नः	try	keyword	attested	
+प्रवाहनियन्त्रणम्	flow control	network	doc06	
+प्रवेशः	input method	name	doc17	
+प्राकारः	capability layer	name	doc17	
+प्राथमिकता	priority	kernel	doc11	
+प्रेषणम्	send	network	doc06	
+फलम्	result, return type	keyword	attested	
+बहिर्गमनम्	outbound	network	doc06	
+बाह्यम्	outer label	keyword	attested	
+बिन्दु	pixel	concept	attested	
+बृहत्समम्	greater or equal	operator	ADR-0037	T1’s greater-or-equal, frozen from the corpus by ADR-0037; vakyavibhaga.t1:3163 has written it since 2026-08-29. Replaces doc 15’s proposed `अधिकसमम्`, which no source writes.
+बूल	bool	type	derived	
+भग्नम्	corrupted	error	derived	
+भङ्गः	break	keyword	attested	
+भवति	assign, becomes	operator	doc15	
+भागः	divide	mnemonic	dhatu	T0 only. T1 spells division `विभाजनम्` (ADR-0026), which is the word its corpus writes; doc 15's proposed `भाग` is retired. The two tiers differ here and ADR-0028 says so rather than respelling a frozen T0 mnemonic.
+भाण्डारम्	file browser	name	doc17	
+भारः	payload	network	doc06	
+भिन्न	float register	register	derived	
+भीडनियन्त्रणम्	congestion control	network	doc06	
+भ३२	f32	type	derived	
+भ६४	f64	type	derived	
+मण्डपः	compositor	name	doc17	
+मण्डलम्	module	keyword	attested	
+मात्रा	quantity	concept	attested	
+मार्गः	route, IP layer	network	doc06	
+मिश्रणम्	mixing	media	doc10	
+मुक्तिः	free	kernel	doc11	
+मूलम्	root of trust	security	doc13,16	
+मूल्य	value	concept	attested	
+मोचनम्	release	kernel	doc11	
+यदि	if	keyword	attested	
+यदिलङ्घनम्	conditional branch	mnemonic	dhatu	
+यन्त्र	device	concept	attested	
+यन्त्राणि	devices	storage	doc08	
+यावत्	while	keyword	attested	
+युक्	bitwise and (T1 operator)	operator	doc15	
+युक्तम्	bitwise and (T0 mnemonic)	mnemonic	dhatu	
+युग्म	pair	concept	attested	
+योगः	add	mnemonic+operator	dhatu	ADR-0028: also T1's addition operator (`add_op`). Doc 15 proposed `अधि` for the T1 sense; no source writes it and ADR-0026 froze this word from the corpus, so the two tiers spell addition alike.
+रक्षा	defer	keyword	attested	
+रक्षातन्त्रम्	security system	security	doc13,16	
+राशि	heap	concept	attested	
+रिक्तः	null, none	keyword	attested	
+रिक्तप्रवेशः	null access	error	derived	
+रिक्तम्	empty	error	derived	
+रूपकम्	widget	graphics	doc05	
+रूपम्	codec suite	name	doc17	
+रूपान्तरणम्	transform	graphics	doc05	
+रेखा	line, stroke	graphics	doc05	
+रेखानुशासनम्	line discipline	terminal	doc04	
+लक्ष्यम्	target	security	doc13,16	
+लङ्घनम्	jump	mnemonic	dhatu	
+लिपिखण्डः	script run	graphics	doc05	
+लेखनी	lexer	terminal	doc04	
+लेखय	write	terminal	doc04	
+वर्ग	square, class	concept	attested	
+वर्गमूलम्	square root	mnemonic	dhatu	
+वर्णः	text shaper	name	doc17	
+वर्णपटलम्	palette	graphics	doc05	
+वर्तिका	brush	graphics	doc05	
+वा	or	operator	doc15	
+वामभ्रमणम्	rotate left	mnemonic	dhatu	
+वामसरणम्	shift left (T0 mnemonic)	mnemonic	dhatu	
+वामसृ	shift left (T1 operator)	operator	doc15	
+वास्तु	Sassembly-web	name	doc17	
+विकल्प	bitwise or (T1 operator)	operator	doc15	
+विकल्पः	bitwise or (T0 mnemonic)	mnemonic	dhatu	
+विकल्पना	match	keyword	attested	
+विकोडकः	decoder	media	doc10	
+विघ्न	interrupt	concept	attested	
+विघ्नग्राहकः	IRQ handler	kernel	doc11	
+विघ्नप्रत्यागमः	return from interrupt	mnemonic	dhatu	
+विघ्नवृत्तिः	interrupt fn	keyword	attested	
+विघ्नसमाप्तिः	end of interrupt	mnemonic	dhatu	
+विच्छिन्नम्	disconnected	error	derived	
+विन्यास	layout	concept	attested	
+विभाजनम्	divided by	operator	ADR-0026	Frozen from the corpus by ADR-0026. T0's divide mnemonic is `भागः`; doc 15's proposed `भाग` is retired.
+वियोगः	subtract	mnemonic+operator	dhatu	ADR-0028: also T1's subtraction operator (`add_op`). Doc 15's proposed `ऊन` is retired — unwritten by any source.
+विरचनम्	stage	security	doc13,16	
+विरामः	halt	mnemonic	dhatu	
+विरुद्धम्	conflict	error	derived	
+विलम्बः	latency	network	doc06	
+विलोपनम्	delete	storage	doc08	
+विश्वसूचकः	global pointer	register	derived	
+विश्वासः	trust	security	doc13,16	
+विषम	bitwise xor (T1 operator)	operator	doc15	
+विषयः	deref	keyword	attested	
+विस्तार	extent	concept	attested	
+विस्तारय	widening cast	mnemonic	dhatu	
+वृत्ति	function	concept	attested	
+वृत्तिः	fn	keyword	attested	
+वृत्तिस्थानम्	function pointer	keyword	attested	
+वैश्विकम्	global	directive	attested	
+वैषम्यम्	bitwise xor (T0 mnemonic)	mnemonic	dhatu	
+व्यत्यय	bitwise not (T1 operator)	operator	doc15	
+व्यत्ययः	bitwise not (T0 mnemonic)	mnemonic	dhatu	
+शीर्षकम्	header	network	doc06	
+शून्यः	hardwired zero	register	derived	
+शून्यम्	void	keyword	attested	
+शून्येनभागः	division by zero	error	derived	
+शेषः	remainder	mnemonic+operator	dhatu	T0 rem, and since ADR-0037 T1’s modulo operator — encode.t1:647, :676 write it between two operands. Replaces doc 15’s proposed `शेष`, which no source writes. The corpus writes `शेषम्` far more often, but every one of those is a local variable holding a remainder, not the operator.
+श्रोता	listener	network	doc06	
+संकलन	compilation	concept	attested	
+संकुचय	narrowing cast	mnemonic	dhatu	
+संकेतः	signal	terminal	doc04	
+संख्यानम्	count	concept	attested	
+संग्रहः	package system	name	doc17	
+संघः	union	keyword	attested	
+संचारः	move between registers	mnemonic	dhatu	
+संज्ञा	mnemonic	concept	attested	
+संयोजन	linking	concept	attested	
+संरचना	struct	keyword	attested	
+संरेखः	align	directive	attested	
+संरेखितम्	aligned	kernel	doc11	
+संलग्नम्	mount point	storage	doc08	
+संस्कारः	patch	security	doc13,16	
+संस्कृति	Sankriti	name	doc17	
+संहतसंरचना	packed struct	keyword	attested	
+संहतिः	composite	graphics	doc05	
+सङ्केतशास्त्रम्	cryptography	security	doc13,16	
+सञ्जीवनी	hot patching	name	doc17	
+सत्यम्	true	keyword	attested	
+सन्दर्भपरिवर्तनम्	context switch	kernel	doc11	
+सन्देश	message	concept	attested	
+सन्धिः	connection	network	doc06	
+सन्सोस्	SANSOS	name	doc17	
+समकालनम्	synchronization	media	doc10	
+समम्	equal	operator	doc15	
+समयकृत	comptime	keyword	attested	
+समानम्	equ directive	directive	attested	
+समाप्तम्	group close	keyword	attested	
+समावेशः	include	directive	attested	
+समूह	set	concept	attested	
+सम्बन्धः	link layer	network	doc06	
+सम्भाव्य	optional	type	derived	
+सस्सेम्बली	Sassembly	name	doc17	
+साक्षी	transparency log	name	doc17	
+साक्ष्यम्	witness, attest	security	doc13,16	
+साधनम्	toolchain	name	doc17	
+सारः	hash, digest	security	doc13,16	
+सार्वजनिक	pub	keyword	attested	
+सीमा	limit	concept	attested	
+सीमातिक्रमः	index out of bounds	error	derived	
+सूचक	pointer	concept	attested	
+सूचना	notification	kernel	doc11	
+सूची	list	concept	attested	
+स्तूप	stack	concept	attested	
+स्तूपसूचकः	stack pointer	register	derived	
+स्तूपापहारः	pop	mnemonic	dhatu	
+स्तूपारोपः	push	mnemonic	dhatu	
+स्थगितम्	deferred	error	derived	
+स्थान	address	concept	attested	
+स्थानम्	pointer type	type	derived	
+स्थानान्तरणम्	move a file	storage	doc08	
+स्थानाभावः	out of memory	error	derived	
+स्थानीयम्	local	directive	attested	
+स्थिर	callee-saved register	register	derived	
+स्पन्दः	script engine	name	doc17	
+स्मृति	memory	concept	attested	
+स्मृतिक्षेत्रम्	address space	kernel	doc11	
+स्मृतिबन्धः	memory barrier	mnemonic	dhatu	
+स्मृत्यभावः	allocation failed	error	derived	
+स्वयम्	self	keyword	attested	
+हस्तमेलनम्	handshake	network	doc06	
+हस्ताक्षरम्	signature	security	doc13,16	
+ऽ	argument separator	sign	ADR-0003	
+ॐ	file invocation	sign	ADR-0003	
+।	statement terminator	sign	ADR-0003	
+॥	directive terminator	sign	ADR-0003	
+॰	comment, escape	sign	ADR-0003	
+ॱ	member access	sign	ADR-0003	
+ॱॱ	type or label annotation	sign	ADR-0003	
+उपरिभारः	load upper immediate	mnemonic	derived	उपरि (upper) + भारः (load); the immediate lands in the high bits
+उपरिगुणनम्	high multiplication	mnemonic	derived	उपरि (upper) + गुणनम्; the high half of a product, as उपरिभारः is the high half of an immediate
+भिन्नसमम्	float equal	mnemonic	derived	भिन्न + समम् (doc 15's equality operator)
+भिन्नन्यूनम्	float less than	mnemonic	derived	भिन्न + न्यूनम् (doc 15's less-than)
+भिन्नानधिकम्	float not greater than	mnemonic	derived	भिन्न + अ (privative) + अधिकम् (doc 15's greater-than); not-greater is <=, the negation ADR-0008 uses for branches. The अ+अ join is savarṇa-dīrgha (6.1.101)
+भिन्नगुणवियोगः	float multiply then subtract	mnemonic	derived	भिन्न + गुण + वियोगः, beside भिन्नगुणयोगः
+ऋणभिन्नगुणयोगः	negated float multiply then add	mnemonic	derived	ऋण (ADR-0009's negative) + भिन्नगुणयोगः
+ऋणभिन्नगुणवियोगः	negated float multiply then subtract	mnemonic	derived	ऋण + भिन्नगुणवियोगः
+व्यत्ययचिह्नारोपणम्	copy the inverted sign	mnemonic	derived	व्यत्यय (the T0 name for bitwise not) + चिह्नारोपणम्
+वैषम्यचिह्नारोपणम्	copy the signs xored	mnemonic	derived	वैषम्यम् (the T0 name for xor) + चिह्नारोपणम्
+नियन्त्रकविनिमयः	control register exchange	mnemonic	derived	नियन्त्रक + विनिमयः (exchange), as in परमाणुविनिमयः
+नियन्त्रकविकल्पः	control register set	mnemonic	derived	नियन्त्रक + विकल्पः (the T0 name for or); setting a bit is or-ing it
+नियन्त्रकापसारणम्	control register clear	mnemonic	derived	नियन्त्रक + अप+√सृ (to remove) + अनम्; clearing is removal. The अ+अ join is savarṇa-dīrgha
+मिश्रोपरिगुणनम्	mixed-sign high multiplication	mnemonic	derived	मिश्र (mixed) + उपरिगुणनम्; one operand signed and one not, which is why it needs its own name
+अचिह्नोपरिगुणनम्	unsigned high multiplication	mnemonic	derived	अचिह्न (ADR-0006) + उपरिगुणनम्; the अ+उ join is guṇa (6.1.87), a rule sandhi.rs defers
+स्थानसापेक्षयोगः	add upper immediate to pc	mnemonic	derived	स्थान (place) + सापेक्ष (relative) + योगः (add); pc-relative
+सचिह्नदक्षिणसरणम्	shift right arithmetic	mnemonic	derived	स + चिह्न (sign) + दक्षिणसरणम्; preserves the sign bit, unlike दक्षिणसरणम्
+अचिह्नाहारः	load without sign extension	mnemonic	derived	अ (privative) + चिह्न (sign) + आहारः; zero-extends where आहारः sign-extends. Formed by the same savarṇa-dīrgha join (अ + आ -> आ) that sandhi.rs declines to compute (B-051)
+विश्लेषणम्	disassembler	name	derived	वि+√श्लिष् (to take apart) + अनम्; doc 17's counterpart to साधनम् (B-013)
+समलङ्घनम्	branch if equal	mnemonic	derived	सम (from समम्, doc 15's equality operator) + लङ्घनम्
+विषमलङ्घनम्	branch if not equal	mnemonic	derived	विषम + लङ्घनम्. The T0 spelling predates ADR-0026 and is frozen by spec/conformance-rvc-t0.tsv; T1's inequality operator is `असमम्` (ADR-0028), not the retired `विषमम्` this name was derived from.
+न्यूनलङ्घनम्	branch if less	mnemonic	derived	न्यून (from न्यूनम्, doc 15's less-than) + लङ्घनम्
+अन्यूनलङ्घनम्	branch if not less	mnemonic	derived	अ (privative) + न्यून + लङ्घनम्; not-less is >=, the same negation ADR-0006 uses
+अचिह्नन्यूनलङ्घनम्	branch if less, unsigned	mnemonic	derived	अचिह्न (ADR-0006) + न्यून + लङ्घनम्
+अचिह्नान्यूनलङ्घनम्	branch if not less, unsigned	mnemonic	derived	अचिह्न + अन्यून + लङ्घनम्; the अ+अ join is savarṇa-dīrgha (6.1.101), the rule sandhi.rs declines to compute (B-051)
+अचिह्नन्यूनम्	unsigned less-than	mnemonic	derived	अ (privative) + चिह्न (sign) + न्यूनम्; ADR-0006 — the unsigned sibling of न्यूनम्
+अचिह्नभागः	unsigned division	mnemonic	derived	अ (privative) + चिह्न (sign) + भागः; ADR-0006 — the unsigned sibling of भागः
+अचिह्नशेषः	unsigned remainder	mnemonic	derived	अ (privative) + चिह्न (sign) + शेषः; ADR-0006 — the unsigned sibling of शेषः
+अचिह्नपरमाणुपरमम्	unsigned atomic maximum	mnemonic	derived	अ (privative) + चिह्न (sign) + परमाणुपरमम्; ADR-0006 — the unsigned sibling of परमाणुपरमम्
+अचिह्नपरमाणुन्यूनतमम्	unsigned atomic minimum	mnemonic	derived	अ (privative) + चिह्न (sign) + परमाणुन्यूनतमम्; ADR-0006 — the unsigned sibling of परमाणुन्यूनतमम्
+सापेक्षलङ्घनम्	jump and link register	mnemonic	derived	सापेक्ष (relative) + लङ्घनम् (jump); target comes from a register
+अन्वेषणविरामः	breakpoint	mnemonic	derived	अन्वेषण (investigation, cf अन्वेषकः debugger) + विरामः (halt); विरामः alone is `halt` and a breakpoint is not one
+परमाणुयोगः	atomic add	mnemonic	derived	परमाणु (atomic) + योगः
+परमाणुयुक्तम्	atomic and	mnemonic	derived	परमाणु + युक्तम्
+परमाणुविकल्पः	atomic or	mnemonic	derived	परमाणु + विकल्पः
+परमाणुवैषम्यम्	atomic xor	mnemonic	derived	परमाणु + वैषम्यम्
+परमाणुपरमम्	atomic maximum	mnemonic	derived	परमाणु + परमम् (highest)
+परमाणुन्यूनतमम्	atomic minimum	mnemonic	derived	परमाणु + न्यूनतमम् (least)
+भिन्नाहारः	float load	mnemonic	derived	भिन्न (float register) + आहारः
+भिन्ननिधानम्	float store	mnemonic	derived	भिन्न + निधानम्
+भिन्नयोगः	float add	mnemonic	derived	भिन्न + योगः
+भिन्नवियोगः	float subtract	mnemonic	derived	भिन्न + वियोगः
+भिन्नगुणनम्	float multiply	mnemonic	derived	भिन्न + गुणनम्
+भिन्नभागः	float divide	mnemonic	derived	भिन्न + भागः
+भिन्नगुणयोगः	fused multiply-add	mnemonic	derived	भिन्न + गुणनम् + योगः; multiply and add as one rounding
+भिन्नपरमम्	float maximum	mnemonic	derived	भिन्न + परमम्
+भिन्नन्यूनतमम्	float minimum	mnemonic	derived	भिन्न + न्यूनतमम्
+भिन्नरूपान्तरम्	float convert	mnemonic	derived	भिन्न + रूपान्तरम् (change of form)
+चिह्नारोपणम्	sign injection	mnemonic	derived	चिह्न (sign) + आरोपणम् (placing upon)
+भिन्नतुलना	float compare	mnemonic	derived	भिन्न + तुलना
+भिन्नवर्गः	classify float	mnemonic	derived	भिन्न + वर्गः (class); वर्ग is already `square, class`
+भिन्नसंचारः	float move	mnemonic	derived	भिन्न + संचारः
+नियन्त्रककोष्ठः	control and status register	mnemonic	derived	नियन्त्रक (controlling) + कोष्ठ (register)
+आदेशबन्धः	instruction fence	mnemonic	derived	आदेश (instruction) + बन्धः (binding); orders instruction fetch, not data
+स्मृतिक्षेत्रबन्धः	address-translation fence	mnemonic	derived	स्मृतिक्षेत्रम् (address space, doc 11) + बन्धः, the third of the pair स्मृतिबन्धः and आदेशबन्धः; orders updates to the page tables, which is neither data nor fetch
+समापनम्	application exit	kernel	derived	सम् + आ + √पद् -> समापनम् (bringing to an end); ADR-0016 call 0, and the call an application ends by rather than returning
+आलेखनम्	surface write	kernel	derived	आ + √लिख् + अनम् (writing upon); ADR-0016 call 1. Distinct from लेखनम्, which is the fence domain RISC-V spells `w`
+सिद्धम्	call succeeded	kernel	attested	ADR-0016 error code 0; the four failures are असमर्थितम्, अधिकाराभावः, रिक्तप्रवेशः and सीमातिक्रमः, all of which the lexicon already carried
+चालनम्	running (execution)	concept	derived	चालन (causing to move / setting in motion); UI coinage for program execution (Sanskriti)
+यतिः	newline	keyword	attested	ADR-0018 — prosody's caesura, "the pause that divides a metrical line"; doc 17a §3.3 already names darshana's line breaker यतिः for the same concept. A VALUE in T1 and never an escape: inside उक्तम् … इति it is its own four akṣaras
+विवरम्	space	keyword	attested	ADR-0018 — वि+√वृ, an opening or interstice, the interval between two things; U+0020 as a value. अवकाशः, the obvious word, is taken by the linker's संरचना अवकाश (Slot) and अन्तरम् is already `delta`

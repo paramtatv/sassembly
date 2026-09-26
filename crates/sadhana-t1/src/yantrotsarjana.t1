@@ -1,0 +1,2808 @@
+मण्डलम् यन्त्रोत्सर्जन ॥ ॰ riscv64 — the port of crates/sadhana/src/t1/riscv64.rs
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ `W-236` — EMITTER LANE R2: the T1 TWIN of the Rust RISC-V emitter,
+॰ research/25-t1-to-riscv-emitter-design.md §3.2 and §5 R2.
+॰
+॰ It takes what मध्यरूप built — वृत्तिकोश, पर्वकोश, आज्ञाकोश and `W-204`'s
+॰ आदानकोश — allocates registers over each routine with उत्सर्जन ॱ
+॰ कोष्ठावण्टनम्, and writes T0 ASSEMBLY TEXT: the text a person writes in
+॰ `spec/*.sas`, which `सङ्केतन` encodes. It writes no bytes (§2.1). For the
+॰ same IR it writes the SAME OCTETS as `riscv64.rs` — byte for byte — and
+॰ `tests/t1_exec_riscv.rs` asserts that on research/25 §5 R1's fixture and
+॰ measures it over the corpus. This is the third pair of the twin tables to
+॰ have an agreement test and the first measured over the whole corpus.
+॰
+॰ ── ON THE NAME ── `यन्त्र` is attested ("device", lexicon.src.tsv:278) and
+॰ `उत्सर्जन` is the word ir.t1:8 and utsarjana.t1:1 committed to for emission;
+॰ the compound is DERIVED and said so here, as utsarjana.t1 says of अधिकरण
+॰ and यवन. A module of its own rather than more routines in utsarjana.t1
+॰ (1,641 lines, already three Rust files) keeps the twin tables one-to-one.
+॰ EVERY ROUTINE AND GLOBAL OF THIS FILE CARRIES THE PREFIX यन्त्र, because
+॰ `Interpreter::global` and the bare-name call resolution key the BARE name
+॰ across every loaded module (`W-192`), and the census loads this module
+॰ beside मध्यरूप, उत्सर्जन and अर्थ.
+॰
+॰ ── ONE ROUTINE PER RUST FUNCTION ── every routine below names its twin in
+॰ its margin, and `t1_sources.rs`'s RISCV_SYMBOLS table names every pair the
+॰ other way round. Where a Rust function RETURNS A STRING this file APPENDS
+॰ INSTEAD — see THE APPENDER SHAPE — so a twin here may take one parameter
+॰ more (the routine it writes into is the module's buffer) and answer the
+॰ cursor rather than the text. The DECISIONS are the same and are cited by
+॰ research/25 §2 section, as riscv64.rs cites them.
+॰
+॰ ── THE APPENDER SHAPE ── utsarjana.t1's OUTPUT BUFFER (निर्गमकोश and its
+॰ cursor, ADR-0018: a line break is an octet the emitter appends) is used as
+॰ it stands, through उत्सर्जनॱपाठयोजनम्, यतियोजनम्, विवरयोजनम् and
+॰ देवनागराङ्कः. Rust builds every line with `format!` from pieces it holds as
+॰ Strings — a register NAME returned by `read`, a label returned by
+॰ `routine_label`. An append-only buffer cannot hand a piece back to be placed
+॰ later, so the pieces are placed where they are USED: `read` answers a
+॰ REGISTER CODE (a स्थिर number, or यन्त्रावण्टनीयम् + a क्षणिक number) and
+॰ यन्त्रकोष्ठलेखनम् writes the name at the operand position; a label is
+॰ written by the routine that writes its line, from the two name pieces the
+॰ current routine holds. Rust's `emit_module` builds the routines' text FIRST
+॰ and concatenates startup ⧺ routines ⧺ data; here the startup is written
+॰ first — it depends only on the entry's label, known before any routine —
+॰ then the routines, then the data, whose constant pool is complete by then.
+॰ The octets are the same; only the order of WRITING differs.
+॰
+॰ ── ON REFUSALS ── Rust returns `Result<String, Refusal>`. T1 has no Result,
+॰ so the refusal is a RECORD in module state — the shape ir.t1 uses for
+॰ `अनिर्णीताह्वानमस्ति` and अर्थ for `अनिर्णीतमस्ति`: the FIRST refusal is
+॰ kept, a later one does not overwrite it, and the emitter answers the empty
+॰ text. The ten `Refusal` variants are ten भेद constants, and the record's
+॰ fields carry what each variant carries: the routine label, a block id, a
+॰ target or second index, a number (a parameter index, a byte count, a
+॰ symbol), and a colliding label. `impl Display for Refusal` is NOT ported:
+॰ its text writes `{block:?}` — `BlockId(1)`, Latin — which no literal of this
+॰ language can hold and no T0 reader needs; the test that compares refusals
+॰ compares the KIND and the fields.
+॰
+॰ ── ON INDEX ZERO, ONCE MORE ── मध्यरूप's ids are 1-based and ० means absent
+॰ (ir.t1's own header); Rust's `BlockId` counts from 0. Nothing about a value
+॰ id ever reaches the text, but a BLOCK ID DOES — the block label is the
+॰ routine label ⧺ `पर्व` ⧺ the id (§2.2) — so the twins would print `पर्व२`
+॰ and `पर्व१` for the same block. The label here writes `क्रमाङ्क वियोगः १`:
+॰ the id as Rust counts it, which is also what the census's arena reader
+॰ hands the Rust twin (`BlockId(k - 1)`). One subtraction, at the one place
+॰ an id becomes text, and stated here rather than found in a diff.
+॰
+॰ ── ON GROUPING ── every order-dependent expression is bracketed with
+॰ आरभ्य ॱ समाप्तम्, as ir.t1 and utsarjana.t1 do, so the file means one thing
+॰ under either eventual precedence rule.
+॰
+॰ ── `W-245` ── THE FORMS THAT MAKE A STATUS MORE THAN ZERO, ported in step
+॰ with riscv64.rs: the eight operator kinds as one arm over a verb table, a
+॰ तुलना read as a value (slt/sltu, or sub+sltiu/sltu, or slt+xori), a LOCAL's
+॰ आहार/निधान at `स्तूपसूचकः + 8(spills + slot)` — one region above the spill
+॰ slots in the frame — and THE FUSION: a शाखावसान whose condition is the
+॰ तुलना that ends its block, read by nothing else, writes the condition's own
+॰ branch (`<op>लङ्घनम् R(a)न R(b)त् …`, ADR-0008's six) and the तुलना writes
+॰ no line. यन्त्रसंयोज्यतुलना decides it exactly as `fusable_compare` does.
+॰
+॰ ── THE RETIRED PAIR ── utsarjana.t1's `कार्यक्रमोत्सर्जनम्` and emit.rs's
+॰ `emit_program` also call themselves "T0 emission for riscv64", and their
+॰ text is not T0 (research/25 §1.2: Latin, commas, mnemonics not in
+॰ spec/mnemonics-riscv64.src.tsv). Their headers now say so; `W-237` retires
+॰ them. Nothing here extends them, and only the OUTPUT BUFFER is shared.
+॰ ══════════════════════════════════════════════════════════════════════
+
+आयातः मध्यरूप ।
+आयातः उत्सर्जन ।
+
+
+॰ ══════════════════ the words the emitter writes ══════════════════
+
+॰ ALLOCATABLE — the registers the allocator hands out, स्थिर०–स्थिर११ (§2.3).
+सार्वजनिक चरः यन्त्रावण्टनीयम् ॱॱ न६४ भवति १२ ।
+॰ STACK_BYTES — the 64 KiB reservation in ॱदत्त (§2.6).
+सार्वजनिक चरः यन्त्रस्तूपाष्टकाः ॱॱ न६४ भवति ६५५३६ ।
+
+
+॰ ══════════════════ what the emitter refuses, by name (§2.9) ══════════════════
+॰ enum Refusal, one भेद per variant, in the order riscv64.rs declares them.
+सार्वजनिक चरः यन्त्रागम्यनिषेधभेद ॱॱ न६४ भवति १ ।              ॰ Refusal::Unreachable
+सार्वजनिक चरः यन्त्रावसानहीननिषेधभेद ॱॱ न६४ भवति २ ।          ॰ Refusal::NoTerminator
+सार्वजनिक चरः यन्त्रबाह्यलक्ष्यनिषेधभेद ॱॱ न६४ भवति ३ ।        ॰ Refusal::TargetNotInFunction
+सार्वजनिक चरः यन्त्रानामसंज्ञानिषेधभेद ॱॱ न६४ भवति ४ ।         ॰ Refusal::UnnamedSymbol
+सार्वजनिक चरः यन्त्रचिह्नसङ्घट्टनिषेधभेद ॱॱ न६४ भवति ५ ।       ॰ Refusal::LabelCollision
+सार्वजनिक चरः यन्त्राह्वानोत्तरप्राचलनिषेधभेद ॱॱ न६४ भवति ६ ।   ॰ Refusal::ParamAfterCall
+सार्वजनिक चरः यन्त्रप्रवेशबाह्यप्राचलनिषेधभेद ॱॱ न६४ भवति ७ ।   ॰ Refusal::ParamOutsideEntry
+सार्वजनिक चरः यन्त्रबृहच्चौकटनिषेधभेद ॱॱ न६४ भवति ८ ।          ॰ Refusal::FrameTooLarge
+सार्वजनिक चरः यन्त्रप्रवेशप्राचलनिषेधभेद ॱॱ न६४ भवति ९ ।       ॰ Refusal::EntryTakesParameters
+सार्वजनिक चरः यन्त्रदूरशाखानिषेधभेद ॱॱ न६४ भवति १० ।           ॰ Refusal::BranchOutOfRange
+
+॰ ══ WHICH SITE RAISED `Refusal::UnnamedSymbol`, BECAUSE FIVE DO AND `भेद` CANNOT SAY ══
+॰
+॰ `यन्त्रनिषेधः` writes five globals. At all five `यन्त्रानामसंज्ञानिषेधभेद` sites four
+॰ of them carried the SAME constants — `वृत्ति` empty, `पर्व` ०, `लक्ष्य` ० — so the
+॰ only varying field was `संख्या`, the offending symbol. **AND THE SYMBOL IS ० IN
+॰ EXACTLY THE CASE THAT MATTERS**: a lookup of symbol ० misses, so four of the five
+॰ sites answer the identical record `भेद ४, पर्व ०, लक्ष्य ०, संख्या ०, वृत्ति ""`.
+॰ (The fifth, the entry site, is guarded by `यन्त्रप्रवेशसंज्ञा अधिकम् ०` and so
+॰ cannot report ०.) Two readings were taken on that collapse and both are in the
+॰ record: `hopladder/mod.rs` said of `संख्या` *"the variant alone does not localise;
+॰ this field is what separates them"* — true only while the symbol is non-zero — and
+॰ `t1_driver.rs` said `पर्व` is *"० for the label and entry sites, a real id for a
+॰ call"*, which the call site at `यन्त्राह्वानोत्सर्जनम्` contradicts by passing ०.
+॰ On 2026-09-16 four corpus sources at hop 0 were recorded as sharing ONE cause,
+॰ "measured: all four report `यन्त्रनिषेधभेद=४` with `संख्या=०`" — a pair that names
+॰ a FAMILY OF FOUR SITES and cannot support it.
+॰
+॰ THE CODE GOES IN `लक्ष्य`, WHICH WAS ALREADY THERE AND IS ALREADY PRINTED by the
+॰ ladder, by `t1_driver` and by `t1_boot`, so every existing reader starts saying
+॰ which site with no change on its side. The record's fields are ALREADY a union
+॰ keyed by `भेद` — `संख्या` is documented `param` / `bytes` / `params` / `symbol` —
+॰ so a per-variant meaning for `लक्ष्य` is the design it has, not a new overload.
+॰ Rust's `Refusal::UnnamedSymbol { symbol }` has one field and cannot disagree.
+॰
+॰ NONE OF THEM IS ०, deliberately: ० is what every site passed before, so a site
+॰ added later and left at ० reads as "no site recorded" and not as another site's.
+सार्वजनिक चरः यन्त्रनामस्थानचिह्नम् ॱॱ न६४ भवति १ ।    ॰ यन्त्रवृत्तिचिह्नम् — a label asked for a symbol with no name entry (Rust `routine_label`)
+सार्वजनिक चरः यन्त्रनामस्थानपरीक्षा ॱॱ न६४ भवति २ ।    ॰ यन्त्रचिह्नपरीक्षा — a ROUTINE's own name symbol, during the collision sweep
+सार्वजनिक चरः यन्त्रनामस्थानाह्वानम् ॱॱ न६४ भवति ३ ।   ॰ यन्त्राह्वानोत्सर्जनम् — the CALLEE's symbol (Rust `emit_call`)
+सार्वजनिक चरः यन्त्रनामस्थानवृत्तिः ॱॱ न६४ भवति ४ ।    ॰ यन्त्रवृत्त्युत्सर्जनम् — the routine being lowered
+सार्वजनिक चरः यन्त्रनामस्थानप्रवेशः ॱॱ न६४ भवति ५ ।    ॰ यन्त्रमण्डलोत्सर्जनम् — the ENTRY symbol
+
+॰ THE REFUSAL RECORD — `Err(Refusal)`, as module state; see ON REFUSALS.
+॰ `W-285` — DID THE MODULE MOST RECENTLY EMITTED ALLOCATE? A PER-MODULE FACT
+॰ WITH A SCOPE ANYONE CAN STATE, which is what it did not have before. It is
+॰ set by the allocation emitter, cleared by `यन्त्रमण्डलोत्सर्जनम्` with the
+॰ other per-program state, and READ BY WHOEVER ASSEMBLES THE IMAGE — which
+॰ accumulates it across the modules it is about to link and passes the answer
+॰ to the startup as an argument.
+॰
+॰ THE OLD DESIGN LET THE STARTUP READ IT DIRECTLY, and that is the defect this
+॰ row fixes: the startup is ONE object in an image of many, so a flag about the
+॰ LAST MODULE cannot answer a question about the IMAGE. Both halves asked the
+॰ module; the twin agreed; three sources failed to link.
+सार्वजनिक चरः यन्त्ररचनामस्ति ॱॱ बूल भवति असत्यम् ।
+
+॰ `module_allocates` for the port: the assembler ORs this across its modules.
+सार्वजनिक वृत्तिः यन्त्ररचनाप्रश्नः ददाति बूल आदि
+    प्रत्यागमनम् यन्त्ररचनामस्ति ।
+इति
+
+सार्वजनिक चरः यन्त्रनिषेधमस्ति ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः यन्त्रनिषेधभेद ॱॱ न६४ भवति ० ।                 ॰ which variant
+सार्वजनिक चरः यन्त्रनिषेधवृत्ति ॱॱ अङ्कः अन्तः अ८ भवति ० ।     ॰ `function`: the routine label
+सार्वजनिक चरः यन्त्रनिषेधपर्व ॱॱ न६४ भवति ० ।                 ॰ `block` / `from`, a मध्यरूप block id
+सार्वजनिक चरः यन्त्रनिषेधलक्ष्य ॱॱ न६४ भवति ० ।               ॰ `target`; LabelCollision's first holder (० = the emitter); UnnamedSymbol's SITE, one of the five यन्त्रनामस्थान… above
+सार्वजनिक चरः यन्त्रनिषेधसंख्या ॱॱ अ६४ भवति ० ।               ॰ `param` / `bytes` / `params` / `symbol`
+सार्वजनिक चरः यन्त्रनिषेधचिह्न ॱॱ अङ्कः अन्तः अ८ भवति ० ।      ॰ LabelCollision's `label`
+
+॰ record the FIRST refusal and keep it — `?` returns at the first Err and
+॰ nothing after it runs; here the routines after it do run, and this is what
+॰ keeps their answer from overwriting the cause. Answers the kind kept.
+सार्वजनिक वृत्तिः यन्त्रनिषेधः आदाय भेद ॱॱ न६४ ऽ वृत्ति ॱॱ अङ्कः अन्तः अ८ ऽ पर्व ॱॱ न६४ ऽ लक्ष्य ॱॱ न६४ ऽ संख्या ॱॱ अ६४ ददाति न६४ आदि
+    यदि यन्त्रनिषेधमस्ति समम् सत्यम् आदि
+        प्रत्यागमनम् यन्त्रनिषेधभेद ।
+    इति
+    यन्त्रनिषेधमस्ति भवति सत्यम् ।
+    यन्त्रनिषेधभेद भवति भेद ।
+    यन्त्रनिषेधवृत्ति भवति वृत्ति ।
+    यन्त्रनिषेधपर्व भवति पर्व ।
+    यन्त्रनिषेधलक्ष्य भवति लक्ष्य ।
+    यन्त्रनिषेधसंख्या भवति संख्या ।
+    प्रत्यागमनम् भेद ।
+इति
+
+
+॰ ══════════════════ the module the emitter reads (§3.1) ══════════════════
+॰ `Names` — the symbol → (module, routine) map the resolver holds. Rust's
+॰ HashMap becomes an arena of records walked linearly; an insert of a symbol
+॰ already present OVERWRITES it, as `HashMap::insert` does, so the two maps
+॰ answer alike for every sequence of inserts.
+सार्वजनिक संरचना यन्त्रनाम आरभ्य
+    संज्ञा ॱॱ न६४ ऽ                     ॰ the SymbolId, as the IR spells it
+    मण्डल ॱॱ अङ्कः अन्तः अ८ ऽ            ॰ the declaring module's name
+    वृत्तिनाम ॱॱ अङ्कः अन्तः अ८           ॰ the routine's name
+समाप्तम् ।
+
+सार्वजनिक चरः यन्त्रनामकोश ॱॱ अङ्कः अन्तः यन्त्रनाम भवति ० ।
+सार्वजनिक चरः यन्त्रनामसूचकाङ्क ॱॱ न६४ भवति ० ।
+
+॰ `Module` — its functions are मध्यरूपॱवृत्तिकोश १..वृत्तिसूचकाङ्क, its names
+॰ the table above; these two fields are the rest of it. `name` is read by no
+॰ line of the Rust emitter (the labels come from `names`); it is kept so the
+॰ struct has every field its twin has.
+सार्वजनिक चरः यन्त्रमण्डलनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।    ॰ Module::name
+सार्वजनिक चरः यन्त्रप्रवेशसंज्ञा ॱॱ न६४ भवति ० ।           ॰ Module::entry, ० = None
+
+॰ Names::new() — and the entry back to None.
+सार्वजनिक वृत्तिः यन्त्रनामारम्भः ददाति न६४ आदि
+    यन्त्रनामसूचकाङ्क भवति ० ।
+    यन्त्रप्रवेशसंज्ञा भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ `module.entry = Some(symbol)` — a write to the field, as a routine, because
+॰ a test that builds the module from outside the interpreter can call a
+॰ routine and cannot assign a global.
+सार्वजनिक वृत्तिः यन्त्रप्रवेशन्यासः आदाय संज्ञा ॱॱ न६४ ददाति न६४ आदि
+    यन्त्रप्रवेशसंज्ञा भवति संज्ञा ।
+    प्रत्यागमनम् संज्ञा ।
+इति
+
+॰ names.get(&symbol) — the entry's index, or ० for None.
+सार्वजनिक वृत्तिः यन्त्रनामान्वेषणम् आदाय संज्ञा ॱॱ न६४ ददाति न६४ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य यन्त्रनामसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः प्रविष्टिः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः सूचकाङ्क अन्तः ।
+        यदि प्रविष्टिः ॱ संज्ञा समम् संज्ञा आदि
+            प्रत्यागमनम् सूचकाङ्क ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ names.insert(symbol, (module, name)).
+सार्वजनिक वृत्तिः यन्त्रनामयोजनम् आदाय संज्ञा ॱॱ न६४ ऽ मण्डल ॱॱ अङ्कः अन्तः अ८ ऽ वृत्तिनाम ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः नव ॱॱ यन्त्रनाम भवति ० ।
+    नव ॱ संज्ञा भवति संज्ञा ।
+    नव ॱ मण्डल भवति मण्डल ।
+    नव ॱ वृत्तिनाम भवति वृत्तिनाम ।
+    चरः स्थलम् ॱॱ न६४ भवति यन्त्रनामान्वेषणम् संज्ञा ।
+    यदि स्थलम् समम् ० आदि
+        यन्त्रनामसूचकाङ्क भवति यन्त्रनामसूचकाङ्क योगः १ ।
+        स्थलम् भवति यन्त्रनामसूचकाङ्क ।
+    इति
+    यन्त्रनामकोश अङ्कः स्थलम् अन्तः भवति नव ।
+    प्रत्यागमनम् स्थलम् ।
+इति
+
+
+॰ ══════════════════ the pieces of a line ══════════════════
+॰ Rust's `Routine::line(s)` pushes `s` and a newline. A line here is written
+॰ piece by piece and closed by ONE of these two: an instruction line by
+॰ यन्त्राज्ञान्तः — ` ।` and the newline, counted, because a conditional's
+॰ reach is measured in instruction lines (§2.5) — and a label line by
+॰ यन्त्रचिह्नान्तः — `ॱॱ` and the newline, not counted.
+
+सार्वजनिक चरः यन्त्राज्ञागणना ॱॱ अ६४ भवति ० ।    ॰ instruction lines written for the routine in hand
+
+सार्वजनिक वृत्तिः यन्त्राज्ञान्तः ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    यन्त्राज्ञागणना भवति यन्त्राज्ञागणना योगः १ ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+सार्वजनिक वृत्तिः यन्त्रचिह्नान्तः ददाति न६४ आदि
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ devanagari(n) — an integer as a T0 numeral, `ऋण` for a negative, never a
+॰ Latin minus (ADR-0009). riscv64.rs carries its own copy of emit.rs's digit
+॰ map; this module has ONE digit writer in the crate to call and calls it.
+सार्वजनिक वृत्तिः यन्त्राङ्कः आदाय मूल्यम् ॱॱ अ६४ ददाति न६४ आदि
+    उत्सर्जनॱदेवनागराङ्कः मूल्यम् ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ register_name(n) — the allocator's number to the register it names, स्थिर<n>.
+॰ Rust asserts n < ALLOCATABLE; the callers here never hand it another.
+सार्वजनिक वृत्तिः यन्त्रकोष्ठनाम आदाय क्रमाङ्क ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थिर इति ।
+    प्रत्यागमनम् यन्त्राङ्कः क्रमाङ्क ।
+इति
+
+॰ temp(n) — क्षणिक<n>, the emitter's own scratch (§2.3).
+सार्वजनिक वृत्तिः यन्त्रक्षणिकनाम आदाय क्रमाङ्क ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱपाठयोजनम् उक्तम् क्षणिक इति ।
+    प्रत्यागमनम् यन्त्राङ्कः क्रमाङ्क ।
+इति
+
+॰ arg(n) — अर्थ<n>, arguments and result (§2.3).
+सार्वजनिक वृत्तिः यन्त्रार्थनाम आदाय क्रमाङ्क ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱपाठयोजनम् उक्तम् अर्थ इति ।
+    प्रत्यागमनम् यन्त्राङ्कः क्रमाङ्क ।
+इति
+
+॰ A REGISTER CODE — see THE APPENDER SHAPE. Below यन्त्रावण्टनीयम् it is a
+॰ स्थिर number; from यन्त्रावण्टनीयम् up it is यन्त्रावण्टनीयम् + a क्षणिक
+॰ number. This is the String `read` and `write` return in Rust, as a number.
+सार्वजनिक वृत्तिः यन्त्रकोष्ठलेखनम् आदाय सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    यदि सङ्केतः न्यूनम् यन्त्रावण्टनीयम् आदि
+        प्रत्यागमनम् यन्त्रकोष्ठनाम सङ्केतः ।
+    इति
+    प्रत्यागमनम् यन्त्रक्षणिकनाम आरभ्य सङ्केतः वियोगः यन्त्रावण्टनीयम् समाप्तम् ।
+इति
+
+॰ ` <text>` — one space and then a fixed operand or tail. Rust's `format!`
+॰ puts the space between operands inside the format string; a literal here
+॰ may not begin with a space (ADR-0017), so the space is appended first.
+सार्वजनिक वृत्तिः यन्त्रपदम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् पाठ्यम् ।
+इति
+
+॰ ` <reg>म्` — the destination operand, कर्म (grammar-t0.ebnf `karaka`).
+सार्वजनिक वृत्तिः यन्त्रकर्मपदम् आदाय सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रकोष्ठलेखनम् सङ्केतः ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् म् इति ।
+इति
+
+॰ ` <reg>न` — a source operand, करण.
+सार्वजनिक वृत्तिः यन्त्रकरणपदम् आदाय सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रकोष्ठलेखनम् सङ्केतः ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् न इति ।
+इति
+
+॰ ` <n>न` — an immediate, करण.
+सार्वजनिक वृत्तिः यन्त्रसङ्ख्यापदम् आदाय अङ्कम् ॱॱ अ६४ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्राङ्कः अङ्कम् ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् न इति ।
+इति
+
+॰ ` <reg>त्` — the STANDARD of a comparison, अपादान (ADR-0008). `W-245`.
+सार्वजनिक वृत्तिः यन्त्रापादानपदम् आदाय सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रकोष्ठलेखनम् सङ्केतः ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् त् इति ।
+इति
+
+॰ ` <reg>य्` — the place written TO, अधिकरण. `W-283`.
+॰
+॰ THERE WAS NO SUCH HELPER UNTIL NOW AND THE REASON IS THE FINDING: every
+॰ store this emitter could write had `स्तूपसूचकः` as its base, so the `य्` was
+॰ part of a literal string and never took a register. A store through an
+॰ address held in a VALUE is the first one whose base varies.
+॰
+॰ NOT INTERCHANGEABLE WITH `यन्त्रापादानपदम्`. अपादान `त्` is the place read
+॰ FROM; अधिकरण `य्` is the place written TO. The ISA assigns operands by role,
+॰ so a store is not a load with its arrow reversed — copying `त्` here is
+॰ refused by the assembler as two operands claiming अपादान.
+सार्वजनिक वृत्तिः यन्त्राधिकरणपदम् आदाय सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रकोष्ठलेखनम् सङ्केतः ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+इति
+
+॰ branch_word(op) — the branch instruction of each ADR-0008 condition: the
+॰ comparison word compounded with लङ्घनम् (mnemonics-riscv64.src.tsv:45–50).
+सार्वजनिक वृत्तिः यन्त्रशाखापदम् आदाय उपभेद ॱॱ न६४ ददाति पाठ आदि
+    यदि उपभेद समम् मध्यरूपॱसमतुलनाभेद आदि प्रत्यागमनम् उक्तम् समलङ्घनम् इति । इति
+    यदि उपभेद समम् मध्यरूपॱविषमतुलनाभेद आदि प्रत्यागमनम् उक्तम् विषमलङ्घनम् इति । इति
+    यदि उपभेद समम् मध्यरूपॱन्यूनतुलनाभेद आदि प्रत्यागमनम् उक्तम् न्यूनलङ्घनम् इति । इति
+    यदि उपभेद समम् मध्यरूपॱअन्यूनतुलनाभेद आदि प्रत्यागमनम् उक्तम् अन्यूनलङ्घनम् इति । इति
+    यदि उपभेद समम् मध्यरूपॱअचिह्नन्यूनतुलनाभेद आदि प्रत्यागमनम् उक्तम् अचिह्नन्यूनलङ्घनम् इति । इति
+    प्रत्यागमनम् उक्तम् अचिह्नान्यूनलङ्घनम् इति ।
+इति
+
+॰ binary_verb(inst) — the verb of each binary kind, as the ISA has it.
+सार्वजनिक वृत्तिः यन्त्रद्विपदक्रियापदम् आदाय भेद ॱॱ न६४ ददाति पाठ आदि
+    यदि भेद समम् मध्यरूपॱयोगाज्ञाभेद आदि प्रत्यागमनम् उक्तम् योगः इति । इति
+    यदि भेद समम् मध्यरूपॱवियोगाज्ञाभेद आदि प्रत्यागमनम् उक्तम् वियोगः इति । इति
+    यदि भेद समम् मध्यरूपॱगुणनाज्ञाभेद आदि प्रत्यागमनम् उक्तम् गुणनम् इति । इति
+    यदि भेद समम् मध्यरूपॱभागाज्ञाभेद आदि प्रत्यागमनम् उक्तम् भागः इति । इति
+    यदि भेद समम् मध्यरूपॱशेषाज्ञाभेद आदि प्रत्यागमनम् उक्तम् शेषः इति । इति
+    यदि भेद समम् मध्यरूपॱवामसरणाज्ञाभेद आदि प्रत्यागमनम् उक्तम् वामसरणम् इति । इति
+    ॰ ARITHMETIC (2026-09-14). `दक्षिणसृ` is the interpreter's `checked_shr` on i128 —
+    ॰ sign-preserving — and the corpus is written against it: samyojana's `उपरिभागः`
+    ॰ splits a possibly-NEGATIVE pc-relative displacement with `(मूल्यम् योगः २०४८)
+    ॰ दक्षिणसृ १२`, and encode/yantrotsarjana do the same for their hi/lo pairs. Lowered
+    ॰ to `srl` those read ~२^५२ natively and the relocation cannot be written; every
+    ॰ other corpus site masks the result (`युक् १`, `युक् २५५`, `युक् १५`), where the two
+    ॰ shifts agree. Rung: `ऋण८१९२ दक्षिणसृ १२` — interpreted −२, natively +२^५२ before
+    ॰ this line. Both emitters carry the same spelling (the twin is the guard).
+    यदि भेद समम् मध्यरूपॱदक्षिणसरणाज्ञाभेद आदि प्रत्यागमनम् उक्तम् सचिह्नदक्षिणसरणम् इति । इति
+    यदि भेद समम् मध्यरूपॱयुक्ताज्ञाभेद आदि प्रत्यागमनम् उक्तम् युक्तम् इति । इति
+    यदि भेद समम् मध्यरूपॱविकल्पाज्ञाभेद आदि प्रत्यागमनम् उक्तम् विकल्पः इति । इति
+    प्रत्यागमनम् उक्तम् वैषम्यम् इति ।
+इति
+
+॰ whether a kind is one of the ten binary kinds — Rust's ten-armed or-pattern
+॰ in emit_function: योग वियोग and the eight `W-245` added, numbered in a run.
+सार्वजनिक वृत्तिः यन्त्रद्विपदभेदः आदाय भेद ॱॱ न६४ ददाति बूल आदि
+    यदि भेद समम् मध्यरूपॱयोगाज्ञाभेद आदि प्रत्यागमनम् सत्यम् । इति
+    यदि भेद समम् मध्यरूपॱवियोगाज्ञाभेद आदि प्रत्यागमनम् सत्यम् । इति
+    यदि भेद बृहत्समम् मध्यरूपॱगुणनाज्ञाभेद आदि
+        यदि भेद न्यूनम् आरभ्य मध्यरूपॱवैषम्याज्ञाभेद योगः १ समाप्तम् आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ hex64's DIGITS — `०–९ अ आ इ ई उ ऊ` (grammar-t0.ebnf `hexadecimal`), one
+॰ arm per nibble as अङ्कचिह्नम् writes the decimal ten.
+सार्वजनिक वृत्तिः यन्त्रषोडशाङ्कचिह्नम् आदाय अङ्कम् ॱॱ न६४ ददाति पाठ आदि
+    यदि अङ्कम् समम् १ आदि प्रत्यागमनम् उक्तम् १ इति । इति
+    यदि अङ्कम् समम् २ आदि प्रत्यागमनम् उक्तम् २ इति । इति
+    यदि अङ्कम् समम् ३ आदि प्रत्यागमनम् उक्तम् ३ इति । इति
+    यदि अङ्कम् समम् ४ आदि प्रत्यागमनम् उक्तम् ४ इति । इति
+    यदि अङ्कम् समम् ५ आदि प्रत्यागमनम् उक्तम् ५ इति । इति
+    यदि अङ्कम् समम् ६ आदि प्रत्यागमनम् उक्तम् ६ इति । इति
+    यदि अङ्कम् समम् ७ आदि प्रत्यागमनम् उक्तम् ७ इति । इति
+    यदि अङ्कम् समम् ८ आदि प्रत्यागमनम् उक्तम् ८ इति । इति
+    यदि अङ्कम् समम् ९ आदि प्रत्यागमनम् उक्तम् ९ इति । इति
+    यदि अङ्कम् समम् १० आदि प्रत्यागमनम् उक्तम् अ इति । इति
+    यदि अङ्कम् समम् ११ आदि प्रत्यागमनम् उक्तम् आ इति । इति
+    यदि अङ्कम् समम् १२ आदि प्रत्यागमनम् उक्तम् इ इति । इति
+    यदि अङ्कम् समम् १३ आदि प्रत्यागमनम् उक्तम् ई इति । इति
+    यदि अङ्कम् समम् १४ आदि प्रत्यागमनम् उक्तम् उ इति । इति
+    यदि अङ्कम् समम् १५ आदि प्रत्यागमनम् उक्तम् ऊ इति । इति
+    प्रत्यागमनम् उक्तम् ० इति ।
+इति
+
+॰ hex64(bits) — a 64-bit PATTERN as `०षोड्…`, leading zeros dropped, `०षोड्०`
+॰ for zero. The constant pool is written this way because a datum is a bit
+॰ pattern (parse.rs, `W-075`). Rust casts `c as u64`; the interpreter's number
+॰ is wider than 64 bits, so the low 64 are masked out here — the one place
+॰ this file needs the cast Rust gets for free.
+सार्वजनिक वृत्तिः यन्त्रषोडशाङ्कः आदाय अंशाः ॱॱ अ६४ ददाति न६४ आदि
+    ॰ २^६४ − १ WITHOUT A SHIFT BY ६४ (2026-09-14): `१ वामसृ ६४` is २^६४ in the
+    ॰ interpreter's i128 and १ on RISC-V (the shift amount keeps its low six bits),
+    ॰ so the compiled compiler's mask was ० and every hex digit it wrote was `०` —
+    ॰ `०षोड्१` came out `०षोड्०` at equal length in every global initialiser (the
+    ॰ fixpoint's fourth lex clause). `२ गुणनम् (१ वामसृ ६३)` is २^६४ in i128 and ०
+    ॰ in ६४ bits; minus १ it is all ones in both.
+    चरः आवरणम् ॱॱ अ६४ भवति आरभ्य आरभ्य २ गुणनम् आरभ्य १ वामसृ ६३ समाप्तम् समाप्तम् वियोगः १ समाप्तम् ।
+    चरः प्रतिरूपम् ॱॱ अ६४ भवति अंशाः युक् आवरणम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ०षोड् इति ।
+    चरः आरब्धम् ॱॱ बूल भवति असत्यम् ।
+    चरः शेषाः ॱॱ न६४ भवति १६ ।
+    यावत् शेषाः अधिकम् ० आदि
+        चरः सरणम् ॱॱ न६४ भवति शेषाः वियोगः १ ।
+        चरः अङ्कम् ॱॱ न६४ भवति आरभ्य प्रतिरूपम् दक्षिणसृ आरभ्य सरणम् गुणनम् ४ समाप्तम् समाप्तम् युक् १५ ।
+        चरः लेख्यम् ॱॱ बूल भवति आरब्धम् ।
+        यदि अङ्कम् असमम् ० आदि
+            लेख्यम् भवति सत्यम् ।
+        इति
+        यदि सरणम् समम् ० आदि
+            लेख्यम् भवति सत्यम् ।
+        इति
+        यदि लेख्यम् समम् सत्यम् आदि
+            आरब्धम् भवति सत्यम् ।
+            उत्सर्जनॱपाठयोजनम् आरभ्य यन्त्रषोडशाङ्कचिह्नम् अङ्कम् समाप्तम् ।
+        इति
+        शेषाः भवति शेषाः वियोगः १ ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════ names (§2.2) ══════════════════
+॰ The routine in hand: its two label pieces, held so that every block and
+॰ exit label can be written from them. Rust holds `Routine::label` as one
+॰ String; this holds the two halves `routine_label` concatenates.
+सार्वजनिक चरः यन्त्रवर्तमानवृत्ति ॱॱ न६४ भवति ० ।              ॰ index into मध्यरूपॱवृत्तिकोश
+सार्वजनिक चरः यन्त्रचिह्नमण्डल ॱॱ अङ्कः अन्तः अ८ भवति ० ।      ॰ the module half of the label
+सार्वजनिक चरः यन्त्रचिह्नवृत्ति ॱॱ अङ्कः अन्तः अ८ भवति ० ।      ॰ the routine half
+
+॰ routine_label(names, symbol) — module name ⧺ routine name, NO JOINER: the
+॰ corpus's one-token qualified spelling with the mark removed. Written at the
+॰ cursor; answers the name entry's index, or ० after recording UnnamedSymbol.
+सार्वजनिक वृत्तिः यन्त्रवृत्तिचिह्नम् आदाय संज्ञा ॱॱ न६४ ददाति न६४ आदि
+    चरः स्थलम् ॱॱ न६४ भवति यन्त्रनामान्वेषणम् संज्ञा ।
+    यदि स्थलम् समम् ० आदि
+        चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+        यन्त्रनिषेधः आरभ्य यन्त्रानामसंज्ञानिषेधभेद ऽ रिक्तम् ऽ ० ऽ यन्त्रनामस्थानचिह्नम् ऽ संज्ञा समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    चरः प्रविष्टिः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः स्थलम् अन्तः ।
+    उत्सर्जनॱपाठयोजनम् प्रविष्टिः ॱ मण्डल ।
+    उत्सर्जनॱपाठयोजनम् प्रविष्टिः ॱ वृत्तिनाम ।
+    प्रत्यागमनम् स्थलम् ।
+इति
+
+॰ `Routine::label` written at the cursor — the two pieces of the routine in hand.
+सार्वजनिक वृत्तिः यन्त्रवर्तमानचिह्नम् ददाति न६४ आदि
+    उत्सर्जनॱपाठयोजनम् यन्त्रचिह्नमण्डल ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् यन्त्रचिह्नवृत्ति ।
+इति
+
+॰ The same, answered as a VIEW — what a refusal's `function` field holds. It
+॰ is written into the buffer like everything else; a refused module's text is
+॰ discarded, so the view costs nothing it would keep.
+सार्वजनिक वृत्तिः यन्त्रवर्तमानचिह्नांशः ददाति अङ्कः अन्तः अ८ आदि
+    चरः आदिस्थलम् ॱॱ अ६४ भवति उत्सर्जनॱनिर्गमसूचकाङ्क ।
+    यन्त्रवर्तमानचिह्नम् ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमांशः आदिस्थलम् ।
+इति
+
+॰ block_label(routine, block) — routine label ⧺ `पर्व` ⧺ the block id in
+॰ Rust's counting (§2.2; ON INDEX ZERO, ONCE MORE above).
+सार्वजनिक वृत्तिः यन्त्रपर्वचिह्नम् आदाय पर्व ॱॱ न६४ ददाति न६४ आदि
+    यन्त्रवर्तमानचिह्नम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् पर्व इति ।
+    प्रत्यागमनम् यन्त्राङ्कः आरभ्य पर्व वियोगः १ समाप्तम् ।
+इति
+
+॰ exit_label(routine) — routine label ⧺ `निर्गम`, one epilogue per routine (§2.2).
+सार्वजनिक वृत्तिः यन्त्रनिर्गमचिह्नम् ददाति न६४ आदि
+    यन्त्रवर्तमानचिह्नम् ।
+    प्रत्यागमनम् उत्सर्जनॱपाठयोजनम् उक्तम् निर्गम इति ।
+इति
+
+॰ whether क ⧺ ख and ग ⧺ घ are the same word — the `==` of two label Strings
+॰ Rust gets from `format!("{m}{n}")`, without building either. Octet by
+॰ octet across the seam, because concatenation is by code point and not by
+॰ sandhi (riscv64.rs's own test says so of यन्त्र ⧺ आरम्भ).
+सार्वजनिक वृत्तिः यन्त्रसंयुक्तसाम्यम् आदाय क ॱॱ अङ्कः अन्तः अ८ ऽ ख ॱॱ अङ्कः अन्तः अ८ ऽ ग ॱॱ अङ्कः अन्तः अ८ ऽ घ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः दैर्घ्यम् ॱॱ न६४ भवति क ॱ दैर्घ्य योगः ख ॱ दैर्घ्य ।
+    यदि दैर्घ्यम् असमम् आरभ्य ग ॱ दैर्घ्य योगः घ ॱ दैर्घ्य समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्यम् आदि
+        चरः वामाष्टकम् ॱॱ न६४ भवति ० ।
+        यदि सूचकाङ्क न्यूनम् क ॱ दैर्घ्य आदि
+            वामाष्टकम् भवति क अङ्कः सूचकाङ्क अन्तः ।
+        इति अन्यथा आदि
+            वामाष्टकम् भवति ख अङ्कः आरभ्य सूचकाङ्क वियोगः क ॱ दैर्घ्य समाप्तम् अन्तः ।
+        इति
+        चरः दक्षिणाष्टकम् ॱॱ न६४ भवति ० ।
+        यदि सूचकाङ्क न्यूनम् ग ॱ दैर्घ्य आदि
+            दक्षिणाष्टकम् भवति ग अङ्कः सूचकाङ्क अन्तः ।
+        इति अन्यथा आदि
+            दक्षिणाष्टकम् भवति घ अङ्कः आरभ्य सूचकाङ्क वियोगः ग ॱ दैर्घ्य समाप्तम् अन्तः ।
+        इति
+        यदि वामाष्टकम् असमम् दक्षिणाष्टकम् आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ whether a routine's label is one of the seven names the emitter owns
+॰ (OWNED_LABELS, §2.2): यन्त्रारम्भ यन्त्रसफल यन्त्रसमाप्ति यन्त्रचक्र स्तूपः
+॰ स्तूपान्तः ध्रुवकोशः. Seven comparisons, each against one literal.
+सार्वजनिक वृत्तिः यन्त्रस्वचिह्नमस्ति आदाय मण्डल ॱॱ अङ्कः अन्तः अ८ ऽ वृत्तिनाम ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् यन्त्रारम्भ इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् यन्त्रसफल इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् यन्त्रसमाप्ति इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् यन्त्रचक्र इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् स्तूपः इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् स्तूपान्तः इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    यदि यन्त्रसंयुक्तसाम्यम् आरभ्य मण्डल ऽ वृत्तिनाम ऽ उक्तम् ध्रुवकोशः इति ऽ रिक्तम् समाप्तम् आदि प्रत्यागमनम् सत्यम् । इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ check_labels(module) — every label a module defines, refusing a collision
+॰ BY PAIR (§2.2): against the emitter's own names first, then against every
+॰ routine before it. Rust's BTreeMap `seen` is the walk over the earlier
+॰ routines; its `first` is the holder — यन्त्रनिषेधलक्ष्य ० for the emitter,
+॰ else the earlier routine's index — and the colliding word is kept as text.
+सार्वजनिक वृत्तिः यन्त्रचिह्नपरीक्षा ददाति बूल आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य मध्यरूपॱवृत्तिसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः सूचकाङ्क अन्तः ।
+        चरः स्थलम् ॱॱ न६४ भवति यन्त्रनामान्वेषणम् कार्यम् ॱ नाम ।
+        यदि स्थलम् समम् ० आदि
+            चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+            यन्त्रनिषेधः आरभ्य यन्त्रानामसंज्ञानिषेधभेद ऽ रिक्तम् ऽ ० ऽ यन्त्रनामस्थानपरीक्षा ऽ कार्यम् ॱ नाम समाप्तम् ।
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        चरः प्रविष्टिः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः स्थलम् अन्तः ।
+        चरः धारकः ॱॱ न६४ भवति ० ।
+        चरः सङ्घट्टः ॱॱ बूल भवति यन्त्रस्वचिह्नमस्ति आरभ्य प्रविष्टिः ॱ मण्डल ऽ प्रविष्टिः ॱ वृत्तिनाम समाप्तम् ।
+        चरः पूर्वः ॱॱ न६४ भवति १ ।
+        यावत् पूर्वः न्यूनम् सूचकाङ्क आदि
+            यदि सङ्घट्टः समम् असत्यम् आदि
+                चरः पूर्वकार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः पूर्वः अन्तः ।
+                चरः पूर्वप्रविष्टिः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः आरभ्य यन्त्रनामान्वेषणम् पूर्वकार्यम् ॱ नाम समाप्तम् अन्तः ।
+                यदि यन्त्रसंयुक्तसाम्यम् आरभ्य प्रविष्टिः ॱ मण्डल ऽ प्रविष्टिः ॱ वृत्तिनाम ऽ पूर्वप्रविष्टिः ॱ मण्डल ऽ पूर्वप्रविष्टिः ॱ वृत्तिनाम समाप्तम् आदि
+                    सङ्घट्टः भवति सत्यम् ।
+                    धारकः भवति पूर्वः ।
+                इति
+            इति
+            पूर्वः भवति पूर्वः योगः १ ।
+        इति
+        यदि सङ्घट्टः समम् सत्यम् आदि
+            चरः आदिस्थलम् ॱॱ अ६४ भवति उत्सर्जनॱनिर्गमसूचकाङ्क ।
+            उत्सर्जनॱपाठयोजनम् प्रविष्टिः ॱ मण्डल ।
+            उत्सर्जनॱपाठयोजनम् प्रविष्टिः ॱ वृत्तिनाम ।
+            यन्त्रनिषेधचिह्न भवति उत्सर्जनॱनिर्गमांशः आदिस्थलम् ।
+            यन्त्रनिषेधः आरभ्य यन्त्रचिह्नसङ्घट्टनिषेधभेद ऽ यन्त्रनिषेधचिह्न ऽ सूचकाङ्क ऽ धारकः ऽ ० समाप्तम् ।
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ frames (§2.4) ══════════════════
+॰ struct Frame — the spill slots, then the saved स्थिरs the routine uses,
+॰ then पुनःस्थानम् at the top; rounded up to 16. Rust's `saved: Vec<(u8,
+॰ i64)>` is the two parallel arenas beside the struct, T1 having no tuple.
+सार्वजनिक संरचना यन्त्रचौकट आरभ्य
+    अष्टकाः ॱॱ अ६४ ऽ                    ॰ bytes: what the prologue subtracts
+    रक्षितसंख्यान ॱॱ न६४ ऽ              ॰ saved.len()
+    पुनःस्थानस्थानम् ॱॱ अ६४ ऽ           ॰ ra_offset: bytes − 8
+    निक्षेपसंख्यान ॱॱ न६४ ऽ              ॰ num_spills
+    स्थानीयसंख्यान ॱॱ न६४               ॰ num_locals — local slot k at 8(num_spills + k), `W-245`
+समाप्तम् ।
+
+॰ count_locals(func) — one past the highest Load/Store slot, or ०. `W-245`.
+सार्वजनिक वृत्तिः यन्त्रस्थानीयगणना आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः स्थानीयाः ॱॱ न६४ भवति ० ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति पर्वाङ्कः योगः कार्यम् ॱ पर्वसंख्यान ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            चरः स्थानवत् ॱॱ बूल भवति असत्यम् ।
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱआहाराज्ञाभेद आदि स्थानवत् भवति सत्यम् । इति
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱनिधानाज्ञाभेद आदि स्थानवत् भवति सत्यम् । इति
+            यदि स्थानवत् समम् सत्यम् आदि
+                यदि आरभ्य आदेशः ॱ स्थानक्रम योगः १ समाप्तम् अधिकम् स्थानीयाः आदि
+                    स्थानीयाः भवति आदेशः ॱ स्थानक्रम योगः १ ।
+                इति
+            इति
+            आज्ञाङ्कः भवति आज्ञाङ्कः योगः १ ।
+            शेषाज्ञा भवति शेषाज्ञा वियोगः १ ।
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    प्रत्यागमनम् स्थानीयाः ।
+इति
+
+सार्वजनिक चरः यन्त्ररक्षितकोष्ठकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।    ॰ saved[i].0 — the स्थिर number
+सार्वजनिक चरः यन्त्ररक्षितस्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ saved[i].1 — its offset
+सार्वजनिक चरः यन्त्रप्रयुक्तकोष्ठकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।  ॰ the HashSet<u8> `used`, as 12 flags at १..१२
+
+॰ the allocation in hand — `AllocationMap`'s two fields, from कोष्ठावण्टनम्.
+सार्वजनिक चरः यन्त्राधिकरणसीमा ॱॱ न६४ भवति ० ।     ॰ आवण्टनम् ॱ अधिकरणसंख्यान
+सार्वजनिक चरः यन्त्रनिक्षेपाः ॱॱ न६४ भवति ० ।       ॰ आवण्टनम् ॱ निक्षेपसंख्यान
+सार्वजनिक चरः यन्त्रस्थानीयाः ॱॱ न६४ भवति ० ।       ॰ count_locals(func), `W-245`
+सार्वजनिक चरः यन्त्रचौकटम् ॱॱ यन्त्रचौकट भवति ० ।    ॰ Routine::frame
+
+॰ frame_layout(alloc, num_locals) — from the allocation in hand and the
+॰ routine's local count. The set of used registers is walked in NUMBER
+॰ ORDER, which is Rust's `sort_unstable`.
+सार्वजनिक वृत्तिः यन्त्रचौकटरचना ददाति यन्त्रचौकट आदि
+    चरः कोष्ठम् ॱॱ न६४ भवति १ ।
+    यावत् कोष्ठम् न्यूनम् आरभ्य यन्त्रावण्टनीयम् योगः १ समाप्तम् आदि
+        यन्त्रप्रयुक्तकोष्ठकोश अङ्कः कोष्ठम् अन्तः भवति ० ।
+        कोष्ठम् भवति कोष्ठम् योगः १ ।
+    इति
+    चरः मूल्यम् ॱॱ न६४ भवति १ ।
+    यावत् मूल्यम् न्यूनम् आरभ्य यन्त्राधिकरणसीमा योगः १ समाप्तम् आदि
+        चरः अधिकरणम् ॱॱ उत्सर्जनॱअधिकरण भवति उत्सर्जनॱअधिकरणकोश अङ्कः मूल्यम् अन्तः ।
+        यदि अधिकरणम् ॱ भेद समम् उत्सर्जनॱकोष्ठाधिकरणभेद आदि
+            यन्त्रप्रयुक्तकोष्ठकोश अङ्कः आरभ्य अधिकरणम् ॱ कोष्ठ योगः १ समाप्तम् अन्तः भवति १ ।
+        इति
+        मूल्यम् भवति मूल्यम् योगः १ ।
+    इति
+    ॰ `slot_bytes`: the spill slots and, above them, the local slots (`W-245`).
+    चरः निक्षेपाष्टकाः ॱॱ अ६४ भवति ८ गुणनम् आरभ्य यन्त्रनिक्षेपाः योगः यन्त्रस्थानीयाः समाप्तम् ।
+    चरः रक्षिताः ॱॱ न६४ भवति ० ।
+    कोष्ठम् भवति १ ।
+    यावत् कोष्ठम् न्यूनम् आरभ्य यन्त्रावण्टनीयम् योगः १ समाप्तम् आदि
+        यदि यन्त्रप्रयुक्तकोष्ठकोश अङ्कः कोष्ठम् अन्तः समम् १ आदि
+            यन्त्ररक्षितकोष्ठकोश अङ्कः आरभ्य रक्षिताः योगः १ समाप्तम् अन्तः भवति आरभ्य कोष्ठम् वियोगः १ समाप्तम् ।
+            यन्त्ररक्षितस्थानकोश अङ्कः आरभ्य रक्षिताः योगः १ समाप्तम् अन्तः भवति निक्षेपाष्टकाः योगः आरभ्य ८ गुणनम् रक्षिताः समाप्तम् ।
+            रक्षिताः भवति रक्षिताः योगः १ ।
+        इति
+        कोष्ठम् भवति कोष्ठम् योगः १ ।
+    इति
+    चरः अपरिष्कृतम् ॱॱ अ६४ भवति आरभ्य निक्षेपाष्टकाः योगः आरभ्य ८ गुणनम् रक्षिताः समाप्तम् समाप्तम् योगः ८ ।
+    चरः नव ॱॱ यन्त्रचौकट भवति ० ।
+    नव ॱ अष्टकाः भवति आरभ्य आरभ्य अपरिष्कृतम् योगः १५ समाप्तम् विभाजनम् १६ समाप्तम् गुणनम् १६ ।
+    नव ॱ रक्षितसंख्यान भवति रक्षिताः ।
+    नव ॱ पुनःस्थानस्थानम् भवति नव ॱ अष्टकाः वियोगः ८ ।
+    नव ॱ निक्षेपसंख्यान भवति यन्त्रनिक्षेपाः ।
+    नव ॱ स्थानीयसंख्यान भवति यन्त्रस्थानीयाः ।
+    प्रत्यागमनम् नव ।
+इति
+
+
+॰ ══════════════════ the emitter ══════════════════
+
+॰ Routine::location(v) — the allocation's answer for a value. Rust panics on
+॰ a value with no location; the allocator hands every value one, and a भेद ०
+॰ here would be that same impossibility, read as register ० rather than a halt.
+सार्वजनिक वृत्तिः यन्त्राधिकरणम् आदाय मूल्यम् ॱॱ न६४ ददाति उत्सर्जनॱअधिकरण आदि
+    प्रत्यागमनम् उत्सर्जनॱअधिकरणग्रहणम् आरभ्य मूल्यम् ऽ यन्त्राधिकरणसीमा समाप्तम् ।
+इति
+
+॰ Routine::read(v, scratch, extra) — the register a value can be READ from,
+॰ loading a spilled one into क्षणिक<scratch> first. `extra` is what the stack
+॰ pointer has moved by since the prologue (a Call's stack-argument push).
+॰ Answers the register code.
+सार्वजनिक वृत्तिः यन्त्रपठनम् आदाय मूल्यम् ॱॱ न६४ ऽ क्षणिकः ॱॱ न६४ ऽ अतिरिक्तम् ॱॱ अ६४ ददाति न६४ आदि
+    चरः अधिकरणम् ॱॱ उत्सर्जनॱअधिकरण भवति यन्त्राधिकरणम् मूल्यम् ।
+    यदि अधिकरणम् ॱ भेद समम् उत्सर्जनॱनिक्षेपाधिकरणभेद आदि
+        चरः सङ्केतः ॱॱ न६४ भवति यन्त्रावण्टनीयम् योगः क्षणिकः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+        यन्त्रकर्मपदम् सङ्केतः ।
+        यन्त्रपदम् उक्तम् स्तूपसूचकःत् इति ।
+        यन्त्रसङ्ख्यापदम् आरभ्य आरभ्य ८ गुणनम् अधिकरणम् ॱ निक्षेप समाप्तम् योगः अतिरिक्तम् समाप्तम् ।
+        यन्त्राज्ञान्तः ।
+        प्रत्यागमनम् सङ्केतः ।
+    इति
+    प्रत्यागमनम् अधिकरणम् ॱ कोष्ठ ।
+इति
+
+॰ Routine::write(v, scratch) — the register a value is WRITTEN into: its own
+॰ स्थिर, or क्षणिक<scratch> for a spilled one. The store that follows is
+॰ यन्त्रलेखनिधानम्, called after the defining line; Rust returns the two
+॰ together as `(rd, Option<store>)`.
+सार्वजनिक वृत्तिः यन्त्रलेखनम् आदाय मूल्यम् ॱॱ न६४ ऽ क्षणिकः ॱॱ न६४ ददाति न६४ आदि
+    चरः अधिकरणम् ॱॱ उत्सर्जनॱअधिकरण भवति यन्त्राधिकरणम् मूल्यम् ।
+    यदि अधिकरणम् ॱ भेद समम् उत्सर्जनॱनिक्षेपाधिकरणभेद आदि
+        प्रत्यागमनम् यन्त्रावण्टनीयम् योगः क्षणिकः ।
+    इति
+    प्रत्यागमनम् अधिकरणम् ॱ कोष्ठ ।
+इति
+
+॰ the `Some(store)` half of write: `निधानम् स्तूपसूचकःय् <8k>न <t>न ।` for a
+॰ spilled value, nothing for one in a register.
+सार्वजनिक वृत्तिः यन्त्रलेखनिधानम् आदाय मूल्यम् ॱॱ न६४ ऽ सङ्केतः ॱॱ न६४ ददाति न६४ आदि
+    चरः अधिकरणम् ॱॱ उत्सर्जनॱअधिकरण भवति यन्त्राधिकरणम् मूल्यम् ।
+    यदि अधिकरणम् ॱ भेद समम् उत्सर्जनॱनिक्षेपाधिकरणभेद आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् स्तूपसूचकःय् इति ।
+        यन्त्रसङ्ख्यापदम् आरभ्य ८ गुणनम् अधिकरणम् ॱ निक्षेप समाप्तम् ।
+        यन्त्रकरणपदम् सङ्केतः ।
+        प्रत्यागमनम् यन्त्राज्ञान्तः ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ Routine::prologue — the label, the frame subtracted with a NEGATIVE
+॰ immediate (`ऋण<F>`, the frozen numeral production, never a Latin minus),
+॰ पुनःस्थानम् saved at the top, the used स्थिरs at their slots (§2.4).
+सार्वजनिक वृत्तिः यन्त्रप्रस्तावना ददाति न६४ आदि
+    ॰ W-243: EVERY routine label is exported (`॥ वैश्विकम् ॥`). A label is local to
+    ॰ its object (B-014) and each module is its own object, so a call into another
+    ॰ module resolves only through the linker's export table; the IR carries no
+    ॰ publicness and the collision check makes module ⧺ routine unique, so
+    ॰ exporting all of them defines no name twice. research/25 §5 R6; the same
+    ॰ line riscv64.rs's `prologue` writes.
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ वैश्विकम् इति ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवर्तमानचिह्नम् ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    यन्त्रवर्तमानचिह्नम् ।
+    यन्त्रचिह्नान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः स्तूपसूचकःम् स्तूपसूचकःन इति ।
+    यन्त्रसङ्ख्यापदम् आरभ्य ० वियोगः यन्त्रचौकटम् ॱ अष्टकाः समाप्तम् ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् स्तूपसूचकःय् इति ।
+    यन्त्रसङ्ख्यापदम् यन्त्रचौकटम् ॱ पुनःस्थानस्थानम् ।
+    यन्त्रपदम् उक्तम् पुनःस्थानम्न इति ।
+    यन्त्राज्ञान्तः ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य यन्त्रचौकटम् ॱ रक्षितसंख्यान योगः १ समाप्तम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् स्तूपसूचकःय् इति ।
+        यन्त्रसङ्ख्यापदम् आरभ्य यन्त्ररक्षितस्थानकोश अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        यन्त्रकरणपदम् आरभ्य यन्त्ररक्षितकोष्ठकोश अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        यन्त्राज्ञान्तः ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ Routine::epilogue — the exit label, everything restored in the prologue's
+॰ order, the frame given back, and व् as `सापेक्षलङ्घनम् शून्यःम् पुनःस्थानम्त् ०न ।`
+॰ (lib-mudraka.sas:17's own return).
+सार्वजनिक वृत्तिः यन्त्रोपसंहारः ददाति न६४ आदि
+    यन्त्रनिर्गमचिह्नम् ।
+    यन्त्रचिह्नान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः पुनःस्थानम्म् स्तूपसूचकःत् इति ।
+    यन्त्रसङ्ख्यापदम् यन्त्रचौकटम् ॱ पुनःस्थानस्थानम् ।
+    यन्त्राज्ञान्तः ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य यन्त्रचौकटम् ॱ रक्षितसंख्यान योगः १ समाप्तम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+        यन्त्रकर्मपदम् आरभ्य यन्त्ररक्षितकोष्ठकोश अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        यन्त्रपदम् उक्तम् स्तूपसूचकःत् इति ।
+        यन्त्रसङ्ख्यापदम् आरभ्य यन्त्ररक्षितस्थानकोश अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        यन्त्राज्ञान्तः ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः स्तूपसूचकःम् स्तूपसूचकःन इति ।
+    यन्त्रसङ्ख्यापदम् यन्त्रचौकटम् ॱ अष्टकाः ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् सापेक्षलङ्घनम् शून्यःम् पुनःस्थानम्त् ०न इति ।
+    प्रत्यागमनम् यन्त्राज्ञान्तः ।
+इति
+
+
+॰ ══════════════════ ConstInt in its three forms (§2.5) ══════════════════
+॰ the constant pool — `pool: Vec<i64>`; index k is the label ध्रुव<k>.
+सार्वजनिक चरः यन्त्रध्रुवकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+सार्वजनिक चरः यन्त्रध्रुवसंख्यान ॱॱ न६४ भवति ० ।
+
+॰ `W-254` — THE STRING POOL, which needs THREE arrays where the constant pool
+॰ needs one. A datum is one word and can live in an array of words; a blob is
+॰ any number of octets, so the octets are laid end to end in यन्त्रपाठाक्षरकोश
+॰ and each entry keeps its own start and count. Rust's `Vec<Vec<u8>>` is one
+॰ declaration for the same three things.
+सार्वजनिक चरः यन्त्रपाठाक्षरकोश ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः यन्त्रपाठाक्षरसंख्यान ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः यन्त्रपाठारम्भकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः यन्त्रपाठमानकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः यन्त्रपाठसंख्यान ॱॱ न६४ भवति ० ।
+॰ THE POOL'S INDEX (2026-09-13): ४०९६ chain heads keyed by `यन्त्रपाठकुलम्`
+॰ (length and the first and last octets), and per entry the previous entry of
+॰ the same key — so "already pooled?" walks one short chain instead of every
+॰ entry. The heads are written ० in `यन्त्रमण्डलोत्सर्जनम्` before any read.
+सार्वजनिक चरः यन्त्रपाठकुलशीर्षकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः यन्त्रपाठकुलानुक्रमकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+॰ split_hi_lo's answer — the `(hi, lo)` of its `Some`, T1 having no tuple.
+सार्वजनिक चरः यन्त्रोच्चांशः ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः यन्त्रनीचांशः ॱॱ अ६४ भवति ० ।
+
+॰ split_hi_lo(c) — `(hi, lo)` with c == (hi << 12) + lo, lo in the 12-bit
+॰ signed range and hi in lui's 20-bit field written unsigned; असत्यम् when c
+॰ is not a sign-extended 32-bit value. The +2048 is the bias that rounds hi
+॰ to the nearest page so that lo stays inside ±2048 — the `hi` carries the
+॰ +1 when `lo` is negative (namaste.sas:22–24's pair). 0x7FFF_F800..=
+॰ 0x7FFF_FFFF would need hi = 0x80000, past the field: those go to the pool.
+सार्वजनिक वृत्तिः यन्त्रोच्चनीचविभागः आदाय ध्रुवम् ॱॱ अ६४ ददाति बूल आदि
+    यदि ध्रुवम् न्यूनम् ऋण२१४७४८३६४८ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि ध्रुवम् अधिकम् २१४७४८३६४७ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः उच्चम् ॱॱ अ६४ भवति आरभ्य ध्रुवम् योगः २०४८ समाप्तम् दक्षिणसृ १२ ।
+    चरः नीचम् ॱॱ अ६४ भवति ध्रुवम् वियोगः आरभ्य उच्चम् वामसृ १२ समाप्तम् ।
+    यदि उच्चम् न्यूनम् ऋण५२४२८८ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि उच्चम् अधिकम् ५२४२८७ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यन्त्रोच्चांशः भवति उच्चम् युक् १०४८५७५ ।
+    यन्त्रनीचांशः भवति नीचम् ।
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ lower_constant(rt, v, c, pool) — `addi` for a 12-bit signed constant;
+॰ `lui` + `addi` for a sign-extended 32-bit one (lui sign-extends bit 31 on
+॰ RV64, so this form is ONLY for a value that is one); otherwise the pool,
+॰ addressed through क्षणिक० with ध्रुव<k>ॱउपरि / ॱअधः. `pool.iter()
+॰ .position(..)` is the walk below; a constant already pooled is not pooled twice.
+सार्वजनिक वृत्तिः यन्त्रध्रुवावतरणम् आदाय मूल्यम् ॱॱ न६४ ऽ ध्रुवमूलम् ॱॱ अ६४ ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य मूल्यम् ऽ २ समाप्तम् ।
+    ॰ THE CONSTANT AS THE MACHINE HOLDS IT — `W-245`, found by the twin census
+    ॰ on the corpus's `१८४४६७४४०७३७०९५५१६१५` (2⁶⁴−1, `sanskrit_text.t1`'s
+    ॰ `चरमम्`): the interpreter's number is wider than a register, Rust reads
+    ॰ the arena's `i128` back as an `i64` (`c as i64`, the low sixty-four bits
+    ॰ signed) and wrote `ऋण१` where this side saw a value past 2³¹ and went to
+    ॰ the pool. Same bits, two texts. So the value is read here as the
+    ॰ register will hold it: the low sixty-four bits, sign-extended — the one
+    ॰ reinterpretation `यन्त्रषोडशाङ्कः` already makes for the pool's datum.
+    ॰ 2⁶⁴ is not a numeral this interpreter holds (TooLarge past 2⁶⁴−1), so
+    ॰ it is 2⁶³ twice.
+    चरः ध्रुवम् ॱॱ अ६४ भवति ध्रुवमूलम् ।
+    चरः द्विषष्टिः ॱॱ अ६४ भवति ९२२३३७२०३६८५४७७५८०८ ।
+    यदि ध्रुवम् अधिकम् ९२२३३७२०३६८५४७७५८०७ आदि
+        ध्रुवम् भवति आरभ्य ध्रुवम् वियोगः द्विषष्टिः समाप्तम् वियोगः द्विषष्टिः ।
+    इति
+    यदि ध्रुवम् न्यूनम् ऋण९२२३३७२०३६८५४७७५८०८ आदि
+        ध्रुवम् भवति आरभ्य ध्रुवम् योगः द्विषष्टिः समाप्तम् योगः द्विषष्टिः ।
+    इति
+    चरः लघु ॱॱ बूल भवति असत्यम् ।
+    यदि ध्रुवम् अधिकम् ऋण२०४९ आदि
+        यदि ध्रुवम् न्यूनम् २०४८ आदि
+            लघु भवति सत्यम् ।
+        इति
+    इति
+    यदि लघु समम् सत्यम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रपदम् उक्तम् शून्यःन इति ।
+        यन्त्रसङ्ख्यापदम् ध्रुवम् ।
+        यन्त्राज्ञान्तः ।
+    इति अन्यथा आदि
+        यदि यन्त्रोच्चनीचविभागः ध्रुवम् आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् उपरिभारः इति ।
+            यन्त्रकर्मपदम् गन्तृ ।
+            यन्त्रसङ्ख्यापदम् यन्त्रोच्चांशः ।
+            यन्त्राज्ञान्तः ।
+            यदि यन्त्रनीचांशः असमम् ० आदि
+                उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+                यन्त्रकर्मपदम् गन्तृ ।
+                यन्त्रकरणपदम् गन्तृ ।
+                यन्त्रसङ्ख्यापदम् यन्त्रनीचांशः ।
+                यन्त्राज्ञान्तः ।
+            इति
+        इति अन्यथा आदि
+            चरः स्थलम् ॱॱ न६४ भवति ० ।
+            चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+            यावत् सूचकाङ्क न्यूनम् आरभ्य यन्त्रध्रुवसंख्यान योगः १ समाप्तम् आदि
+                यदि स्थलम् समम् ० आदि
+                    यदि यन्त्रध्रुवकोश अङ्कः सूचकाङ्क अन्तः समम् ध्रुवम् आदि
+                        स्थलम् भवति सूचकाङ्क ।
+                    इति
+                इति
+                सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+            इति
+            यदि स्थलम् समम् ० आदि
+                यन्त्रध्रुवसंख्यान भवति यन्त्रध्रुवसंख्यान योगः १ ।
+                यन्त्रध्रुवकोश अङ्कः यन्त्रध्रुवसंख्यान अन्तः भवति ध्रुवम् ।
+                स्थलम् भवति यन्त्रध्रुवसंख्यान ।
+            इति
+            ॰ the pool index is Rust's `pool.len() - 1`: ० for the first constant.
+            चरः क्रमाङ्कः ॱॱ अ६४ भवति स्थलम् वियोगः १ ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः क्षणिक०म् ध्रुव इति ।
+            यन्त्राङ्कः क्रमाङ्कः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॱउपरिन इति ।
+            यन्त्राज्ञान्तः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+            यन्त्रकर्मपदम् गन्तृ ।
+            यन्त्रपदम् उक्तम् क्षणिक०त् ध्रुव इति ।
+            यन्त्राङ्कः क्रमाङ्कः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॱअधःन इति ।
+            यन्त्राज्ञान्तः ।
+        इति
+    इति
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य मूल्यम् ऽ गन्तृ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ ConstStr (§2.5, `W-254`) ══════════════════
+॰ lower_string(rt, v, bytes, strings) — यन्त्रध्रुवावतरणम्'s POOLED ARM WITH
+॰ THE LOAD DROPPED, and that one substitution is the whole difference. A pooled
+॰ integer wants the eight octets AT the label, so its second instruction is
+॰ आहारः; a string wants the label ITSELF, so its second is योगः and what lands
+॰ in the register is where the octets are.
+॰
+॰ Identical octets share an entry, as identical integers do: two `उक्तम्`s of
+॰ the same text are one address. The scan is linear over the pool, which is what
+॰ the constant pool does and for the same reason — a pool is small and an index
+॰ must be stable.
+॰ the pool key of a literal: its length and its first and last octets, folded
+॰ into one of ४०९६ chains. Any key works for correctness — equal contents
+॰ always share a key — the choice only spreads the chains.
+वृत्तिः यन्त्रपाठकुलम् आदाय पाठारम्भ ॱॱ न६४ ऽ पाठमानम् ॱॱ न६४ ददाति न६४ आदि
+    ॰ EVERY OCTET IS FOLDED IN, NOT THE FIRST AND LAST. The first version keyed
+    ॰ on (length, first octet, last octet) and passed its scratch falsifiers —
+    ॰ whose lines began with varied letters. On the product's own text every
+    ॰ Devanagari line begins with the same UTF-8 lead octet and nearly every
+    ॰ .t1 line ends in the same danda, so the key collapsed to LENGTH and each
+    ॰ chain held every literal of one length: the same-length full compares
+    ॰ the scan paid were paid again, and the fixpoint module's compile did not
+    ॰ get faster. A fold over all octets costs one pass per literal — linear —
+    ॰ and puts only near-identical texts in one chain.
+    चरः कुलम् ॱॱ न६४ भवति पाठमानम् गुणनम् ३१ ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् पाठमानम् आदि
+        चरः अष्टकम् ॱॱ न६४ भवति मध्यरूपॱपाठाक्षरकोश अङ्कः आरभ्य पाठारम्भ योगः क्रमः समाप्तम् अन्तः ।
+        कुलम् भवति आरभ्य आरभ्य कुलम् गुणनम् ३१ समाप्तम् योगः अष्टकम् समाप्तम् शेषः १०४८५७६ ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् कुलम् शेषः ४०९६ ।
+इति
+
+सार्वजनिक वृत्तिः यन्त्रपाठावतरणम् आदाय मूल्यम् ॱॱ न६४ ऽ पाठारम्भ ॱॱ न६४ ऽ पाठमानम् ॱॱ न६४ ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य मूल्यम् ऽ २ समाप्तम् ।
+
+    ॰ already pooled? WALK THE KEY'S CHAIN, compare octet for octet.
+    ॰ Before 2026-09-13 this scanned EVERY pooled entry per literal — O(L²) in
+    ॰ a module's literals, measured 395M → 1,586M interpreter steps when a
+    ॰ literal-heavy module doubled; the fixpoint module carries ~40,000. The
+    ॰ answer is the entry the scan found: a match stops insertion, so the pool
+    ॰ holds one entry per distinct content and any match is THE match.
+    चरः स्थलम् ॱॱ न६४ भवति ० ।
+    चरः कुलम् ॱॱ न६४ भवति यन्त्रपाठकुलम् पाठारम्भ पाठमानम् ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति यन्त्रपाठकुलशीर्षकोश अङ्कः कुलम् अन्तः ।
+    यावत् सूचकाङ्क अधिकम् ० आदि
+        यदि स्थलम् समम् ० आदि
+            यदि यन्त्रपाठमानकोश अङ्कः सूचकाङ्क अन्तः समम् पाठमानम् आदि
+                चरः समानम् ॱॱ बूल भवति सत्यम् ।
+                चरः तुल्यारम्भः ॱॱ न६४ भवति यन्त्रपाठारम्भकोश अङ्कः सूचकाङ्क अन्तः ।
+                चरः क्रमः ॱॱ न६४ भवति ० ।
+                यावत् क्रमः न्यूनम् पाठमानम् आदि
+                    यदि यन्त्रपाठाक्षरकोश अङ्कः आरभ्य तुल्यारम्भः योगः क्रमः समाप्तम् अन्तः असमम् मध्यरूपॱपाठाक्षरकोश अङ्कः आरभ्य पाठारम्भ योगः क्रमः समाप्तम् अन्तः आदि
+                        समानम् भवति असत्यम् ।
+                        ॰ the first mismatch decides; the walk to the end decided nothing.
+                        क्रमः भवति पाठमानम् ।
+                    इति अन्यथा आदि
+                        क्रमः भवति क्रमः योगः १ ।
+                    इति
+                इति
+                यदि समानम् आदि
+                    स्थलम् भवति सूचकाङ्क ।
+                इति
+            इति
+        इति
+        यदि स्थलम् समम् ० आदि
+            सूचकाङ्क भवति यन्त्रपाठकुलानुक्रमकोश अङ्कः सूचकाङ्क अन्तः ।
+        इति
+        यदि स्थलम् असमम् ० आदि
+            सूचकाङ्क भवति ० ।
+        इति
+    इति
+
+    ॰ not pooled — copy the octets in, take the next entry, chain it at its key.
+    यदि स्थलम् समम् ० आदि
+        चरः नवारम्भः ॱॱ न६४ भवति यन्त्रपाठाक्षरसंख्यान योगः १ ।
+        चरः क्रमद्वि ॱॱ न६४ भवति ० ।
+        यावत् क्रमद्वि न्यूनम् पाठमानम् आदि
+            यन्त्रपाठाक्षरसंख्यान भवति यन्त्रपाठाक्षरसंख्यान योगः १ ।
+            यन्त्रपाठाक्षरकोश अङ्कः यन्त्रपाठाक्षरसंख्यान अन्तः भवति मध्यरूपॱपाठाक्षरकोश अङ्कः आरभ्य पाठारम्भ योगः क्रमद्वि समाप्तम् अन्तः ।
+            क्रमद्वि भवति क्रमद्वि योगः १ ।
+        इति
+        यन्त्रपाठसंख्यान भवति यन्त्रपाठसंख्यान योगः १ ।
+        यन्त्रपाठारम्भकोश अङ्कः यन्त्रपाठसंख्यान अन्तः भवति नवारम्भः ।
+        यन्त्रपाठमानकोश अङ्कः यन्त्रपाठसंख्यान अन्तः भवति पाठमानम् ।
+        यन्त्रपाठकुलानुक्रमकोश अङ्कः यन्त्रपाठसंख्यान अन्तः भवति यन्त्रपाठकुलशीर्षकोश अङ्कः कुलम् अन्तः ।
+        यन्त्रपाठकुलशीर्षकोश अङ्कः कुलम् अन्तः भवति यन्त्रपाठसंख्यान ।
+        स्थलम् भवति यन्त्रपाठसंख्यान ।
+    इति
+
+    ॰ the pool index is Rust's `strings.len() - 1`: ० for the first literal.
+    चरः क्रमाङ्कः ॱॱ अ६४ भवति स्थलम् वियोगः १ ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः क्षणिक०म् पाठ इति ।
+    यन्त्राङ्कः क्रमाङ्कः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱउपरिन इति ।
+    यन्त्राज्ञान्तः ।
+    ॰ योगः, not आहारः — the ADDRESS, not the first eight octets at it.
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रपदम् उक्तम् क्षणिक०न पाठ इति ।
+    यन्त्राङ्कः क्रमाङ्कः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱअधःन इति ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य मूल्यम् ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ ══════════════════ LoadGlobal (`W-278`) ══════════════════
+॰ emit for `Instruction::LoadGlobal(symbol)` — the word held at the global's own
+॰ EXPORTED label. Three instructions, the same three `riscv64.rs` writes:
+॰   स्थानसापेक्षयोगः क्षणिक०म् <label>ॱउपरिन ।   auipc — the page
+॰   योगः क्षणिक०म् क्षणिक०न <label>ॱअधःन ।      addi  — the offset in it
+॰   आहारः <गन्तृ>म् क्षणिक०त् ०न ।              ld    — the word AT it
+॰
+॰ THREE AND NOT TWO, WHICH IS THE WHOLE DIFFERENCE FROM A STRING LITERAL: a
+॰ `पाठ` value IS the address, so `यन्त्रपाठोत्सर्जनम्` stops after the `योगः`.
+॰ A global's label names STORAGE, and the value is the word at it — which is
+॰ also why another module's write is visible here: everyone loads from the one
+॰ object the declaring module exported.
+सार्वजनिक वृत्तिः यन्त्रवैश्विकोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः क्षणिक०म् इति ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवैश्विकचिह्नम् आदेशः ॱ संज्ञा ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱउपरिन इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः क्षणिक०म् क्षणिक०न इति ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवैश्विकचिह्नम् आदेशः ॱ संज्ञा ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱअधःन इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् क्षणिक०त् ०न इति ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the LoadField arm — `आहारः R(v)म् R(b)त् <offset>न ।`, ONE line, because
+॰ `आहारः` already takes a base register and the ISA side needed nothing new.
+॰ What was missing sat above the emitter: an instruction whose base is a VALUE
+॰ rather than the stack pointer, and a layout to take the offset from.
+॰
+॰ THE OFFSET COMES FROM `ध्रुवमूल्यम्`, NOT `स्थानक्रम`. `यन्त्राहारोत्सर्जनम्`
+॰ above scales `स्थानक्रम` by ८ and adds the spill region because a LOCAL's slot
+॰ is a frame index; a field's offset is already a byte count against a runtime
+॰ base and must not meet either. The frame-sizing pass reads `स्थानक्रम` only
+॰ for `आहाराज्ञाभेद` and `निधानाज्ञाभेद`, so this kind is skipped there by the
+॰ dispatch itself rather than by anyone remembering the rule.
+॰
+॰ THE BASE IS READ BEFORE THE RESULT IS WRITTEN, matching `riscv64.rs` exactly:
+॰ both allocate, and the twins must agree on octets, not merely on intent.
+सार्वजनिक वृत्तिः यन्त्रक्षेत्रोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः आधारः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रापादानपदम् आधारः ।
+    यन्त्रसङ्ख्यापदम् आदेशः ॱ ध्रुवमूल्यम् ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the LoadIndex arm — TWO lines where the क्षेत्र arm above needs one, and the
+॰ difference is the whole reason this is a separate kind:
+॰
+॰     योगः R(v)म् R(b)त् R(o)त् ।     the address
+॰     आहारः R(v)म् R(v)त् ०न ।       the word at it
+॰
+॰ `आहारः` takes a base register and a CONSTANT displacement, and an index's
+॰ displacement is a value — so the addition cannot be folded into the load the
+॰ way a field's constant offset is. `मध्यरूप` has already scaled the index by
+॰ the element width, so `दक्षिण` arrives as a BYTE COUNT and this arm does no
+॰ arithmetic of its own beyond the add.
+॰
+॰ THE RESULT REGISTER IS ITS OWN SCRATCH, and that is safe rather than lucky:
+॰ both operands are READ before it is written, exactly as `यन्त्रद्विपदोत्सर्जनम्`
+॰ and the क्षेत्र arm order theirs, so the add's destination cannot clobber an
+॰ operand it still has to read. A third register would need an allocator this
+॰ emitter has not got.
+॰
+॰ THE DISPLACEMENT IS A LITERAL ०, NOT `ध्रुवमूल्यम्`. The क्षेत्र arm's margin
+॰ explains why that field is the wrong place to look here: this kind carries no
+॰ constant at all, and the frame-sizing pass reads `स्थानक्रम` only for आहार and
+॰ निधान, so this kind is skipped there by the dispatch itself.
+॰
+॰ **REFOUNDED `W-294`: THE DISPLACEMENT IS STILL A LITERAL ०, BUT THE CLAIM THAT
+॰ THIS KIND CARRIES NO CONSTANT IS NO LONGER TRUE.** `ध्रुवमूल्यम्` now holds the
+॰ element's width in OCTETS, because the emitter has to pick between `आहारः` and
+॰ `आहारःॱअ८` and the width is the only thing that decides. The two halves of the
+॰ old sentence came apart: the DISPLACEMENT operand is untouched and still ०; the
+॰ FIELD is now read. The `स्थानक्रम` half stands unchanged — this kind is still
+॰ skipped by the frame-sizing dispatch, which is why the width could not be put
+॰ there instead.
+सार्वजनिक वृत्तिः यन्त्रसूच्युत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः आधारः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः अन्तरः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रकरणपदम् आधारः ।
+    यन्त्रकरणपदम् अन्तरः ।
+    यन्त्राज्ञान्तः ।
+    ॰ `W-294` — THE LOAD IS PICKED BY THE ELEMENT'S WIDTH, which arrives in
+    ॰ `ध्रुवमूल्यम्` as a COUNT OF OCTETS. See the refounded margin above: this
+    ॰ kind does now carry a constant.
+    ॰
+    ॰ ८ OCTETS EMITS THE BARE `आहारः`, CHARACTER FOR CHARACTER AS BEFORE. That is
+    ॰ deliberate and it is what keeps every existing image octet-identical —
+    ॰ `आहारःॱअ६४` would assemble to the same instruction and to a DIFFERENT source
+    ॰ line, and `measure_corpus_twin_emit` compares text. Only the widths this
+    ॰ lowering used to refuse take a suffixed form.
+    यदि आदेशः ॱ ध्रुवमूल्यम् समम् १ आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् आहारःॱअ८ इति ।
+    इति अन्यथा आदि
+        यदि आदेशः ॱ ध्रुवमूल्यम् समम् २ आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् आहारःॱअ१६ इति ।
+        इति अन्यथा आदि
+            यदि आदेशः ॱ ध्रुवमूल्यम् समम् ४ आदि
+                उत्सर्जनॱपाठयोजनम् उक्तम् आहारःॱअ३२ इति ।
+            इति अन्यथा आदि
+                उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+            इति
+        इति
+    इति
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रापादानपदम् गन्तृ ।
+    यन्त्रसङ्ख्यापदम् ० ।
+    यन्त्राज्ञान्तः ।
+    ॰ AN OCTET IS UNSIGNED (2026-09-13): `आहारःॱअ८` is the SIGNED byte load and the
+    ॰ assembler has no unsigned form, so a rodata byte २२४ read ६५५०४ natively where the
+    ॰ interpreter reads २२४ — the first native defect the self-image's entry found.
+    ॰ Every width-1 load is followed by a mask to the low eight bits; the twin does the same.
+    यदि आदेशः ॱ ध्रुवमूल्यम् समम् १ आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् युक्तम् इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रकरणपदम् गन्तृ ।
+        यन्त्रसङ्ख्यापदम् २५५ ।
+        यन्त्राज्ञान्तः ।
+    इति
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ ═══════ AddrOfGlobal / LoadAt / StoreAt — `W-283`, `research/28` ═══════
+॰ THE RULED STORAGE MODEL: an address is a VALUE. The three reads above
+॰ (`वैश्विक`, `क्षेत्र`, `सूची`) differ only in how they form an address and
+॰ each then does one load; completing that grid for writes wants EIGHT kinds,
+॰ three address forms times two directions, with only the arithmetic varying.
+॰ A difference that small between kinds means the kinds are the wrong unit.
+॰ Five replace eight, and a write stops being a separate design from a read.
+॰
+॰ २१ — the global's address, and NOT its value. This is
+॰ `यन्त्रवैश्विकोत्सर्जनम्` with its third line removed: the same
+॰ `स्थानसापेक्षयोगः`/`योगः` pair, stopping before the `आहारः`.
+॰
+॰ THE ADDRESS LANDS IN THE VALUE'S OWN REGISTER, NOT IN `क्षणिक०`, and that is
+॰ the entire difference. A scratch register is dead the moment the next
+॰ instruction runs; a value the allocator knows about outlives the instruction
+॰ that formed it — so ONE address can serve a load and a store, or two stores,
+॰ instead of being rebuilt at every use.
+सार्वजनिक वृत्तिः यन्त्रवैश्विकस्थानोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवैश्विकचिह्नम् आदेशः ॱ संज्ञा ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱउपरिन इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रकरणपदम् गन्तृ ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवैश्विकचिह्नम् आदेशः ॱ संज्ञा ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॱअधःन इति ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ २२ — the word AT an address already in a value. ONE instruction, because the
+॰ address arrived built. `त्` — अपादान, the place read FROM.
+सार्वजनिक वृत्तिः यन्त्रस्थानाहारोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः स्थानम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रापादानपदम् स्थानम् ।
+    यन्त्रसङ्ख्यापदम् ० ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ २३ — store a value AT an address already in a value. `य्` — अधिकरण, the
+॰ place written TO, and NOT the `त्` the load above uses. Copying the load's
+॰ role is refused by the assembler as two operands claiming अपादान: loud, and
+॰ paid once.
+॰
+॰ NO RESULT REGISTER — no `यन्त्रलेखनम्`, no `यन्त्रलेखनिधानम्` — which is
+॰ exactly what makes this kind invisible to dead-code elimination. It defines
+॰ a value nobody reads, so unless `ir.rs`'s `is_side_effecting` names it the
+॰ optimiser deletes every write with no diagnostic anywhere: the program still
+॰ compiles, assembles and runs. A test that this EMITS cannot catch that; the
+॰ emission is real and the deletion happens later.
+॰ `a_store_at_survives_dead_code_elimination` asserts the survival instead, and
+॰ its negative control — the arm removed — optimises this block to EMPTY.
+सार्वजनिक वृत्तिः यन्त्रस्थाननिधानोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः स्थानम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः स्रोतः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् इति ।
+    यन्त्राधिकरणपदम् स्थानम् ।
+    यन्त्रसङ्ख्यापदम् ० ।
+    यन्त्रकरणपदम् स्रोतः ।
+    प्रत्यागमनम् यन्त्राज्ञान्तः ।
+इति
+
+॰ ══════════════════ Call (§2.5) ══════════════════
+॰ emit_call(rt, v, callee, args, names) — र the arguments out: अर्थ<j> for the
+॰ first eight, the stack above स्तूपसूचकः for the rest, after one `addi` that
+॰ moves it by 16⌈(n−8)/2⌉; ट the `लङ्घनम् पुनःस्थानम्म् <callee>य्`; the
+॰ stack given back; व the result copied out of अर्थ०. The callee's name is
+॰ looked up FIRST — Rust's `routine_label(..)?` — so a Call to nowhere writes
+॰ no line. The arguments are the run आदानारम्भ..+आदानसंख्यान of आदानकोश.
+सार्वजनिक वृत्तिः यन्त्राह्वानोत्सर्जनम् आदाय फलम् ॱॱ न६४ ऽ आह्वेयसंज्ञा ॱॱ न६४ ऽ आदानारम्भ ॱॱ न६४ ऽ आदानसंख्यान ॱॱ न६४ ददाति न६४ आदि
+    चरः लक्ष्यस्थलम् ॱॱ न६४ भवति यन्त्रनामान्वेषणम् आह्वेयसंज्ञा ।
+    यदि लक्ष्यस्थलम् समम् ० आदि
+        चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+        यन्त्रनिषेधः आरभ्य यन्त्रानामसंज्ञानिषेधभेद ऽ रिक्तम् ऽ ० ऽ यन्त्रनामस्थानाह्वानम् ऽ आह्वेयसंज्ञा समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    चरः स्तूपस्थाः ॱॱ अ६४ भवति ० ।
+    यदि आदानसंख्यान अधिकम् ८ आदि
+        स्तूपस्थाः भवति आदानसंख्यान वियोगः ८ ।
+    इति
+    चरः समायोजनम् ॱॱ अ६४ भवति १६ गुणनम् आरभ्य आरभ्य स्तूपस्थाः योगः १ समाप्तम् विभाजनम् २ समाप्तम् ।
+    यदि समायोजनम् अधिकम् ० आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् योगः स्तूपसूचकःम् स्तूपसूचकःन इति ।
+        यन्त्रसङ्ख्यापदम् आरभ्य ० वियोगः समायोजनम् समाप्तम् ।
+        यन्त्राज्ञान्तः ।
+        चरः क्रमः ॱॱ न६४ भवति ८ ।
+        यावत् क्रमः न्यूनम् आदानसंख्यान आदि
+            चरः आदानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱआदानकोश अङ्कः आरभ्य आदानारम्भ योगः क्रमः समाप्तम् अन्तः ।
+            चरः स्रोतः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदानम् ॱ क्रमाङ्क ऽ ० ऽ समायोजनम् समाप्तम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् स्तूपसूचकःय् इति ।
+            यन्त्रसङ्ख्यापदम् आरभ्य ८ गुणनम् आरभ्य क्रमः वियोगः ८ समाप्तम् समाप्तम् ।
+            यन्त्रकरणपदम् स्रोतः ।
+            यन्त्राज्ञान्तः ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+    इति
+    चरः कोष्ठक्रमः ॱॱ न६४ भवति ० ।
+    यावत् कोष्ठक्रमः न्यूनम् आदानसंख्यान आदि
+        यदि कोष्ठक्रमः न्यूनम् ८ आदि
+            चरः कोष्ठादानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱआदानकोश अङ्कः आरभ्य आदानारम्भ योगः कोष्ठक्रमः समाप्तम् अन्तः ।
+            चरः कोष्ठस्रोतः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य कोष्ठादानम् ॱ क्रमाङ्क ऽ ० ऽ समायोजनम् समाप्तम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्रार्थनाम कोष्ठक्रमः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् म् इति ।
+            यन्त्रकरणपदम् कोष्ठस्रोतः ।
+            यन्त्रपदम् उक्तम् ०न इति ।
+            यन्त्राज्ञान्तः ।
+        इति
+        कोष्ठक्रमः भवति कोष्ठक्रमः योगः १ ।
+    इति
+    उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् पुनःस्थानम्म् इति ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्रवृत्तिचिह्नम् आह्वेयसंज्ञा ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+    यन्त्राज्ञान्तः ।
+    यदि समायोजनम् अधिकम् ० आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् योगः स्तूपसूचकःम् स्तूपसूचकःन इति ।
+        यन्त्रसङ्ख्यापदम् समायोजनम् ।
+        यन्त्राज्ञान्तः ।
+    इति
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य फलम् ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रपदम् उक्तम् अर्थ०न ०न इति ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य फलम् ऽ गन्तृ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ terminators (§2.5, §2.7) ══════════════════
+॰ the addresses a conditional's reach is measured over — see यन्त्रशाखादूरपरीक्षा.
+सार्वजनिक चरः यन्त्रपर्वस्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ by block id: instruction lines before its label; ऋण१ = no label written
+सार्वजनिक चरः यन्त्रशाखास्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ by target block id: instruction lines before the FIRST विषमलङ्घनम् to it; ऋण१ = none
+सार्वजनिक चरः यन्त्रलक्षितकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।       ॰ by block id: १ when some terminator targets it — the `targeted` set
+
+॰ whether value `c` is READ by any instruction of the routine, or by the
+॰ terminator of any block but `पर्वाङ्कः` — the `read_elsewhere` of
+॰ fusable_compare. `W-245`.
+सार्वजनिक वृत्तिः यन्त्रान्यत्रपठितम् आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ऽ पर्वाङ्कः ॱॱ न६४ ऽ शर्तम् ॱॱ न६४ ददाति बूल आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः अन्यः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति अन्यः योगः कार्यम् ॱ पर्वसंख्यान ।
+    यावत् अन्यः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः अन्यः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            ॰ every binary kind's and Cmp's two operands; a Store's value
+            यदि आदेशः ॱ वाम ॱ क्रमाङ्क समम् शर्तम् आदि प्रत्यागमनम् सत्यम् । इति
+            यदि आदेशः ॱ दक्षिण ॱ क्रमाङ्क समम् शर्तम् आदि प्रत्यागमनम् सत्यम् । इति
+            ॰ a Call's arguments
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱआह्वानाज्ञाभेद आदि
+                चरः आदानक्रमः ॱॱ न६४ भवति ० ।
+                यावत् आदानक्रमः न्यूनम् आदेशः ॱ आदानसंख्यान आदि
+                    चरः आदानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱआदानकोश अङ्कः आरभ्य आदेशः ॱ आदानारम्भ योगः आदानक्रमः समाप्तम् अन्तः ।
+                    यदि आदानम् ॱ क्रमाङ्क समम् शर्तम् आदि प्रत्यागमनम् सत्यम् । इति
+                    आदानक्रमः भवति आदानक्रमः योगः १ ।
+                इति
+            इति
+            आज्ञाङ्कः भवति आज्ञाङ्कः योगः १ ।
+            शेषाज्ञा भवति शेषाज्ञा वियोगः १ ।
+        इति
+        यदि अन्यः असमम् पर्वाङ्कः आदि
+            चरः भेदः ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ भेद ।
+            चरः पठितम् ॱॱ बूल भवति असत्यम् ।
+            यदि भेदः समम् मध्यरूपॱशाखावसानभेद आदि पठितम् भवति सत्यम् । इति
+            यदि भेदः समम् मध्यरूपॱप्रत्यागमनावसानभेद आदि पठितम् भवति सत्यम् । इति
+            यदि पठितम् समम् सत्यम् आदि
+                यदि पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क समम् शर्तम् आदि प्रत्यागमनम् सत्यम् । इति
+            इति
+        इति
+        अन्यः भवति अन्यः योगः १ ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ fusable_compare(func, block) — the instruction index of the तुलना a block's
+॰ शाखावसान fuses with, or ०: the block's LAST instruction, defining the
+॰ condition, read by nothing else in the routine. Last, so that no
+॰ instruction between the compare and the branch can reuse its operands'
+॰ registers; read once, so that dropping its value loses nothing. `W-245`.
+सार्वजनिक वृत्तिः यन्त्रसंयोज्यतुलना आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ऽ पर्वाङ्कः ॱॱ न६४ ददाति न६४ आदि
+    चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+    यदि पर्वम् ॱ अवसानम् ॱ भेद असमम् मध्यरूपॱशाखावसानभेद आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि पर्वम् ॱ आज्ञासंख्यान समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः अन्तिमाङ्कः ॱॱ न६४ भवति आरभ्य पर्वम् ॱ आज्ञारम्भ योगः पर्वम् ॱ आज्ञासंख्यान समाप्तम् वियोगः १ ।
+    चरः अन्तिमः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः अन्तिमाङ्कः अन्तः ।
+    यदि अन्तिमः ॱ भेद असमम् मध्यरूपॱतुलनाज्ञाभेद आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः शर्तम् ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ।
+    यदि अन्तिमः ॱ फलम् ॱ क्रमाङ्क असमम् शर्तम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि यन्त्रान्यत्रपठितम् आरभ्य वृत्तिसूचकाङ्क ऽ पर्वाङ्कः ऽ शर्तम् समाप्तम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् अन्तिमाङ्कः ।
+इति
+
+॰ lower_cond_branch(rt, c, then, else, next, fused) — FUSED with the compare
+॰ that ends its block (`संयोज्यम्` > ०, the तुलना's instruction index):
+॰ `<op>लङ्घनम् R(a)न R(b)त् <then>य्`, the six ADR-0008 conditions, करण the
+॰ subject and अपादान the standard; or, for a condition that is a VALUE, the
+॰ synthesized `विषमलङ्घनम् R(c)न शून्यःत्`; then a jump to `else` unless it
+॰ falls through. Until `W-245` the IR had no तुलना and the second form was
+॰ the whole of this routine.
+सार्वजनिक वृत्तिः यन्त्रशाखावतरणम् आदाय शर्तम् ॱॱ न६४ ऽ तदा ॱॱ न६४ ऽ अन्यत् ॱॱ न६४ ऽ अग्रिमम् ॱॱ न६४ ऽ संयोज्यम् ॱॱ न६४ ददाति न६४ आदि
+    यदि संयोज्यम् अधिकम् ० आदि
+        चरः तुलना ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः संयोज्यम् अन्तः ।
+        चरः विषयकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य तुलना ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+        चरः मानकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य तुलना ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+        यदि यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः समम् ऋण१ आदि
+            यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः भवति यन्त्राज्ञागणना ।
+        इति
+        उत्सर्जनॱपाठयोजनम् आरभ्य यन्त्रशाखापदम् तुलना ॱ उपभेद समाप्तम् ।
+        यन्त्रकरणपदम् विषयकोष्ठम् ।
+        यन्त्रापादानपदम् मानकोष्ठम् ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        यन्त्रपर्वचिह्नम् तदा ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+        यन्त्राज्ञान्तः ।
+    इति अन्यथा आदि
+        चरः शर्तकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य शर्तम् ऽ ० ऽ ० समाप्तम् ।
+        यदि यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः समम् ऋण१ आदि
+            यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः भवति यन्त्राज्ञागणना ।
+        इति
+        उत्सर्जनॱपाठयोजनम् उक्तम् विषमलङ्घनम् इति ।
+        यन्त्रकरणपदम् शर्तकोष्ठम् ।
+        यन्त्रपदम् उक्तम् शून्यःत् इति ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        यन्त्रपर्वचिह्नम् तदा ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+        यन्त्राज्ञान्तः ।
+    इति
+    यदि अग्रिमम् असमम् अन्यत् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् शून्यःम् इति ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        यन्त्रपर्वचिह्नम् अन्यत् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+        यन्त्राज्ञान्तः ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ emit_terminator(rt, block, next) — None and Unreachable are refused by
+॰ block; Return moves its value into अर्थ० and jumps to the exit label unless
+॰ this is the last block; Branch is omitted when its target is next (§2.7).
+सार्वजनिक वृत्तिः यन्त्रावसानोत्सर्जनम् आदाय पर्वाङ्कः ॱॱ न६४ ऽ अग्रिमम् ॱॱ न६४ ऽ संयोज्यम् ॱॱ न६४ ददाति न६४ आदि
+    चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+    चरः भेदः ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ भेद ।
+    यदि भेदः समम् ० आदि
+        यन्त्रनिषेधः आरभ्य यन्त्रावसानहीननिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ ० ऽ ० समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि भेदः समम् मध्यरूपॱअगम्यावसानभेद आदि
+        यन्त्रनिषेधः आरभ्य यन्त्रागम्यनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ ० ऽ ० समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि भेदः समम् मध्यरूपॱप्रत्यागमनावसानभेद आदि
+        चरः प्रत्यागतम् ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ।
+        यदि प्रत्यागतम् अधिकम् ० आदि
+            चरः स्रोतः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य प्रत्यागतम् ऽ ० ऽ ० समाप्तम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् योगः अर्थ०म् इति ।
+            यन्त्रकरणपदम् स्रोतः ।
+            यन्त्रपदम् उक्तम् ०न इति ।
+            यन्त्राज्ञान्तः ।
+        इति
+        यदि अग्रिमम् अधिकम् ० आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् शून्यःम् इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्रनिर्गमचिह्नम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+            यन्त्राज्ञान्तः ।
+        इति
+    इति
+    यदि भेदः समम् मध्यरूपॱलङ्घनावसानभेद आदि
+        चरः लक्ष्यम् ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ।
+        यदि अग्रिमम् असमम् लक्ष्यम् आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् शून्यःम् इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्रपर्वचिह्नम् लक्ष्यम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+            यन्त्राज्ञान्तः ।
+        इति
+    इति
+    यदि भेदः समम् मध्यरूपॱशाखावसानभेद आदि
+        यन्त्रशाखावतरणम् आरभ्य पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ अन्यलक्ष्यम् ॱ क्रमाङ्क ऽ अग्रिमम् ऽ संयोज्यम् समाप्तम् ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+
+॰ `!func.blocks.contains_key(&target)` — a function's blocks are the dense
+॰ run आरम्भः..सीमा (ir.t1's header), so membership is a range test.
+सार्वजनिक वृत्तिः यन्त्रपर्वबाह्यम् आदाय लक्ष्यम् ॱॱ न६४ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति बूल आदि
+    यदि लक्ष्यम् न्यूनम् आरम्भः आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि लक्ष्यम् बृहत्समम् सीमा आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ══════════════════ verify (§2.9) ══════════════════
+॰ verify(func, label) — what the emitter cannot lower, found before a line of
+॰ it is written: a Branch/CondBranch target outside the function (Rule X3), a
+॰ Param outside the entry block, a Param after a Call in its block. Blocks in
+॰ id order; a block's targets are checked before its instructions, as Rust's
+॰ loop body is ordered.
+सार्वजनिक वृत्तिः यन्त्रपरीक्षा आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति बूल आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः आरम्भः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति आरम्भः योगः कार्यम् ॱ पर्वसंख्यान ।
+    चरः प्रवेशः ॱॱ न६४ भवति कार्यम् ॱ प्रवेशपर्व ॱ क्रमाङ्क ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति आरम्भः ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः भेदः ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ भेद ।
+        चरः लक्ष्यम् ॱॱ न६४ भवति ० ।
+        चरः अन्यलक्ष्यम् ॱॱ न६४ भवति ० ।
+        यदि भेदः समम् मध्यरूपॱलङ्घनावसानभेद आदि
+            लक्ष्यम् भवति पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ।
+        इति
+        यदि भेदः समम् मध्यरूपॱशाखावसानभेद आदि
+            लक्ष्यम् भवति पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ।
+            अन्यलक्ष्यम् भवति पर्वम् ॱ अवसानम् ॱ अन्यलक्ष्यम् ॱ क्रमाङ्क ।
+        इति
+        यदि लक्ष्यम् अधिकम् ० आदि
+            यदि यन्त्रपर्वबाह्यम् आरभ्य लक्ष्यम् ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+                यन्त्रनिषेधः आरभ्य यन्त्रबाह्यलक्ष्यनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ लक्ष्यम् ऽ ० समाप्तम् ।
+                प्रत्यागमनम् असत्यम् ।
+            इति
+        इति
+        यदि अन्यलक्ष्यम् अधिकम् ० आदि
+            यदि यन्त्रपर्वबाह्यम् आरभ्य अन्यलक्ष्यम् ऽ आरम्भः ऽ सीमा समाप्तम् आदि
+                यन्त्रनिषेधः आरभ्य यन्त्रबाह्यलक्ष्यनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ अन्यलक्ष्यम् ऽ ० समाप्तम् ।
+                प्रत्यागमनम् असत्यम् ।
+            इति
+        इति
+        चरः आहूतम् ॱॱ बूल भवति असत्यम् ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱआह्वानाज्ञाभेद आदि
+                आहूतम् भवति सत्यम् ।
+            इति
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱप्राचलाज्ञाभेद आदि
+                यदि पर्वाङ्कः असमम् प्रवेशः आदि
+                    यन्त्रनिषेधः आरभ्य यन्त्रप्रवेशबाह्यप्राचलनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ ० ऽ आदेशः ॱ प्राचलक्रम समाप्तम् ।
+                    प्रत्यागमनम् असत्यम् ।
+                इति
+                यदि आहूतम् समम् सत्यम् आदि
+                    यन्त्रनिषेधः आरभ्य यन्त्राह्वानोत्तरप्राचलनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ ० ऽ आदेशः ॱ प्राचलक्रम समाप्तम् ।
+                    प्रत्यागमनम् असत्यम् ।
+                इति
+            इति
+            आज्ञाङ्कः भवति आज्ञाङ्कः योगः १ ।
+            शेषाज्ञा भवति शेषाज्ञा वियोगः १ ।
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ one routine (§2.4, §2.5, §2.7) ══════════════════
+॰ check_branch_ranges(func, label, text) — a conditional reaches ±4 KiB; a
+॰ routine whose text puts a CondBranch further than that from its target is
+॰ refused rather than trusted to be short (§2.5). Rust measures on the
+॰ emitted LINES, four bytes per instruction line: the address of the target's
+॰ label line and of the FIRST विषमलङ्घनम् line naming that target. Here the
+॰ same two addresses were recorded as the lines were written —
+॰ यन्त्रपर्वस्थानकोश when a block's label went out, यन्त्रशाखास्थानकोश when the
+॰ first conditional to it did — so the check is over numbers, not a re-read.
+सार्वजनिक वृत्तिः यन्त्रशाखादूरपरीक्षा आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति बूल आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति पर्वाङ्कः योगः कार्यम् ॱ पर्वसंख्यान ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        यदि पर्वम् ॱ अवसानम् ॱ भेद समम् मध्यरूपॱशाखावसानभेद आदि
+            चरः तदा ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ।
+            चरः चिह्नस्थानम् ॱॱ अ६४ भवति यन्त्रपर्वस्थानकोश अङ्कः तदा अन्तः ।
+            चरः शाखास्थानम् ॱॱ अ६४ भवति यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः ।
+            यदि चिह्नस्थानम् अधिकम् ऋण१ आदि
+                यदि शाखास्थानम् अधिकम् ऋण१ आदि
+                    चरः दूरम् ॱॱ अ६४ भवति ४ गुणनम् आरभ्य चिह्नस्थानम् वियोगः शाखास्थानम् समाप्तम् ।
+                    चरः बाह्यम् ॱॱ बूल भवति असत्यम् ।
+                    यदि दूरम् न्यूनम् ऋण४०९६ आदि
+                        बाह्यम् भवति सत्यम् ।
+                    इति
+                    यदि दूरम् बृहत्समम् ४०९६ आदि
+                        बाह्यम् भवति सत्यम् ।
+                    इति
+                    यदि बाह्यम् समम् सत्यम् आदि
+                        यन्त्रनिषेधः आरभ्य यन्त्रदूरशाखानिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ पर्वाङ्कः ऽ तदा ऽ दूरम् समाप्तम् ।
+                        प्रत्यागमनम् असत्यम् ।
+                    इति
+                इति
+            इति
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ the Add | Sub arm of emit_function's match — `<verb> R(v)म् R(a)न R(b)न ।`,
+॰ both operands read (into क्षणिक० and क्षणिक१ when spilled) before the
+॰ destination is chosen, as Rust's three lets are ordered.
+सार्वजनिक वृत्तिः यन्त्रद्विपदोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ऽ क्रियापदम् ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः वामकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः दक्षिणकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् क्रियापदम् ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रकरणपदम् वामकोष्ठम् ।
+    यन्त्रकरणपदम् दक्षिणकोष्ठम् ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ lower_compare_value(rt, v, op, a, b) — a तुलना READ AS A VALUE (`W-245`): १
+॰ or ० into R(v). न्यून/अचिह्नन्यून are the ISA's slt/sltu; अन्यून and
+॰ अचिह्नान्यून are those with the bit flipped (`वैषम्यम् … १न`); सम and विषम
+॰ are a वियोगः and then `अचिह्नन्यूनम् … १न` (seqz) or `… शून्यःन …` (snez).
+सार्वजनिक वृत्तिः यन्त्रतुलनावतरणम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः वामकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः दक्षिणकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    चरः उपभेदः ॱॱ न६४ भवति आदेशः ॱ उपभेद ।
+    चरः सामान्यम् ॱॱ बूल भवति असत्यम् ।     ॰ Eq/Ne: a sub first
+    चरः न्यूनवत् ॱॱ बूल भवति असत्यम् ।      ॰ Lt/Ge: slt
+    चरः अचिह्नवत् ॱॱ बूल भवति असत्यम् ।     ॰ Ltu/Geu: sltu
+    चरः विपर्यस्तम् ॱॱ बूल भवति असत्यम् ।   ॰ Ge/Geu: then xori
+    यदि उपभेदः समम् मध्यरूपॱसमतुलनाभेद आदि सामान्यम् भवति सत्यम् । इति
+    यदि उपभेदः समम् मध्यरूपॱविषमतुलनाभेद आदि सामान्यम् भवति सत्यम् । इति
+    यदि उपभेदः समम् मध्यरूपॱन्यूनतुलनाभेद आदि न्यूनवत् भवति सत्यम् । इति
+    यदि उपभेदः समम् मध्यरूपॱअन्यूनतुलनाभेद आदि
+        न्यूनवत् भवति सत्यम् ।
+        विपर्यस्तम् भवति सत्यम् ।
+    इति
+    यदि उपभेदः समम् मध्यरूपॱअचिह्नन्यूनतुलनाभेद आदि अचिह्नवत् भवति सत्यम् । इति
+    यदि उपभेदः समम् मध्यरूपॱअचिह्नान्यूनतुलनाभेद आदि
+        अचिह्नवत् भवति सत्यम् ।
+        विपर्यस्तम् भवति सत्यम् ।
+    इति
+    यदि सामान्यम् समम् सत्यम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् वियोगः इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रकरणपदम् वामकोष्ठम् ।
+        यन्त्रकरणपदम् दक्षिणकोष्ठम् ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् अचिह्नन्यूनम् इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यदि उपभेदः समम् मध्यरूपॱसमतुलनाभेद आदि
+            यन्त्रकरणपदम् गन्तृ ।
+            यन्त्रसङ्ख्यापदम् १ ।
+        इति अन्यथा आदि
+            यन्त्रपदम् उक्तम् शून्यःन इति ।
+            यन्त्रकरणपदम् गन्तृ ।
+        इति
+        यन्त्राज्ञान्तः ।
+    इति
+    यदि न्यूनवत् समम् सत्यम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् न्यूनम् इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रकरणपदम् वामकोष्ठम् ।
+        यन्त्रकरणपदम् दक्षिणकोष्ठम् ।
+        यन्त्राज्ञान्तः ।
+    इति
+    यदि अचिह्नवत् समम् सत्यम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् अचिह्नन्यूनम् इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रकरणपदम् वामकोष्ठम् ।
+        यन्त्रकरणपदम् दक्षिणकोष्ठम् ।
+        यन्त्राज्ञान्तः ।
+    इति
+    यदि विपर्यस्तम् समम् सत्यम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् वैषम्यम् इति ।
+        यन्त्रकर्मपदम् गन्तृ ।
+        यन्त्रकरणपदम् गन्तृ ।
+        यन्त्रसङ्ख्यापदम् १ ।
+        यन्त्राज्ञान्तः ।
+    इति
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the Load arm of emit_function's match — `आहारः R(v)म् स्तूपसूचकःत् <8(spills+k)>न ।`;
+॰ a local's slot is one region above the spill slots (§2.4, `W-245`).
+सार्वजनिक वृत्तिः यन्त्राहारोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रपदम् उक्तम् स्तूपसूचकःत् इति ।
+    यन्त्रसङ्ख्यापदम् आरभ्य ८ गुणनम् आरभ्य यन्त्रचौकटम् ॱ निक्षेपसंख्यान योगः आदेशः ॱ स्थानक्रम समाप्तम् समाप्तम् ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the Store arm — `निधानम् स्तूपसूचकःय् <8(spills+k)>न R(x)न ।`. `W-245`.
+सार्वजनिक वृत्तिः यन्त्रनिधानोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः स्रोतः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् स्तूपसूचकःय् इति ।
+    यन्त्रसङ्ख्यापदम् आरभ्य ८ गुणनम् आरभ्य यन्त्रचौकटम् ॱ निक्षेपसंख्यान योगः आदेशः ॱ स्थानक्रम समाप्तम् समाप्तम् ।
+    यन्त्रकरणपदम् स्रोतः ।
+    प्रत्यागमनम् यन्त्राज्ञान्तः ।
+इति
+
+॰ ══════════ `W-284` — THE STORAGE MODEL'S OWN HALF ══════════
+॰ Three routines: one that MAKES storage and two that form addresses into it.
+॰ `यन्त्रस्थानाहारोत्सर्जनम्` and `यन्त्रस्थाननिधानोत्सर्जनम्` above already spend
+॰ an address, so these complete the set rather than extending it.
+
+॰ Set when this image emits an allocation, read by the startup. THE REGION IS
+॰ NOT UNCONDITIONAL AND THE FIXTURES ARE WHY: a program that allocates nothing
+॰ must produce THE SAME OCTETS it produced before this row. `॥ स्थानम् ॥` in
+॰ `ॱदत्त` materialises bytes — the stack above it is how an image comes to
+॰ 65536 — so an unconditional cursor moves every image by one word.
+॰ `riscv64.rs` asks `module_allocates` and this flag is the twin of that
+॰ question; the two must answer alike or the emitters diverge on a SECTION
+॰ DIRECTIVE, which is what `॥ कोष्ठकम् ॱरिक्त ॥` against `॥ कोष्ठकम् ॱदत्त ॥` is.
+॰ THE TWO HALVES REACH THE BOOL DIFFERENTLY AND THAT IS DELIBERATE: the port
+॰ SCANS the module for an allocation, this side SETS the flag as it writes one.
+॰ Twins that compute the same answer by the same route check nothing.
+
+॰ The record region's label, its cursor's label, and the region's size — the
+॰ twins of `riscv64.rs`'s `RECORD_REGION`, `RECORD_CURSOR` and
+॰ `RECORD_REGION_OCTETS`.
+॰
+॰ THEY ARE CONSTANTS AND NOT LITERALS BECAUSE THE PAIRING GUARD IS RIGHT TO
+॰ INSIST: a static region that exists only as a Rust `const` and as loose text
+॰ on this side is scaffolding wearing the feature's name, and the standing rule
+॰ is that Sassembly must work without Rust. `यन्त्रस्तूपाष्टकाः` is the
+॰ precedent — the stack's size is a named constant on both sides.
+॰
+॰ THE SIZE IS A CHOICE WITH A STATED BASIS, NOT A DERIVATION: no static count
+॰ predicts what an executed path allocates. It is generous against
+॰ `DEFAULT_RAM`'s twenty megabytes, and an overflow runs off the region's end
+॰ as a bad access rather than wrapping — loud, though not yet the named refusal
+॰ it should be. The WRAP is the failure that would corrupt records in silence,
+॰ and it is the one that cannot happen.
+॰ THE ALLOCATOR'S TWO NAMES ARE ROUTINES THAT RETURN A LITERAL, and they were
+॰ GLOBALS initialised from literals until 2026-09-21. The native lowering DROPS
+॰ a global's literal initializer — `emit_data` carries an integer initializer
+॰ only, so a run global gets zeroed storage and a ० length — so in the image
+॰ both names were the EMPTY run. Every inline allocation the compiled compiler
+॰ emitted then named `ॱउपरि` / `ॱअधः` with no symbol: the generated text of
+॰ the first module differed from the interpreter's at line 2155, and the native
+॰ self-image build lost 580 instructions of `artha.t1` alone. The interpreter
+॰ was fixed for this on 2026-09-04 (W-242); native never was.
+॰
+॰ ROUTINES, NOT INLINE TEXT, and the reason is `t1_sources.rs`'s RISCV_SYMBOLS:
+॰ `RECORD_REGION` and `RECORD_CURSOR` are named constants in `riscv64.rs`, and
+॰ the rule is that their twin here is NAMED too — "a static region that exists
+॰ only as a Rust const and as loose text on the port side is scaffolding". An
+॰ inline literal honoured by both engines, behind one name, keeps both: a bare
+॰ name of a zero-argument routine is a call, so every use is unchanged.
+॰ `t1_global_literal_initializer.rs` refuses a new global of the old shape.
+सार्वजनिक वृत्तिः यन्त्ररचनाक्षेत्रनाम ददाति अङ्कः अन्तः अ८ आदि
+    प्रत्यागमनम् उक्तम् रचनाक्षेत्रम् इति ।
+इति
+सार्वजनिक वृत्तिः यन्त्ररचनासूचकनाम ददाति अङ्कः अन्तः अ८ आदि
+    प्रत्यागमनम् उक्तम् रचनासूचकः इति ।
+इति
+
+॰ ══════════ global_label(names, symbol) — the storage label ══════════
+॰
+॰ THE TWO NAMES ABOVE WERE DECLARED AND NEVER READ. Until this routine they
+॰ were a declaration with no mechanism behind it: the labels existed, the
+॰ startup wrote them into the image (`:2060`, `:2070`), and no arm could
+॰ ANSWER them, so every reference went through `यन्त्रवृत्तिचिह्नम्` and was
+॰ refused.
+॰
+॰ `ir.t1:543` states whose job it is — "the emitters own the label", module-less,
+॰ so the pair ("", "रचनासूचकः") spells it. `यन्त्रनामकोश` is built from
+॰ DECLARATIONS and these have none: the startup object defines the storage and
+॰ every module merely refers to it. So the lookup could only ever miss, and did.
+॰ Measured through the Rust twin, whose defect was the same one: all seven
+॰ `storage-probe.py --compare` fixtures answered `BUILD REFUSED — STOPPED AT
+॰ emit: symbol SymbolId(10000003) has no name`, and the storage gate read as
+॰ three array-indexing defects for five days because of it.
+॰
+॰ SEPARATE FROM `यन्त्रवृत्तिचिह्नम्` ON PURPOSE, AND THE CALL PATH KEEPS ITS
+॰ REFUSAL. A CALL whose target is in this band is a defect; folding the two
+॰ builtins into the shared resolver would hand it a label and link it to
+॰ storage instead of refusing. Only the two arms that ADDRESS a global call
+॰ this — `यन्त्रवैश्विकोत्सर्जनम्` (the load) and `यन्त्रवैश्विकस्थानोत्सर्जनम्`
+॰ (the address) — while `यन्त्राह्वानोत्सर्जनम्` at `:1290` still goes through
+॰ the routine resolver and still refuses, which is the behaviour `:2428` rules
+॰ must be kept.
+॰
+॰ ANSWERS ० LIKE ITS SIBLING for a symbol it resolved itself: the return is the
+॰ NAME ENTRY'S INDEX and a builtin has no entry. No caller reads it — both arms
+॰ discard the answer, exactly as they did before — and `यन्त्रवृत्तिचिह्नम्`
+॰ already answers ० on the refusing path, so ० does not mean "refused" here
+॰ either. The refusal is recorded by `यन्त्रनिषेधः`, never by this number.
+सार्वजनिक वृत्तिः यन्त्रवैश्विकचिह्नम् आदाय संज्ञा ॱॱ न६४ ददाति न६४ आदि
+    यदि संज्ञा समम् मध्यरूपॱरचनासूचकसंज्ञा आदि
+        उत्सर्जनॱपाठयोजनम् यन्त्ररचनासूचकनाम ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि संज्ञा समम् मध्यरूपॱरचनाक्षेत्रसंज्ञा आदि
+        उत्सर्जनॱपाठयोजनम् यन्त्ररचनाक्षेत्रनाम ।
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् यन्त्रवृत्तिचिह्नम् संज्ञा ।
+इति
+॰ ५३६८७०९१२ (512 MiB) since 2026-09-14 — MEASURED: the first whole-corpus native
+॰ compile to a halt reached 353,242,600 octets of high water (274 MB of runs by
+॰ the model + ~79 MB of records); 512 MiB is 1.5× that. Before it:
+॰ ३३५५४४३२० (320 MiB) since 2026-09-13: a full native self-compile of the twenty
+॰ sources was MEASURED at 254 MB of record allocation under the interpreter's
+॰ bump model; the region is COUNTED in the layout (`स्थानम्` in `ॱरिक्त`), never
+॰ materialised, so the price is address space and the loader sizes RAM from the
+॰ extent. The Rust twin's `RECORD_REGION_OCTETS` carries the same number and the
+॰ emitted literal below must match it — the twin check is what keeps them in step.
+सार्वजनिक चरः यन्त्ररचनाष्टकाः ॱॱ अ६४ भवति ५३६८७०९१२ ।
+
+॰ the AllocRecord arm २४ — bump a static cursor and answer the OLD value.
+॰
+॰ EIGHT LINES BECAUSE THE CURSOR HOLDS AN OFFSET, NOT AN ADDRESS. A data word
+॰ cannot carry a label's address without a relocation the assembler has not
+॰ got, so the region's base is recomputed PC-relatively at each allocation and
+॰ added to the offset. `riscv64.rs` emits the same eight in the same order —
+॰ the twins agree on OCTETS, and the order of the two temporaries is part of
+॰ that agreement, not an implementation detail either side may vary.
+॰
+॰ NO OPERANDS, SO NO LIVENESS ARM, AND THAT ABSENCE IS CORRECT. The size is a
+॰ build-time constant; nothing feeds this instruction. `LoadGlobal` is absent
+॰ from that routine for the same reason and `क्षेत्राज्ञाभेद` was absent from it
+॰ by MISTAKE — the two look identical there, which is why `ir.rs`'s
+॰ `operands()` is the thing to read rather than the omission itself.
+सार्वजनिक वृत्तिः यन्त्ररचनोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ ३ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः क्षणिक०म् रचनासूचकःॱउपरिन । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः क्षणिक०म् क्षणिक०न रचनासूचकःॱअधःन । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः क्षणिक१म् क्षणिक०त् ०न । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः क्षणिक२म् क्षणिक१न इति ।
+    यन्त्रसङ्ख्यापदम् आदेशः ॱ ध्रुवमूल्यम् ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् निधानम् क्षणिक०य् ०न क्षणिक२न । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    यन्त्ररचनामस्ति भवति सत्यम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः क्षणिक०म् रचनाक्षेत्रम्ॱउपरिन । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः क्षणिक०म् क्षणिक०न रचनाक्षेत्रम्ॱअधःन । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    ॰ AN EXPLICIT SEPARATOR — a literal's leading blank does not survive
+    ॰ `उक्तम् … इति`, so ` क्षणिक०न` written as a literal emits `म्क्षणिक०न` and
+    ॰ the twins diverge on A SPACE. Measured as `योगः स्थिर०म्क्षणिक०न` against
+    ॰ `योगः स्थिर०म् क्षणिक०न`, and this is the second time this lane has met it.
+    उत्सर्जनॱविवरयोजनम् १ ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् क्षणिक०न क्षणिक१न । इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the AddrOfField arm २५ — `योगः R(d)म् R(b)न <offset>न ।`, ONE line, because
+॰ the offset is a build-time constant and `योगः` takes it as an immediate.
+॰
+॰ `न` AND NOT `त्`: this is an ADDITION, not a load, so the base takes करण.
+॰ Writing `त्` here assembles to "`स्थिर०` and `स्थिर२` both claim अपादान",
+॰ the refusal `यन्त्रसूचीग्रहणोत्सर्जनम्` already records for its add. The ISA
+॰ assigns operands by ROLE, so an address formation is not a load with the
+॰ load removed, even though that is exactly how it reads.
+॰
+॰ THE OFFSET COMES FROM `ध्रुवमूल्यम्` AND NEVER `स्थानक्रम`. The Store arm
+॰ above scales `स्थानक्रम` by ८ and adds the spill region, because a LOCAL's
+॰ slot is a frame index; a field's offset is already a byte count against a
+॰ runtime base and must meet neither. The frame-sizing pass reads `स्थानक्रम`
+॰ only for the आहार and निधान kinds, so this kind is skipped there by the
+॰ dispatch itself and contributes NO local — it addresses a record, not the
+॰ frame.
+सार्वजनिक वृत्तिः यन्त्रक्षेत्रस्थानोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः आधारः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रकरणपदम् आधारः ।
+    यन्त्रसङ्ख्यापदम् आदेशः ॱ ध्रुवमूल्यम् ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ the AddrOfIndex arm २६ — `योगः R(d)म् R(b)न R(i)न ।`, ONE line for the same
+॰ reason, and THE INDEX ARRIVES ALREADY SCALED.
+॰
+॰ `ir.t1` multiplies by the element width before building this, exactly as it
+॰ does for `सूच्याज्ञाभेद` २०. Scaling here as well would multiply twice and
+॰ address past the end of every record but the first — and it would do so
+॰ QUIETLY, since a doubled stride is a legal address. The two arms must agree
+॰ about which side scales; the answer is the builder's, and it is written down
+॰ here because nothing in either file would say so if they disagreed.
+सार्वजनिक वृत्तिः यन्त्रसूचीस्थानोत्सर्जनम् आदाय आदेशः ॱॱ मध्यरूपॱआज्ञा ददाति न६४ आदि
+    चरः आधारः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
+    चरः सूचकः ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ २ समाप्तम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+    यन्त्रकर्मपदम् गन्तृ ।
+    यन्त्रकरणपदम् आधारः ।
+    यन्त्रकरणपदम् सूचकः ।
+    यन्त्राज्ञान्तः ।
+    प्रत्यागमनम् यन्त्रलेखनिधानम् आरभ्य आदेशः ॱ फलम् ॱ क्रमाङ्क ऽ गन्तृ समाप्तम् ।
+इति
+
+॰ emit_function(func, names, alloc, pool) — one routine as T0 text: the label
+॰ (UnnamedSymbol refused first), verify, the frame, the FrameTooLarge check
+॰ (the highest offset one `addi` must reach — the frame, or a stack parameter
+॰ above it), the targeted set, prologue, blocks in id order with fallthrough,
+॰ one epilogue, the branch-range check. The entry block carries no label of
+॰ its own unless a back-edge targets it (§2.2). Answers the cursor, or ०
+॰ after a refusal.
+सार्वजनिक वृत्तिः यन्त्रवृत्त्युत्सर्जनम् आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः नामस्थलम् ॱॱ न६४ भवति यन्त्रनामान्वेषणम् कार्यम् ॱ नाम ।
+    यदि नामस्थलम् समम् ० आदि
+        चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+        यन्त्रनिषेधः आरभ्य यन्त्रानामसंज्ञानिषेधभेद ऽ रिक्तम् ऽ ० ऽ यन्त्रनामस्थानवृत्तिः ऽ कार्यम् ॱ नाम समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    चरः प्रविष्टिः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः नामस्थलम् अन्तः ।
+    यन्त्रवर्तमानवृत्ति भवति वृत्तिसूचकाङ्क ।
+    यन्त्रचिह्नमण्डल भवति प्रविष्टिः ॱ मण्डल ।
+    यन्त्रचिह्नवृत्ति भवति प्रविष्टिः ॱ वृत्तिनाम ।
+    यन्त्राज्ञागणना भवति ० ।
+
+    यदि यन्त्रपरीक्षा वृत्तिसूचकाङ्क समम् असत्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यन्त्रस्थानीयाः भवति यन्त्रस्थानीयगणना वृत्तिसूचकाङ्क ।
+    यन्त्रचौकटम् भवति यन्त्रचौकटरचना ।
+
+    चरः आरम्भः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति आरम्भः योगः कार्यम् ॱ पर्वसंख्यान ।
+    चरः प्रवेशः ॱॱ न६४ भवति कार्यम् ॱ प्रवेशपर्व ॱ क्रमाङ्क ।
+
+    ॰ max_param, and the highest offset the routine addresses from स्तूपसूचकः.
+    चरः परमप्राचलः ॱॱ अ६४ भवति ऋण१ ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति आरम्भः ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱप्राचलाज्ञाभेद आदि
+                यदि आदेशः ॱ प्राचलक्रम अधिकम् परमप्राचलः आदि
+                    परमप्राचलः भवति आदेशः ॱ प्राचलक्रम ।
+                इति
+            इति
+            आज्ञाङ्कः भवति आज्ञाङ्कः योगः १ ।
+            शेषाज्ञा भवति शेषाज्ञा वियोगः १ ।
+        इति
+        ॰ the targeted set, and the two address tables, cleared for this run.
+        यन्त्रलक्षितकोश अङ्कः पर्वाङ्कः अन्तः भवति ० ।
+        यन्त्रपर्वस्थानकोश अङ्कः पर्वाङ्कः अन्तः भवति ऋण१ ।
+        यन्त्रशाखास्थानकोश अङ्कः पर्वाङ्कः अन्तः भवति ऋण१ ।
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    चरः उच्चतमस्थानम् ॱॱ अ६४ भवति यन्त्रचौकटम् ॱ अष्टकाः ।
+    यदि परमप्राचलः बृहत्समम् ८ आदि
+        उच्चतमस्थानम् भवति यन्त्रचौकटम् ॱ अष्टकाः योगः आरभ्य ८ गुणनम् आरभ्य परमप्राचलः वियोगः ८ समाप्तम् समाप्तम् ।
+    इति
+    यदि उच्चतमस्थानम् अधिकम् २०४७ आदि
+        यन्त्रनिषेधः आरभ्य यन्त्रबृहच्चौकटनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ ० ऽ ० ऽ यन्त्रचौकटम् ॱ अष्टकाः समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    पर्वाङ्कः भवति आरम्भः ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः लक्ष्यपर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः भेदः ॱॱ न६४ भवति लक्ष्यपर्वम् ॱ अवसानम् ॱ भेद ।
+        यदि भेदः समम् मध्यरूपॱलङ्घनावसानभेद आदि
+            यन्त्रलक्षितकोश अङ्कः आरभ्य लक्ष्यपर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क समाप्तम् अन्तः भवति १ ।
+        इति
+        यदि भेदः समम् मध्यरूपॱशाखावसानभेद आदि
+            यन्त्रलक्षितकोश अङ्कः आरभ्य लक्ष्यपर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क समाप्तम् अन्तः भवति १ ।
+            यन्त्रलक्षितकोश अङ्कः आरभ्य लक्ष्यपर्वम् ॱ अवसानम् ॱ अन्यलक्ष्यम् ॱ क्रमाङ्क समाप्तम् अन्तः भवति १ ।
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+
+    यन्त्रप्रस्तावना ।
+    पर्वाङ्कः भवति आरम्भः ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वद्वि ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः अग्रिमम् ॱॱ न६४ भवति ० ।
+        यदि आरभ्य पर्वाङ्कः योगः १ समाप्तम् न्यूनम् सीमा आदि
+            अग्रिमम् भवति पर्वाङ्कः योगः १ ।
+        इति
+        चरः चिह्नितम् ॱॱ बूल भवति असत्यम् ।
+        यदि पर्वाङ्कः असमम् प्रवेशः आदि
+            चिह्नितम् भवति सत्यम् ।
+        इति
+        यदि यन्त्रलक्षितकोश अङ्कः पर्वाङ्कः अन्तः समम् १ आदि
+            चिह्नितम् भवति सत्यम् ।
+        इति
+        यदि चिह्नितम् समम् सत्यम् आदि
+            यन्त्रपर्वस्थानकोश अङ्कः पर्वाङ्कः अन्तः भवति यन्त्राज्ञागणना ।
+            यन्त्रपर्वचिह्नम् पर्वाङ्कः ।
+            यन्त्रचिह्नान्तः ।
+        इति
+        ॰ `W-245`: the तुलना the branch fuses with writes no line of its own —
+        ॰ the block's last instruction, skipped here and read by the terminator.
+        चरः संयोज्यम् ॱॱ न६४ भवति यन्त्रसंयोज्यतुलना आरभ्य वृत्तिसूचकाङ्क ऽ पर्वाङ्कः समाप्तम् ।
+        चरः आज्ञाङ्कद्वि ॱॱ न६४ भवति पर्वद्वि ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञाद्वि ॱॱ न६४ भवति पर्वद्वि ॱ आज्ञासंख्यान ।
+        यदि संयोज्यम् अधिकम् ० आदि
+            शेषाज्ञाद्वि भवति शेषाज्ञाद्वि वियोगः १ ।
+        इति
+        यावत् शेषाज्ञाद्वि अधिकम् ० आदि
+            चरः आदेशद्वि ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कद्वि अन्तः ।
+            चरः फलाङ्कः ॱॱ न६४ भवति आदेशद्वि ॱ फलम् ॱ क्रमाङ्क ।
+            चरः आज्ञाभेदः ॱॱ न६४ भवति आदेशद्वि ॱ भेद ।
+            यदि आज्ञाभेदः समम् मध्यरूपॱध्रुवाज्ञाभेद आदि
+                यन्त्रध्रुवावतरणम् आरभ्य फलाङ्कः ऽ आदेशद्वि ॱ ध्रुवमूल्यम् समाप्तम् ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱपाठाज्ञाभेद आदि
+                यन्त्रपाठावतरणम् आरभ्य फलाङ्कः ऽ आदेशद्वि ॱ पाठारम्भ ऽ आदेशद्वि ॱ पाठसंख्यान समाप्तम् ।
+            इति
+            ॰ the ten binary kinds — Rust's or-pattern — over the verb table.
+            यदि यन्त्रद्विपदभेदः आज्ञाभेदः आदि
+                यन्त्रद्विपदोत्सर्जनम् आरभ्य आदेशद्वि ऽ आरभ्य यन्त्रद्विपदक्रियापदम् आज्ञाभेदः समाप्तम् समाप्तम् ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱतुलनाज्ञाभेद आदि
+                यन्त्रतुलनावतरणम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱआहाराज्ञाभेद आदि
+                यन्त्राहारोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱवैश्विकाज्ञाभेद आदि
+                यन्त्रवैश्विकोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱक्षेत्राज्ञाभेद आदि
+                यन्त्रक्षेत्रोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱसूच्याज्ञाभेद आदि
+                यन्त्रसूच्युत्सर्जनम् आदेशद्वि ।
+            इति
+            ॰ `W-283` — the ruled storage model's three kinds. Dispatched
+            ॰ beside the reads they generalise, not appended at the end, so a
+            ॰ reader meets the address forms together.
+            यदि आज्ञाभेदः समम् मध्यरूपॱवैश्विकस्थानाज्ञाभेद आदि
+                ॰ The record cursor addressed from the IR (run growth, slices) needs the
+                ॰ region the startup emits only when a module allocates: count it.
+                यदि आदेशद्वि ॱ संज्ञा समम् मध्यरूपॱरचनासूचकसंज्ञा आदि यन्त्ररचनामस्ति भवति सत्यम् । इति
+                यदि आदेशद्वि ॱ संज्ञा समम् मध्यरूपॱरचनाक्षेत्रसंज्ञा आदि यन्त्ररचनामस्ति भवति सत्यम् । इति
+                यन्त्रवैश्विकस्थानोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱस्थानाहाराज्ञाभेद आदि
+                यन्त्रस्थानाहारोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱस्थाननिधानाज्ञाभेद आदि
+                यन्त्रस्थाननिधानोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱनिधानाज्ञाभेद आदि
+                यन्त्रनिधानोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱरचनाज्ञाभेद आदि
+                यन्त्ररचनोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱक्षेत्रस्थानाज्ञाभेद आदि
+                यन्त्रक्षेत्रस्थानोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱसूचीस्थानाज्ञाभेद आदि
+                यन्त्रसूचीस्थानोत्सर्जनम् आदेशद्वि ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱप्राचलाज्ञाभेद आदि
+                चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य फलाङ्कः ऽ २ समाप्तम् ।
+                चरः प्राचलः ॱॱ न६४ भवति आदेशद्वि ॱ प्राचलक्रम ।
+                यदि प्राचलः न्यूनम् ८ आदि
+                    उत्सर्जनॱपाठयोजनम् उक्तम् योगः इति ।
+                    यन्त्रकर्मपदम् गन्तृ ।
+                    उत्सर्जनॱविवरयोजनम् १ ।
+                    यन्त्रार्थनाम प्राचलः ।
+                    उत्सर्जनॱपाठयोजनम् उक्तम् न ०न इति ।
+                    यन्त्राज्ञान्तः ।
+                इति अन्यथा आदि
+                    ॰ the caller left it just above this frame (§2.5).
+                    उत्सर्जनॱपाठयोजनम् उक्तम् आहारः इति ।
+                    यन्त्रकर्मपदम् गन्तृ ।
+                    यन्त्रपदम् उक्तम् स्तूपसूचकःत् इति ।
+                    यन्त्रसङ्ख्यापदम् आरभ्य यन्त्रचौकटम् ॱ अष्टकाः योगः आरभ्य ८ गुणनम् आरभ्य प्राचलः वियोगः ८ समाप्तम् समाप्तम् समाप्तम् ।
+                    यन्त्राज्ञान्तः ।
+                इति
+                यन्त्रलेखनिधानम् आरभ्य फलाङ्कः ऽ गन्तृ समाप्तम् ।
+            इति
+            यदि आज्ञाभेदः समम् मध्यरूपॱआह्वानाज्ञाभेद आदि
+                यन्त्राह्वानोत्सर्जनम् आरभ्य फलाङ्कः ऽ आदेशद्वि ॱ संज्ञा ऽ आदेशद्वि ॱ आदानारम्भ ऽ आदेशद्वि ॱ आदानसंख्यान समाप्तम् ।
+                यदि यन्त्रनिषेधमस्ति समम् सत्यम् आदि
+                    प्रत्यागमनम् ० ।
+                इति
+            इति
+            आज्ञाङ्कद्वि भवति आज्ञाङ्कद्वि योगः १ ।
+            शेषाज्ञाद्वि भवति शेषाज्ञाद्वि वियोगः १ ।
+        इति
+        यन्त्रावसानोत्सर्जनम् आरभ्य पर्वाङ्कः ऽ अग्रिमम् ऽ संयोज्यम् समाप्तम् ।
+        यदि यन्त्रनिषेधमस्ति समम् सत्यम् आदि
+            प्रत्यागमनम् ० ।
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    यन्त्रोपसंहारः ।
+    यदि यन्त्रशाखादूरपरीक्षा वृत्तिसूचकाङ्क समम् असत्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════ the program (§2.6) ══════════════════
+॰ emit_startup(entry) — `sp` from `auipc` (स्थानसापेक्षयोगः), NOT `lui`, whose
+॰ sign-extension of bit 31 would put 0x8000_0000+ in the upper half; the call
+॰ to the entry with no arguments; the entry's result as the finisher status
+॰ (0x3333 | status << 16, 0x5555 for zero); the finisher store to
+॰ yantra::FINISHER; a spin. `प्रवेशस्थलम्` is the entry's index in यन्त्रनामकोश,
+॰ ० for None — a stub that calls nothing and halts 0x5555.
+सार्वजनिक वृत्तिः यन्त्रारम्भोत्सर्जनम् आदाय प्रवेशस्थलम् ॱॱ न६४ ऽ रचनामस्ति ॱॱ बूल ददाति न६४ आदि
+    यदि रचनामस्ति समम् सत्यम् आदि
+        ॰ THE RECORD REGION AND ITS CURSOR, EMITTED EXACTLY ONCE — `W-284`.
+        ॰ They are here and NOT in `यन्त्रदत्तोत्सर्जनम्` because that runs PER
+        ॰ OBJECT: an image is one startup plus every module, so a
+        ॰ `॥ वैश्विकम् ॥` region in the module data section is defined N times
+        ॰ and the linker refuses — "`रचनासूचकः` is defined by more than one
+        ॰ object", measured on `artha.t1` and `ir.t1`, which moved from stopping
+        ॰ at RUN to stopping at LINK.
+        ॰ MAKING THEM LOCAL WOULD LINK AND IS WRONG, and not merely wasteful:
+        ॰ twenty modules would each take their own 4 MB against `DEFAULT_RAM`'s
+        ॰ 20 MB, AND a record allocated in one module and read in another would
+        ॰ be addressed through two different bases. One shared bump is the point.
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱरिक्त ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ वैश्विकम् रचनाक्षेत्रम् ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् रचनाक्षेत्रम्ॱॱ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ स्थानम् ५३६८७०९१२ ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱदत्त ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ वैश्विकम् रचनासूचकः ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् रचनासूचकःॱॱ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः ०षोड्० ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱपाठ ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+    इति
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ वैश्विकम् यन्त्रारम्भ ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् यन्त्रारम्भॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्थानसापेक्षयोगः स्तूपसूचकःम् स्तूपान्तःॱउपरिन इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः स्तूपसूचकःम् स्तूपसूचकःन स्तूपान्तःॱअधःन इति ।
+    यन्त्राज्ञान्तः ।
+    यदि प्रवेशस्थलम् अधिकम् ० आदि
+        चरः प्रवेशः ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः प्रवेशस्थलम् अन्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् पुनःस्थानम्म् इति ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        उत्सर्जनॱपाठयोजनम् प्रवेशः ॱ मण्डल ।
+        उत्सर्जनॱपाठयोजनम् प्रवेशः ॱ वृत्तिनाम ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् य् इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् समलङ्घनम् अर्थ०न शून्यःत् यन्त्रसफलय् इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् वामसरणम् अर्थ०म् अर्थ०न १६न इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् उपरिभारः क्षणिक५म् ०षोड्३न इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् योगः क्षणिक५म् क्षणिक५न ०षोड्३३३न इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् विकल्पः अर्थ०म् अर्थ०न क्षणिक५न इति ।
+        यन्त्राज्ञान्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् शून्यःम् यन्त्रसमाप्तिय् इति ।
+        यन्त्राज्ञान्तः ।
+    इति
+    उत्सर्जनॱपाठयोजनम् उक्तम् यन्त्रसफलॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् उपरिभारः अर्थ०म् ०षोड्५न इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् योगः अर्थ०म् अर्थ०न ०षोड्५५५न इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् यन्त्रसमाप्तिॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् उपरिभारः क्षणिक४म् ०षोड्१००न इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् निधानम्ॱअ३२ क्षणिक४य् ०न अर्थ०न इति ।
+    यन्त्राज्ञान्तः ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् यन्त्रचक्रॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् लङ्घनम् शून्यःम् यन्त्रचक्रय् इति ।
+    यन्त्राज्ञान्तः ।
+    ॰ W-243: the stack the stub addresses travels with the stub — the startup
+    ॰ OBJECT is the stub and its reservation, one per image (riscv64.rs
+    ॰ `emit_startup_object`); a module's data is its constant pool alone.
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱदत्त ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्तूपःॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ स्थानम् इति ।
+    उत्सर्जनॱविवरयोजनम् १ ।
+    यन्त्राङ्कः यन्त्रस्तूपाष्टकाः ।
+    यन्त्रपदम् उक्तम् ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् स्तूपान्तःॱॱ इति ।
+    प्रत्यागमनम् उत्सर्जनॱयतियोजनम् ।
+इति
+
+॰ W-243: THE STARTUP OBJECT as one text of its own — the twin of riscv64.rs
+॰ `emit_startup_object`. The entry is `यन्त्रप्रवेशसंज्ञा` (set by
+॰ `यन्त्रप्रवेशन्यासः`), ० for an image with no entry, whose stub halts success.
+॰ Linked FIRST, so `e_entry` — the image's first instruction — is `यन्त्रारम्भ`.
+सार्वजनिक वृत्तिः यन्त्रारम्भमण्डलोत्सर्जनम् आदाय रचनामस्ति ॱॱ बूल ददाति अङ्कः अन्तः अ८ आदि
+    उत्सर्जनॱनिर्गमारम्भः ।
+    चरः प्रवेशस्थलम् ॱॱ न६४ भवति ० ।
+    यदि यन्त्रप्रवेशसंज्ञा अधिकम् ० आदि
+        प्रवेशस्थलम् भवति यन्त्रनामान्वेषणम् यन्त्रप्रवेशसंज्ञा ।
+    इति
+    यन्त्रारम्भोत्सर्जनम् आरभ्य प्रवेशस्थलम् ऽ रचनामस्ति समाप्तम् ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमांशः ० ।
+इति
+
+॰ emit_data(pool) — the stack reservation and the constant pool, one
+॰ `॥ अष्टाष्टकाः <hex> ॥` quad per pooled constant, labelled ध्रुव<k>.
+॰ W-243: a module's data is its constant pool; the stack went with the stub
+॰ into `यन्त्रारम्भोत्सर्जनम्` (riscv64.rs `emit_data`, the same).
+सार्वजनिक वृत्तिः यन्त्रदत्तोत्सर्जनम् ददाति न६४ आदि
+    ॰ NO RECORD REGION HERE, AND THE FIRST VERSION OF `W-284` PUT ONE HERE.
+    ॰ This routine runs PER OBJECT — an image is one startup plus every module
+    ॰ — so a `॥ वैश्विकम् ॥` region written here is defined N times and the
+    ॰ linker refuses it by name. The region and its cursor live in
+    ॰ `यन्त्रारम्भोत्सर्जनम्`, the one object every image has exactly one of.
+    ॰
+    ॰ IT ALSO DIVERGED FROM THE PORT SILENTLY UNTIL THE TWIN TEST SAID SO:
+    ॰ `riscv64.rs` emits the region conditionally from the startup, so an
+    ॰ unconditional copy here made the two halves disagree on a SECTION
+    ॰ DIRECTIVE — `॥ कोष्ठकम् ॱरिक्त ॥` against `॥ कोष्ठकम् ॱदत्त ॥` — on every
+    ॰ program in the corpus, allocating or not.
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱदत्त ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    उत्सर्जनॱपाठयोजनम् उक्तम् ध्रुवकोशःॱॱ इति ।
+    उत्सर्जनॱयतियोजनम् ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य यन्त्रध्रुवसंख्यान योगः १ समाप्तम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् ध्रुव इति ।
+        यन्त्राङ्कः आरभ्य सूचकाङ्क वियोगः १ समाप्तम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॱॱ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः इति ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        यन्त्रषोडशाङ्कः आरभ्य यन्त्रध्रुवकोश अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    ॰ `W-278` — THE MODULE'S GLOBALS, WITH THE QUADS AND BEFORE THE OCTETS, for
+    ॰ the alignment reason the next block gives: each is one `अष्टाष्टकाः` and
+    ॰ must sit in the region that keeps `संरेखः १६`.
+    ॰ EACH LABEL IS EXPORTED. A global's storage is ONE object across the whole
+    ॰ image — the declaring module lays it, every other module reaches it through
+    ॰ the linker — so a cross-module write and the read that follows it touch the
+    ॰ same word. A copy per module would put the write in one and the read in
+    ॰ another, and every shared global would answer its initialiser for ever.
+    चरः वैश्विकाङ्कः ॱॱ न६४ भवति १ ।
+    यावत् वैश्विकाङ्कः न्यूनम् आरभ्य मध्यरूपॱवैश्विकसञ्चयसूचकाङ्क योगः १ समाप्तम् आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ वैश्विकम् इति ।
+        उत्सर्जनॱविवरयोजनम् १ ।
+        उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकमण्डलकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+        उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकनामकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+        ॰ The space is written, not carried inside `उक्तम् … इति`: a literal's
+        ॰ leading and trailing blanks do not survive it, which is what made the
+        ॰ twin diverge on three lines of this row before anyone read the octets.
+        उत्सर्जनॱविवरयोजनम् १ ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकमण्डलकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+        उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकनामकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+        उत्सर्जनॱपाठयोजनम् उक्तम् ॱॱ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        ॰ ════ A RUN'S GLOBAL GETS A POINTER AND ITS STORAGE — `W-293`, defect 1 ════
+        ॰
+        ॰ `मध्यरूप` records `८` for a scalar and `खण्डसामर्थ्यम् गुणनम् ८` for a run,
+        ॰ so this branch is the arena's answer and not a second opinion about types.
+        ॰
+        ॰ THE SYMBOL STAYS ONE POINTER WORD, WHICH IS THE WHOLE POINT. A run's read
+        ॰ is an ordinary `वैश्विकाज्ञाभेद` load of that word, so the access path the
+        ॰ four proven LOCAL cells depend on is untouched — those cells are this
+        ॰ edit's control. Making the symbol BE the run instead would have changed
+        ॰ every reader.
+        ॰
+        ॰ AND THE BASE IS SET AT LINK TIME, NOT BY CODE. `ADR-0013`, enforced at
+        ॰ `parse.rs:903-915`: in a data directive a token beginning with a letter is
+        ॰ a NAME and a name is the ADDRESS of what it names, so this emits a
+        ॰ relocated pointer. **That is why a LIBRARY module works.** The three
+        ॰ placements that put an allocation in a routine's entry block are recorded
+        ॰ dead in `tools/sassembly-model.py --placements`, and the third — the first
+        ॰ zero-parameter routine — would have PASSED a single-module fixture and
+        ॰ left every library module's globals null, against 265 qualified
+        ॰ cross-module reads. The linker does not know which module is the entry,
+        ॰ which is exactly the property that makes this immune.
+        ॰
+        ॰ NOT VERIFIED BY A TWO-MODULE RUN, BECAUSE ONE CANNOT BE BUILT: `t1_build`
+        ॰ takes ONE source (`t1_build.rs:88`) and links exactly two objects
+        ॰ (`:234`), and `Front` is per-source, so neither path can express a
+        ॰ two-module image. The immunity is measured as the MECHANISM instead — the
+        ॰ relocation in the object and the linked word holding the storage address.
+        ॰ Said here rather than only in a report, because a limitation in a message
+        ॰ is remembered and not preserved.
+        चरः वैश्विकसामर्थ्यम् ॱॱ न६४ भवति मध्यरूपॱवैश्विकसामर्थ्यकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+        यदि वैश्विकसामर्थ्यम् अधिकम् ८ आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकमण्डलकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकनामकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् भण्डार इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            ॰ The storage in `ॱरिक्त`, the same section and alignment the record
+            ॰ region takes at `:1943-1951` — space in memory, absent from the file,
+            ॰ so 163 corpus globals at 1 KiB each cost no image size.
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱरिक्त ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            ॰ `W-len` — THE RUN'S LENGTH HEADER, ONE WORD AT `भण्डार वियोगः ८`.
+            ॰ A global run's storage is reached through a POINTER held in the
+            ॰ symbol's own data word, so the header goes in front of the
+            ॰ STORAGE and the pointer does not move: every existing access is
+            ॰ byte-identical, and no relocation gains an addend.
+            ॰
+            ॰ ZERO FOR FREE. `ॱरिक्त` is space in memory and absent from the
+            ॰ file, so the header reads ० at load without a store — which is
+            ॰ exactly the value a high-water mark starts at. The local
+            ॰ allocation has to store its ० because a bump allocator hands out
+            ॰ whatever the cursor last left there.
+            ॰
+            ॰ EIGHT OCTETS OF PADDING FIRST, so `भण्डार` stays १६-aligned. The
+            ॰ header alone would leave the storage at १६k+८. Nothing in the
+            ॰ language needs more than ८ — element widths are १, २, ४ and ८ —
+            ॰ but this section's alignment is the record region's and changing
+            ॰ it is not this unit's to decide. १६ octets per run global, in
+            ॰ memory only.
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ स्थानम् ८ ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकमण्डलकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकनामकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् भण्डारशीर्षॱॱ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ स्थानम् ८ ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकमण्डलकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् मध्यरूपॱवैश्विकनामकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् भण्डारॱॱ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ स्थानम् इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्राङ्कः वैश्विकसामर्थ्यम् ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ कोष्ठकम् ॱदत्त ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः १६ ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+        इति अन्यथा आदि
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्रषोडशाङ्कः मध्यरूपॱवैश्विकमूल्यकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+        इति
+        वैश्विकाङ्कः भवति वैश्विकाङ्कः योगः १ ।
+    इति
+
+    ॰ `W-254` — THE STRING POOL, AFTER THE QUADS AND NOT AMONG THEM. A blob is
+    ॰ any number of octets, so a blob between two अष्टाष्टकाः would put every
+    ॰ later quad at an address that is no longer a multiple of eight. The quads
+    ॰ keep the region's संरेखः १६; the octets take what follows.
+    यदि यन्त्रपाठसंख्यान अधिकम् ० आदि
+        उत्सर्जनॱपाठयोजनम् उक्तम् पाठकोशःॱॱ इति ।
+        उत्सर्जनॱयतियोजनम् ।
+        चरः पाठाङ्कः ॱॱ न६४ भवति १ ।
+        यावत् पाठाङ्कः न्यूनम् आरभ्य यन्त्रपाठसंख्यान योगः १ समाप्तम् आदि
+            चरः मानम् ॱॱ न६४ भवति यन्त्रपाठमानकोश अङ्कः पाठाङ्कः अन्तः ।
+            ॰ `W-len` — A LITERAL'S LENGTH HEADER, ONE WORD AT `पाठक वियोगः ८`,
+            ॰ and it is the literal's TRUE length rather than ०: a literal is
+            ॰ never written, so its high-water mark is its octet count and is
+            ॰ known here at compile time.
+            ॰
+            ॰ `संरेखः ८` FIRST, AND THE MARGIN ABOVE IS WHY IT IS SAFE HERE. The
+            ॰ pool packs blobs of arbitrary length end to end, so a quad placed
+            ॰ among them would be UNALIGNED and `दैर्घ्य`'s load would fault.
+            ॰ Padding between literals costs nothing — it is the padding among
+            ॰ the QUADS that the pool was moved after them to avoid.
+            ॰
+            ॰ OUTSIDE THE `मानम् अधिकम् ०` GUARD, DELIBERATELY. An empty literal
+            ॰ still takes a label and still answers `दैर्घ्य`, and the answer
+            ॰ must be ० — a header emitted only for non-empty literals would
+            ॰ leave `पाठक वियोगः ८` reading whatever precedes it.
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ संरेखः ८ ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            ॰ capacity ० (2026-09-13): a literal's first indexed store copies it.
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः ० ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् पाठ इति ।
+            यन्त्राङ्कः आरभ्य पाठाङ्कः वियोगः १ समाप्तम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् शीर्षॱॱ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः इति ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            यन्त्राङ्कः मानम् ।
+            उत्सर्जनॱविवरयोजनम् १ ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् पाठ इति ।
+            यन्त्राङ्कः आरभ्य पाठाङ्कः वियोगः १ समाप्तम् ।
+            उत्सर्जनॱपाठयोजनम् उक्तम् ॱॱ इति ।
+            उत्सर्जनॱयतियोजनम् ।
+            ॰ An empty literal gets its label and NO directive: अष्टकाः takes
+            ॰ १+ operands, and the address of zero octets is where the next
+            ॰ thing starts.
+            यदि मानम् अधिकम् ० आदि
+                उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टकाः इति ।
+                चरः आरम्भः ॱॱ न६४ भवति यन्त्रपाठारम्भकोश अङ्कः पाठाङ्कः अन्तः ।
+                चरः क्रमः ॱॱ न६४ भवति ० ।
+                यावत् क्रमः न्यूनम् मानम् आदि
+                    उत्सर्जनॱविवरयोजनम् १ ।
+                    यन्त्राङ्कः यन्त्रपाठाक्षरकोश अङ्कः आरभ्य आरम्भः योगः क्रमः समाप्तम् अन्तः ।
+                    क्रमः भवति क्रमः योगः १ ।
+                इति
+                उत्सर्जनॱविवरयोजनम् १ ।
+                उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
+                उत्सर्जनॱयतियोजनम् ।
+            इति
+            पाठाङ्कः भवति पाठाङ्कः योगः १ ।
+        इति
+    इति
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
+इति
+
+॰ how many Param instructions a routine holds — emit_module's count over
+॰ the entry (`.filter(|(_, i)| matches!(i, Instruction::Param(_))).count()`).
+सार्वजनिक वृत्तिः यन्त्रप्राचलगणना आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति अ६४ आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः प्राचलसंख्या ॱॱ अ६४ भवति ० ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति पर्वाङ्कः योगः कार्यम् ॱ पर्वसंख्यान ।
+    यावत् पर्वाङ्कः न्यूनम् सीमा आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱप्राचलाज्ञाभेद आदि
+                प्राचलसंख्या भवति प्राचलसंख्या योगः १ ।
+            इति
+            आज्ञाङ्कः भवति आज्ञाङ्कः योगः १ ।
+            शेषाज्ञा भवति शेषाज्ञा वियोगः १ ।
+        इति
+        पर्वाङ्कः भवति पर्वाङ्कः योगः १ ।
+    इति
+    प्रत्यागमनम् प्राचलसंख्या ।
+इति
+
+॰ emit_module(module) — the whole module as one T0 text: the startup stub
+॰ first (e_entry is the first instruction, kosha.rs), then every routine with
+॰ यन्त्रावण्टनीयम् स्थिरs allocated per routine, then the data. The checks run
+॰ in Rust's order — labels, then the entry's parameters, then each routine —
+॰ so the FIRST refusal is the same one. Answers the text, or the EMPTY text
+॰ with यन्त्रनिषेधमस्ति set: no text for a module the emitter cannot lower in full.
+॰ ══════════ the cross-module callees `मध्यरूप` minted, into the name table ══════════
+॰ `W-xmodule`. `ir.t1` records a module and a routine for every callee the
+॰ resolver took on trust, keyed by a symbol from the २०००००० band, and this
+॰ copies them into `यन्त्रनामकोश` so `यन्त्रनामान्वेषणम्` finds them like any other.
+॰
+॰ IT IS A READ OF `मध्यरूप`'s ARENAS, which is the direction this file already
+॰ takes for `आज्ञाकोश` and every other. The other arrangement — `ir.t1` calling
+॰ `यन्त्रनामयोजनम्` as it mints — is the obvious one and would close a cycle
+॰ between the two modules. Publish and read, never call back.
+॰
+॰ WALKED TO THE CURSOR, NOT THE LENGTH: `बाह्यसंज्ञासूचकाङ्क` is reset per program
+॰ and the arena is not truncated, so a `दैर्घ्य` bound here would read the
+॰ previous module's callees and name them into THIS module's table. That is the
+॰ same defect this file carried in `यन्त्रमण्डलरचनामस्ति` and it is one line away
+॰ at every walk over a shared arena.
+॰
+॰ A TYPE-SYMBOL CALLEE IS NOT MINTED AND MUST NOT BE. `ir.t1` records only names
+॰ carrying a module prefix; a symbol denoting a type reaches `यन्त्रनामान्वेषणम्`,
+॰ misses, and refuses with `यन्त्रानामसंज्ञानिषेधभेद`. That refusal is the
+॰ behaviour to keep: values are named and types are not, measured by handing the
+॰ emitter a table with two struct symbols absent and watching it accept. A
+॰ synthetic name there would look exactly like a real one and link to nothing.
+॰ EVERY LOCAL HERE CARRIES THE `बाह्य` PREFIX AND THREE OF THEM CARRY IT
+॰ BECAUSE THE FIRST DRAFT BOUND FROZEN KEYWORDS AS NAMES. `गणना` declares an
+॰ enum, `मण्डलम्` a module and `वृत्तिः` a routine, and binding them as locals
+॰ derailed this routine's own parse — after which the scanner read the type
+॰ separator `ॱॱ` and the terminator `।` as bound names, so a SECOND ratchet
+॰ reported four more violations that were consequences of these three. The
+॰ obvious-looking name is the reserved one exactly where the domain word is the
+॰ keyword: a count, a module and a routine are what this loop walks. `W-192`
+॰ also requires the module's `यन्त्र` prefix on anything this file exports,
+॰ which is why the routine is `यन्त्रबाह्यनामसञ्चयः` and not its bare name.
+सार्वजनिक वृत्तिः यन्त्रबाह्यनामसञ्चयः ददाति न६४ आदि
+    चरः बाह्यगणना ॱॱ न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य मध्यरूपॱबाह्यसंज्ञासूचकाङ्क योगः १ समाप्तम् आदि
+        चरः बाह्यमण्डलनाम ॱॱ अङ्कः अन्तः अ८ भवति मध्यरूपॱबाह्यमण्डलकोश अङ्कः क्रमः अन्तः ।
+        चरः बाह्यवृत्तिनाम ॱॱ अङ्कः अन्तः अ८ भवति मध्यरूपॱबाह्यवृत्तिकोश अङ्कः क्रमः अन्तः ।
+        यदि बाह्यवृत्तिनाम ॱ दैर्घ्य अधिकम् ० आदि
+            चरः बाह्यसंज्ञा ॱॱ न६४ भवति आरभ्य मध्यरूपॱबाह्यसंज्ञारम्भः योगः क्रमः समाप्तम् ।
+            यदि यन्त्रनामान्वेषणम् बाह्यसंज्ञा समम् ० आदि
+                चरः स्थलम् ॱॱ न६४ भवति यन्त्रनामयोजनम् आरभ्य बाह्यसंज्ञा ऽ बाह्यमण्डलनाम ऽ बाह्यवृत्तिनाम समाप्तम् ।
+                बाह्यगणना भवति बाह्यगणना योगः १ ।
+            इति
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् बाह्यगणना ।
+इति
+
+सार्वजनिक वृत्तिः यन्त्रमण्डलोत्सर्जनम् ददाति अङ्कः अन्तः अ८ आदि
+    ॰ BEFORE `यन्त्रचिह्नपरीक्षा`, which refuses a module whose calls name a
+    ॰ symbol the table does not hold — the check this seeding exists to satisfy.
+    चरः बाह्यगणना ॱॱ न६४ भवति यन्त्रबाह्यनामसञ्चयः ।
+    यन्त्रनिषेधमस्ति भवति असत्यम् ।
+    ॰ `W-285` — THE RECORD FLAG WAS A GLOBAL HERE AND IS NOW A PARAMETER, and
+    ॰ the deleted margin is worth one sentence because it was WRONG IN A WAY A
+    ॰ TWIN CANNOT SEE. It said the remaining asymmetry — the port SCANS, this
+    ॰ side RECORDS — was "stated rather than hidden", and that a caller getting
+    ॰ it wrong would produce "a link failure naming `रचनासूचकः`, which is loud".
+    ॰ The link failure arrived, on `sanskrit_text`, `shrinkhala` and `unparse`,
+    ॰ and it was not the ordering hazard that margin considered.
+    ॰
+    ॰ BOTH HALVES ASKED WHETHER THIS **MODULE** ALLOCATES. The startup is linked
+    ॰ into an **IMAGE** of several module objects, so a module that allocates
+    ॰ nothing, linked beside one that does, emitted no region and left the
+    ॰ other's reference unresolved. **The twin octet test AGREED on all three**
+    ॰ — 456,527 · 93,802 · 234,376 octets — because agreeing is what two halves
+    ॰ do when they share a scope error. A twin checks ROUTE, never SCOPE.
+    यन्त्ररचनामस्ति भवति असत्यम् ।
+    यन्त्रनिषेधभेद भवति ० ।
+    यन्त्रध्रुवसंख्यान भवति ० ।
+    यन्त्रपाठाक्षरसंख्यान भवति ० ।
+    यन्त्रपाठसंख्यान भवति ० ।
+    ॰ the pool's chain heads, every one written ० (no entry) BEFORE any read:
+    ॰ an arena read past its length is a refusal, a write grows it. Per module,
+    ॰ so the previous module's chains are unreachable rather than stale.
+    चरः कुलक्रमः ॱॱ न६४ भवति ० ।
+    यावत् कुलक्रमः न्यूनम् ४०९६ आदि
+        यन्त्रपाठकुलशीर्षकोश अङ्कः कुलक्रमः अन्तः भवति ० ।
+        कुलक्रमः भवति कुलक्रमः योगः १ ।
+    इति
+    उत्सर्जनॱनिर्गमारम्भः ।
+    चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    यदि यन्त्रचिह्नपरीक्षा समम् असत्यम् आदि
+        प्रत्यागमनम् रिक्तम् ।
+    इति
+    चरः प्रवेशस्थलम् ॱॱ न६४ भवति ० ।
+    यदि यन्त्रप्रवेशसंज्ञा अधिकम् ० आदि
+        प्रवेशस्थलम् भवति यन्त्रनामान्वेषणम् यन्त्रप्रवेशसंज्ञा ।
+        यदि प्रवेशस्थलम् समम् ० आदि
+            यन्त्रनिषेधः आरभ्य यन्त्रानामसंज्ञानिषेधभेद ऽ रिक्तम् ऽ ० ऽ यन्त्रनामस्थानप्रवेशः ऽ यन्त्रप्रवेशसंज्ञा समाप्तम् ।
+            प्रत्यागमनम् रिक्तम् ।
+        इति
+        ॰ the entry routine takes parameters; the stub passes none (§2.6).
+        चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+        यावत् सूचकाङ्क न्यूनम् आरभ्य मध्यरूपॱवृत्तिसूचकाङ्क योगः १ समाप्तम् आदि
+            चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः सूचकाङ्क अन्तः ।
+            यदि कार्यम् ॱ नाम समम् यन्त्रप्रवेशसंज्ञा आदि
+                चरः प्राचलाः ॱॱ अ६४ भवति यन्त्रप्राचलगणना सूचकाङ्क ।
+                यदि प्राचलाः अधिकम् ० आदि
+                    चरः प्रवेशनाम ॱॱ यन्त्रनाम भवति यन्त्रनामकोश अङ्कः प्रवेशस्थलम् अन्तः ।
+                    यन्त्रचिह्नमण्डल भवति प्रवेशनाम ॱ मण्डल ।
+                    यन्त्रचिह्नवृत्ति भवति प्रवेशनाम ॱ वृत्तिनाम ।
+                    यन्त्रनिषेधः आरभ्य यन्त्रप्रवेशप्राचलनिषेधभेद ऽ यन्त्रवर्तमानचिह्नांशः ऽ ० ऽ ० ऽ प्राचलाः समाप्तम् ।
+                    प्रत्यागमनम् रिक्तम् ।
+                इति
+                सूचकाङ्क भवति मध्यरूपॱवृत्तिसूचकाङ्क ।
+            इति
+            सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+        इति
+    इति
+    ॰ W-243: no startup here — `यन्त्रारम्भमण्डलोत्सर्जनम्` is the startup object,
+    ॰ one per image; the entry was looked up above for the parameter check only.
+    चरः वृत्त्यङ्कः ॱॱ न६४ भवति १ ।
+    यावत् वृत्त्यङ्कः न्यूनम् आरभ्य मध्यरूपॱवृत्तिसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः आवण्टितम् ॱॱ उत्सर्जनॱआवण्टनम् भवति उत्सर्जनॱकोष्ठावण्टनम् आरभ्य वृत्त्यङ्कः ऽ यन्त्रावण्टनीयम् समाप्तम् ।
+        यन्त्राधिकरणसीमा भवति आवण्टितम् ॱ अधिकरणसंख्यान ।
+        यन्त्रनिक्षेपाः भवति आवण्टितम् ॱ निक्षेपसंख्यान ।
+        यन्त्रवृत्त्युत्सर्जनम् वृत्त्यङ्कः ।
+        यदि यन्त्रनिषेधमस्ति समम् सत्यम् आदि
+            प्रत्यागमनम् रिक्तम् ।
+        इति
+        वृत्त्यङ्कः भवति वृत्त्यङ्कः योगः १ ।
+    इति
+    यन्त्रदत्तोत्सर्जनम् ।
+    प्रत्यागमनम् उत्सर्जनॱनिर्गमांशः ० ।
+इति
+
+
+॰ ══════════════════ the fixture R1 is accepted on (§5) ══════════════════
+॰ fixture_recursive_sum() — `f(n) = if n then f(n−1) + n else 0` with an
+॰ entry मुख्य that calls f(5): Param, CondBranch, Sub, Call, Add, Return.
+॰ BUILT THROUGH मध्यरूप's OWN BUILDER — नवमूल्यम्, नवपर्व, आज्ञायोजनम्,
+॰ आह्वानाज्ञायोजनम्, आदानयोजनम्, शाखावसानरचना, अवसानरचना, पर्वयोजनम्,
+॰ वृत्तियोजनम् — and not by writing arenas from a test, so that the IR the
+॰ agreement test emits is the IR the compiler's builder lays down. Rust's ids
+॰ are p=0, one=1, m=2, r=3, s=4, z=5, five=10, result=11 and blocks 0,1,2 / 0;
+॰ मध्यरूप numbers 1..8 and 1,2,3 / 4 — the allocation depends on the linear
+॰ sequence and not on the ids, and the one id that reaches the text is the
+॰ block's, written as Rust counts it. Names: परीक्षा ॱ योगफलम् is symbol १,
+॰ परीक्षा ॱ मुख्य is symbol २ and the entry. Answers the number of routines built.
+सार्वजनिक वृत्तिः यन्त्रयोगफलदृष्टान्तः ददाति न६४ आदि
+    मध्यरूपॱआरम्भः ।
+    यन्त्रनामारम्भः ।
+    यन्त्रमण्डलनाम भवति उक्तम् परीक्षा इति ।
+    यन्त्रनामयोजनम् आरभ्य १ ऽ उक्तम् परीक्षा इति ऽ उक्तम् योगफलम् इति समाप्तम् ।
+    यन्त्रनामयोजनम् आरभ्य २ ऽ उक्तम् परीक्षा इति ऽ उक्तम् मुख्य इति समाप्तम् ।
+    यन्त्रप्रवेशसंज्ञा भवति २ ।
+    चरः अभावः ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱमूल्याङ्कनम् ० ।
+
+    ॰ f: entry(p = Param(0); CondBranch(p, then, else))
+    चरः प्रवेशः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः तदा ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः अन्यत् ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः प्राचलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः प्रवेशारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱप्राचलाज्ञाभेद ऽ प्राचलम् ऽ ० ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः शाखा ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱशाखावसानरचना आरभ्य प्राचलम् ऽ तदा ऽ अन्यत् समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य प्रवेशः ऽ प्रवेशारम्भः ऽ १ ऽ शाखा समाप्तम् ।
+
+    ॰ then: one = 1; m = p − one; r = f(m); s = r + p; Return s
+    चरः एकम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः पूर्वम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः आह्वानफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः योगफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः तदारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ एकम् ऽ १ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱवियोगाज्ञाभेद ऽ पूर्वम् ऽ ० ऽ ० ऽ प्राचलम् ऽ एकम् ऽ ० समाप्तम् ।
+    चरः आदानारम्भः ॱॱ न६४ भवति मध्यरूपॱआदानयोजनम् पूर्वम् ।
+    मध्यरूपॱआह्वानाज्ञायोजनम् आरभ्य आह्वानफलम् ऽ १ ऽ आदानारम्भः ऽ १ समाप्तम् ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱयोगाज्ञाभेद ऽ योगफलम् ऽ ० ऽ ० ऽ आह्वानफलम् ऽ प्राचलम् ऽ ० समाप्तम् ।
+    चरः तदाविरामः ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱप्रत्यागमनावसानभेद ऽ योगफलम् ऽ मध्यरूपॱपर्वाङ्कनम् ० समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य तदा ऽ तदारम्भः ऽ ४ ऽ तदाविरामः समाप्तम् ।
+
+    ॰ else: z = 0; Return z
+    चरः शून्यफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः अन्यदारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ शून्यफलम् ऽ ० ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः अन्यद्विरामः ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱप्रत्यागमनावसानभेद ऽ शून्यफलम् ऽ मध्यरूपॱपर्वाङ्कनम् ० समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य अन्यत् ऽ अन्यदारम्भः ऽ १ ऽ अन्यद्विरामः समाप्तम् ।
+    मध्यरूपॱवृत्तियोजनम् आरभ्य १ ऽ प्रवेशः ॱ क्रमाङ्क ऽ ३ ऽ प्रवेशः समाप्तम् ।
+
+    ॰ main: five = 5; result = f(five); Return result
+    चरः मुख्यप्रवेशः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः पञ्च ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः मुख्यफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः मुख्यारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ पञ्च ऽ ५ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः मुख्यादानारम्भः ॱॱ न६४ भवति मध्यरूपॱआदानयोजनम् पञ्च ।
+    मध्यरूपॱआह्वानाज्ञायोजनम् आरभ्य मुख्यफलम् ऽ १ ऽ मुख्यादानारम्भः ऽ १ समाप्तम् ।
+    चरः मुख्यविरामः ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱप्रत्यागमनावसानभेद ऽ मुख्यफलम् ऽ मध्यरूपॱपर्वाङ्कनम् ० समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य मुख्यप्रवेशः ऽ मुख्यारम्भः ऽ २ ऽ मुख्यविरामः समाप्तम् ।
+    मध्यरूपॱवृत्तियोजनम् आरभ्य २ ऽ मुख्यप्रवेशः ॱ क्रमाङ्क ऽ १ ऽ मुख्यप्रवेशः समाप्तम् ।
+    प्रत्यागमनम् मध्यरूपॱवृत्तिसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════ `W-245`'s fixture ══════════════════
+॰ fixture_forms() — every form the row added in one routine रूपाणि(n) and an
+॰ entry मुख्य that calls it with 5: a parameter STORED to slot ०, a loop whose
+॰ condition is a तुलना FUSED with its branch, the eight operators and the six
+॰ compares AS VALUES over (x, २), each read once by a chain of adds, and a
+॰ Return of the sum. Built through मध्यरूप's own builder as the recursive
+॰ fixture is. The running sum is module state so one helper appends an
+॰ operator and the add that consumes it.
+सार्वजनिक चरः यन्त्ररूपसञ्चयः ॱॱ मध्यरूपॱमूल्याङ्क भवति ० ।
+
+सार्वजनिक वृत्तिः यन्त्ररूपपदम् आदाय भेद ॱॱ न६४ ऽ उपभेद ॱॱ न६४ ऽ वाम ॱॱ मध्यरूपॱमूल्याङ्क ऽ दक्षिण ॱॱ मध्यरूपॱमूल्याङ्क ददाति न६४ आदि
+    चरः अभावः ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱमूल्याङ्कनम् ० ।
+    चरः फलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    यदि उपभेद अधिकम् ० आदि
+        मध्यरूपॱतुलनाज्ञायोजनम् आरभ्य फलम् ऽ उपभेद ऽ वाम ऽ दक्षिण समाप्तम् ।
+    इति अन्यथा आदि
+        मध्यरूपॱआज्ञायोजनम् आरभ्य भेद ऽ फलम् ऽ ० ऽ ० ऽ वाम ऽ दक्षिण ऽ ० समाप्तम् ।
+    इति
+    चरः योगफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱयोगाज्ञाभेद ऽ योगफलम् ऽ ० ऽ ० ऽ यन्त्ररूपसञ्चयः ऽ फलम् ऽ ० समाप्तम् ।
+    यन्त्ररूपसञ्चयः भवति योगफलम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः यन्त्ररूपदृष्टान्तः ददाति न६४ आदि
+    मध्यरूपॱआरम्भः ।
+    यन्त्रनामारम्भः ।
+    यन्त्रमण्डलनाम भवति उक्तम् परीक्षा इति ।
+    यन्त्रनामयोजनम् आरभ्य १ ऽ उक्तम् परीक्षा इति ऽ उक्तम् रूपाणि इति समाप्तम् ।
+    यन्त्रनामयोजनम् आरभ्य २ ऽ उक्तम् परीक्षा इति ऽ उक्तम् मुख्य इति समाप्तम् ।
+    यन्त्रप्रवेशसंज्ञा भवति २ ।
+    चरः अभावः ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱमूल्याङ्कनम् ० ।
+
+    ॰ रूपाणि: entry(p = Param(0); Store(0, p); Branch(cond))
+    चरः प्रवेशः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः शर्तपर्वः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः शरीरपर्वः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः निर्गमपर्वः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः प्राचलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः प्रवेशारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱप्राचलाज्ञाभेद ऽ प्राचलम् ऽ ० ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः प्रवेशनिधानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱनिधानाज्ञायोजनम् आरभ्य प्रवेशनिधानम् ऽ ० ऽ प्राचलम् समाप्तम् ।
+    चरः प्रवेशलङ्घनम् ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱलङ्घनावसानभेद ऽ अभावः ऽ शर्तपर्वः समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य प्रवेशः ऽ प्रवेशारम्भः ऽ २ ऽ प्रवेशलङ्घनम् समाप्तम् ।
+
+    ॰ cond: i = Load(0); lim = 3; c = Cmp(Lt, i, lim); CondBranch(c, body, exit) — fused
+    चरः गणकः ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः शर्तारम्भः ॱॱ न६४ भवति मध्यरूपॱआहाराज्ञायोजनम् आरभ्य गणकः ऽ ० समाप्तम् ।
+    चरः सीमा ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ सीमा ऽ ३ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः शर्तम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱतुलनाज्ञायोजनम् आरभ्य शर्तम् ऽ मध्यरूपॱन्यूनतुलनाभेद ऽ गणकः ऽ सीमा समाप्तम् ।
+    चरः शाखा ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱशाखावसानरचना आरभ्य शर्तम् ऽ शरीरपर्वः ऽ निर्गमपर्वः समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य शर्तपर्वः ऽ शर्तारम्भः ऽ ३ ऽ शाखा समाप्तम् ।
+
+    ॰ body: one = 1; j = Load(0); k = j + one; Store(0, k); Branch(cond)
+    चरः एकम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः शरीरारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ एकम् ऽ १ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः पठितम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआहाराज्ञायोजनम् आरभ्य पठितम् ऽ ० समाप्तम् ।
+    चरः वर्धितम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱयोगाज्ञाभेद ऽ वर्धितम् ऽ ० ऽ ० ऽ पठितम् ऽ एकम् ऽ ० समाप्तम् ।
+    चरः शरीरनिधानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱनिधानाज्ञायोजनम् आरभ्य शरीरनिधानम् ऽ ० ऽ वर्धितम् समाप्तम् ।
+    चरः शरीरलङ्घनम् ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱलङ्घनावसानभेद ऽ अभावः ऽ शर्तपर्वः समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य शरीरपर्वः ऽ शरीरारम्भः ऽ ४ ऽ शरीरलङ्घनम् समाप्तम् ।
+
+    ॰ exit: x = Load(0); two = 2; the fourteen forms, each summed in; Return(sum)
+    चरः अन्तिमम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः निर्गमारम्भः ॱॱ न६४ भवति मध्यरूपॱआहाराज्ञायोजनम् आरभ्य अन्तिमम् ऽ ० समाप्तम् ।
+    चरः द्वे ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ द्वे ऽ २ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    यन्त्ररूपसञ्चयः भवति अन्तिमम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱगुणनाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱभागाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱशेषाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱवामसरणाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱदक्षिणसरणाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱयुक्ताज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱविकल्पाज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱवैषम्याज्ञाभेद ऽ ० ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱसमतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱविषमतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱन्यूनतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱअन्यूनतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱअचिह्नन्यूनतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    यन्त्ररूपपदम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद ऽ मध्यरूपॱअचिह्नान्यूनतुलनाभेद ऽ अन्तिमम् ऽ द्वे समाप्तम् ।
+    ॰ the all-ones constant as the interpreter holds it (2⁶⁴−1), which Rust's
+    ॰ fixture writes as −1: both twins must write `ऋण१`.
+    चरः सर्वैकम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ सर्वैकम् ऽ १८४४६७४४०७३७०९५५१६१५ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः आवृतम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱयुक्ताज्ञाभेद ऽ आवृतम् ऽ ० ऽ ० ऽ यन्त्ररूपसञ्चयः ऽ सर्वैकम् ऽ ० समाप्तम् ।
+    चरः निर्गमविरामः ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱप्रत्यागमनावसानभेद ऽ आवृतम् ऽ मध्यरूपॱपर्वाङ्कनम् ० समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य निर्गमपर्वः ऽ निर्गमारम्भः ऽ ३२ ऽ निर्गमविरामः समाप्तम् ।
+    मध्यरूपॱवृत्तियोजनम् आरभ्य १ ऽ प्रवेशः ॱ क्रमाङ्क ऽ ४ ऽ प्रवेशः समाप्तम् ।
+
+    ॰ मुख्य: five = 5; result = रूपाणि(five); Return result
+    चरः मुख्यप्रवेशः ॱॱ मध्यरूपॱपर्वाङ्क भवति मध्यरूपॱनवपर्व ० ।
+    चरः पञ्च ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः मुख्यफलम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱनवमूल्यम् ० ।
+    चरः मुख्यारम्भः ॱॱ न६४ भवति मध्यरूपॱआज्ञायोजनम् आरभ्य मध्यरूपॱध्रुवाज्ञाभेद ऽ पञ्च ऽ ५ ऽ ० ऽ अभावः ऽ अभावः ऽ ० समाप्तम् ।
+    चरः मुख्यादानारम्भः ॱॱ न६४ भवति मध्यरूपॱआदानयोजनम् पञ्च ।
+    मध्यरूपॱआह्वानाज्ञायोजनम् आरभ्य मुख्यफलम् ऽ १ ऽ मुख्यादानारम्भः ऽ १ समाप्तम् ।
+    चरः मुख्यविरामः ॱॱ मध्यरूपॱअवसान भवति मध्यरूपॱअवसानरचना आरभ्य मध्यरूपॱप्रत्यागमनावसानभेद ऽ मुख्यफलम् ऽ मध्यरूपॱपर्वाङ्कनम् ० समाप्तम् ।
+    मध्यरूपॱपर्वयोजनम् आरभ्य मुख्यप्रवेशः ऽ मुख्यारम्भः ऽ २ ऽ मुख्यविरामः समाप्तम् ।
+    मध्यरूपॱवृत्तियोजनम् आरभ्य २ ऽ मुख्यप्रवेशः ॱ क्रमाङ्क ऽ १ ऽ मुख्यप्रवेशः समाप्तम् ।
+    प्रत्यागमनम् मध्यरूपॱवृत्तिसूचकाङ्क ।
+इति

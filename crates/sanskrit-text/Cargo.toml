@@ -1,0 +1,16 @@
+[package]
+name = "sanskrit-text"
+description = "The SANSOS text kernel: aksara segmentation, normalization, identifiers, SLP1. See research/01-sanskrit-computing-foundations.md."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+# NOTE (public release): upstream this crate has dev-dependencies on `bench` and
+# `golden`, used by two TEXT-KERNEL tests (`golden_regression.rs`,
+# `phonology_cost.rs`). Neither those crates, those tests, nor their golden
+# baselines are part of this repository — they test the Sanskrit text kernel, not
+# the compiler. Both were dev-dependencies upstream, so no shipped binary changes.
+
+[lints]
+workspace = true

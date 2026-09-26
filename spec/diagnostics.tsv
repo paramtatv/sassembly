@@ -1,0 +1,91 @@
+# SANSOS diagnostic registry — task `B-015`, doc 01 §1.2.4, doc 12 D-12-A1.
+#
+# AUTHORED. Nothing here is derivable: an oracle has opinions about encodings,
+# not about how to explain a mistake.
+#
+# # Why a table instead of strings in the code
+#
+# Doc 01 §1.2.4: "wire compiler diagnostics to lexicon IDs, not literal strings
+# — enables bilingual errors free". A message formatted at the site that
+# detects the fault exists in exactly one language and cannot be found by
+# anything except grep. Given a code, a message can be translated, indexed,
+# looked up, and — doc 12's D-12-A1 — repaired by a machine, because the code
+# is stable while the prose is not.
+#
+# # A message cannot quote a hexadecimal literal
+#
+# Every row is round-tripped through SLP1, because the fallback for a
+# terminal with no Devanagari font is only a fallback if it covers the whole
+# registry. `०षोड्` ends in a virama and its digits 10-15 are the vowels
+# अ आ इ ई उ ऊ, so a hex literal inside a message is a virama before a vowel —
+# a sequence SLP1 has no form for, and the round-trip test refuses the row.
+# Write a bound in decimal digits, which carry no virama (`W-075`).
+#
+# # `term` is the point, not decoration
+#
+# Every row names a word from `spec/lexicon.tsv`'s `error` category. That
+# vocabulary was ratified before the assembler was written and then sat unused
+# for a hundred cycles while the code formatted English by hand. The column is
+# checked: a term absent from the lexicon fails the build, so a new diagnostic
+# cannot invent a word for something already named.
+#
+# # Placeholders
+#
+# `{0}`, `{1}`, … are substituted in order. Both languages must use the same
+# ones, so a translation cannot silently drop the name of the thing at fault.
+#
+# Columns: code, term, devanagari, english
+code	term	devanagari	english
+L01	द्विरुक्तनाम	{0}: नाम `{1}` एकाधिकैः सञ्चिकाभिः वैश्विकं कृतम्	{0}: `{1}` is exported by more than one file
+L02	अज्ञातनाम	`{0}` वैश्विकम् इति उक्तम् किन्तु कोऽपि संज्ञकः तत् न परिभाषयति	`{0}` is declared वैश्विकम् but no label defines it
+E01	असमर्थितम्	`{0}` का कोई ३२-बिट रूप नहीं	`{0}` has no 32-bit encoding
+E02	अनपेक्षितचिह्नम्	`{0}` न संज्ञकः न संख्या	`{0}` is not a register or a numeral
+E03	प्रकारभेदः	`{0}` पूर्णाङ्केषु चलति, अतः तस्य प्रकारः `ॱअ…`, न तु `ॱ{1}…`	`{0}` operates on integers, so its type is `ॱअ…`, not `ॱ{1}…`
+E09	प्रकारभेदः	`{0}` भिन्नाङ्केषु चलति, अतः तस्य प्रकारः `ॱभ…`, न तु `ॱ{1}…`	`{0}` operates on floats, so its type is `ॱभ…`, not `ॱ{1}…`
+E04	विरुद्धम्	`{0}` इति रूपं {1} संज्ञकैः {2} संख्याभिः च न सङ्गच्छते	`{0}` has no encoding taking {1} register(s) and {2} immediate(s)
+E05	अज्ञातनाम	`{0}` अस्मिन् कार्यक्रमे परिभाषितः संज्ञकः नास्ति	`{0}` is not a label defined in this program
+E06	अतिप्रवाहः	`{0}` तस्मिन् क्षेत्रे न माति यत् `{1}` ददाति	`{0}` does not fit the field `{1}` gives it
+E07	सीमातिक्रमः	`{0}` {1} अष्टकाः दूरे, `{3}` यावत् {2} बिट् लक्ष्यं ददाति ततः परम्	`{0}` is {1} bytes away, past the {2} bits `{3}` gives a target
+E08	प्रकारभेदः	`{0}` प्रकारयुग्मं नामयति — लिखितं ततः पठितम्	`{0}` names a pair of types — written then read
+E10	प्रकारभेदः	`{0}` प्रकारयुग्मं नामयति — लिखितं ततः पठितम्। `ॱ{1}` एतेषु नास्ति: {2}	`{0}` names a pair of types — written then read. `ॱ{1}` is not one of: {2}
+E11	विरुद्धम्	`{0}` द्वितीया संख्या	`{0}` is a second immediate
+E12	अनपेक्षितचिह्नम्	`{0}` लङ्घनलक्ष्यम्, अतः सम्प्रदानेन (य्) चिह्नितव्यम् — गतिः तत्र गच्छति	`{0}` is a branch target and must be marked सम्प्रदान (य्) — control goes to it
+E13	विरुद्धम्	`{0}` एकस्मै लङ्घनाय द्वितीयं लक्ष्यम्	`{0}` is a second target for one branch
+E14	असमर्थितम्	`{0}` अधिकरणेन (ए) चिह्नितम्, यस्य T0 मध्ये क्षेत्रं नास्ति — पतात् आहर्तुं त्, पते निधातुं य्	`{0}` is marked अधिकरण (ए), which has no field in T0 — use त् to load from an address, य् to store to one
+E15	असमर्थितम्	`{0}` {1} इति चिह्नितम्, किन्तु `{2}` तस्यै भूमिकायै क्षेत्रं न ददाति	`{0}` is marked {1}, but `{2}` has no field for that role
+E16	विरुद्धम्	`{0}` `{1}` च `{2}` इत्यस्य एकमेव क्षेत्रं वाञ्छतः — प्रतिकारकं सकृदेव पूर्यते	`{0}` and `{1}` both claim the same field of `{2}` — each kāraka may be filled once
+E17	अतिप्रवाहः	`{0}` तेषु {1} बिट्सु न माति यान् `{2}` ददाति	`{0}` does not fit the {1} bits `{2}` gives it
+P01	अनपेक्षितचिह्नम्	`{0}` आदेशः, ॱदत्त तु दत्तं धारयति	`{0}` is an instruction, and ॱदत्त holds data
+P02	अपूर्णवाक्यम्	`{0}` इति आरब्धं वाक्यं दण्डरहितम् — प्रतिवाक्यं ।-कारेण समाप्यते	statement beginning `{0}` has no daṇḍa — every sentence ends with ।
+P03	अज्ञातसंज्ञा	`{0}` संज्ञासूच्यां नास्ति, R-02-1 च निर्गममार्गं न ददाति{1}	`{0}` is not in the mnemonic registry, and R-02-1 has no escape hatch{1}
+P04	अनपेक्षितचिह्नम्	`{0}` कारकरहितम् — प्रत्येकं पदं स्वां भूमिकां कथयति (D-02-C)	`{0}` carries no kāraka — every operand states its role (D-02-C)
+P05	विरुद्धम्	`{0}` `{1}` च उभे {2} इति वाञ्छतः — सा भूमिका सकृदेव पूर्यते (करणं पुनरावर्तेत, इमे न)	`{0}` and `{1}` both claim {2} — that role is filled once (करण may repeat; these may not)
+P06	अनपेक्षितचिह्नम्	`ॱॱ` संज्ञकं चिह्नयति, किन्तु तस्मात् पूर्वं नाम नास्ति	`ॱॱ` marks a label, but no name precedes it
+P07	अवैधरूपम्	संज्ञकः एकं नाम तस्य चिह्नं च; `{0}` मध्ये {1} पदानि	a label is one name and its mark; `{0}` has {1} words
+P08	प्रकारभेदः	`{0}` {1} प्रकारान् लिखति — एकः यस्मिन् चलति तत् नामयति, द्वौ रूपान्तरम्	`{0}` writes {1} types — one names what is operated on, two name a conversion
+P09	अनपेक्षितचिह्नम्	वाक्यं `{0}` इत्यनेन आरभ्यते, यत् कारकं वहति — वाक्यस्य प्रथमं क्रिया आवश्यकी (ADR-0004)	statement begins with `{0}`, which carries a kāraka — a sentence needs a verb first (ADR-0004)
+P10	अनपेक्षितचिह्नम्	`{0}` कारकचिह्नं न वहति — म् न त् य् ए वा	`{0}` carries no kāraka sigil — म् न त् य् or ए
+P11	निषिद्धम्	`{0}` आदेशस्य अन्तः न स्थातुम् अर्हति	`{0}` cannot appear inside an instruction
+P13	अज्ञातसंज्ञा	`{0}` आदेशः नास्ति — spec/directives.tsv तान् सूचयति	`{0}` is not a directive — spec/directives.tsv lists them
+P14	असमर्थितम्	`{0}` ({1}) doc 02 §2.5 इत्यनेन नामितम्, अद्यापि न कृतम्	`{0}` ({1}) is named by doc 02 §2.5 and not implemented yet
+P15	अज्ञातनाम	`{0}` कोष्ठकं नास्ति — ॱपाठ ॱदत्त वा	`{0}` is not a section — ॱपाठ or ॱदत्त
+P16	अपूर्णवाक्यम्	`{0}` न्यूनतमम् एकं मूल्यम् अपेक्षते	`{0}` needs at least one value
+P17	प्रकारभेदः	`{0}` पाठं न धारयति — केवलम् अष्टकाः धारयन्ति	`{0}` cannot hold a string — only अष्टकाः can
+P18	अनपेक्षितचिह्नम्	`{0}` तस्य इति-शब्दस्य अनन्तरं यः पाठं समापितवान्	`{0}` follows the इति that closed the string
+P19	अवैधरूपम्	`{0}` संख्या नास्ति	`{0}` is not a numeral
+P20	निषिद्धम्	`{0}` मूल्यानि लिखति, ॱरिक्त तु अष्टकान् न धारयति — केवलं स्थानम्	`{0}` writes values, and ॱरिक्त holds no bytes — only स्थानम्
+P21	भग्नम्	`{0}` जीवितः किन्तु अप्रबन्धितः — दोषोऽयम्	`{0}` is live but unhandled — a bug
+P22	अपूर्णवाक्यम्	उक्तम् पाठम् आरभते इति च समापयति; तं शब्दमेव लेखितुम् इति इति लिख्यताम्	उक्तम् opens a string and इति closes it; write इति इति for the word itself
+P23	प्रकारभेदः	`{0}` प्रकारः नास्ति — व्याप्तिः ॱअ८, ॱअ१६, ॱअ३२ ॱअ६४ वा, ॱन ॱभ च अचिह्नभिन्नजातीः नामयतः	`{0}` is not a type — a व्याप्ति is ॱअ८, ॱअ१६, ॱअ३२ or ॱअ६४, and ॱन and ॱभ name the unsigned and float kinds
+P24	अवैधरूपम्	`{0}` ॥-कारेण समाप्यते किन्तु तत् किमपि न उद्घाटयति — आदेशः ॥ … ॥ इति लिख्यते (ADR-0012)	`{0}` ends with ॥ but nothing opened it — a directive is written ॥ … ॥ (ADR-0012)
+P25	अपूर्णवाक्यम्	॥ आदेशम् उद्घाटयति यत् कदापि न पिहितम् — द्वितीयं ॥ आवश्यकम्	॥ opens a directive that is never closed — a second ॥ is needed
+P26	रिक्तम्	॥ ॥ किमपि न नामयति — आदेशः एकं नाम वहति	॥ ॥ names nothing — a directive carries one name
+P27	प्रकारभेदः	`{0}` पतं न धारयति — पतं ६४ बिट्, तत् च अष्टाष्टकाः धारयति (ADR-0013)	`{0}` cannot hold an address — an address is 64 bits, and अष्टाष्टकाः holds one (ADR-0013)
+P28	निषिद्धम्	`{0}` मूल्यानि लिखति, ॱपाठ तु आज्ञाः धारयति — ॱदत्त इति कोष्ठकम् उपयुज्यताम्	`{0}` writes values, and ॱपाठ holds instructions — switch to ॱदत्त
+P29	अतिप्रवाहः	`{0}` ६४ बिट्षु न माति — अचिह्नं ० तः १८४४६७४४०७३७०९५५१६१५ यावत्, ऋणसहितं ऋण९२२३३७२०३६८५४७७५८०८ यावत् (W-075)	`{0}` does not fit 64 bits — unsigned reaches १८४४६७४४०७३७०९५५१६१५, and with ऋण it reaches ऋण९२२३३७२०३६८५४७७५८०८ (W-075)
+P30	प्रकारभेदः	`{0}` गणनां वहति, गणना च चिह्नं न वहति — `{1}` ऋणेन आरभते (W-075)	`{0}` takes a count, and a count carries no sign — `{1}` begins with ऋण (W-075)
+E20	प्रकारभेदः	`{0}` स्वयम् सचिह्नम् इति वदति, अतः ॱन तस्मिन् विरुध्यते — ॱअ लिख्यताम् अथवा वर्गाक्षरं त्यज्यताम् (ADR-0014)	`{0}` names itself signed, so ॱन on it contradicts the family — write ॱअ, or leave the class letter off (ADR-0014)
+E21	प्रकारभेदः	`{0}` स्वयम् अचिह्नम् इति वदति, अतः ॱअ तस्मिन् विरुध्यते — ॱन लिख्यताम् अथवा वर्गाक्षरं त्यज्यताम् (ADR-0006)	`{0}` names itself unsigned, so ॱअ on it contradicts the family — write ॱन, or leave the class letter off (ADR-0006)
+P31	प्रकारभेदः	`{0}` {1} अष्टकान् लिखति, `{2}` तु तेषु न माति — अधिकतमम् {3} (W-082)	`{0}` writes {1} octet(s) and `{2}` does not fit in them — the largest is {3} (W-082)
+E22	विरुद्धम्	विन्यासः {0} वारेषु न स्थिरीभवति — लङ्घनानि त्यक्तैः स्थानैः गणितानि स्युः	layout does not settle in {0} rounds — branches would be computed from addresses already superseded (B-058b2b7)
+E23	विरुद्धम्	{0} इति आज्ञा {1} इति स्थाने विन्यस्ता किन्तु {2} इति स्थाने लिखिता — लङ्घनानि नामानि च विन्यासात् गणितानि, अतः इतः परं {3} अष्टकैः विषमम्	instruction {0} is laid out at {1} but written at {2} — branches and names are computed from the layout, so from here the image is wrong by {3} octet(s) (B-058b2b7)

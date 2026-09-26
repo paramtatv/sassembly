@@ -1,0 +1,206 @@
+मण्डलम् अष्टक ॥   ॰ ashtaka — THE OCTET ARENA: the port of the assembler's `Vec<u8>`, `Datum::bytes` (parse.rs:120)
+
+॰ W-239, 2026-09-04. THE ARENA THAT vakyavibhaga.t1's ASCII margin PROMISED AT
+॰ (e) AND THE FOOT NEVER WROTE (its notes stop at (d)). The store existed there
+॰ half-built — `अष्टकसञ्चयः`, a cursor, a push and a zero-push, serving the
+॰ width directives — with no text append, no way to hand a range out as a
+॰ value, and no refusal: the interpreter GROWS a byte run on any indexed
+॰ write, zero-filling the gap, so a write past the end was silently padded.
+॰ Eight routines of that file were written and twinned and waited on this
+॰ (W-225's list): the string body's three readers, the ASCII and web text
+॰ arms, the width-directive predicate, and the two code-table builders.
+॰
+॰ ONE STORE, ONE-BASED, SLOT ० RESERVED — the arena convention every store in
+॰ this corpus keeps, and what `अष्टकसञ्चयः` already was: `अष्टकयोजनम्` advances
+॰ the cursor and then writes, so the first octet is at १. The reserved slot ०
+॰ is a real zero byte in the run, which is what lets a RANGE of the arena be
+॰ handed out with W-228's slice, `अष्टककोश अङ्कः आरम्भः अन्तः सीमा`, at the same
+॰ numbers: the arena's index IS the run's offset.
+॰
+॰ THE CURSOR IS THE LENGTH AND THE RUN MAY BE LONGER. `अष्टकारम्भः` resets the
+॰ cursor and not the run — every arena's `आरम्भः` in this corpus resets its
+॰ cursor and reuses its slots, and a `भवति ०` at assignment would put an
+॰ integer where a run was. Nothing reads past the cursor: the readers below
+॰ refuse first.
+॰
+॰ REFUSED BY NAME, NOT WRAPPED, NOT PADDED. A write past the end (past the
+॰ append position), a read past the end, a range that leaves the arena, an
+॰ append of a range that leaves its source: each is refused, and the refusal
+॰ says WHICH routine and at WHAT position — `अष्टकदोषनाम`, `अष्टकदोषस्थानम्`,
+॰ `अष्टकदोषमस्ति` — the first-refusal record shape `अर्थ` uses. The store is
+॰ untouched by a refused call. `t1_ashtaka.rs` holds each case.
+॰
+॰ THE RUST TWIN, pinned in `t1_sources.rs` (`OCTET_ARENA_SYMBOLS`): the
+॰ `Vec<u8>` a `Datum` carries — `push`, `len`, `resize(len + n, 0)`,
+॰ `extend_from_slice`, `IndexMut`, `Index`, `&bytes[a..b]`, `clear`. Rust
+॰ keeps one Vec PER DATUM; T1 keeps ONE arena and a datum names its range,
+॰ which is what `दत्तयोजनम्`'s (store, start, count) triple already meant.
+
+॰ the store — Datum::bytes, one for the whole program. `भवति ०` at a slice
+॰ type is the EMPTY RUN (nirvahana's zero_of), not Int(0).
+सार्वजनिक चरः अष्टककोश ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+॰ the number of live octets; the last one sits at this index — Vec::len.
+सार्वजनिक चरः अष्टकसूचकाङ्क ॱॱ न६४ भवति ० ।
+॰ the empty run every refused range-reader answers with.
+सार्वजनिक चरः रिक्ताष्टकाः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+
+॰ the first-refusal record: which routine refused, at what position.
+सार्वजनिक चरः अष्टकदोषमस्ति ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः अष्टकदोषस्थानम् ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः अष्टकदोषनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+
+॰ record a refusal — the FIRST one, as `अर्थ` does: a later refusal in the
+॰ same program does not overwrite the one that explains the rest.
+सार्वजनिक वृत्तिः अष्टकनिषेधः आदाय नाम ॱॱ अङ्कः अन्तः अ८ स्थानम् ॱॱ न६४ ददाति बूल आदि
+    यदि अष्टकदोषमस्ति समम् असत्यम् आदि
+        अष्टकदोषनाम भवति नाम ।
+        अष्टकदोषस्थानम् भवति स्थानम् ।
+        अष्टकदोषमस्ति भवति सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ begin a program — Vec::clear. The cursor to ०, the refusal cleared; the
+॰ run keeps its slots (see the header). Returns the length it left: ०.
+सार्वजनिक वृत्तिः अष्टकारम्भः ददाति न६४ आदि
+    अष्टकसूचकाङ्क भवति ० ।
+    अष्टकदोषमस्ति भवति असत्यम् ।
+    अष्टकदोषस्थानम् भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ how many octets are live — Vec::len.
+सार्वजनिक वृत्तिः अष्टकदैर्घ्य ददाति न६४ आदि
+    प्रत्यागमनम् अष्टकसूचकाङ्क ।
+इति
+
+॰ push one octet — Vec::push. Advance, write, return the index written at,
+॰ as every appender in this corpus does. This is the one place the arena
+॰ grows, and it grows by exactly one: the interpreter's zero-fill can never
+॰ open a gap through it.
+सार्वजनिक वृत्तिः अष्टकयोजनम् आदाय अष्टकम् ॱॱ अ८ ददाति न६४ आदि
+    अष्टकसूचकाङ्क भवति अष्टकसूचकाङ्क योगः १ ।
+    अष्टककोश अङ्कः अष्टकसूचकाङ्क अन्तः भवति अष्टकम् ।
+    प्रत्यागमनम् अष्टकसूचकाङ्क ।
+इति
+
+॰ push संख्यानम् zero octets — Vec::resize(len + n, 0): the padding of
+॰ `स्थानम्` and the eight an address reserves (ADR-0013). Returns how many
+॰ it wrote, so a caller that asked for none is told none, not ०-as-absent.
+सार्वजनिक वृत्तिः शून्याष्टकयोजनम् आदाय संख्यानम् ॱॱ न६४ ददाति न६४ आदि
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् संख्यानम् आदि
+        चरः लिखितम् ॱॱ न६४ भवति अष्टकयोजनम् ० ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+॰ push a RANGE of a run — Vec::extend_from_slice(&text[आरम्भः..सीमा]), the
+॰ 0-based offsets a token carries (`अष्टक`..`पाठसीमा`). Returns the arena
+॰ index of the first octet appended, or ० for an empty range. REFUSED, by
+॰ name, when the range leaves its source or is reversed: nothing appended.
+सार्वजनिक वृत्तिः अष्टकपाठयोजनम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ न६४ सीमा ॱॱ न६४ ददाति न६४ आदि
+    यदि आरम्भः अधिकम् सीमा आदि
+        चरः अवगणना ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकपाठयोजनम् इति ऽ आरम्भः समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि सीमा अधिकम् पाठ ॱ दैर्घ्य आदि
+        चरः अवगणनद्वि ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकपाठयोजनम् इति ऽ सीमा समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि आरम्भः समम् सीमा आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः प्रथमः ॱॱ न६४ भवति अष्टकसूचकाङ्क योगः १ ।
+    चरः क्रमः ॱॱ न६४ भवति आरम्भः ।
+    यावत् क्रमः न्यूनम् सीमा आदि
+        चरः लिखितम् ॱॱ न६४ भवति अष्टकयोजनम् आरभ्य पाठ अङ्कः क्रमः अन्तः समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् प्रथमः ।
+इति
+
+॰ write at a position — IndexMut, with the one liberty Vec has: writing at
+॰ len is a push. १..cursor overwrites; cursor+१ appends; anything else —
+॰ ०, or PAST THE APPEND POSITION — is REFUSED by name. That last case is
+॰ the one the interpreter would have padded with zeros, and the row named
+॰ it: an append past the arena's end is refused, not wrapped.
+सार्वजनिक वृत्तिः अष्टकस्थापनम् आदाय स्थानम् ॱॱ न६४ अष्टकम् ॱॱ अ८ ददाति बूल आदि
+    यदि स्थानम् समम् ० आदि
+        प्रत्यागमनम् अष्टकनिषेधः आरभ्य उक्तम् अष्टकस्थापनम् इति ऽ स्थानम् समाप्तम् ।
+    इति
+    यदि स्थानम् अधिकम् आरभ्य अष्टकसूचकाङ्क योगः १ समाप्तम् आदि
+        प्रत्यागमनम् अष्टकनिषेधः आरभ्य उक्तम् अष्टकस्थापनम् इति ऽ स्थानम् समाप्तम् ।
+    इति
+    यदि स्थानम् समम् आरभ्य अष्टकसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः लिखितम् ॱॱ न६४ भवति अष्टकयोजनम् अष्टकम् ।
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    अष्टककोश अङ्कः स्थानम् अन्तः भवति अष्टकम् ।
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ read one octet — Index. REFUSED by name past the cursor or at ०; answers ०
+॰ then, and the record says the ० is a refusal and not a zero byte.
+सार्वजनिक वृत्तिः अष्टकपाठः आदाय स्थानम् ॱॱ न६४ ददाति अ८ आदि
+    यदि स्थानम् समम् ० आदि
+        चरः अवगणना ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकपाठः इति ऽ स्थानम् समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि स्थानम् अधिकम् अष्टकसूचकाङ्क आदि
+        चरः अवगणनद्वि ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकपाठः इति ऽ स्थानम् समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् अष्टककोश अङ्कः स्थानम् अन्तः ।
+इति
+
+॰ a range as a value — &bytes[a..b], through W-228's slice: संख्यानम् octets
+॰ from आरम्भः. This is what a `दत्तम्` names as its `अष्टकाः` and what a
+॰ diagnostic hands on as text. REFUSED by name when the range leaves the
+॰ live arena; the empty run is the answer then.
+सार्वजनिक वृत्तिः अष्टकखण्डः आदाय आरम्भः ॱॱ न६४ संख्यानम् ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि आरम्भः समम् ० आदि
+        चरः अवगणना ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकखण्डः इति ऽ आरम्भः समाप्तम् ।
+        प्रत्यागमनम् रिक्ताष्टकाः ।
+    इति
+    चरः सीमा ॱॱ न६४ भवति आरम्भः योगः संख्यानम् ।
+    यदि सीमा अधिकम् आरभ्य अष्टकसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः अवगणनद्वि ॱॱ बूल भवति अष्टकनिषेधः आरभ्य उक्तम् अष्टकखण्डः इति ऽ सीमा समाप्तम् ।
+        प्रत्यागमनम् रिक्ताष्टकाः ।
+    इति
+    यदि संख्यानम् समम् ० आदि
+        प्रत्यागमनम् रिक्ताष्टकाः ।
+    इति
+    प्रत्यागमनम् अष्टककोश अङ्कः आरम्भः अन्तः सीमा ।
+इति
+
+॰ ॥ THE OUTPUT CHANNEL ॥ (2026-09-14)
+॰ A compiled `.t1` image could not write one octet: no corpus source stored to
+॰ the UART and the 16-bit halt status was the ONLY channel out, which is why
+॰ every rung answer this week was packed into digits — १००३, २०००, ५१११, ३०००
+॰ — and why rung 75's fault was invisible to its own encoding.
+॰
+॰ THIS BODY IS NEVER REACHED, AND THAT IS A CLAIM, NOT A DESCRIPTION. Both
+॰ sides replace the call: `ir.t1` lowers it to a store at ०x१०००००००, and the
+॰ interpreter intercepts it before resolving the name. A correct configuration
+॰ returns ० from either side.
+॰
+॰ SO THE BODY RETURNS THE DEVICE ADDRESS, NOT ०. If an interception is ever
+॰ removed or renamed, a caller gets २६८४३५४५६ back from "print an octet" —
+॰ which no legitimate answer resembles, and which names its own cause to
+॰ whoever meets it. A bare ० would re-create, at the worst possible site, the
+॰ ambiguity that `१०००`+kind and `२०००`+length exist to avoid: ० is the most
+॰ plausible number in this language and cannot be told from a refusal.
+॰ Body and lowering reference the SAME constant, so a rename breaks both or
+॰ neither — which is exactly what the six dead mutation controls lacked.
+॰
+॰ THE LOAD-BEARING GUARD IS NOT A MUTATION CONTROL. If an interception goes and
+॰ the path is exercised with its output observed, २६८४३५४५६ appears where an
+॰ octet should and is caught AT THE POINT OF USE. So the requirement is that
+॰ THE FIRST CONSUMER OF THIS CHANNEL ASSERTS ON ITS BYTES, not on a return
+॰ value or an exit status. A test that reads the sink cannot drift, because the
+॰ sink is the thing this exists to fill.
+सार्वजनिक वृत्तिः मुद्रणम् आदाय अष्टकम् ॱॱ अ८ ददाति न६४ आदि
+    प्रत्यागमनम् २६८४३५४५६ ।
+इति

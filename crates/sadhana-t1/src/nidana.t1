@@ -1,0 +1,1041 @@
+मण्डलम् निदान ॥ ॰ nidana — the port of crates/sadhana/src/nidana.rs and of
+॰ parse.rs's ParseError::message, distance and nearest.
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE DIAGNOSTIC PATH, task D-002f8, doc 01 §1.2.4 and doc 12 D-12-A1.
+॰
+॰ वाक्यविभाग (D-002f1) already holds वाक्यदोष — the record — and दोषकोश,
+॰ its arena. A record is not a diagnostic. What was missing, and is here,
+॰ is the two halves that make one:
+॰
+॰   १. RENDERING A CODE. वाक्यदोष ॱ कूट is a stable code and वाक्यदोष ॱ
+॰      कारणम् is prose in whichever language the parser was built to
+॰      speak. सन्देश takes a भाषा and renders the code through this
+॰      module's table, so a reader chooses the language and a test pins
+॰      the code rather than the sentence.
+॰   २. THE DID-YOU-MEAN HEURISTIC. आसन्नतमम् offers the registry name a
+॰      misspelling most likely meant, and अक्षरदूरम् measures how far
+॰      apart two names are.
+॰
+॰ ── WHY THIS FILE IS MOSTLY अक्षरविभागः, AND WHY THAT IS THE ROW ──
+॰ अक्षरदूरम् IS AKṢARA-LEVEL AND MUST STAY SO. क्ष is ONE akṣara — क
+॰ plus virāma plus ष, three code points — so a code-point distance calls
+॰ क्ष and क three edits apart when they are one, and suppresses exactly
+॰ the suggestion worth making. crates/sadhana/src/parse.rs:376 spends its
+॰ first two lines on sanskrit_text::aksharas for that reason, and NO .t1
+॰ module in this crate had अक्षराणि written: अक्षरकोश ॱ अक्षराणि is a
+॰ stub returning अपूर्णम्. So this row could not be a hundred lines of
+॰ Levenshtein over a function that does not exist; the segmenter IS the
+॰ row, and it is written here.
+॰
+॰ ── WHAT IS PORTED, AND THE ONE THING THAT IS NOT ──
+॰ crates/sanskrit-text/src/segment.rs computes the UAX #29 EXTENDED
+॰ grapheme cluster in full: GB1–GB999, Hangul jamo, regional-indicator
+॰ parity, ExtPict ZWJ sequences, over GRAPHEME_BREAK (१३८६ rows), INCB
+॰ (४७३ rows) and EXTENDED_PICTOGRAPHIC (१५६ rows) in tables.rs. THAT IS
+॰ NOT PORTED AND IS ITS OWN ROW. Two thousand table rows plus the four
+॰ state machines is larger than any file in this crate, and none of it is
+॰ reachable from a mnemonic: a registry name is Devanagari, and a flag, a
+॰ jamo and an emoji cannot appear in one.
+॰
+॰ WHAT IS PORTED IS THE DEVANAGARI RESTRICTION, AND IT IS NOT AN
+॰ APPROXIMATION OF THE GENERAL RULE — OVER THIS DOMAIN IT IS THE SAME
+॰ FUNCTION. Inside U+0900–U+097F only four of UAX #29's rules can fire,
+॰ and the ranges below are READ OFF tables.rs rather than guessed:
+॰
+॰   GB9   विस्तारः attaches      — U+08E3..U+0902, U+093A, U+093C,
+॰                                  U+0941..U+0948, U+094D,
+॰                                  U+0951..U+0957, U+0962..U+0963
+॰   GB9a  मात्रा attaches        — U+0903, U+093B, U+093E..U+0940,
+॰                                  U+0949..U+094C, U+094E..U+094F
+॰   GB9c  the conjunct rule      — व्यञ्जन, योजक (U+094D, virāma), व्यञ्जन
+॰   GB999 otherwise, break
+॰
+॰ Measured, not asserted: the segmenter below and sanskrit_text::aksharas
+॰ were run over all ७४ registry names of spec/mnemonics-riscv64.src.tsv
+॰ and the four acceptance probes, and agree on the SLICES — not merely the
+॰ counts — for all ८१, with ० mismatches.
+॰
+॰ ── ON THE COMPARISONS ── this language has समम् , असमम् , न्यूनम् and
+॰ अधिकम् and NO न्यूनसमम् or अधिकसमम् ; none is written anywhere in this
+॰ crate and a port is not the place to coin an operator. So every range
+॰ test below is written with STRICT bounds one outside the true range,
+॰ and each carries the U+ range it came from so the two can be checked
+॰ against tables.rs by eye: U+0915..U+0939 is २३२५..२३६१ inclusive and is
+॰ tested as अधिकम् २३२४ and न्यूनम् २३६२.
+॰
+॰ ── ON THE NAMES ── attested words from spec/lexicon.src.tsv wherever the
+॰ lexicon has one: अक्षरविभागः "akshara segmentation" (doc 04), अक्षरम्
+॰ akshara, सन्देश message, भाषा language, ऋण negative (ADR-0009). Coined
+॰ where it does not: अक्षरदूरम् (अक्षर + दूरम् , distance) for the edit
+॰ distance — अन्तरम् is spent on `delta` (doc 13,16) and could not be
+॰ reused; आसन्नतमम् (superlative of आसन्न , near) for nearest; योजकः
+॰ (that which joins) for UAX #29's Linker, since the virāma joins two
+॰ व्यञ्जन into one अक्षर , and मात्रा for SpacingMark, which is what a
+॰ मात्रा is.
+॰
+॰ ── ADR-0017 AND ADR-0018 ── a string literal is a token and यतिः/विवरम्
+॰ are layout VALUES. Neither is used to carry a placeholder or a code
+॰ here, and that is deliberate: R-15-1 admits no ASCII digit and no ASCII
+॰ punctuation, so a brace-digit-brace placeholder and a Latin code ARE NOT
+॰ WRITABLE as literals in this language — and ADR-0017 is explicit that a
+॰ string is not a licence to smuggle a refused character back in. Where
+॰ the Rust reads a brace, this file compares an अष्टक to a NUMBER — १२३
+॰ for the opening brace, १२५ for the closing one, ४८ for the digit zero —
+॰ which is the idiom पदविभाग ॱ विभज already uses for its kāraka sigils,
+॰ and which needs no character outside the repertoire at all.
+॰
+॰ ── ON CALLING ── no .t1 file in this crate writes a call in statement
+॰ position; every call binds its result. The routines here that exist for
+॰ effect therefore return अ६४ and are bound, exactly as वाक्यविभाग ॱ
+॰ आरम्भः does.
+॰ ══════════════════════════════════════════════════════════════════════
+
+॰ `आयातः वास्तु ।` STOOD HERE UNTIL 2026-09-04 (W-225) and was REMOVED: this
+॰ file names no `वास्तुॱ…` anywhere. Its two live imports, `वाक्यविभाग` and
+॰ `सङ्केतन`, are below and each is reached.
+
+॰ FOR THE THREE `वाक्यविभागॱ…` NAMES THIS FILE ALREADY WROTE — `संज्ञाकुलकोश`,
+॰ `पाठांशकोश` and `वाक्यदोष`. The import was simply absent: all three members
+॰ are declared `सार्वजनिक` over there (`vakyavibhaga.t1:328` for the first), so
+॰ nothing was missing except the line that brings the module into scope.
+॰
+॰ A QUALIFIED NAME WHOSE MODULE IS NOT IMPORTED DOES NOT FAIL AS A MODULE
+॰ ERROR. `अर्थ` resolves the prefix against this file's imports, finds none,
+॰ and reports the WHOLE WORD as an undeclared name — `वाक्यविभागॱसंज्ञाकुलकोश`
+॰ — because the lexer keeps an interior `ॱ` inside the word. So a missing
+॰ import and a misspelt name are the same message, and only the shape of the
+॰ name tells them apart.
+आयातः वाक्यविभाग ।
+॰ For निदानपङ्क्तयः 's row walk over spec/diagnostics.tsv — पङ्क्तिसीमा ,
+॰ उपेक्ष्यपङ्क्तिः , क्षेत्रसंख्या , क्षेत्रारम्भः and क्षेत्रसीमा . The same
+॰ five समयोजन ॱ भेदाङ्कः reads relocations-riscv64.tsv through
+॰ (samyojana.t1:501-531), so the crate has ONE table reader and not four.
+आयातः सङ्केतन ।
+आयातः पदविभाग ।   ॰ the spec-table store: `समावेशपाठः` answers a table by name (2026-09-14)
+
+
+॰ ══════════════════ UAX #29, the four rules that can fire ══════════════
+॰ THE SEGMENTER RETURNS WHICH RULE DECIDED, and that is not decoration.
+॰ A code-point segmenter — the defect this row exists to prevent — returns
+॰ विच्छेदनियमः and nothing else, forever. Every other module in this crate
+॰ that answered the same question answered it this way: मध्यरूप made the
+॰ instruction kind the first argument so ir_kinds_built could see it, and
+॰ वाक्यविभाग made the statement kind first for the same reason. Here the
+॰ RULE is the return value, so a test can count which rules the file
+॰ actually applies and name the one that makes क्ष a single अक्षर .
+
+सार्वजनिक चरः योजकनियमः ॱॱ न६४ भवति ९ ।       ॰ GB9   — विस्तारः attaches
+सार्वजनिक चरः मात्रानियमः ॱॱ न६४ भवति ९१ ।    ॰ GB9a  — मात्रा attaches
+सार्वजनिक चरः संयोगनियमः ॱॱ न६४ भवति ९३ ।     ॰ GB9c  — the conjunct rule
+सार्वजनिक चरः विच्छेदनियमः ॱॱ न६४ भवति ९९९ ।  ॰ GB999 — otherwise, break
+
+॰ Grapheme_Cluster_Break, restricted to the Devanagari block.
+सार्वजनिक चरः अन्यद्वर्गः ॱॱ न६४ भवति ० ।     ॰ GraphemeBreak::Other
+सार्वजनिक चरः विस्तारवर्गः ॱॱ न६४ भवति १ ।    ॰ GraphemeBreak::Extend
+सार्वजनिक चरः मात्रावर्गः ॱॱ न६४ भवति २ ।     ॰ GraphemeBreak::SpacingMark
+
+॰ Indic_Conjunct_Break, likewise. GB9c reads nothing else.
+सार्वजनिक चरः अन्तर्नास्ति ॱॱ न६४ भवति ० ।    ॰ Incb::None
+सार्वजनिक चरः अन्तर्व्यञ्जनम् ॱॱ न६४ भवति १ । ॰ Incb::Consonant
+सार्वजनिक चरः अन्तर्योजकम् ॱॱ न६४ भवति २ ।    ॰ Incb::Linker — the virāma
+सार्वजनिक चरः अन्तर्विस्तारः ॱॱ न६४ भवति ३ ।  ॰ Incb::Extend
+
+
+॰ ══════════════════ UTF-8, one code point at a time ══════════════════
+॰ पदविभाग ॱ पदविभाग already walks a source by lead byte to COUNT
+॰ akṣaras. Counting needs only the width; deciding a break needs the code
+॰ point itself, because every rule above is a range test. So this decodes
+॰ where the lexer only measures.
+
+॰ How many अष्टक the sequence beginning with this lead byte occupies.
+सार्वजनिक वृत्तिः अष्टकसंख्या आदाय अग्रिमाष्टक ॱॱ अ८ ददाति न६४ आदि
+    यदि अग्रिमाष्टक न्यूनम् १२८ आदि
+        प्रत्यागमनम् १ ।
+    इति
+    यदि अग्रिमाष्टक न्यूनम् २२४ आदि
+        प्रत्यागमनम् २ ।
+    इति
+    यदि अग्रिमाष्टक न्यूनम् २४० आदि
+        प्रत्यागमनम् ३ ।
+    इति
+    प्रत्यागमनम् ४ ।
+इति
+
+॰ The code point beginning at सूचकाङ्क . Devanagari is the three-अष्टक
+॰ case throughout; the other three are written because a comment and a
+॰ literal may hold anything the repertoire admits, and a decoder that
+॰ handled only its own script would misread the first one it met.
+सार्वजनिक वृत्तिः सङ्केताङ्कः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ सूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः अग्रिमाष्टक ॱॱ अ८ भवति मूल अङ्कः सूचकाङ्क अन्तः ।
+    चरः व्याप्ति ॱॱ न६४ भवति अष्टकसंख्या अग्रिमाष्टक ।
+
+    यदि व्याप्ति समम् १ आदि
+        प्रत्यागमनम् अग्रिमाष्टक ।
+    इति
+
+    यदि व्याप्ति समम् २ आदि
+        चरः द्वितीय ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+        प्रत्यागमनम् आरभ्य आरभ्य अग्रिमाष्टक वियोगः १९२ समाप्तम् गुणनम् ६४ समाप्तम्
+            योगः आरभ्य द्वितीय वियोगः १२८ समाप्तम् ।
+    इति
+
+    यदि व्याप्ति समम् ३ आदि
+        चरः द्वितीयः ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+        चरः तृतीयः ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः ।
+        प्रत्यागमनम् आरभ्य आरभ्य अग्रिमाष्टक वियोगः २२४ समाप्तम् गुणनम् ४०९६ समाप्तम्
+            योगः आरभ्य आरभ्य द्वितीयः वियोगः १२८ समाप्तम् गुणनम् ६४ समाप्तम्
+            योगः आरभ्य तृतीयः वियोगः १२८ समाप्तम् ।
+    इति
+
+    चरः द्वितीयम् ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+    चरः तृतीयम् ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः ।
+    चरः चतुर्थम् ॱॱ अ८ भवति मूल अङ्कः आरभ्य सूचकाङ्क योगः ३ समाप्तम् अन्तः ।
+    प्रत्यागमनम् आरभ्य आरभ्य अग्रिमाष्टक वियोगः २४० समाप्तम् गुणनम् २६२१४४ समाप्तम्
+        योगः आरभ्य आरभ्य द्वितीयम् वियोगः १२८ समाप्तम् गुणनम् ४०९६ समाप्तम्
+        योगः आरभ्य आरभ्य तृतीयम् वियोगः १२८ समाप्तम् गुणनम् ६४ समाप्तम्
+        योगः आरभ्य चतुर्थम् वियोगः १२८ समाप्तम् ।
+इति
+
+
+॰ ══════════════════ the two property lookups ══════════════════
+॰ crates/sanskrit-text/src/lib.rs binary-searches a range table. Inside
+॰ one Unicode block the table is short enough to be the code, and writing
+॰ it as code rather than as data is what keeps this file free of the
+॰ generated-table dependency the general port would need.
+
+॰ Grapheme_Cluster_Break of a code point. Ranges read off tables.rs, with
+॰ the strict-bound convention the header states.
+सार्वजनिक वृत्तिः विस्तारवर्गीकरणम् आदाय सङ्केताङ्क ॱॱ न६४ ददाति न६४ आदि
+    ॰ U+08E3..U+0902 — the inherited marks and anusvāra, Extend
+    यदि सङ्केताङ्क अधिकम् २२७४ आदि
+        यदि सङ्केताङ्क न्यूनम् २३०७ आदि
+            प्रत्यागमनम् विस्तारवर्गः ।
+        इति
+    इति
+    ॰ U+0903 visarga — SpacingMark, so योगः is two akṣaras and not three
+    यदि सङ्केताङ्क समम् २३०७ आदि
+        प्रत्यागमनम् मात्रावर्गः ।
+    इति
+    ॰ U+093A oe-matra — Extend
+    यदि सङ्केताङ्क समम् २३६२ आदि
+        प्रत्यागमनम् विस्तारवर्गः ।
+    इति
+    ॰ U+093B ooe-matra — SpacingMark
+    यदि सङ्केताङ्क समम् २३६३ आदि
+        प्रत्यागमनम् मात्रावर्गः ।
+    इति
+    ॰ U+093C nukta — Extend
+    यदि सङ्केताङ्क समम् २३६४ आदि
+        प्रत्यागमनम् विस्तारवर्गः ।
+    इति
+    ॰ U+093E..U+0940 — the spacing ā/i/ī matras
+    यदि सङ्केताङ्क अधिकम् २३६५ आदि
+        यदि सङ्केताङ्क न्यूनम् २३६९ आदि
+            प्रत्यागमनम् मात्रावर्गः ।
+        इति
+    इति
+    ॰ U+0941..U+0948 — the non-spacing u/ū/ṛ/e matras
+    यदि सङ्केताङ्क अधिकम् २३६८ आदि
+        यदि सङ्केताङ्क न्यूनम् २३७७ आदि
+            प्रत्यागमनम् विस्तारवर्गः ।
+        इति
+    इति
+    ॰ U+0949..U+094C — the spacing o matras
+    यदि सङ्केताङ्क अधिकम् २३७६ आदि
+        यदि सङ्केताङ्क न्यूनम् २३८१ आदि
+            प्रत्यागमनम् मात्रावर्गः ।
+        इति
+    इति
+    ॰ U+094D virāma — Extend. It is ALSO the Linker below; the two
+    ॰ properties are different questions about the same character.
+    यदि सङ्केताङ्क समम् २३८१ आदि
+        प्रत्यागमनम् विस्तारवर्गः ।
+    इति
+    ॰ U+094E..U+094F — prishthamatra e/aw
+    यदि सङ्केताङ्क अधिकम् २३८१ आदि
+        यदि सङ्केताङ्क न्यूनम् २३८४ आदि
+            प्रत्यागमनम् मात्रावर्गः ।
+        इति
+    इति
+    ॰ U+0951..U+0957 — the Vedic accents and the remaining matras
+    यदि सङ्केताङ्क अधिकम् २३८४ आदि
+        यदि सङ्केताङ्क न्यूनम् २३९२ आदि
+            प्रत्यागमनम् विस्तारवर्गः ।
+        इति
+    इति
+    ॰ U+0962..U+0963 — the vocalic l matras
+    यदि सङ्केताङ्क अधिकम् २४०१ आदि
+        यदि सङ्केताङ्क न्यूनम् २४०४ आदि
+            प्रत्यागमनम् विस्तारवर्गः ।
+        इति
+    इति
+    प्रत्यागमनम् अन्यद्वर्गः ।
+इति
+
+॰ Indic_Conjunct_Break of a code point. GB9c reads nothing else.
+सार्वजनिक वृत्तिः अन्तर्वर्गीकरणम् आदाय सङ्केताङ्क ॱॱ न६४ ददाति न६४ आदि
+    ॰ U+094D virāma — THE LINKER. This one line is why क्ष is one akṣara.
+    यदि सङ्केताङ्क समम् २३८१ आदि
+        प्रत्यागमनम् अन्तर्योजकम् ।
+    इति
+    ॰ U+0915..U+0939 — क through ह , the consonants proper
+    यदि सङ्केताङ्क अधिकम् २३२४ आदि
+        यदि सङ्केताङ्क न्यूनम् २३६२ आदि
+            प्रत्यागमनम् अन्तर्व्यञ्जनम् ।
+        इति
+    इति
+    ॰ U+0958..U+095F — the nukta consonants
+    यदि सङ्केताङ्क अधिकम् २३९१ आदि
+        यदि सङ्केताङ्क न्यूनम् २४०० आदि
+            प्रत्यागमनम् अन्तर्व्यञ्जनम् ।
+        इति
+    इति
+    ॰ U+0978..U+097F — the late additions
+    यदि सङ्केताङ्क अधिकम् २४२३ आदि
+        यदि सङ्केताङ्क न्यूनम् २४३२ आदि
+            प्रत्यागमनम् अन्तर्व्यञ्जनम् ।
+        इति
+    इति
+    ॰ U+08E3..U+0902, U+093A, U+093C, U+0941..U+0948, U+0951..U+0957,
+    ॰ U+0962..U+0963 — Incb::Extend. A mark between the व्यञ्जन and the
+    ॰ योजक does not break the conjunct.
+    यदि सङ्केताङ्क अधिकम् २२७४ आदि
+        यदि सङ्केताङ्क न्यूनम् २३०७ आदि
+            प्रत्यागमनम् अन्तर्विस्तारः ।
+        इति
+    इति
+    यदि सङ्केताङ्क समम् २३६२ आदि
+        प्रत्यागमनम् अन्तर्विस्तारः ।
+    इति
+    यदि सङ्केताङ्क समम् २३६४ आदि
+        प्रत्यागमनम् अन्तर्विस्तारः ।
+    इति
+    यदि सङ्केताङ्क अधिकम् २३६८ आदि
+        यदि सङ्केताङ्क न्यूनम् २३७७ आदि
+            प्रत्यागमनम् अन्तर्विस्तारः ।
+        इति
+    इति
+    यदि सङ्केताङ्क अधिकम् २३८४ आदि
+        यदि सङ्केताङ्क न्यूनम् २३९२ आदि
+            प्रत्यागमनम् अन्तर्विस्तारः ।
+        इति
+    इति
+    यदि सङ्केताङ्क अधिकम् २४०१ आदि
+        यदि सङ्केताङ्क न्यूनम् २४०४ आदि
+            प्रत्यागमनम् अन्तर्विस्तारः ।
+        इति
+    इति
+    प्रत्यागमनम् अन्तर्नास्ति ।
+इति
+
+
+॰ ══════════════════ the cursor ══════════════════
+॰ segment.rs keeps five fields; three of them — the regional-indicator
+॰ run, the pictographic state and the previous GCB class — belong to
+॰ rules that cannot fire inside Devanagari, so this cursor is the two that
+॰ can. GB9c is not decidable from the adjacent pair, which is the whole
+॰ reason there is a cursor at all rather than a table of pairs: क ् ष
+॰ breaks between ् and ष unless something remembers that a व्यञ्जन came
+॰ before the ् .
+
+सार्वजनिक चरः दृष्टव्यञ्जनम् ॱॱ बूल भवति असत्यम् । ॰ incb_consonant
+सार्वजनिक चरः दृष्टयोजकम् ॱॱ बूल भवति असत्यम् ।    ॰ incb_linker
+
+सार्वजनिक वृत्तिः दर्शकारम्भः ददाति न६४ आदि
+    दृष्टव्यञ्जनम् भवति असत्यम् ।
+    दृष्टयोजकम् भवति असत्यम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Cursor::push — fold one code point into the conjunct state.
+सार्वजनिक वृत्तिः दर्शकवर्धनम् आदाय सङ्केताङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः अन्तर्वर्ग ॱॱ न६४ भवति अन्तर्वर्गीकरणम् सङ्केताङ्क ।
+
+    यदि अन्तर्वर्ग समम् अन्तर्व्यञ्जनम् आदि
+        दृष्टव्यञ्जनम् भवति सत्यम् ।
+        दृष्टयोजकम् भवति असत्यम् ।
+        प्रत्यागमनम् ० ।
+    इति
+
+    यदि अन्तर्वर्ग समम् अन्तर्योजकम् आदि
+        यदि दृष्टव्यञ्जनम् आदि
+            दृष्टयोजकम् भवति सत्यम् ।
+            प्रत्यागमनम् ० ।
+        इति
+    इति
+
+    ॰ An Incb::Extend between the व्यञ्जन and the योजक leaves both flags
+    ॰ standing — segment.rs's empty match arm, written out.
+    यदि अन्तर्वर्ग समम् अन्तर्विस्तारः आदि
+        यदि दृष्टव्यञ्जनम् आदि
+            प्रत्यागमनम् ० ।
+        इति
+    इति
+
+    दृष्टव्यञ्जनम् भवति असत्यम् ।
+    दृष्टयोजकम् भवति असत्यम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Cursor::breaks_before — WHICH RULE decides between the text so far and
+॰ the next code point. The rules are tried in the order UAX #29 numbers
+॰ them and the first that matches decides, exactly as segment.rs does.
+॰
+॰ THE RETURN VALUE IS THE RULE, NOT A बूल . A caller that only wanted to
+॰ know whether to break can compare against विच्छेदनियमः ; what the rule
+॰ number buys is that this file can be MEASURED for whether it applies
+॰ the conjunct rule at all, and a port that quietly became code-point
+॰ level would return विच्छेदनियमः here and nowhere else.
+सार्वजनिक वृत्तिः विच्छेदः आदाय अग्रिमसङ्केताङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः विस्तारवर्ग ॱॱ न६४ भवति विस्तारवर्गीकरणम् अग्रिमसङ्केताङ्क ।
+
+    ॰ GB9 — विस्तारः never begins a cluster.
+    यदि विस्तारवर्ग समम् विस्तारवर्गः आदि
+        प्रत्यागमनम् योजकनियमः ।
+    इति
+
+    ॰ GB9a — a मात्रा attaches to its base. कि is one akṣara though the
+    ॰ i-matra is stored after the consonant and drawn before it.
+    यदि विस्तारवर्ग समम् मात्रावर्गः आदि
+        प्रत्यागमनम् मात्रानियमः ।
+    इति
+
+    ॰ GB9c — THE CONJUNCT RULE, and the reason this row exists. क + ् +
+    ॰ ष stays one akṣara, so अक्षरदूरम् of क्ष and क is १ and not ३ .
+    यदि दृष्टव्यञ्जनम् आदि
+        यदि दृष्टयोजकम् आदि
+            चरः अग्रिमान्तर्वर्ग ॱॱ न६४ भवति अन्तर्वर्गीकरणम् अग्रिमसङ्केताङ्क ।
+            यदि अग्रिमान्तर्वर्ग समम् अन्तर्व्यञ्जनम् आदि
+                प्रत्यागमनम् संयोगनियमः ।
+            इति
+        इति
+    इति
+
+    ॰ GB999 — break.
+    प्रत्यागमनम् विच्छेदनियमः ।
+इति
+
+
+॰ ══════════════════ अक्षरविभागः ══════════════════
+॰ The attested name (spec/lexicon.src.tsv, doc 04): akshara segmentation.
+॰ segment.rs's Aksharas::next, which yields a borrowed slice; T1 has no
+॰ slice, so this yields the LENGTH IN अष्टक of the akṣara beginning at
+॰ सूचकाङ्क and the caller walks by adding it. ० means there is nothing
+॰ there, which is Rust's None.
+
+सार्वजनिक वृत्तिः अक्षरविभागः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ सूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
+    चरः व्याप्ति ॱॱ न६४ भवति ० ।
+
+    यदि सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः आरम्भफलम् ॱॱ न६४ भवति दर्शकारम्भः ।
+        चरः प्रथमाङ्क ॱॱ न६४ भवति सङ्केताङ्कः मूल सूचकाङ्क ।
+        चरः वर्धनफलम् ॱॱ न६४ भवति दर्शकवर्धनम् प्रथमाङ्क ।
+
+        चरः स्थान ॱॱ न६४ भवति सूचकाङ्क योगः अष्टकसंख्या आरभ्य मूल अङ्कः सूचकाङ्क अन्तः समाप्तम् ।
+        चरः चलतु ॱॱ बूल भवति सत्यम् ।
+
+        यावत् चलतु आदि
+            यदि स्थान न्यूनम् दैर्घ्य आदि
+                चरः अग्रिमाङ्क ॱॱ न६४ भवति सङ्केताङ्कः मूल स्थान ।
+                चरः नियम ॱॱ न६४ भवति विच्छेदः अग्रिमाङ्क ।
+                यदि नियम समम् विच्छेदनियमः आदि
+                    चलतु भवति असत्यम् ।
+                इति अन्यथा आदि
+                    वर्धनफलम् भवति दर्शकवर्धनम् अग्रिमाङ्क ।
+                    स्थान भवति स्थान योगः अष्टकसंख्या आरभ्य मूल अङ्कः स्थान अन्तः समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                चलतु भवति असत्यम् ।
+            इति
+        इति
+
+        व्याप्ति भवति स्थान वियोगः सूचकाङ्क ।
+    इति
+
+    प्रत्यागमनम् व्याप्ति ।
+इति
+
+॰ aksharas_count — the COLUMN COUNT, not the code-point count. The
+॰ relative threshold in दूरसीमा is a third of THIS number.
+सार्वजनिक वृत्तिः अक्षरसंख्या आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
+    चरः स्थान ॱॱ न६४ भवति ० ।
+    चरः संख्यानम् ॱॱ न६४ भवति ० ।
+
+    यावत् स्थान न्यूनम् दैर्घ्य आदि
+        चरः व्याप्ति ॱॱ न६४ भवति अक्षरविभागः मूल स्थान ।
+        यदि व्याप्ति समम् ० आदि
+            प्रत्यागमनम् संख्यानम् ।
+        इति
+        स्थान भवति स्थान योगः व्याप्ति ।
+        संख्यानम् भवति संख्यानम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+
+॰ ══════════════════ the akṣara arenas ══════════════════
+॰ अक्षरदूरम् compares akṣara i of one name with akṣara j of another, over
+॰ and over. Re-segmenting from the start each time would make the distance
+॰ quadratic in the segmentation as well as in the length, so each name is
+॰ walked ONCE into a pair of arenas — where it starts, how long it is —
+॰ and the matrix reads those. The arenas are the module's, as every arena
+॰ in this crate is.
+
+सार्वजनिक चरः प्रथमारम्भकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः प्रथमदैर्घ्यकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः प्रथमसंख्यान ॱॱ न६४ भवति ० ।
+
+सार्वजनिक चरः द्वितीयारम्भकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः द्वितीयदैर्घ्यकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः द्वितीयसंख्यान ॱॱ न६४ भवति ० ।
+
+॰ The two rows of the edit matrix. Rust keeps prev and cur and swaps
+॰ them; there is no swap here, so वर्तमानपङ्क्ति is copied back into
+॰ पूर्वपङ्क्ति at the foot of each row.
+सार्वजनिक चरः पूर्वपङ्क्ति ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः वर्तमानपङ्क्ति ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+
+॰ Walk one name into the first pair of arenas.
+सार्वजनिक वृत्तिः प्रथमविभजनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
+    चरः स्थान ॱॱ न६४ भवति ० ।
+    प्रथमसंख्यान भवति ० ।
+
+    यावत् स्थान न्यूनम् दैर्घ्य आदि
+        चरः व्याप्ति ॱॱ न६४ भवति अक्षरविभागः मूल स्थान ।
+        यदि व्याप्ति समम् ० आदि
+            प्रत्यागमनम् प्रथमसंख्यान ।
+        इति
+        प्रथमसंख्यान भवति आरभ्य प्रथमसंख्यान योगः १ समाप्तम् ।
+        प्रथमारम्भकोश अङ्कः प्रथमसंख्यान अन्तः भवति स्थान ।
+        प्रथमदैर्घ्यकोश अङ्कः प्रथमसंख्यान अन्तः भवति व्याप्ति ।
+        स्थान भवति स्थान योगः व्याप्ति ।
+    इति
+
+    प्रत्यागमनम् प्रथमसंख्यान ।
+इति
+
+॰ And the other name into the second pair.
+सार्वजनिक वृत्तिः द्वितीयविभजनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
+    चरः स्थान ॱॱ न६४ भवति ० ।
+    द्वितीयसंख्यान भवति ० ।
+
+    यावत् स्थान न्यूनम् दैर्घ्य आदि
+        चरः व्याप्ति ॱॱ न६४ भवति अक्षरविभागः मूल स्थान ।
+        यदि व्याप्ति समम् ० आदि
+            प्रत्यागमनम् द्वितीयसंख्यान ।
+        इति
+        द्वितीयसंख्यान भवति आरभ्य द्वितीयसंख्यान योगः १ समाप्तम् ।
+        द्वितीयारम्भकोश अङ्कः द्वितीयसंख्यान अन्तः भवति स्थान ।
+        द्वितीयदैर्घ्यकोश अङ्कः द्वितीयसंख्यान अन्तः भवति व्याप्ति ।
+        स्थान भवति स्थान योगः व्याप्ति ।
+    इति
+
+    प्रत्यागमनम् द्वितीयसंख्यान ।
+इति
+
+॰ Is akṣara क्रमः of the first name the same TEXT as akṣara स्तम्भः of
+॰ the second? Rust compares two &str; here it is a length and then the
+॰ bytes.
+सार्वजनिक वृत्तिः अक्षरतुल्यम् आदाय प्रथम ॱॱ अङ्कः अन्तः अ८ ऽ क्रमः ॱॱ न६४ ऽ द्वितीय ॱॱ अङ्कः अन्तः अ८ ऽ स्तम्भः ॱॱ न६४ ददाति बूल आदि
+    चरः प्रथमदैर्घ्य ॱॱ न६४ भवति प्रथमदैर्घ्यकोश अङ्कः क्रमः अन्तः ।
+    चरः द्वितीयदैर्घ्य ॱॱ न६४ भवति द्वितीयदैर्घ्यकोश अङ्कः स्तम्भः अन्तः ।
+
+    यदि प्रथमदैर्घ्य असमम् द्वितीयदैर्घ्य आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः प्रथमस्थान ॱॱ न६४ भवति प्रथमारम्भकोश अङ्कः क्रमः अन्तः ।
+    चरः द्वितीयस्थान ॱॱ न६४ भवति द्वितीयारम्भकोश अङ्कः स्तम्भः अन्तः ।
+    चरः सरण ॱॱ न६४ भवति ० ।
+
+    यावत् सरण न्यूनम् प्रथमदैर्घ्य आदि
+        चरः वाम ॱॱ अ८ भवति प्रथम अङ्कः आरभ्य प्रथमस्थान योगः सरण समाप्तम् अन्तः ।
+        चरः दक्षिण ॱॱ अ८ भवति द्वितीय अङ्कः आरभ्य द्वितीयस्थान योगः सरण समाप्तम् अन्तः ।
+        यदि वाम असमम् दक्षिण आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सरण भवति सरण योगः १ ।
+    इति
+
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+
+॰ ══════════════════ अक्षरदूरम् ══════════════════
+॰ crates/sadhana/src/parse.rs:375. Levenshtein, and the two lines that
+॰ matter are the first two: the operands are AKṢARAS. Everything below is
+॰ the ordinary two-row matrix; what makes it right for this language is
+॰ that a[i] and b[j] are clusters, so क्ष and क are one edit apart rather
+॰ than three.
+
+सार्वजनिक वृत्तिः अक्षरदूरम् आदाय प्रथम ॱॱ अङ्कः अन्तः अ८ ऽ द्वितीय ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः वामसंख्या ॱॱ न६४ भवति प्रथमविभजनम् प्रथम ।
+    चरः दक्षिणसंख्या ॱॱ न६४ भवति द्वितीयविभजनम् द्वितीय ।
+
+    ॰ Row zero: deleting every akṣara of the second name.
+    चरः स्तम्भः ॱॱ न६४ भवति ० ।
+    यावत् स्तम्भः न्यूनम् आरभ्य दक्षिणसंख्या योगः १ समाप्तम् आदि
+        पूर्वपङ्क्ति अङ्कः स्तम्भः अन्तः भवति स्तम्भः ।
+        स्तम्भः भवति स्तम्भः योगः १ ।
+    इति
+
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य वामसंख्या योगः १ समाप्तम् आदि
+        वर्तमानपङ्क्ति अङ्कः ० अन्तः भवति क्रमः ।
+
+        चरः अङ्क ॱॱ न६४ भवति १ ।
+        यावत् अङ्क न्यूनम् आरभ्य दक्षिणसंख्या योगः १ समाप्तम् आदि
+            ॰ usize::from(a[i-1] != b[j-1])
+            चरः व्यय ॱॱ न६४ भवति १ ।
+            यदि अक्षरतुल्यम् प्रथम क्रमः द्वितीय अङ्क आदि
+                व्यय भवति ० ।
+            इति
+
+            चरः निष्कासनम् ॱॱ न६४ भवति आरभ्य पूर्वपङ्क्ति अङ्कः अङ्क अन्तः समाप्तम् योगः १ ।
+            चरः योजनम् ॱॱ न६४ भवति आरभ्य वर्तमानपङ्क्ति अङ्कः आरभ्य अङ्क वियोगः १ समाप्तम् अन्तः समाप्तम् योगः १ ।
+            चरः परिवर्तनम् ॱॱ न६४ भवति आरभ्य पूर्वपङ्क्ति अङ्कः आरभ्य अङ्क वियोगः १ समाप्तम् अन्तः समाप्तम् योगः व्यय ।
+
+            चरः अल्पम् ॱॱ न६४ भवति निष्कासनम् ।
+            यदि योजनम् न्यूनम् अल्पम् आदि
+                अल्पम् भवति योजनम् ।
+            इति
+            यदि परिवर्तनम् न्यूनम् अल्पम् आदि
+                अल्पम् भवति परिवर्तनम् ।
+            इति
+
+            वर्तमानपङ्क्ति अङ्कः अङ्क अन्तः भवति अल्पम् ।
+            अङ्क भवति अङ्क योगः १ ।
+        इति
+
+        ॰ core::mem::swap, written as a copy — T1 has no swap and the row
+        ॰ is short enough that the copy is not the cost.
+        चरः प्रतिलिपि ॱॱ न६४ भवति ० ।
+        यावत् प्रतिलिपि न्यूनम् आरभ्य दक्षिणसंख्या योगः १ समाप्तम् आदि
+            पूर्वपङ्क्ति अङ्कः प्रतिलिपि अन्तः भवति वर्तमानपङ्क्ति अङ्कः प्रतिलिपि अन्तः ।
+            प्रतिलिपि भवति प्रतिलिपि योगः १ ।
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् पूर्वपङ्क्ति अङ्कः दक्षिणसंख्या अन्तः ।
+इति
+
+
+॰ ══════════════════ the threshold ══════════════════
+॰ RELATIVE, NEVER ABSOLUTE, and this is the second thing D-002f8 records.
+॰ A fixed २ offered व्यत्ययः for क्षत्रियः — both are three akṣaras, so
+॰ two edits apart is two thirds different and the words share nothing. An
+॰ unrelated suggestion is worse than none, because it invites a wrong edit
+॰ that fails somewhere else.
+॰
+॰ A third of the LONGER name, but never less than १ : a pure ratio
+॰ rejected योग for योगः , which differ by a single visarga and is
+॰ precisely the typo worth catching. One edit is always plausible; beyond
+॰ that the names must be long enough to have earned it.
+
+सार्वजनिक वृत्तिः दूरसीमा आदाय प्रथम ॱॱ अङ्कः अन्तः अ८ ऽ द्वितीय ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः वाममान ॱॱ न६४ भवति अक्षरसंख्या प्रथम ।
+    चरः दक्षिणमान ॱॱ न६४ भवति अक्षरसंख्या द्वितीय ।
+
+    चरः दैर्घ्यम् ॱॱ न६४ भवति वाममान ।
+    यदि दक्षिणमान अधिकम् दैर्घ्यम् आदि
+        दैर्घ्यम् भवति दक्षिणमान ।
+    इति
+
+    चरः सीमा ॱॱ न६४ भवति दैर्घ्यम् विभाजनम् ३ ।
+    यदि सीमा न्यूनम् १ आदि
+        प्रत्यागमनम् १ ।
+    इति
+    प्रत्यागमनम् सीमा ।
+इति
+
+
+॰ ══════════════════ आसन्नतमम् ══════════════════
+॰ crates/sadhana/src/parse.rs:391. The registry family whose नाम is
+॰ nearest to what was written, or none. वाक्यविभाग holds the registry —
+॰ संज्ञाकुलकोश , one संज्ञाकुल per row — so this walks that arena and
+॰ returns an index into it. ० is Rust's None, which is why every arena in
+॰ वाक्यविभाग counts from १ .
+॰
+॰ min_by_key keeps the FIRST minimum, so a strict न्यूनम् is what
+॰ reproduces Rust's choice among ties; taking the last instead would
+॰ change which name is offered.
+
+सार्वजनिक चरः आसन्नक्रमः ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः आसन्नदूरम् ॱॱ न६४ भवति ० ।
+
+सार्वजनिक वृत्तिः आसन्नतमम् आदाय नाम ॱॱ अङ्कः अन्तः अ८ ऽ कुलसंख्यान ॱॱ न६४ ददाति सम्भाव्य न६४ आदि
+    आसन्नक्रमः भवति ० ।
+    आसन्नदूरम् भवति ० ।
+
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य कुलसंख्यान योगः १ समाप्तम् आदि
+        चरः कुलनाम ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱसंज्ञाकुलकोश अङ्कः क्रमः अन्तः ॱ नाम ।
+        चरः दूरम् ॱॱ न६४ भवति अक्षरदूरम् नाम कुलनाम ।
+        चरः सीमा ॱॱ न६४ भवति दूरसीमा नाम कुलनाम ।
+
+        यदि दूरम् न्यूनम् आरभ्य सीमा योगः १ समाप्तम् आदि
+            यदि आसन्नक्रमः समम् ० आदि
+                आसन्नक्रमः भवति क्रमः ।
+                आसन्नदूरम् भवति दूरम् ।
+            इति अन्यथा आदि
+                यदि दूरम् न्यूनम् आसन्नदूरम् आदि
+                    आसन्नक्रमः भवति क्रमः ।
+                    आसन्नदूरम् भवति दूरम् ।
+                इति
+            इति
+        इति
+
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् आसन्नक्रमः ।
+इति
+
+
+॰ ══════════════════ निदानम् — the registry ══════════════════
+॰ crates/sadhana/src/nidana.rs. A diagnostic is a stable कूट and the
+॰ pieces that vary; the sentence lives in spec/diagnostics.tsv, in both
+॰ languages, so translating is editing a table rather than finding every
+॰ format! in the tree.
+
+सार्वजनिक चरः संस्कृतभाषा ॱॱ न६४ भवति १ ।  ॰ Language::Sanskrit — the default
+सार्वजनिक चरः आङ्ग्लभाषा ॱॱ न६४ भवति २ ।   ॰ Language::English
+
+सार्वजनिक संरचना निदानम् आरभ्य
+    कूट ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ code
+    पदार्थारम्भ ॱॱ न६४ ऽ            ॰ args: first index into पाठांशकोश
+    पदार्थसंख्यान ॱॱ न६४            ॰ args: how many
+समाप्तम् ।
+
+॰ One registry row — spec/diagnostics.tsv's four columns.
+सार्वजनिक संरचना निदानपङ्क्ति आरभ्य
+    कूट ॱॱ अङ्कः अन्तः अ८ ऽ         ॰ code
+    पदम् ॱॱ अङ्कः अन्तः अ८ ऽ        ॰ term — the lexicon word, filed as an error
+    संस्कृतम् ॱॱ अङ्कः अन्तः अ८ ऽ   ॰ the Sanskrit template
+    आङ्ग्लम् ॱॱ अङ्कः अन्तः अ८      ॰ the English template
+समाप्तम् ।
+
+सार्वजनिक चरः निदानपङ्क्तिकोश ॱॱ अङ्कः अन्तः निदानपङ्क्ति भवति ० ।
+सार्वजनिक चरः निदानपङ्क्तिसूचकाङ्क ॱॱ न६४ भवति ० ।
+
+॰ push one registry row.
+सार्वजनिक वृत्तिः निदानपङ्क्तियोजनम् आदाय कूट ॱॱ अङ्कः अन्तः अ८ ऽ पदम् ॱॱ अङ्कः अन्तः अ८ ऽ संस्कृतम् ॱॱ अङ्कः अन्तः अ८ ऽ आङ्ग्लम् ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः नव ॱॱ निदानपङ्क्ति भवति ० ।
+    नव ॱ कूट भवति कूट ।
+    नव ॱ पदम् भवति पदम् ।
+    नव ॱ संस्कृतम् भवति संस्कृतम् ।
+    नव ॱ आङ्ग्लम् भवति आङ्ग्लम् ।
+    निदानपङ्क्तिसूचकाङ्क भवति आरभ्य निदानपङ्क्तिसूचकाङ्क योगः १ समाप्तम् ।
+    निदानपङ्क्तिकोश अङ्कः निदानपङ्क्तिसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् निदानपङ्क्तिसूचकाङ्क ।
+इति
+
+॰ Two अष्टक runs, byte for byte.
+सार्वजनिक वृत्तिः अष्टकतुल्यम् आदाय वाम ॱॱ अङ्कः अन्तः अ८ ऽ दक्षिण ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः दैर्घ्यम् ॱॱ न६४ भवति वाम ॱ दैर्घ्य ।
+    यदि दैर्घ्यम् असमम् दक्षिण ॱ दैर्घ्य आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः सरण ॱॱ न६४ भवति ० ।
+    यावत् सरण न्यूनम् दैर्घ्यम् आदि
+        यदि वाम अङ्कः सरण अन्तः असमम् दक्षिण अङ्कः सरण अन्तः आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        सरण भवति सरण योगः १ ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ row(code) — the row for a कूट , or none. NOT blocked by the Latin that
+॰ blocks निदानपङ्क्तयः : the कूट arrives as an अष्टक run from the caller
+॰ and is compared to another, so no Latin code is ever WRITTEN here.
+सार्वजनिक वृत्तिः निदानपङ्क्तिः आदाय कूट ॱॱ अङ्कः अन्तः अ८ ददाति सम्भाव्य न६४ आदि
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य निदानपङ्क्तिसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः पङ्क्ति ॱॱ निदानपङ्क्ति भवति निदानपङ्क्तिकोश अङ्कः क्रमः अन्तः ।
+        यदि अष्टकतुल्यम् आरभ्य पङ्क्ति ॱ कूट समाप्तम् कूट आदि
+            प्रत्यागमनम् क्रमः ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ whether a row is the HEADER — Rust's `!l.starts_with("code\t")`
+॰ (nidana.rs:226). Field ० of the header is the word `code` , and there is
+॰ no other way to tell it from a row: it is not a comment, it is not
+॰ blank, and it carries the same four fields every other line does.
+॰
+॰ WRITTEN AS FOUR NUMBERS, ९९ १११ १०० १०१ , which is `code` in ASCII.
+॰ R-15-1 admits no Latin literal, and ADR-0017 is explicit that a string
+॰ is not a licence to smuggle a refused character back in — so this is the
+॰ same move the header of this file makes for the brace and the digit
+॰ zero, and the same one अक्षरकोश ॱ इत्संज्ञा makes for `it` .
+सार्वजनिक वृत्तिः शीर्षपङ्क्तिः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भ ॱॱ अ६४ ऽ अवसान ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य अवसान वियोगः आरम्भ समाप्तम् असमम् ४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरम्भ अन्तः असमम् ९९ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आरम्भ योगः १ समाप्तम् अन्तः असमम् १११ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आरम्भ योगः २ समाप्तम् अन्तः असमम् १०० आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आरम्भ योगः ३ समाप्तम् अन्तः असमम् १०१ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ rows() — READ spec/diagnostics.tsv AND FILL THE ARENA ABOVE.
+॰
+॰ THE BLOCKER IS CLEARED, AND IT WAS NEVER ABOUT THE LANGUAGE. This stub
+॰ read "T1 has neither an include nor a file reader — the same wall
+॰ सङ्केतन ॱ सङ्केताः stands at". That wall came down when ADR-0019's
+॰ समावेशः landed; what kept THIS routine behind it afterwards was that
+॰ spec/diagnostics.tsv had no NAME in crates/sadhana/src/t1/anita.rs's
+॰ TABLES, so the embed could not resolve to it. ("निदानकोशः",
+॰ "diagnostics.tsv") is now anita.rs:201.
+॰
+॰ WHAT AN EMPTY ARENA COST. निदानपङ्क्तिः walks निदानपङ्क्तिकोश and
+॰ answers ० for every कूट while it is empty, so विवरणम् below has no
+॰ template to render and every diagnostic in the tree comes out as its
+॰ bare code — E01 and nothing else. Eight routines downstream read as
+॰ blocked on their own account; they were blocked on this one.
+॰
+॰ निदानपङ्क्तियोजनम् above is the per-row work, already written, and it is
+॰ unchanged: this is a loop over it and nothing else here moved.
+सार्वजनिक वृत्तिः निदानपङ्क्तयः ददाति अङ्कः अन्तः निदानपङ्क्ति आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् निदानकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति ० ।
+
+    ॰ NOT AN APPEND TO WHATEVER IS THERE. निदानपङ्क्तिकोश is a module
+    ॰ global and this routine is callable twice; without the reset the
+    ॰ second call files all 54 rows a second time and निदानपङ्क्तिः starts
+    ॰ answering the first copy while the arena grows without bound.
+    निदानपङ्क्तिसूचकाङ्क भवति ० ।
+
+    यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः सीमा ॱॱ न६४ भवति सङ्केतनॱपङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+        यदि सङ्केतनॱउपेक्ष्यपङ्क्तिः पाठ्यम् आरम्भः सीमा समम् असत्यम् आदि
+            ॰ `f.len() >= 4` — code term devanagari english, counted from ० .
+            यदि सङ्केतनॱक्षेत्रसंख्या पाठ्यम् आरम्भः सीमा अधिकम् ३ आदि
+                चरः कूटादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+                चरः कूटसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+
+                यदि शीर्षपङ्क्तिः पाठ्यम् कूटादिः कूटसीमा समम् असत्यम् आदि
+                    चरः पदादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+                    चरः पदसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+                    चरः संस्कृतादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
+                    चरः संस्कृतसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
+                    चरः आङ्ग्लादिः ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                    चरः आङ्ग्लसीमा ॱॱ अ६४ भवति सङ्केतनॱक्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+
+                    चरः कूटपाठः ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः कूटादिः अन्तः कूटसीमा समाप्तम् ।
+                    चरः पदपाठः ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः पदादिः अन्तः पदसीमा समाप्तम् ।
+                    चरः संस्कृतपाठः ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः संस्कृतादिः अन्तः संस्कृतसीमा समाप्तम् ।
+                    चरः आङ्ग्लपाठः ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य पाठ्यम् अङ्कः आङ्ग्लादिः अन्तः आङ्ग्लसीमा समाप्तम् ।
+
+                    ॰ ON CALLING — the header's rule: no call stands in
+                    ॰ statement position, so the index it answers is bound.
+                    चरः क्रमाङ्क ॱॱ न६४ भवति निदानपङ्क्तियोजनम् कूटपाठः पदपाठः संस्कृतपाठः आङ्ग्लपाठः ।
+                इति
+            इति
+        इति
+
+        आरम्भः भवति सीमा योगः १ ।
+    इति
+
+    प्रत्यागमनम् निदानपङ्क्तिकोश ।
+इति
+
+
+॰ ══════════════════ विवरणम् — rendering ══════════════════
+॰ Diagnostic::render. Pick the template the भाषा asks for, then substitute
+॰ the पदार्थ for the placeholders in the order the template names them.
+॰
+॰ ON THE PLACEHOLDER, AND WHY IT IS A NUMBER HERE — see the header. १२३
+॰ is the opening brace, १२५ the closing one and ४८ the digit zero, so the
+॰ nth placeholder is the three अष्टक १२३ , ४८ योगः न , १२५ and not one
+॰ character of it is written as a literal.
+
+सार्वजनिक चरः कोष्ठकारम्भाष्टक ॱॱ न६४ भवति १२३ ।
+सार्वजनिक चरः कोष्ठकान्ताष्टक ॱॱ न६४ भवति १२५ ।
+सार्वजनिक चरः शून्याष्टक ॱॱ न६४ भवति ४८ ।
+
+॰ The rendered message accumulates here, as an अष्टक run.
+सार्वजनिक चरः विवरणकोश ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः विवरणसूचकाङ्क ॱॱ न६४ भवति ० ।
+
+॰ An empty run, to TRUNCATE विवरणकोश with. वाक्यविभाग:914 declares रिक्तपाठः
+॰ the same way and for the same reason: T1 has no empty-collection literal, so
+॰ a global initialised `भवति ०` at a slice type IS the empty run, and assigning
+॰ it is how a buffer is emptied at run time.
+सार्वजनिक चरः रिक्तविवरणम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+
+॰ TWO DEFECTS FIXED HERE 2026-08-30, both found by an agent RENDERING real
+॰ messages rather than by reading this code. Every diagnostic the assembler
+॰ emits passed through them.
+॰
+॰ (1) EVERY MESSAGE BEGAN WITH A NUL. विवरणयोजनम् advanced the cursor BEFORE
+॰     writing, so the first octet landed at १ and slot ० kept its initial ०.
+॰     विवरणम् returns the buffer whole, so the NUL came back at the head of
+॰     every rendered message. The write is now AT the cursor and the advance
+॰     follows it — a byte buffer is zero-based, unlike the one-based ARENAS
+॰     whose slot ० is deliberately never a live entry.
+॰
+॰ (2) THE BUFFER WAS NEVER TRUNCATED. विवरणारम्भः reset the INDEX and not the
+॰     length, and विवरणम् returns विवरणकोश rather than its first
+॰     विवरणसूचकाङ्क octets — which T1 cannot express, having no subslice. So a
+॰     SHORT MESSAGE RENDERED AFTER A LONG ONE INHERITED THE LONG ONE'S TAIL,
+॰     and since a tail can begin mid-character that produced INVALID UTF-8.
+॰     That is how it was found: String::from_utf8 blew up on L01's English
+॰     with Sanskrit welded to the end. विवरणारम्भः now empties the buffer, so
+॰     returning it whole is correct rather than merely usually correct.
+सार्वजनिक वृत्तिः विवरणारम्भः ददाति न६४ आदि
+    विवरणसूचकाङ्क भवति ० ।
+    विवरणकोश भवति रिक्तविवरणम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः विवरणयोजनम् आदाय अष्टक ॱॱ अ८ ददाति न६४ आदि
+    विवरणकोश अङ्कः विवरणसूचकाङ्क अन्तः भवति अष्टक ।
+    विवरणसूचकाङ्क भवति आरभ्य विवरणसूचकाङ्क योगः १ समाप्तम् ।
+    प्रत्यागमनम् विवरणसूचकाङ्क ।
+इति
+
+॰ Is there a placeholder at सूचकाङ्क , and which argument is it? Returns
+॰ the argument number, or ऋण१ for "no placeholder here". Only the ten
+॰ single-digit placeholders exist, which is every one the registry uses:
+॰ nidana.rs's own test scans ० through ३ .
+सार्वजनिक वृत्तिः पदार्थाङ्कः आदाय आकृति ॱॱ अङ्कः अन्तः अ८ ऽ सूचकाङ्क ॱॱ न६४ ददाति अ६४ आदि
+    चरः दैर्घ्यम् ॱॱ न६४ भवति आकृति ॱ दैर्घ्य ।
+    यदि दैर्घ्यम् न्यूनम् आरभ्य सूचकाङ्क योगः ३ समाप्तम् आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+
+    यदि आकृति अङ्कः सूचकाङ्क अन्तः असमम् कोष्ठकारम्भाष्टक आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+    यदि आकृति अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः असमम् कोष्ठकान्ताष्टक आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+
+    चरः अङ्कम् ॱॱ अ८ भवति आकृति अङ्कः आरभ्य सूचकाङ्क योगः १ समाप्तम् अन्तः ।
+    यदि अङ्कम् न्यूनम् शून्याष्टक आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+    यदि अङ्कम् अधिकम् आरभ्य शून्याष्टक योगः ९ समाप्तम् आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+
+    प्रत्यागमनम् अङ्कम् वियोगः शून्याष्टक ।
+इति
+
+॰ Copy one पदार्थ out of वाक्यविभागॱपाठांशकोश into विवरणकोश .
+सार्वजनिक वृत्तिः पदार्थलेखनम् आदाय पदार्थारम्भ ॱॱ न६४ ऽ पदार्थसंख्यान ॱॱ न६४ ऽ अङ्कम् ॱॱ अ६४ ददाति न६४ आदि
+    चरः लिखितम् ॱॱ न६४ भवति ० ।
+
+    ॰ An argument the caller did not supply renders as nothing rather than
+    ॰ as a panic. render()'s own rule: a compiler that crashes while
+    ॰ explaining a mistake has replaced the user's problem with its own.
+    यदि अङ्कम् न्यूनम् पदार्थसंख्यान आदि
+        चरः पाठ ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱपाठांशकोश अङ्कः आरभ्य पदार्थारम्भ योगः अङ्कम् समाप्तम् अन्तः ॱ पाठ ।
+        चरः सरण ॱॱ न६४ भवति ० ।
+        चरः फलम् ॱॱ न६४ भवति ० ।
+        यावत् सरण न्यूनम् पाठ ॱ दैर्घ्य आदि
+            फलम् भवति विवरणयोजनम् आरभ्य पाठ अङ्कः सरण अन्तः समाप्तम् ।
+            सरण भवति सरण योगः १ ।
+        इति
+        लिखितम् भवति सरण ।
+    इति
+
+    प्रत्यागमनम् लिखितम् ।
+इति
+
+॰ Diagnostic::render — THE ROUTINE THAT ACTUALLY RENDERS A DIAGNOSTIC.
+॰ A कूट absent from the registry renders as the कूट itself rather than
+॰ panicking, which is nidana.rs's rule and the reason निदानपङ्क्तयः being
+॰ a stub does not make this routine wrong: with an empty arena every code
+॰ takes the unregistered path, which is a defined answer and not a fault.
+सार्वजनिक वृत्तिः विवरणम् आदाय दोषम् ॱॱ निदानम् ऽ भाषा ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः आरम्भफलम् ॱॱ न६४ भवति विवरणारम्भः ।
+    चरः फलम् ॱॱ न६४ भवति ० ।
+
+    चरः क्रमः ॱॱ न६४ भवति निदानपङ्क्तिः दोषम् ॱ कूट ।
+    यदि क्रमः समम् ० आदि
+        ॰ the unregistered path — the code, and nothing invented.
+        चरः कूटसरण ॱॱ न६४ भवति ० ।
+        यावत् कूटसरण न्यूनम् दोषम् ॱ कूट ॱ दैर्घ्य आदि
+            फलम् भवति विवरणयोजनम् आरभ्य दोषम् ॱ कूट अङ्कः कूटसरण अन्तः समाप्तम् ।
+            कूटसरण भवति कूटसरण योगः १ ।
+        इति
+        प्रत्यागमनम् विवरणकोश ।
+    इति
+
+    चरः पङ्क्ति ॱॱ निदानपङ्क्ति भवति निदानपङ्क्तिकोश अङ्कः क्रमः अन्तः ।
+
+    ॰ THE LANGUAGE IS CHOSEN HERE, and this is the whole of doc 01
+    ॰ §1.2.4's "bilingual errors free": one column or the other, and the
+    ॰ substitution below does not know which it took.
+    चरः आकृति ॱॱ अङ्कः अन्तः अ८ भवति पङ्क्ति ॱ संस्कृतम् ।
+    यदि भाषा समम् आङ्ग्लभाषा आदि
+        आकृति भवति पङ्क्ति ॱ आङ्ग्लम् ।
+    इति
+
+    चरः सरण ॱॱ न६४ भवति ० ।
+    यावत् सरण न्यूनम् आकृति ॱ दैर्घ्य आदि
+        चरः अङ्कम् ॱॱ अ६४ भवति पदार्थाङ्कः आकृति सरण ।
+        यदि अङ्कम् अधिकम् ऋण१ आदि
+            फलम् भवति पदार्थलेखनम् दोषम् ॱ पदार्थारम्भ दोषम् ॱ पदार्थसंख्यान अङ्कम् ।
+            सरण भवति सरण योगः ३ ।
+        इति अन्यथा आदि
+            फलम् भवति विवरणयोजनम् आरभ्य आकृति अङ्कः सरण अन्तः समाप्तम् ।
+            सरण भवति सरण योगः १ ।
+        इति
+    इति
+
+    प्रत्यागमनम् विवरणकोश ।
+इति
+
+
+॰ ══════════════════ सन्देश — ParseError::message ══════════════════
+॰ crates/sadhana/src/parse.rs:329. THE ENTRY POINT OF THIS ROW: a caller
+॰ holds a वाक्यदोष and wants the sentence in a language it chooses.
+॰
+॰ A diagnostic with no कूट yet falls back to its rendered कारणम् — B-078e,
+॰ the codes that are still formatted by hand — so this is not an error
+॰ path and must not be written as one.
+
+सार्वजनिक वृत्तिः सन्देश आदाय दोष ॱॱ वाक्यविभागॱवाक्यदोष ऽ भाषा ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि दोष ॱ कूट ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् दोष ॱ कारणम् ।
+    इति
+
+    ॰ NOT `निदान` (2026-09-14): this module IS `मण्डलम् निदान`, so `निदान ॱ कूट`
+    ॰ is ambiguous between the local's FIELD and the module-qualified routine
+    ॰ `निदान`ॱ`कूट`, and resolution takes the qualification — "`निदान` has no
+    ॰ routine `कूट`", which is true and is not what the line means. The FORM is
+    ॰ fine: the same `x ॱ field ॱ …` chain occurs 53 times in the corpus and 52
+    ॰ of them run, including `:981` in this file, where the variable is `दोषम्`.
+    ॰ It is the NAME. A name that is also a namespace resolves as the namespace,
+    ॰ and nothing can tell the two apart from spelling alone.
+    चरः सन्देशनिदानम् ॱॱ निदानम् भवति ० ।
+    सन्देशनिदानम् ॱ कूट भवति दोष ॱ कूट ।
+    सन्देशनिदानम् ॱ पदार्थारम्भ भवति दोष ॱ पदार्थारम्भ ।
+    सन्देशनिदानम् ॱ पदार्थसंख्यान भवति दोष ॱ पदार्थसंख्यान ।
+
+    प्रत्यागमनम् विवरणम् सन्देशनिदानम् भाषा ।
+इति

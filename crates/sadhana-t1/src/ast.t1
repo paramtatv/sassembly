@@ -1,0 +1,232 @@
+मण्डलम् वास्तु ॥
+
+॰ ONE MODULE IN TWO FILES, STATED (W-225, 2026-09-04). `vastu.t1` also opens
+॰ with `मण्डलम् वास्तु ॥`. That is not a rename waiting to happen and not a
+॰ collision: `nirvahana.rs:458` keys a routine as `module ॱ name`, so both
+॰ files register under `वास्तु`, and their declared names are DISJOINT — 47
+॰ here (the AST: records, kinds, the two arenas), 6 there (the object model:
+॰ `स्थापन`, `वस्तुसंज्ञा`, `पुनःस्थापनम्`, `शोधनखण्डः`, `वस्तु` and its
+॰ fields' kinds) — so a caller writing `वास्तुॱवाक्य` or `वास्तुॱवस्तु`
+॰ reaches exactly one definition. The two halves are the port of two Rust
+॰ files, `t1/ast.rs` and `vastu.rs`, that happen to share a Sanskrit name
+॰ ("the structure"): the AST is the structure of a program, the object the
+॰ structure of a file. A name added to either file must not be a name the
+॰ other declares; `t1_modules.rs` pins the pair and the disjointness.
+॰ `vastu.t1`'s header says the same from its side.
+
+॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE.
+॰ All 47 of its type positions read `अ६४` and now read `न६४`. Not one moves the
+॰ other way: `ast.t1` holds NO signed quantity at all, where `ir.t1` held four.
+॰ Every site here is a DISCRIMINANT numbered from १ or an INDEX into one of the
+॰ two arenas at the foot of the file, and neither can be negative.
+॰
+॰ THE RUST TWIN IS `crates/sadhana/src/t1/ast.rs`, AND IT REACHES ONLY TWELVE OF
+॰ THE THIRTY-FOUR KIND CONSTANTS BELOW. Its `Type` enum's five variants are the
+॰ five `*प्रकारभेद` in the same order, and `SymbolId(pub usize)` is what a
+॰ `सूचकाङ्क` is — every integer `ast.rs` declares is unsigned.
+॰ `NodeId(pub usize)` STOOD BESIDE IT HERE UNTIL 2026-09-05 and was DELETED by
+॰ `W-274`: it was `pub`, constructed nowhere, and its only use was the map
+॰ `Resolver::resolved_symbols`, deleted in the same row. The unsigned claim is
+॰ unchanged — it lost a witness, not a counterexample.
+॰ But its `Expression` has FIVE variants where this file declares eight, its
+॰ `Statement` has TWO where this file declares eight, and it has no operator
+॰ type at all; `ast.rs:36` and `:45` defer all three in as many words. So for
+॰ TWENTY-TWO of these sites the twin has nothing to read, and the sign is read
+॰ off what the constant is instead. Each line below says which case it is.
+॰
+॰ `crates/sadhana/src/t1/passes.rs` IS NOT A TWIN AND MAY NOT BE READ AS ONE:
+॰ it is absent from `t1/mod.rs`, so it is never compiled, and its test writes
+॰ `Expression::BinaryOp`, `BinaryOp::Add` and a `Declaration::Function` with an
+॰ `is_public` field — three things `ast.rs` does not have. A file that does not
+॰ build cannot say what a quantity's sign is.
+
+सार्वजनिक चरः मूलप्रकारभेद ॱॱ न६४ भवति १ ।  ॰ Type::Primitive(String)
+सार्वजनिक चरः खण्डप्रकारभेद ॱॱ न६४ भवति २ । ॰ Type::Slice(Box<Type>)
+सार्वजनिक चरः स्थानम्प्रकारभेद ॱॱ न६४ भवति ३ । ॰ Type::Pointer(Box<Type>)
+सार्वजनिक चरः सम्भाव्यप्रकारभेद ॱॱ न६४ भवति ४ । ॰ Type::Optional(Box<Type>)
+सार्वजनिक चरः दोषयुक्तप्रकारभेद ॱॱ न६४ भवति ५ । ॰ Type::ErrorUnion(Box<Type>)
+
+सार्वजनिक संरचना प्रकार आरभ्य
+    भेद ॱॱ न६४ ऽ                            ॰ which of the five kinds above
+    नामसूचकाङ्क ॱॱ न६४ ऽ                    ॰ Primitive's String, held as a symbol index
+    अन्तःप्रकारसूचकाङ्क ॱॱ न६४              ॰ the Box<Type> of the other four, held as an index
+समाप्तम् ।
+
+सार्वजनिक चरः योगद्विकर्मभेद ॱॱ न६४ भवति १ । ॰ ADR-0026's thirteen. `ast.rs` HAS NO OPERATOR TYPE:
+सार्वजनिक चरः वियोगद्विकर्मभेद ॱॱ न६४ भवति २ । ॰ `ast.rs:36` defers operators outright, so these
+सार्वजनिक चरः गुणनद्विकर्मभेद ॱॱ न६४ भवति ३ । ॰ thirteen have no twin variant to read a sign off.
+सार्वजनिक चरः विभाजनद्विकर्मभेद ॱॱ न६४ भवति ४ । ॰ They are read as what they are — a kind numbered
+सार्वजनिक चरः समद्विकर्मभेद ॱॱ न६४ भवति ५ । ॰ from १, which cannot be negative.
+सार्वजनिक चरः असमद्विकर्मभेद ॱॱ न६४ भवति ६ ।
+सार्वजनिक चरः न्यूनद्विकर्मभेद ॱॱ न६४ भवति ७ ।
+सार्वजनिक चरः अधिकद्विकर्मभेद ॱॱ न६४ भवति ८ ।
+सार्वजनिक चरः युक्द्विकर्मभेद ॱॱ न६४ भवति ९ ।
+सार्वजनिक चरः विकल्पद्विकर्मभेद ॱॱ न६४ भवति १० ।
+सार्वजनिक चरः विषमद्विकर्मभेद ॱॱ न६४ भवति ११ ।
+सार्वजनिक चरः वामसृद्विकर्मभेद ॱॱ न६४ भवति १२ ।
+सार्वजनिक चरः दक्षिणसृद्विकर्मभेद ॱॱ न६४ भवति १३ ।
+
+॰ ॥ शेषः AND बृहत्समम् ॥ ADR-0037, by owner decision 2026-09-02.
+॰
+॰ ADR-0032 recorded both as absent "so nobody re-derives it", and each entry
+॰ failed differently. MODULO: its evidence -- the corpus`s `शेषः` tokens are
+॰ all a LOCAL VARIABLE -- was TRUE on 2026-08-30, and `encode.t1:647`s
+॰ operator use is dated 08-31, the day AFTER. The ADR was overtaken.
+॰ `>=`: it asked whether `न्यूनसमम्` and `अधिकसमम्` appear. The corpus writes
+॰ `बृहत्समम्`, and `vakyavibhaga.t1:3163` has carried it since 08-29, the day
+॰ BEFORE. That search used the LEXICON`s vocabulary inside an ADR whose
+॰ principle is that the CORPUS is canonical -- a census keyed to a candidate
+॰ list can only find candidates.
+॰
+॰ Neither is a new precedence level: `शेषः` sits with `गुणनम्`/`विभाजनम्` and
+॰ `बृहत्समम्` with the comparisons, so ADR-0032`s ladder is unchanged.
+सार्वजनिक चरः शेषद्विकर्मभेद ॱॱ न६४ भवति १४ ।
+सार्वजनिक चरः बृहत्समद्विकर्मभेद ॱॱ न६४ भवति १५ ।
+
+सार्वजनिक चरः नामाभिव्यञ्जकभेद ॱॱ न६४ भवति १ । ॰ Expression::Identifier(String)
+सार्वजनिक चरः अङ्काभिव्यञ्जकभेद ॱॱ न६४ भवति २ । ॰ Expression::Numeral(String)
+सार्वजनिक चरः उक्ताभिव्यञ्जकभेद ॱॱ न६४ भवति ३ । ॰ Expression::StringLiteral(String)
+सार्वजनिक चरः समूहाभिव्यञ्जकभेद ॱॱ न६४ भवति ४ । ॰ Expression::Group(Box<Expression>)
+सार्वजनिक चरः सूचकाङ्काभिव्यञ्जकभेद ॱॱ न६४ भवति ५ । ॰ Expression::Index(Box<Expression>)
+सार्वजनिक चरः क्षेत्राभिव्यञ्जकभेद ॱॱ न६४ भवति ६ । ॰ no `ast.rs` variant — `:36` defers it
+सार्वजनिक चरः आह्वानाभिव्यञ्जकभेद ॱॱ न६४ भवति ७ । ॰ no `ast.rs` variant — `:36` defers it
+सार्वजनिक चरः द्विकर्माभिव्यञ्जकभेद ॱॱ न६४ भवति ८ । ॰ no `ast.rs` variant — `:36` defers it
+
+॰ ॥ बूलाभिव्यञ्जकभेद ॥ `सत्यम्` and `असत्यम्` — added 2026-09-01.
+॰
+॰ `spec/grammar-t1.ebnf:138` lists them among the KEYWORDS, "true / false",
+॰ so they are no more identifiers than `यदि` is. `व्याकर` built a
+॰ `नामाभिव्यञ्जक` for each and `अर्थ` then refused them as undeclared — the
+॰ correct answer to the wrong question. The corpus writes the two words 552
+॰ times across 15 sources, so this alone refused most files.
+॰
+॰ WHY A NINTH KIND AND NOT A NUMERAL. Spelling a boolean as `अङ्काभिव्यञ्जक`
+॰ would need no new constant and would LIE ABOUT THE TYPE; `प्रकारपरीक्षा`
+॰ would then have to unpick it, which is a worse debt than a constant. The
+॰ divergence from `ast.rs` is deliberate and already the rule here: its
+॰ `Expression` has five variants against this corpus`s eight and `:36`
+॰ defers the rest out loud.
+॰ `मूल्यसूचकाङ्क` carries the token, so सत्यम् and असत्यम् are told apart by
+॰ TEXT, exactly as a numeral`s value is.
+सार्वजनिक चरः बूलाभिव्यञ्जकभेद ॱॱ न६४ भवति ९ ।
+
+॰ ॥ शून्याभिव्यञ्जकभेद ॥ `शून्यम्` — added 2026-09-01, same reason as ९.
+॰ `spec/grammar-t1.ebnf:137` lists it among the KEYWORDS, "void", and the
+॰ corpus writes it 268 times — almost always as the value a `सम्भाव्य` is
+॰ compared against. `व्याकर` built a `नामाभिव्यञ्जक` for each and `अर्थ`
+॰ refused it as undeclared: the correct answer to the wrong question, and
+॰ the single largest cause of refusal left in the corpus.
+सार्वजनिक चरः शून्याभिव्यञ्जकभेद ॱॱ न६४ भवति १० ।
+
+॰ ॥ समावेशाभिव्यञ्जकभेद ॥ `embed = "समावेशः" , "आरभ्य" , identifier ,
+॰ "समाप्तम्"` — `spec/grammar-t1.ebnf:341`, ADR-0019. `मूल्यसूचकाङ्क` holds
+॰ the TABLE`s name token, which is the only name in it to resolve.
+॰ `समावेशः` is a KEYWORD (:135), so without this arm it became a नाम and the
+॰ embed`s table became its ARGUMENT — two undeclared names where the source
+॰ has one construct. It is how `samyojana.t1` and `sanskrit_text.t1` read a
+॰ generated table, and it accounted for two of the seven refusals left.
+सार्वजनिक चरः समावेशाभिव्यञ्जकभेद ॱॱ न६४ भवति ११ ।
+
+॰ ॥ ऋणाभिव्यञ्जकभेद ॥ `unary_expr = { unary_op } , call_expr` with
+॰ `unary_op = "ऋण"` — :659 and :628. `वामसूचकाङ्क` holds the operand.
+॰ SPACED, and that spacing is the whole distinction: `lex.t1` notes that the
+॰ sign is INSIDE the token with no space allowed, so `ऋण१` is ONE token and a
+॰ negative numeral, while `ऋण सीमा` is TWO and is this production.
+सार्वजनिक चरः ऋणाभिव्यञ्जकभेद ॱॱ न६४ भवति १२ ।
+
+॰ ॥ खण्डाभिव्यञ्जकभेद ॥ `slice = index , postfix_expr` — W-228, 2026-09-04.
+॰ THE INTERPRETER'S READING, NOW THE GRAMMAR'S: an `अङ्कः … अन्तः` followed by
+॰ anything that can begin an argument is a SLICE and never a further argument
+॰ (`nirvahana.rs`'s `postfix`, measured over every index in the corpus).
+॰ `वामसूचकाङ्क` holds the `सूचकाङ्काभिव्यञ्जक` — the base and the lower bound,
+॰ reused rather than respelled — and `दक्षिणसूचकाङ्क` the limit. 20 corpus
+॰ sites read as a call on an index before this kind existed. The resolver
+॰ reaches both children through its default arm; `अभिव्यञ्जकप्रकारः` types it
+॰ as it types an index, which is not yet; `मध्यरूप` gives it the stub every
+॰ unported kind gets (ir.t1 is W-204's lane). ONE `न६४` binding: the ledger
+॰ in `grammar_t1.rs` says so in the same commit.
+सार्वजनिक चरः खण्डाभिव्यञ्जकभेद ॱॱ न६४ भवति १३ ।
+
+सार्वजनिक संरचना अभिव्यञ्जक आरभ्य
+    भेद ॱॱ न६४ ऽ                            ॰ which of the eight kinds above
+    मूल्यसूचकाङ्क ॱॱ न६४ ऽ                  ॰ Identifier/Numeral/StringLiteral's String, as an index
+    वामसूचकाङ्क ॱॱ न६४ ऽ                    ॰ first operand: index into अभिव्यञ्जककोश
+    ॰ FOR उक्ताभिव्यञ्जक, A TOKEN INDEX — `W-215`: the closing `इति`, so the
+    ॰ content is the tokens मूल्यसूचकाङ्क..दक्षिणसूचकाङ्क exclusive.
+    दक्षिणसूचकाङ्क ॱॱ न६४ ऽ                 ॰ second operand: index into अभिव्यञ्जककोश — and on a नामाभिव्यञ्जक, W-228 (b): the MEMBER TOKEN's index (exact, taken before अग्रिमम्) of a spaced qualifier `मण्डल ॱ नाम` folded into the name; ० otherwise
+    द्विकर्म ॱॱ न६४ ऽ                       ॰ which of the thirteen operator kinds
+    ॰ W-183 (2026-09-03): the SymbolId the resolver found for an Identifier, PLUS ONE —
+    ॰ symbols number from ० (`निर्णायकारम्भः`), so ० here means UNRESOLVED and n means
+    ॰ symbol n-1. Written by `अर्थ ॱ अभिव्यञ्जकनिर्णयः`, read by `अभिव्यञ्जकप्रकारः`;
+    ॰ a checker run on an unresolved program sees ० everywhere and keeps its old answer.
+    संज्ञासूचकाङ्क ॱॱ न६४
+समाप्तम् ।
+
+सार्वजनिक चरः अभिव्यञ्जकवाक्यभेद ॱॱ न६४ भवति १ । ॰ Statement::Expression(Expression)
+सार्वजनिक चरः समूहवाक्यभेद ॱॱ न६४ भवति २ ।  ॰ Statement::Block(Vec<Statement>)
+सार्वजनिक चरः चरवाक्यभेद ॱॱ न६४ भवति ३ ।    ॰ no `ast.rs` variant — `:45` defers it
+सार्वजनिक चरः प्रत्यागमनवाक्यभेद ॱॱ न६४ भवति ४ । ॰ no `ast.rs` variant — `:45` defers it
+सार्वजनिक चरः आयातवाक्यभेद ॱॱ न६४ भवति ५ ।  ॰ no `ast.rs` variant — `:45` defers it
+सार्वजनिक चरः यदिवाक्यभेद ॱॱ न६४ भवति ६ ।   ॰ no `ast.rs` variant — `:45` defers it
+सार्वजनिक चरः यावत्वाक्यभेद ॱॱ न६४ भवति ७ । ॰ no `ast.rs` variant — `:45` defers it
+सार्वजनिक चरः समवाक्यभेद ॱॱ न६४ भवति ८ ।    ॰ no `ast.rs` variant — `:45` defers it
+
+सार्वजनिक संरचना वाक्य आरभ्य
+    भेद ॱॱ न६४ ऽ                            ॰ which of the eight kinds above
+    ॰ THE STATEMENT'S FIRST TOKEN — `W-240`. This field was `स्थान ॱॱ अङ्कः अन्तः
+    ॰ अ८`, a run of octets that `वाक्ययोजनम्` never wrote and no pass ever read:
+    ॰ every statement carried a location nobody could name it by, and a
+    ॰ refusal one level above a name (`अनिर्णीतपङ्क्ति` closed that gap for
+    ॰ names, W-191) had no line to give. A token index, as `मूल्यसूचकाङ्क`
+    ॰ is; ० for a statement no source wrote (one pushed by a test by hand).
+    स्थानसूचकाङ्क ॱॱ न६४ ऽ
+    वामसूचकाङ्क ॱॱ न६४ ऽ                    ॰ index into अभिव्यञ्जककोश or वाक्यकोश
+    दक्षिणसूचकाङ्क ॱॱ न६४ ऽ                  ॰ index into अभिव्यञ्जककोश or वाक्यकोश
+    ॰ THE `अन्यथा` BODY OF A `यदि`, ० when there is none — `W-198`. Until then
+    ॰ `व्याकरॱवाक्यपठनम्` parsed the else body into `अन्यशरीर` and had NO SLOT
+    ॰ to keep it in, so every `अन्यथा` body in the corpus was parsed and
+    ॰ dropped, and no stage after the parser could see one. Written as ० by
+    ॰ `वाक्ययोजनम्` and filled by the `यदि` arm AFTER the push — copy, modify,
+    ॰ write back — so the appender keeps its arity and no caller changes, the
+    ॰ same reasoning `आदिसूचकाङ्क` gives below. A statement index, like
+    ॰ `दक्षिणसूचकाङ्क` is for `यदि`; ० is "no child", never slot ०.
+    अन्यसूचकाङ्क ॱॱ न६४ ऽ
+    ॰ THE FIRST INDEX OF THIS STATEMENT'S OWN SUBTREE — added 2026-09-01, and
+    ॰ it is what lets a walker see a block's DIRECT children.
+    ॰
+    ॰ `व्याकरॱवाक्ययोजनम्` takes its children as ALREADY-PUSHED indices and
+    ॰ numbers itself after, so a child always has a LOWER index than its parent
+    ॰ and every subtree is a CONTIGUOUS range ending at the node itself. A
+    ॰ block is the range प्रथम..अन्तिम, so a nested block's statements lie
+    ॰ inside its parent's range too. Iterating that range resolves them TWICE —
+    ॰ the second time in the enclosing scope, where they do not belong — and
+    ॰ घोषणम् refuses a duplicate, so a VALID program is reported as having one.
+    ॰ `अर्थ ॱ वाक्यनिर्णयः` is stubbed on exactly that, and मध्य waits on it too.
+    ॰
+    ॰ WHY THE SUBTREE START AND NOT THE NEXT SIBLING, which is what those notes
+    ॰ ask for: a next sibling CANNOT BE COMPUTED AT PUSH TIME — when a node is
+    ॰ pushed its next sibling does not exist yet. This can: it is the minimum of
+    ॰ its children's, or the node's own index when it has none, and every input
+    ॰ is in hand at the moment of the push. It also needs NO new argument, so
+    ॰ `वाक्ययोजनम्` keeps its arity and no caller changes.
+    ॰
+    ॰ Walk a block's direct children from the TOP, skipping whole subtrees:
+    ॰     क्रमः भवति अन्तिम ।
+    ॰     यावत् क्रमः न्यूनम् प्रथम समम् असत्यम् आदि
+    ॰         ॰ visit क्रमः
+    ॰         क्रमः भवति आरभ्य आदिसूचकाङ्क वियोगः १ समाप्तम् ।
+    ॰     इति
+    ॰ (`अधिकसमम्` is a lexicon proposal with NO grammar production, so the
+    ॰ bound is spelled `न्यूनम्` inverted.)
+    आदिसूचकाङ्क ॱॱ न६४ ऽ
+    ॰ W-183 (2026-09-03): a `चर` statement's DECLARED TYPE — an अभिव्यञ्जककोश index
+    ॰ (what `प्रकारपठनम्` answers), ० when none. The parser read it and DROPPED it
+    ॰ until this field existed; `वाक्ययोजनम्` writes ० and the `चर` arm fills it in.
+    प्रकारसूचकाङ्क ॱॱ न६४
+समाप्तम् ।
+
+सार्वजनिक चरः अभिव्यञ्जकसूचकाङ्क ॱॱ न६४ भवति ० । ॰ next free index into अभिव्यञ्जककोश
+सार्वजनिक चरः वाक्यसूचकाङ्क ॱॱ न६४ भवति ० । ॰ next free index into वाक्यकोश
+
+सार्वजनिक चरः अभिव्यञ्जककोश ॱॱ अङ्कः अन्तः अभिव्यञ्जक भवति ० ।
+सार्वजनिक चरः वाक्यकोश ॱॱ अङ्कः अन्तः वाक्य भवति ० ।

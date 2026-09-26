@@ -1,0 +1,37 @@
+मण्डलम् योगपर्यन्तम् ॥   ॰ sum to n — a loop and an addition
+
+॰ THE ANSWER IS ५५. १ + २ + … + १० = ५५. IT RETURNS ५५.
+॰ MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file: one
+॰ routine, five blocks, SIXTEEN IR instructions, four constants of which three
+॰ are non-zero, and the machine halts with status ५५.
+॰
+॰ WHAT THIS PARAGRAPH SAID UNTIL 2026-09-05, kept because the record is the
+॰ point: "It reaches the machine and returns ०. The whole routine … builds TWO IR
+॰ instructions, and both are zero constants. The loop body lowers to nothing …
+॰ a numeral literal lowers to a ZERO constant … no program here can return a
+॰ number a person chose." Every sentence of that was true when measured and every
+॰ one is now false. What changed, in the order it changed:
+॰   `W-257` — `ir.t1:454` guarded numerals on a token kind `lex.t1` never emits
+॰             by design, so the reader behind it was unreachable and every
+॰             literal folded to ०. The guard now accepts what `व्याकर` accepts.
+॰   47bad575 — `अक्षरकोशॱसङ्ख्या` computed the radix, validated the digits, and
+॰             returned the RADIX. It accumulates them now.
+॰   `W-245` — `ir.t1` lowered two statement kinds of the eight `ast.t1` defines,
+॰             so `चरः`, `यावत्` and the rest built no instruction at all. Locals
+॰             live in frame slots now and the loop lowers.
+॰ THE LOOP BODY NO LONGER LOWERS TO NOTHING: sixteen instructions where there
+॰ were two, and the three non-zero constants are this file's own १, ११ and १.
+॰
+॰ The first program a person writes in any language, and the first this one has
+॰ been asked to run. It uses a `यावत्` loop, an accumulator, `योगः`, `वियोगः`
+॰ and a comparison — nothing else, and nothing clever.
+
+सार्वजनिक वृत्तिः योगपर्यन्तम् ददाति न६४ आदि
+    चरः सञ्चयः ॱॱ न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् ११ आदि
+        सञ्चयः भवति सञ्चयः योगः क्रमः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् सञ्चयः ।
+इति

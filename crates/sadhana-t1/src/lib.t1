@@ -1,0 +1,15 @@
+॰ lib.t1 — the seat of what `crates/sadhana/src/lib.rs` does, which in T1 is
+॰ NOTHING: Rust's crate root lists its modules, and T1 has no crate root — each
+॰ source declares its own `मण्डलम्` and the loader gathers them. So this file
+॰ declares no module and holds no declaration, and that is its content.
+॰
+॰ UNTIL 2026-09-04 (W-225) IT HELD THREE LINES, `आयातः पद ।`, `आयातः व्याकर ।`
+॰ and `आयातः वास्तु ।`, and nothing else. None of the three was reached — a
+॰ file with no code reaches nothing — and `पद` named no module any source
+॰ declares (the lexer's module is `पदविभाग`); it was the one import of an
+॰ undeclared module in this crate, pinned since ADR-0027 in `t1_modules.rs`'s
+॰ `IMPORTS_NAMING_NO_DECLARED_MODULE`, whose row is dropped with them. The
+॰ file stays, empty, because the corpus's censuses count fifteen sources and a
+॰ file with no declarations is a state they already read correctly
+॰ (`the_parser_parses_every_source_in_its_own_corpus`: "a file with no
+॰ declarations PASSES").

@@ -1,0 +1,216 @@
+मण्डलम् कोश ॥   ॰ kosha — the port of crates/sadhana/src/kosha.rs, the symbol model
+
+॰ THIS FILE WAS NOT SANSKRIT UNTIL 2026-08-30, and its module could not be
+॰ imported. It arrived in e332932d transcribed letter by letter out of English:
+॰ मण्डलम् कओश, गणना सयमबओलसएकशअन, संरचना सयमबओल, fields नअमए, वअलउए,
+॰ सएकशअन, गलओबअल. Twelve of its twenty-five words were formed that way.
+॰
+॰ संयोजन:28 reads `आयातः कोश ।` and asks for कोशॱसंज्ञा. NO MODULE NAMED कोश
+॰ EXISTED — this one was called कओश — so that import named nothing, and the
+॰ linker had been carrying a dangling dependency without any check reporting it.
+॰
+॰ Rewriting it also closed a MODEL MISMATCH the transcription had hidden. The
+॰ old गणना listed five cases ending in अदर ("other"); kosha.rs:112 has six, and
+॰ "other" is not among them. It was missing both section symbols — and those
+॰ two exist for a reason B-104b paid for: DW_AT_stmt_list is an offset into
+॰ .debug_line while DW_AT_low_pc is an address in .text, so ONE symbol serving
+॰ both hands the linker the wrong base for one of them.
+
+॰ where a symbol lives — SymSection.
+सार्वजनिक गणना संज्ञाखण्ड आरभ्य
+  पाठ्यम् ऽ              ॰ .text — code
+  दत्तम् ऽ               ॰ .data — initialised bytes
+  शून्यक्षेत्रम् ऽ         ॰ .bss — reserved space the file does not carry
+  अनिर्दिष्टम् ऽ          ॰ SHN_UNDEF — named here, defined elsewhere (B-069b)
+  शोधनपङ्क्तिखण्डः ऽ      ॰ the section symbol for .debug_line — where this unit's lines begin
+  पाठ्यखण्डः             ॰ the section symbol for .text — STT_SECTION, no name of its own
+समाप्तम् ।
+
+॰ a name the image should carry — Symbol, task B-063.
+॰ without these `nm` reports "no symbols" and a debugger has nothing to say
+॰ about a running program.
+सार्वजनिक संरचना संज्ञा आरभ्य
+  नाम ॱॱ पाठः ऽ          ॰ the label, as written
+  मूल्यम् ॱॱ न६४ ऽ        ॰ its address
+  खण्डः ॱॱ संज्ञाखण्ड ऽ     ॰ which section the name lives in. a बूल was enough while
+                        ॰ there were two sections and became a lie when ॱरिक्त arrived
+  वैश्विकम् ॱॱ बूल        ॰ true when ॥ वैश्विकम् … ॥ declared it visible outside this object
+समाप्तम् ।
+
+आयातः अष्टक ।
+
+॰ ══════════════════ THE IMAGE WRITER (`W-kosha` phase 2) ══════════════════
+॰
+॰ WHAT AN IMAGE HAS TO BE, MEASURED FROM THE LOADER AND NOT FROM `kosha.rs`.
+॰ `yantra`'s `Program::parse` (`crates/yantra/src/loader.rs:120`) reads the
+॰ sixty-four octet header — the magic, class २, little-endian, `e_machine` २४३,
+॰ `e_entry`, `e_phoff`, `e_phentsize`, `e_phnum` — and then the PROGRAM
+॰ HEADERS. IT READS NO SECTION HEADERS AT ALL: no `.symtab`, no `.strtab`, no
+॰ `.shstrtab`, no relocations. The only occurrence of the word "section" in
+॰ that file is a comment.
+॰
+॰ So this writes a header, one `PT_LOAD`, and the segment's octets, and that is
+॰ the whole of what makes an image `yantra` will load and run. `kosha.rs` is
+॰ १३६७ lines because it ALSO writes a relocatable object and DWARF; neither is
+॰ on the path to a running program, and porting them here would be porting mass
+॰ nothing on this path reads.
+॰
+॰ THIS IS DELIBERATELY NOT BYTE-IDENTICAL TO `kosha.rs`, and that is the one
+॰ thing a reader should not mistake. `kosha.rs` emits a section table, a symbol
+॰ table and their strings; an image from here carries none, so `nm` would report
+॰ no symbols and a debugger would have nothing to say. That is a real loss and
+॰ it is not a defect of this routine: it is the difference between "an image the
+॰ machine runs" and "an image a person inspects". If the second is wanted it is
+॰ a further phase, and the margin above says what it would have to add.
+
+॰ where an image is loaded — `kosha.rs`'s LOAD_ADDRESS, 0x8000_0000.
+सार्वजनिक चरः भारस्थानम् ॱॱ अ६४ भवति २१४७४८३६४८ ।
+॰ the ELF header's own size, which is also `e_phoff`.
+सार्वजनिक चरः शीर्षमानम् ॱॱ न६४ भवति ६४ ।
+॰ one program header — `e_phentsize`.
+सार्वजनिक चरः कार्यक्रमशीर्षमानम् ॱॱ न६४ भवति ५६ ।
+॰ EM_RISCV. The browser VM runs the SAME artefact QEMU does, so a different
+॰ machine number means a different artefact — `loader.rs` refuses it by name.
+सार्वजनिक चरः यन्त्रभेदः ॱॱ न६४ भवति २४३ ।
+
+॰ two octets, least significant first.
+सार्वजनिक वृत्तिः प्रतिबिम्बद्व्यष्टकम् आदाय मूल्यम् ॱॱ अ६४ ददाति न६४ आदि
+    ॰ INTO A LOCAL FIRST, and not a nested group in the argument. `आरभ्य` after
+    ॰ a routine name opens its ARGUMENT LIST, so a group cannot be the first
+    ॰ token inside one — `व्याकर` reads the inner `आरभ्य` and then wants the
+    ॰ argument to close before the operator arrives.
+    चरः नीचम् ॱॱ अ६४ भवति मूल्यम् शेषः २५६ ।
+    चरः उच्चम् ॱॱ अ६४ भवति मूल्यम् विभाजनम् २५६ ।
+    उच्चम् भवति उच्चम् शेषः २५६ ।
+    चरः अवगणना ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् नीचम् ।
+    प्रत्यागमनम् अष्टकॱअष्टकयोजनम् उच्चम् ।
+इति
+
+॰ four octets, least significant first.
+सार्वजनिक वृत्तिः प्रतिबिम्बचतुरष्टकम् आदाय मूल्यम् ॱॱ अ६४ ददाति न६४ आदि
+    चरः नीचम् ॱॱ अ६४ भवति मूल्यम् शेषः ६५५३६ ।
+    चरः उच्चम् ॱॱ अ६४ भवति मूल्यम् विभाजनम् ६५५३६ ।
+    उच्चम् भवति उच्चम् शेषः ६५५३६ ।
+    चरः अवगणना ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् नीचम् ।
+    प्रत्यागमनम् प्रतिबिम्बद्व्यष्टकम् उच्चम् ।
+इति
+
+॰ eight octets, least significant first.
+सार्वजनिक वृत्तिः प्रतिबिम्बाष्टाष्टकम् आदाय मूल्यम् ॱॱ अ६४ ददाति न६४ आदि
+    चरः नीचम् ॱॱ अ६४ भवति मूल्यम् शेषः ४२९४९६७२९६ ।
+    चरः उच्चम् ॱॱ अ६४ भवति मूल्यम् विभाजनम् ४२९४९६७२९६ ।
+    उच्चम् भवति उच्चम् शेषः ४२९४९६७२९६ ।
+    चरः अवगणना ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् नीचम् ।
+    प्रत्यागमनम् प्रतिबिम्बचतुरष्टकम् उच्चम् ।
+इति
+
+॰ ॥ प्रतिबिम्बलेखनम् ॥ THE IMAGE — text, data and a bss reservation, at a load
+॰ address, as octets `yantra` will load.
+॰
+॰ `kosha.rs`'s `write_debuggable_at` without the section table: the same header
+॰ fields, the same single `PT_LOAD` covering text AND data, the same eight-octet
+॰ alignment between them, and the same `p_memsz` — the span rounded up, plus the
+॰ bss the file does not carry, which the loader zeroes.
+॰
+॰ THE DATA SHARES THE SEGMENT RATHER THAN TAKING ONE OF ITS OWN, which is
+॰ `kosha.rs:834`'s decision and not a simplification here: a bare-metal image has
+॰ no dynamic loader to honour separate permissions, so a second `PT_LOAD` would
+॰ cost a header and buy nothing.
+सार्वजनिक वृत्तिः प्रतिबिम्बलेखनम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ शून्यक्षेत्रम् ॱॱ अ६४ ऽ भारः ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः पाठदैर्घ्यम् ॱॱ अ६४ भवति पाठ्यम् ॱ दैर्घ्य ।
+    चरः दत्तदैर्घ्यम् ॱॱ अ६४ भवति दत्तम् ॱ दैर्घ्य ।
+    चरः पाठस्थानम् ॱॱ अ६४ भवति आरभ्य शीर्षमानम् योगः कार्यक्रमशीर्षमानम् समाप्तम् ।
+
+    ॰ data begins eight-aligned after the text, and only when there is data —
+    ॰ padding a segment that ends at the text would lengthen the image for
+    ॰ nothing.
+    चरः दत्तस्थानम् ॱॱ अ६४ भवति आरभ्य पाठस्थानम् योगः पाठदैर्घ्यम् समाप्तम् ।
+    यदि दत्तदैर्घ्यम् अधिकम् ० आदि
+        यदि आरभ्य दत्तस्थानम् शेषः ८ समाप्तम् अधिकम् ० आदि
+            दत्तस्थानम् भवति आरभ्य दत्तस्थानम् योगः आरभ्य ८ वियोगः आरभ्य दत्तस्थानम् शेषः ८ समाप्तम् समाप्तम् समाप्तम् ।
+        इति
+    इति
+    चरः भारमानम् ॱॱ अ६४ भवति आरभ्य आरभ्य दत्तस्थानम् वियोगः पाठस्थानम् समाप्तम् योगः दत्तदैर्घ्यम् समाप्तम् ।
+    चरः स्मृतिमानम् ॱॱ अ६४ भवति भारमानम् ।
+    यदि आरभ्य स्मृतिमानम् शेषः ८ समाप्तम् अधिकम् ० आदि
+        स्मृतिमानम् भवति आरभ्य स्मृतिमानम् योगः आरभ्य ८ वियोगः आरभ्य स्मृतिमानम् शेषः ८ समाप्तम् समाप्तम् समाप्तम् ।
+    इति
+    स्मृतिमानम् भवति आरभ्य स्मृतिमानम् योगः शून्यक्षेत्रम् समाप्तम् ।
+
+    ॰ THE FIRST INDEX THIS WILL WRITE, and it is ONE PAST the live length
+    ॰ because `अष्टक`'s arena is 1-BASED: `अष्टकयोजनम्` advances before it
+    ॰ writes, and `अष्टकखण्डः` REFUSES ० — index zero is that arena's "absent"
+    ॰ sentinel, so a slice starting there answers the empty run by design and
+    ॰ not by failure. Reading zero back as an empty image is exactly what the
+    ॰ first version of this did.
+    ॰
+    ॰ AND IT APPENDS RATHER THAN RESETTING. The arena is shared module state; a
+    ॰ `अष्टकारम्भः` here would discard whatever a caller had already put in it.
+    ॰ The writer takes its own range and returns only that.
+    चरः आरम्भः ॱॱ न६४ भवति आरभ्य अष्टकॱअष्टकदैर्घ्य योगः १ समाप्तम् ।
+
+    ॰ ── the ELF header, sixty-four octets ──
+    चरः अवगणनक ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् १२७ ।   ॰ ०x7f
+    चरः अवगणनख ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् ६९ ।    ॰ E
+    चरः अवगणनग ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् ७६ ।    ॰ L
+    चरः अवगणनघ ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् ७० ।    ॰ F
+    चरः अवगणनङ ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् २ ।     ॰ ELFCLASS64
+    चरः अवगणनच ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् १ ।     ॰ ELFDATA2LSB
+    चरः अवगणनछ ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् १ ।     ॰ EV_CURRENT
+    चरः अवगणनज ॱॱ अ६४ भवति अष्टकॱअष्टकयोजनम् ० ।     ॰ ELFOSABI_NONE
+    चरः अवगणनझ ॱॱ न६४ भवति अष्टकॱशून्याष्टकयोजनम् ८ ।  ॰ EI_PAD
+    चरः अवगणनञ ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् २ ।            ॰ ET_EXEC
+    चरः अवगणनट ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् यन्त्रभेदः ।
+    चरः अवगणनठ ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् १ ।             ॰ e_version
+    चरः अवगणनड ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारः ।          ॰ e_entry
+    चरः अवगणनढ ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् शीर्षमानम् ।     ॰ e_phoff
+    ॰ e_shoff ० AND e_shnum ० — there is no section table, and a reader that
+    ॰ wants one must be told there is none rather than sent to offset zero.
+    चरः अवगणनण ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् ० ।             ॰ e_shoff
+    चरः अवगणनत ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ० ।             ॰ e_flags
+    चरः अवगणनथ ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् शीर्षमानम् ।     ॰ e_ehsize
+    चरः अवगणनद ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् कार्यक्रमशीर्षमानम् । ॰ e_phentsize
+    चरः अवगणनध ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् १ ।            ॰ e_phnum
+    चरः अवगणनन ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ६४ ।           ॰ e_shentsize
+    चरः अवगणनप ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ० ।            ॰ e_shnum
+    चरः अवगणनफ ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ० ।            ॰ e_shstrndx
+
+    ॰ ── the one program header, fifty-six octets ──
+    चरः अवगणनब ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् १ ।     ॰ PT_LOAD
+    चरः अवगणनभ ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ५ ।     ॰ PF_R | PF_X
+    चरः अवगणनम ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् पाठस्थानम् ।  ॰ p_offset
+    चरः अवगणनय ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारः ।        ॰ p_vaddr
+    चरः अवगणनर ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारः ।        ॰ p_paddr
+    चरः अवगणनल ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारमानम् ।     ॰ p_filesz
+    चरः अवगणनव ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् स्मृतिमानम् ।   ॰ p_memsz
+    चरः अवगणनश ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् ४ ।           ॰ p_align
+
+    ॰ ── the contents ──
+    चरः अवगणनष ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् पाठ्यम् ० पाठदैर्घ्यम् ।
+    ॰ Pad to the data's eight-aligned start, measured in octets WRITTEN by this
+    ॰ call rather than in the arena's own indices, which a previous caller may
+    ॰ have moved.
+    ॰
+    ॰ COMPUTED AND WRITTEN IN ONE CALL, NOT WALKED. This was a `यावत्` whose body
+    ॰ appended one octet and whose condition re-measured the arena, and
+    ॰ `no_yavat_in_the_corpus_is_without_a_step_or_an_exit` refused it — rightly.
+    ॰ The loop did terminate: `अष्टकयोजनम्` has no refusal path, it always
+    ॰ advances the cursor, and `आरम्भः` is never reassigned. But TERMINATION
+    ॰ RESTED ON A SIDE EFFECT IN A CALLED ROUTINE MUTATING A GLOBAL ARENA, which
+    ॰ is a thing no reader and no guard can see from the loop. An argument for
+    ॰ termination that lives in a margin is not one the tree can check.
+    ॰
+    ॰ `शून्याष्टकयोजनम्` is `अष्टक`'s own answer to exactly this — Vec::resize
+    ॰ with zeroes — so the count is arithmetic and there is no loop to guard.
+    चरः पूरणम् ॱॱ न६४ भवति आरभ्य अष्टकॱअष्टकदैर्घ्य योगः १ समाप्तम् ।
+    पूरणम् भवति पूरणम् वियोगः आरम्भः ।
+    यदि पूरणम् न्यूनम् दत्तस्थानम् आदि
+        चरः अवगणनस ॱॱ न६४ भवति अष्टकॱशून्याष्टकयोजनम् आरभ्य दत्तस्थानम् वियोगः पूरणम् समाप्तम् ।
+    इति
+    यदि दत्तदैर्घ्यम् अधिकम् ० आदि
+        चरः अवगणनह ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् दत्तम् ० दत्तदैर्घ्यम् ।
+    इति
+
+    चरः लिखितम् ॱॱ न६४ भवति आरभ्य आरभ्य अष्टकॱअष्टकदैर्घ्य योगः १ समाप्तम् वियोगः आरम्भः समाप्तम् ।
+    प्रत्यागमनम् अष्टकॱअष्टकखण्डः आरम्भः लिखितम् ।
+इति

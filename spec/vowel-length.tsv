@@ -1,0 +1,17 @@
+# Sanskrit vowel length — DERIVED, do not edit.
+#
+# Produced by tools/gen-vowel-length.py from the pinned UCD. The long
+# vowel's Unicode NAME is the short one's with its final letter doubled,
+# which is why ऋ/ॠ and ऌ/ॡ are found even though their code points are
+# not adjacent — an arithmetic rule would get three of five pairs right.
+#
+# Pāṇini's table has nine vowels because a sūtra's `अ` means अ and आ
+# alike (1.1.69). 6.1.101 अकः सवर्णे दीर्घः needs the distinction anyway.
+#
+# Columns: hrasva (short), dirgha (long), short name, long name
+hrasva	dirgha	short_name	long_name
+अ	आ	A	AA
+इ	ई	I	II
+उ	ऊ	U	UU
+ऋ	ॠ	VOCALIC R	VOCALIC RR
+ऌ	ॡ	VOCALIC L	VOCALIC LL

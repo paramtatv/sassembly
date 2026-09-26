@@ -1,0 +1,56 @@
+# When GNU compresses a wide instruction — DERIVED, do not edit.
+#
+# `add s0, s0, s1` is two bytes and `add s0, s1, a0` is four. Nothing
+# in spec/encodings-riscv64.tsv says why: the fusion conditions live in
+# the C extension's semantics, not in any field layout. So they are
+# observed, the same way B-037 observed the field positions.
+#
+# `-` means the assembler left it wide.
+#
+# `relation` is the operand coincidence the probe carries.
+# `add s0, s0, s1` and `add s0, zero, s1` both reduce to two
+# registers and become c.add and c.mv — DIFFERENT instructions — so
+# the reduction does not say which encoding is meant and the relation
+# does. That is the fact no field layout can hold.
+# Columns: assembly, halfword, insn, relation
+assembly	halfword	insn	relation
+add s0, s0, s1	0x9426	c.add	arg1=arg0
+add s0, s1, a0	-	-	none
+addw s0, s0, s1	0x9c25	c.addw	arg1=arg0
+addw s0, s1, a0	-	-	none
+and s0, s0, s1	0x8c65	c.and	arg1=arg0
+and s0, s1, a0	-	-	none
+or s0, s0, s1	0x8c45	c.or	arg1=arg0
+or s0, s1, a0	-	-	none
+xor s0, s0, s1	0x8c25	c.xor	arg1=arg0
+xor s0, s1, a0	-	-	none
+sub s0, s0, s1	0x8c05	c.sub	arg1=arg0
+sub s0, s1, a0	-	-	none
+addi s0, zero, 5	0x4415	c.li	arg1=zero
+addi s0, s0, 5	0x0415	c.addi	arg1=arg0
+addi s0, s1, 5	-	-	none
+addi s0, s0, 2047	-	-	arg1=arg0
+jal zero, .+8	-	-	arg0=zero
+jal ra, .+8	-	-	none
+jalr zero, 0(s0)	-	-	none
+jalr ra, 0(s0)	-	-	none
+beq s0, zero, .+8	0xc401	c.beqz	arg1=zero
+beq s0, s1, .+8	-	-	none
+bne s0, zero, .+8	0xe401	c.bnez	arg1=zero
+lw s0, 0(s1)	0x4080	c.lw	none
+lw t0, 0(t1)	-	-	none
+sw s0, 0(s1)	0xc080	c.sw	none
+sw t0, 0(t1)	-	-	none
+ld s0, 0(s1)	0x6080	c.ld	none
+sd s0, 8(s1)	0xe480	c.sd	none
+lw t0, 0(sp)	0x4282	c.lwsp	none
+sw t0, 0(sp)	0xc016	c.swsp	none
+ld s0, 8(sp)	0x6422	c.ldsp	none
+slli s0, s0, 1	0x0406	c.slli	arg1=arg0
+srli s0, s0, 1	0x8005	c.srli	arg1=arg0
+srai s0, s0, 1	0x8405	c.srai	arg1=arg0
+ebreak	0x9002	c.ebreak	none
+nop	0x0001	c.addi	none
+addi s0, sp, 4	0x0040	c.addi4spn	none
+addi sp, sp, 32	0x6105	c.addi16sp	arg1=arg0
+addi sp, sp, 4	0x0111	c.addi	arg1=arg0

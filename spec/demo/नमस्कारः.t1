@@ -1,0 +1,57 @@
+मण्डलम् नमस्कारः ॥   ॰ नमस्कारः — THE DEMONSTRATION'S OWN SOURCE
+
+॰ THE ANSWER IS ५. `पञ्च` returns ५ and `नमस्कारः` hands it back.
+॰
+॰ THIS LINE IS READ BY A MACHINE, not only by a person: `pradarshana`'s
+॰ demonstration parses `THE ANSWER IS <numeral>` out of every file in this
+॰ directory, runs the file, and REFUSES if the two disagree. The other five
+॰ sources already carried the sentence in this form; this one stated its answer
+॰ only in prose, so the demonstration could not check it. Added 2026-09-06 by
+॰ the row that made the demonstration run the directory it makes claims about.
+
+॰ THE SMALLEST SASSEMBLY PROGRAM THAT REACHES THE MACHINE. `tools/demo.sh`
+॰ compiles this file with the self-hosted chain — lex, parse, resolve, typecheck,
+॰ IR, emit (both twins), assemble, link, load, run — and every stage passes.
+॰
+॰ IT COMES BACK WITH ०, NOT ५, AND THE DEMO SAYS SO ON ITS OWN LINE. That is the
+॰ point of the file: it is written to be as small as a program can be and still
+॰ hold a literal and a call, so that what the compiler LOSES is visible with
+॰ nothing else in the way. Two things are lost, and the demo measures both rather
+॰ than repeating them from a margin:
+॰
+॰   (a) THE LITERAL — CLOSED 2026-09-04. `५` below parses as a numeral and now
+॰       reaches the machine carrying its value. UNTIL THEN the IR builder folded
+॰       it to ०: `ir.t1:512` calls `अङ्कमूल्यम्`, whose first guard (`ir.t1:454`)
+॰       returned ० for any token whose kind was not `पदविभागॱसङ्ख्याभेद` — and
+॰       `lex.t1` never produces that kind, BY DESIGN and by its own margin
+॰       (`lex.t1:104`), because one lexer serves T0 and T1 and T0 needs the
+॰       operand as a word. The parser had moved to deciding numeral-ness by TEXT
+॰       and the guard had not moved with it, so no source could satisfy it and the
+॰       correct reader behind it was unreachable. `W-257` made the guard accept
+॰       what `व्याकर` accepts; 47bad575 fixed the reader itself, which had computed
+॰       the radix, validated the digits and then returned the RADIX.
+॰       **This demonstration found that guard**, and the row it named is closed.
+॰
+॰   (b) ARITHMETIC — CLOSED 2026-09-04 by `W-245`. There is deliberately no
+॰       `योगः` in THIS file, which is why it was the only one of the six that
+॰       reached the machine while the others could not; the IR builder now lowers
+॰       arithmetic, and `spec/demo/योगपर्यन्तम्.t1` sums to ५५ with it. Both (a) and
+॰       (b) have landed: `पञ्च` below returns ५ and `नमस्कारः` hands it back, with nothing
+॰       in this file changed.
+॰
+॰ WHY TWO ROUTINES. The first routine declared is the module's entry (research/25
+॰ §2.6), so `नमस्कारः` is what the startup object calls. Its body is
+॰ `प्रत्यागमनम् पञ्च ।` — a routine's bare name in value position, which is a call
+॰ with no arguments (`W-237`, `W-228`'s `संज्ञाभेदकोश`) and not a variable read. So
+॰ the image that runs holds a real frame, a real `जल` and a real return, and the
+॰ demo can show a call reaching the machine even while no value does.
+
+॰ the entry — calls पञ्च and hands its answer back.
+सार्वजनिक वृत्तिः नमस्कारः ददाति न६४ आदि
+    प्रत्यागमनम् पञ्च ।
+इति
+
+॰ the answer this program would give if (a) above were fixed.
+सार्वजनिक वृत्तिः पञ्च ददाति न६४ आदि
+    प्रत्यागमनम् ५ ।
+इति

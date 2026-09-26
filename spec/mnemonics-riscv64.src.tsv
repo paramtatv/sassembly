@@ -1,0 +1,123 @@
+# SANSOS RV64GC mnemonic registry — task B-001, doc 02 §2.3.
+#
+# Rule R-02-1: every architectural instruction has a Sassembly name. There is no
+# `.insn 0x…` escape hatch, so an instruction absent from this file cannot be
+# written at all — which is the point: the ISA surface is finite and reviewed.
+#
+# Rule R-02-2: names are PER FAMILY, not per encoding. `योगः` covers add, addi,
+# addw and addiw; the assembler picks the encoding from the operand kinds and the
+# sizing suffix (व्याप्ति: .अ८ .अ१६ .अ३२ .अ६४, default .अ६४). That is why ~193
+# architectural instructions need far fewer names — the compressed C extension
+# adds no names at all, since c.add IS योगः and the assembler emits the short
+# form when the operands allow.
+#
+# `source` is `lexicon` when spec/lexicon.tsv already names the concept, and
+# `coined` when this file introduces it. Coined terms must be added to
+# lexicon.src.tsv before B-002 freezes the grammar — doc 01 §4 rule 5 is one
+# word, one sense, and a mnemonic that exists only here is a second vocabulary.
+#
+# `encoding` is DELIBERATELY EMPTY. B-008 fills it from the pinned specification
+# PDF in research/specs/isa/. A half-remembered opcode that looks authoritative
+# is worse than a blank, and this file is where that temptation lives.
+#
+# Columns: family, devanagari, gloss, ext, covers, encoding, source
+family	devanagari	gloss	ext	covers	encoding	source
+# ---- RV64I: integer arithmetic -------------------------------------------
+add	योगः	add	I	add,addi,addw,addiw,c.add,c.addi,c.addiw,c.addi4spn,c.addi16sp,c.addw,c.li,c.mv,c.nop		lexicon
+sub	वियोगः	subtract	I	sub,subw,c.sub,c.subw		lexicon
+lui	उपरिभारः	load upper immediate	I	lui,c.lui		coined
+auipc	स्थानसापेक्षयोगः	add upper immediate to pc	I	auipc		coined
+# ---- RV64I: bitwise ------------------------------------------------------
+and	युक्तम्	bitwise and	I	and,andi,c.and,c.andi		lexicon
+or	विकल्पः	bitwise or	I	or,ori,c.or		lexicon
+xor	वैषम्यम्	bitwise xor	I	xor,xori,c.xor		lexicon
+not	व्यत्ययः	bitwise not	I	(pseudo: xori rd,rs,-1)		lexicon
+# ---- RV64I: shifts -------------------------------------------------------
+shl	वामसरणम्	shift left	I	sll,slli,sllw,slliw,c.slli		lexicon
+shr	दक्षिणसरणम्	shift right logical	I	srl,srli,srlw,srliw,c.srli		lexicon
+sra	सचिह्नदक्षिणसरणम्	shift right arithmetic	I	sra,srai,sraw,sraiw,c.srai		coined
+# ---- RV64I: comparison ---------------------------------------------------
+slt	न्यूनम्	set if less than	I	slt,slti		lexicon
+sltu	अचिह्नन्यूनम्	set if less than without sign extension	I	sltu,sltiu		lexicon
+# ---- RV64I: control flow -------------------------------------------------
+jal	लङ्घनम्	jump and link	I	jal,c.j		lexicon
+jalr	सापेक्षलङ्घनम्	jump and link register	I	jalr,c.jr,c.jalr		coined
+beq	समलङ्घनम्	branch if equal	I	beq,c.beqz		coined
+bne	विषमलङ्घनम्	branch if not equal	I	bne,c.bnez		coined
+blt	न्यूनलङ्घनम्	branch if less	I	blt		coined
+bge	अन्यूनलङ्घनम्	branch if not less	I	bge		coined
+bltu	अचिह्नन्यूनलङ्घनम्	branch if less, unsigned	I	bltu		coined
+bgeu	अचिह्नान्यूनलङ्घनम्	branch if not less, unsigned	I	bgeu		coined
+# ---- RV64I: memory -------------------------------------------------------
+load	आहारः	load	I	lb,lh,lw,ld,c.lw,c.ld,c.lwsp,c.ldsp		lexicon
+loadu	अचिह्नाहारः	load without sign extension	I	lbu,lhu,lwu		lexicon
+store	निधानम्	store	I	sb,sh,sw,sd,c.sw,c.sd,c.swsp,c.sdsp		lexicon
+# ---- RV64I: system and ordering ------------------------------------------
+fence	स्मृतिबन्धः	memory barrier	I	fence		lexicon
+ecall	आज्ञापनम्	environment call	I	ecall		lexicon
+ebreak	अन्वेषणविरामः	breakpoint	I	ebreak,c.ebreak		coined
+# ---- M: multiply and divide ----------------------------------------------
+mul	गुणनम्	multiplication, low bits	M	mul,mulw		coined
+mulh	उपरिगुणनम्	multiplication, high bits, both signed	M	mulh		coined
+mulhsu	मिश्रोपरिगुणनम्	multiplication, high bits, signed by unsigned	M	mulhsu		coined
+mulhu	अचिह्नोपरिगुणनम्	multiplication, high bits, both unsigned	M	mulhu		coined
+div	भागः	divide	M	div,divw		lexicon
+divu	अचिह्नभागः	divide without sign extension	M	divu,divuw		lexicon
+rem	शेषः	remainder	M	rem,remw		lexicon
+remu	अचिह्नशेषः	remainder without sign extension	M	remu,remuw		lexicon
+# ---- A: atomics ----------------------------------------------------------
+lr	परमाणुपठनम्	load reserved	A	lr.w,lr.d		lexicon
+sc	परमाणुलेखनम्	store conditional	A	sc.w,sc.d		lexicon
+amoswap	परमाणुविनिमयः	atomic swap	A	amoswap.w,amoswap.d		lexicon
+amoadd	परमाणुयोगः	atomic add	A	amoadd.w,amoadd.d		coined
+amoand	परमाणुयुक्तम्	atomic and	A	amoand.w,amoand.d		coined
+amoor	परमाणुविकल्पः	atomic or	A	amoor.w,amoor.d		coined
+amoxor	परमाणुवैषम्यम्	atomic xor	A	amoxor.w,amoxor.d		coined
+amomax	परमाणुपरमम्	atomic maximum	A	amomax.w,amomax.d		coined
+amomaxu	अचिह्नपरमाणुपरमम्	atomic maximum without sign extension	A	amomaxu.w,amomaxu.d		coined
+amomin	परमाणुन्यूनतमम्	atomic minimum	A	amomin.w,amomin.d		coined
+amominu	अचिह्नपरमाणुन्यूनतमम्	atomic minimum without sign extension	A	amominu.w,amominu.d		coined
+# ---- F and D: floating point ---------------------------------------------
+fload	भिन्नाहारः	float load	FD	flw,fld,c.fld,c.fldsp		coined
+fstore	भिन्ननिधानम्	float store	FD	fsw,fsd,c.fsd,c.fsdsp		coined
+fadd	भिन्नयोगः	float add	FD	fadd.s,fadd.d		coined
+fsub	भिन्नवियोगः	float subtract	FD	fsub.s,fsub.d		coined
+fmul	भिन्नगुणनम्	float multiply	FD	fmul.s,fmul.d		coined
+fdiv	भिन्नभागः	float divide	FD	fdiv.s,fdiv.d		coined
+fsqrt	वर्गमूलम्	square root	FD	fsqrt.s,fsqrt.d		lexicon
+fmadd	भिन्नगुणयोगः	multiply then add	FD	fmadd.s,fmadd.d		coined
+fmsub	भिन्नगुणवियोगः	multiply then subtract	FD	fmsub.s,fmsub.d		coined
+fnmadd	ऋणभिन्नगुणयोगः	negated multiply then add	FD	fnmadd.s,fnmadd.d		coined
+fnmsub	ऋणभिन्नगुणवियोगः	negated multiply then subtract	FD	fnmsub.s,fnmsub.d		coined
+fmax	भिन्नपरमम्	float maximum	FD	fmax.s,fmax.d		coined
+fmin	भिन्नन्यूनतमम्	float minimum	FD	fmin.s,fmin.d		coined
+fcvt	भिन्नरूपान्तरम्	float convert	FD	fcvt.w.s,fcvt.wu.s,fcvt.l.s,fcvt.lu.s,fcvt.s.w,fcvt.s.wu,fcvt.s.l,fcvt.s.lu,fcvt.w.d,fcvt.wu.d,fcvt.l.d,fcvt.lu.d,fcvt.d.w,fcvt.d.wu,fcvt.d.l,fcvt.d.lu,fcvt.s.d,fcvt.d.s		coined
+fsgnj	चिह्नारोपणम्	copy the sign	FD	fsgnj.s,fsgnj.d		coined
+fsgnjn	व्यत्ययचिह्नारोपणम्	copy the inverted sign	FD	fsgnjn.s,fsgnjn.d		coined
+fsgnjx	वैषम्यचिह्नारोपणम्	copy the signs xored	FD	fsgnjx.s,fsgnjx.d		coined
+fcmpeq	भिन्नसमम्	float equal	FD	feq.s,feq.d		coined
+fcmplt	भिन्नन्यूनम्	float less than	FD	flt.s,flt.d		coined
+fcmple	भिन्नानधिकम्	float not greater than	FD	fle.s,fle.d		coined
+fclass	भिन्नवर्गः	classify float	FD	fclass.s,fclass.d		coined
+fmv	भिन्नसंचारः	float move	FD	fmv.x.w,fmv.w.x,fmv.x.d,fmv.d.x		coined
+# ---- Zicsr and Zifencei --------------------------------------------------
+csrrw	नियन्त्रकविनिमयः	control register exchange	Zicsr	csrrw,csrrwi		coined
+csrrs	नियन्त्रकविकल्पः	control register set, which is or	Zicsr	csrrs,csrrsi		coined
+csrrc	नियन्त्रकापसारणम्	control register clear	Zicsr	csrrc,csrrci		coined
+fencei	आदेशबन्धः	instruction fence	Zifencei	fence.i		coined
+# ---- S: supervisor -------------------------------------------------------
+# The first privileged instruction in this registry. Everything above it is
+# usable in any mode; this one is the kernel's, and paging cannot be turned on
+# without it — a satp write that is not followed by a fence leaves the old
+# translations live, and a machine that caches them goes on running against the
+# table it has just replaced.
+sfence	स्मृतिक्षेत्रबन्धः	address-translation fence	S	sfence.vma		coined
+# `sret` leaves a trap. `C-001d1` proved a handler can be REACHED; without this
+# it can only shut the machine down, because there is no way back to the
+# instruction after the one that trapped.
+#
+# The name is not coined. `विघ्नप्रत्यागमः` — return from interrupt — is already
+# in the lexicon, already categorised `mnemonic`, and was unused: doc 01 §4 is
+# one word one sense, so inventing a second name for a sense the lexicon had
+# already settled would be the error, not the economy.
+sret	विघ्नप्रत्यागमः	return from interrupt	S	sret		lexicon

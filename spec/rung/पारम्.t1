@@ -1,0 +1,25 @@
+मण्डलम् पारम् ॥   ॰ paaram — THE CALLEE HALF of the cross-module pair
+
+॰ THE ANSWER IS ४२, and it is `सेतुः.t1` that answers it: this module declares
+॰ the routine and nothing calls it from here.
+॰
+॰ ANSWERED 2026-09-21T16:22Z, tree `2d116943`. This half compiles on its own —
+॰ `t1_boot --object` reads `object: पारम् text 1877 object 960 records false`,
+॰ which nothing had ever asked before — and it exports `॥ वैश्विकम्
+॰ पारम्द्विगुणय ॥`, the exact symbol `सेतुः.t1`'s call names. The pair links and
+॰ `yantra-run` halts `Finisher { value: 2765619, status: Some(42) }`. Withhold
+॰ this object and the caller STOPS AT link with a refusal, so the ४२ above is
+॰ this routine's and not the caller's.
+॰
+॰ WHY THIS PAIR IS NOT IN `spec/demo/`. The demonstration's third section runs
+॰ EVERY `.t1` in that directory and compares what it answered with the
+॰ `THE ANSWER IS` line in its own margin (`pradarshana/src/lib.rs:1115`), and
+॰ `compile_and_run` (`:1079`) links ONE module object beside the startup. A
+॰ program that spans two modules cannot run there — not because it is wrong,
+॰ because that driver links one object. `t1_population.rs:100-114` also pins
+॰ the six by name. So the pair lives here, is reached by `--compiler` and an
+॰ explicit source list, and breaks nothing that walks `spec/demo/`.
+
+सार्वजनिक वृत्तिः द्विगुणय आदाय संख्या ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् संख्या योगः संख्या ।
+इति

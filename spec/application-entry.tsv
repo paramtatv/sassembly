@@ -1,0 +1,73 @@
+# The Sassembly application entry contract — ADR-0015 clause A1, task `F-001e1`,
+# doc 07 §3.
+#
+# ADR-0015: "An application is entered at the ELF `e_entry` *by a loader*, with a
+# stack pointer it did not choose and its arguments in a defined place. It does
+# not run because the machine was reset to it, and it does not know its own load
+# address."
+#
+# This file says what "a defined place" is. It is the whole integer register file
+# at the instant the loader's `sret` lands on `e_entry` — all 32, because a
+# contract that names three registers and says "the rest are whatever" is not a
+# contract, and a program that reads `s3` and finds the loader's leftovers is a
+# program that works until the loader changes.
+#
+# THREE ROWS CARRY THE CLAUSES:
+#
+#   sp   the loader mapped this stack and chose this address. A1's "a stack
+#        pointer it did not choose" is the whole difference from a boot proof,
+#        which sets `sp` from a linker symbol it can see.
+#   ra   ZERO, and that is deliberate. There is nowhere to return to: an
+#        application ends by CALLING call 0, not by returning from `e_entry`.
+#        Returning jumps to 0, which is not mapped, which is a fetch page fault
+#        the supervisor reports — a diagnosable bug rather than a silent exit.
+#        This is A5 in one register.
+#   a1   the handle vector. Every surface an application may touch (A4) arrives
+#        here, by number, and there is no other way to obtain one. Nothing is
+#        ambient (doc 07 §3). A program handed nothing can do nothing but exit.
+#
+# WHAT IS NOT HERE, AND WHY. There is no argv, no environment block and no
+# auxiliary vector. A Sassembly application's inputs are capabilities, not
+# strings: doc 07 §3 declares requirements in the source and the loader grants
+# them, so `a0`/`a1` carry the grant. A string an application needs is read
+# through a handle like any other input.
+#
+# The `at-entry` column is one of: `0` (the register holds zero), or a name
+# defined in the `meaning` column. `crates/yantra/tests/application_abi.rs`
+# holds the `abi` and `number` columns against `spec/registers-riscv64.tsv` —
+# the numbers are not typed here twice.
+#
+# Columns: abi, number, at-entry, meaning
+abi	number	at-entry	meaning
+zero	0	0	hardwired zero
+ra	1	0	no return address: an application exits by call 0, and returning from e_entry is a fetch fault at 0
+sp	2	stack-top	top of the stack the loader mapped, 16-byte aligned; the program did not choose it
+gp	3	0	no global pointer; a program that wants one computes it
+tp	4	0	no thread pointer; a program that wants one computes it
+t0	5	0	-
+t1	6	0	-
+t2	7	0	-
+s0	8	0	-
+s1	9	0	-
+a0	10	handle-count	how many handles the loader granted, 0 or more
+a1	11	handle-vector	address of a readable array of a0 u64 handles; the only way to obtain a surface
+a2	12	abi-version	1
+a3	13	0	-
+a4	14	0	-
+a5	15	0	-
+a6	16	0	-
+a7	17	0	-
+s2	18	0	-
+s3	19	0	-
+s4	20	0	-
+s5	21	0	-
+s6	22	0	-
+s7	23	0	-
+s8	24	0	-
+s9	25	0	-
+s10	26	0	-
+s11	27	0	-
+t3	28	0	-
+t4	29	0	-
+t5	30	0	-
+t6	31	0	-

@@ -1,0 +1,779 @@
+मण्डलम् पदविभाग ॥
+
+॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE,
+॰ THE FIFTH OF THE REPAIR after `ir.t1`, `ast.t1`, `vishlesana.t1` and
+॰ `artha.t1`. All 74 of its 64-bit integer positions read `अ६४` and now read
+॰ `न६४`, and not one moves the other way: this file holds NO signed quantity.
+॰ Every site is a भेद numbered from १, a BYTE OFFSET into मूल, a LENGTH, an
+॰ AKṢARA (code-point) INDEX, a 1-based LINE, or the arena's write index — and
+॰ none of the six can be negative. The file moves by exactly what the census
+॰ sees: it wraps no 64-bit type in `अङ्कः अन्तः`, `सम्भाव्य` or `दोषयुक्त`,
+॰ so this is the first file since `ir.t1` whose count and whose ledger agree.
+॰
+॰ THE TWIN IS `crates/sadhana/src/lex.rs` AND IT HAS NO `i64` AND NO `isize`
+॰ AT ALL. `Token::{byte, aksara, line}` and `LexError::{byte, index, line}`
+॰ are every numeric field the module declares and all six are `usize`; `Kind`
+॰ and `Karaka` are enums. `t1_sources.rs`'s `T0_LEXER_KINDS` already pairs the
+॰ eight `*भेद` above with their `lex.rs` variant, so the reading is not made
+॰ here for the first time — it is READ OFF A MAPPING THE GATE ALREADY HOLDS.
+॰
+॰ AND THIS IS THE FIRST FILE WHOSE CASE FOR UNSIGNED IS MADE BY THE CODE AND
+॰ NOT ONLY BY THE TWIN. `artha.t1` argued from a twin that declared every sign;
+॰ `ast.t1` had a twin that ran out. Here the argument is also INTERNAL, and it
+॰ is the two shapes a signed reading would need and this file does not have:
+॰   · EVERY SUBTRACTION IS GUARDED. `टिप्पणीसीमा`'s `सीमा वियोगः २` stands
+॰     under a `यदि सीमा न्यूनम् ३` that returns first; `पुच्छविरामः`'s
+॰     `सीमा वियोगः ६` and `सीमा वियोगः ३` under `दैर्घ्य अधिकम् ६` and
+॰     `अधिकम् ३`; `विभज`'s three `सीमा वियोगः १`/`२`/`३` under
+॰     `दैर्घ्य न्यूनम् ३`. The `सीमा वियोगः आरम्भः` in `विरामचिह्न`,
+॰     `पुच्छविरामः` and `विभज` rests on आरम्भः ≤ सीमा, the range contract
+॰     every caller in `पदविभाग` keeps. No difference here can go below ०.
+॰   · THERE IS NO NEGATIVE SENTINEL. `विरामचिह्न` and `विभज` answer ० for
+॰     "not a sign" and "no kāraka" — the comment at `विरामचिह्न` says so and
+॰     cites वाक्यविभाग's कारक for the same choice — and `पदादिः`,
+॰     `पदान्तिकम्` and `पुच्छविरामः` answer सीमा for "not found". A port that
+॰     had reached for −१ would be the one place a signed type was earned, and
+॰     this one did not.
+॰ Both are properties a file-wide `sed` cannot check and a reader can, which is
+॰ why the pass still goes site by site.
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE T0 LEXER — a port of crates/sadhana/src/lex.rs `lex`.
+॰
+॰ Devanagari source in, चिह्नक out. The atom is the akṣara and every
+॰ offset reported is a character index as well as a byte offset, which is
+॰ the one thing the previous state of this file DID get right.
+॰
+॰ ── WHAT THIS FILE WAS, AND WHY THE ROW EXISTS (D-002f10) ──
+॰ Until this commit चिह्नककोश appeared EXACTLY ONCE in this file — its
+॰ declaration below — and was never written to. पदविभाग walked the source
+॰ counting akṣaras and returned ०; विरामचिह्न returned ० for every input.
+॰ Only विभज was real, and विभज could not be CALLED, for the reason in the
+॰ next paragraph. So D-002f3/f4/f6 would each have read an empty arena and
+॰ every test of them would have had to hand-build tokens.
+॰
+॰ ── THE REASON IT WAS EMPTY, WHICH IS A LANGUAGE FACT AND NOT AN OVERSIGHT ──
+॰ T1 HAS NO SLICE CONSTRUCTOR AND NO ITERATOR. There is no way in this
+॰ language to write `&source[a..b]`. Every routine here whose signature
+॰ said `शब्द ॱॱ अङ्कः अन्तः अ८` was therefore UNCALLABLE from a lexer that
+॰ has only the whole source and two offsets, and every routine whose
+॰ return type was `अङ्कः अन्तः चिह्नक` could only ever answer ०. A body
+॰ that cannot be written is written as `प्रत्यागमनम् ०`, and that is
+॰ exactly what was here.
+॰
+॰ सङ्केतन met the same wall and settled it: its row readers take
+॰ (पाठ्यम् ऽ आरम्भः ऽ सीमा) — the whole text and a HALF-OPEN BYTE RANGE —
+॰ and it says so out loud at अष्टकान्वेषणम्, *"the whole of Rust's `split`
+॰ and `split_once`, T1 having no iterator to return"*. This file adopts
+॰ that convention rather than inventing a second one. Concretely:
+॰
+॰   · विरामचिह्न and विभज are re-signed from (शब्द) to (मूल ऽ आरम्भः ऽ सीमा).
+॰     Their arithmetic is UNCHANGED — विभज already indexed from the end,
+॰     so दैर्घ्य became सीमा वियोगः आरम्भः and शब्द अङ्कः दैर्घ्य वियोगः १ अन्तः
+॰     became मूल अङ्कः सीमा वियोगः १ अन्तः. No sigil table is restated.
+॰     THIS IS THE CHANGE THAT MAKES विभज CALLABLE FOR THE FIRST TIME.
+॰   · चिह्नक keeps every field व्याक्यविभाग names — भेद, पाठ, अष्टक, अक्षर,
+॰     पङ्क्ति — and GAINS ONE, पाठसीमा. पाठ is the text the token lies IN
+॰     (the whole source), अष्टक is where the token starts and पाठसीमा is
+॰     where it ends. That is सङ्केतन's triple stored in a record. The token
+॰     shape is EXTENDED and not altered: no field lost a name or a type, so
+॰     वाक्यविभाग's note on this record is still true as written.
+॰   · पदविभाग returns न६४ — how many tokens it wrote — and not
+॰     `दोषयुक्त अङ्कः अन्तः चिह्नक`. The arena is module state under the
+॰     preallocated कोश + सूचकाङ्क convention that व्याकर, मध्यरूप and
+॰     वाक्यविभाग all adopted, and every appender in those files returns the
+॰     index for the same reason. A return type this language cannot build
+॰     is how `प्रत्यागमनम् ०` got written the first time.
+॰
+॰ ── WHAT IS PORTED AND WHAT IS NOT ──
+॰ Ported: lex.rs's line walk, its akṣara bookkeeping, `pieces`'s comment
+॰ strip (lex.rs:295's `line.split('॰').next()`), `split_whitespace`,
+॰ `split_trailing_punct`, `punctuation`, and `split_sigil` (विभज).
+॰
+॰ NOT ported, each blocked on a named thing that does not exist:
+॰   (a) repertoire::check — `sanskrit_text::repertoire` is a DERIVED TABLE
+॰       and no .t1 module holds it. This is the same blocker सङ्केतन's four
+॰       table readers are pinned on. So this port CANNOT FAIL, which is why
+॰       the दोष record below is declared and has no arena: an arena nothing
+॰       can write is the defect this row exists to remove, and adding one
+॰       here would have reproduced it one level down.
+॰   (b) is_numeral — CORRECTED 2026-09-01, and the correction is the whole
+॰       point of auditing a blocker before believing it. This read
+॰       "अक्षरकोश ॱ सङ्ख्या is a stub". IT IS NOT, and had not been for some
+॰       time: sanskrit_text.t1:21 reads the base, validates the digits and
+॰       accumulates the value. THE THIRD CLAIM IS FALSE AND THE ROUTINE IS
+॰       RIGHT — corrected again 2026-09-05, after a change made on the strength
+॰       of this sentence had to be reverted. `सङ्ख्या` IS THE RADIX READER: it
+॰       reads the base, validates every digit and ANSWERS THE BASE, and
+॰       `t1_execution.rs`'s corpus agreement pins it against Rust's `radix`.
+॰       The file's VALUE reader is `मानम्` beside `मानदोषः`, and its BIT reader
+॰       is `अंशाः` beside `अंशदोषः` — three readers that answer differently, which
+॰       is the point of the test named for it. A margin that credits a mechanism
+॰       nobody has run is worth less than no margin: this one said "accumulates
+॰       the value" of a routine that does not and must not, and cost a red main.
+॰       सङ्ख्याभेद is STILL never produced here, but
+॰       BY DESIGN and not for want of a routine — see (d): T0 वाक्यविभाग
+॰       requires an operand to arrive as पदभेद. One lexer serves T0 and T1,
+॰       so व्याकर decides numeral-ness by TEXT (parse.t1, अभिव्यञ्जकपठनम्)
+॰       rather than have this file take a side that would break T0.
+॰   (c) TRUE akṣara segmentation — अक्षरकोश ॱ अक्षराणि is a stub too, so
+॰       अक्षरगणना counts CODE POINTS by UTF-8 lead byte, which is what this
+॰       file always counted. क्ष is three code points and one akṣara, so the
+॰       अक्षर field is a code-point index until that stub lands. Recorded
+॰       here because the old file's count looked correct and was not.
+॰   (d) Kind::Operand — T1 HAS NO OPERAND KIND, by वाक्यविभाग's design:
+॰       an operand lexes as पदभेद and the reader calls विभज for the role
+॰       and takes the base by length. So this lexer does not call विभज at
+॰       all, and that is the landed shape and not an omission.
+॰   (e) Kind::Str and ADR-0018's layout words belong to `lex_t1`, the T1
+॰       entry point, and not to `lex`. Different row.
+॰ ══════════════════════════════════════════════════════════════════════
+
+॰ `आयातः वास्तु ।` STOOD HERE UNTIL 2026-09-04 (W-225) and was REMOVED: this
+॰ file names no `वास्तुॱ…` anywhere — the lexer produces tokens, not AST — so
+॰ the import reached nothing. `lex.rs` likewise uses nothing from `ast.rs`.
+
+सार्वजनिक चरः पदभेद ॱॱ न६४ भवति १ ।   ॰ Kind::Word — and Kind::Operand, which folds here
+सार्वजनिक चरः सङ्ख्याभेद ॱॱ न६४ भवति २ ।   ॰ Kind::Numeral
+सार्वजनिक चरः शब्दभेद ॱॱ न६४ भवति ३ ।   ॰ Kind::Str
+सार्वजनिक चरः दण्डभेद ॱॱ न६४ भवति ४ ।   ॰ Kind::Danda
+सार्वजनिक चरः युग्मदण्डभेद ॱॱ न६४ भवति ५ ।   ॰ Kind::DoubleDanda
+सार्वजनिक चरः चिह्नभेद ॱॱ न६४ भवति ६ ।   ॰ Kind::LabelMark
+सार्वजनिक चरः अंशचिह्नभेद ॱॱ न६४ भवति ७ ।   ॰ Kind::MemberMark
+सार्वजनिक चरः विच्छेदकभेद ॱॱ न६४ भवति ८ ।   ॰ Kind::Separator
+
+॰ ══════════════════ one token ══════════════════
+॰ struct Token. पाठ ऽ अष्टक ऽ पाठसीमा is सङ्केतन's (text ऽ start ऽ end)
+॰ triple: पाठ is the SOURCE the token lies in, not a copy of the token,
+॰ because T1 cannot cut one. अष्टक keeps its meaning exactly — Rust's
+॰ `byte`, the offset of the first character — so the added field is
+॰ पाठसीमा alone.
+
+सार्वजनिक संरचना चिह्नक आरभ्य
+    भेद ॱॱ न६४ ऽ   ॰ Token::kind — the discriminant above, numbered from १
+    पाठ ॱॱ अङ्कः अन्तः अ८ ऽ
+    अष्टक ॱॱ न६४ ऽ   ॰ Token::byte: usize
+    पाठसीमा ॱॱ न६४ ऽ   ॰ the end offset — no Rust field, a bound by construction
+    अक्षर ॱॱ न६४ ऽ   ॰ Token::aksara: usize
+    पङ्क्ति ॱॱ न६४   ॰ Token::line: usize, 1-based
+समाप्तम् ।
+
+॰ struct LexError. DECLARED AND UNFILLED ON PURPOSE — see (a) above.
+सार्वजनिक संरचना दोष आरभ्य
+    अक्षर ॱॱ अङ्कः अन्तः अ८ ऽ
+    अष्टक ॱॱ न६४ ऽ   ॰ LexError::byte: usize
+    सूचकाङ्क ॱॱ न६४ ऽ   ॰ LexError::index: usize
+    पङ्क्ति ॱॱ न६४ ऽ   ॰ LexError::line: usize
+    कारण ॱॱ अङ्कः अन्तः अ८
+समाप्तम् ।
+
+॰ ═══ THE EMBED STORE — the host fills it, the lexer reads it, NOBODY ELSE resolves an embed ═══
+॰
+॰ `समावेशः आरभ्य <name> समाप्तम्` names a generated table whose BYTES must become
+॰ a string literal. `.t1` has no file-reading construct, so the bytes have to
+॰ enter from the host — and the only question that matters is WHERE, because a
+॰ resolver that lives in one driver is invisible to every other driver. That
+॰ happened once: a resolver in the Rust `Front::lex` passed every test that ran
+॰ through `Front` and moved cause १२ by nothing on the census, which loads the
+॰ chain through `Interpreter::load` and drives the lexer from `shrinkhala.t1`.
+॰ Four readings green, none on the product path.
+॰
+॰ SO THE HOST DOES ONE THING, AT THE ONE PLACE EVERY DRIVER SHARES: when the chain
+॰ is LOADED, it fills these three arenas with every table it knows — the name,
+॰ the bytes, and the byte count, index for index. And the lexer's own entry,
+॰ `पदविभाग`, collapses the four tokens into one `शब्दभेद` token from the store
+॰ before it returns. `Front::lex`, `शृङ्खलाॱपठनम्` and the census all call
+॰ `पदविभाग`; there is one resolver and it is this file.
+॰
+॰ ॥ THE COUNT IS A THIRD ARENA, NOT A `दैर्घ्य` ॥ — deliberately. A `ॱ दैर्घ्य`
+॰ read on a run is cause ३२ when THIS file is compiled as corpus, and a change
+॰ that lowers embeds must not pay a stub into a neighbouring cause with its own
+॰ lines. The host knows every length at fill time and writes it beside the bytes.
+॰
+॰ A NAME THE STORE DOES NOT HOLD IS LEFT AS IT WAS — four tokens, which the
+॰ parser builds into the embed node that `ir.t1` still stubs as cause १२. `.t1`
+॰ has no raise; the honest marker for "no table" is the stub that already exists.
+सार्वजनिक चरः समावेशनामकोश ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।   ॰ table names, from ०
+सार्वजनिक चरः समावेशपाठकोश ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।   ॰ table bytes, index for index
+सार्वजनिक चरः समावेशसीमाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।            ॰ byte counts, index for index
+सार्वजनिक चरः समावेशसंख्या ॱॱ न६४ भवति ० ।                         ॰ how many the host filled
+
+॰ ══════════════════ a table's text, at RUN time ══════════════════
+॰ The include substitutes at LEX time of the source being compiled, so a table the
+॰ COMPILER itself needs is resolved when that compiler's own source was compiled —
+॰ against whatever store the compiling compiler held. Interpreted the host fills the
+॰ store (nirvahana reads spec/); natively nothing did, so every compiler object carried
+॰ an EMPTY literal and the compiled assembler had no mnemonics: 74 rows interpreted, ०
+॰ natively, with the store filled on both sides (2026-09-14). The compiler's own tables
+॰ therefore come through THIS routine — a run-time lookup in the same store — and the
+॰ substitution stays for ordinary sources.
+सार्वजनिक वृत्तिः समावेशपाठः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति अङ्कः अन्तः अ८ आदि
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् समावेशसंख्या आदि
+        यदि समावेशनामकोश अङ्कः क्रमः अन्तः समम् नाम आदि
+            प्रत्यागमनम् समावेशपाठकोश अङ्कः क्रमः अन्तः ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+सार्वजनिक चरः चिह्नककोश ॱॱ अङ्कः अन्तः चिह्नक भवति ० ।
+सार्वजनिक चरः चिह्नकसूचकाङ्क ॱॱ न६४ भवति ० ।   ॰ the arena write index, and so also the count
+
+॰ ══════════════════ octets ══════════════════
+॰ T1 has no character literal, so every sign is written as its UTF-8
+॰ octets, exactly as सङ्केतन writes TAB 9 and `#` 35. The six signs
+॰ ADR-0003 ratified:
+॰   । U+0964 -> 224 165 164        ॥ U+0965 -> 224 165 165
+॰   ॰ U+0970 -> 224 165 176        ॱ U+0971 -> 224 165 177
+॰   ऽ U+093D -> 224 164 189        ॱॱ       -> 224 165 177 twice
+॰ and the layout octets TAB 9, LF 10, CR 13, SPACE 32.
+
+॰ whether three octets stand at स्थितिः. every sign this lexer knows is
+॰ three octets wide, so one comparison serves all of them and no sign is
+॰ spelled twice.
+सार्वजनिक वृत्तिः त्र्यष्टकसाम्यम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ स्थितिः ॱॱ न६४ ऽ प्रथमम् ॱॱ अ८ ऽ द्वितीयम् ॱॱ अ८ ऽ तृतीयम् ॱॱ अ८ ददाति बूल आदि   ॰ an offset into मूल
+    यदि आरभ्य स्थितिः योगः ३ समाप्तम् अधिकम् मूल ॱ दैर्घ्य आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि मूल अङ्कः स्थितिः अन्तः असमम् प्रथमम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि मूल अङ्कः आरभ्य स्थितिः योगः १ समाप्तम् अन्तः असमम् द्वितीयम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि मूल अङ्कः आरभ्य स्थितिः योगः २ समाप्तम् अन्तः असमम् तृतीयम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ Rust's `char::is_whitespace` as `split_whitespace` uses it. Doc 15 §1
+॰ admits exactly three layout characters and CR is here as well, because
+॰ Rust's `lines` drops a trailing CR and this lexer must not glue one to
+॰ the last word of a line.
+सार्वजनिक वृत्तिः अवकाशः आदाय अष्टकम् ॱॱ अ८ ददाति बूल आदि
+    यदि अष्टकम् समम् ३२ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि अष्टकम् समम् ९ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि अष्टकम् समम् १० आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि अष्टकम् समम् १३ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ══════════════════ akṣara bookkeeping ══════════════════
+॰ how many characters lie in [आरम्भः ऽ सीमा). THIS IS THE LOOP THAT WAS
+॰ ALREADY HERE, extracted and given a range so the walker can ask it about
+॰ a gap rather than about the whole source. Rust:
+॰   current_akshara_count += aksharas(&source[prev_byte..byte]).count()
+॰ and see (c) at the head: this counts code points, not clusters.
+सार्वजनिक वृत्तिः अक्षरगणना आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, a count out — three usize
+    चरः सूचकाङ्क ॱॱ न६४ भवति आरम्भः ।   ॰ an offset
+    चरः संख्यानम् ॱॱ न६४ भवति ० ।   ॰ a count
+
+    यावत् सूचकाङ्क न्यूनम् सीमा आदि
+        चरः अष्टकम् ॱॱ अ८ भवति मूल अङ्कः सूचकाङ्क अन्तः ।
+
+        यदि अष्टकम् न्यूनम् १२८ आदि
+            सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+            यदि अष्टकम् न्यूनम् २२४ आदि
+                सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः २ समाप्तम् ।
+            इति अन्यथा आदि
+                यदि अष्टकम् न्यूनम् २४० आदि
+                    सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः ३ समाप्तम् ।
+                इति अन्यथा आदि
+                    सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः ४ समाप्तम् ।
+                इति
+            इति
+        इति
+
+        संख्यानम् भवति आरभ्य संख्यानम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+॰ ══════════════════ cutting the source up ══════════════════
+॰ where the line beginning at आरम्भः ends — Rust's `lines`, one line at a
+॰ time. the LF is not included, exactly as `lines` drops it; a CR before
+॰ it is left in the range and अवकाशः refuses it, which is the same result.
+सार्वजनिक वृत्तिः पङ्क्तिसीमा आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ददाति न६४ आदि   ॰ an offset in, an offset out
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।   ॰ मूल ॱ दैर्घ्य — a length
+    चरः सूचकाङ्क ॱॱ न६४ भवति आरम्भः ।   ॰ an offset
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        यदि मूल अङ्कः सूचकाङ्क अन्तः समम् १० आदि
+            प्रत्यागमनम् सूचकाङ्क ।
+        इति
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
+॰ WHERE THE COMMENT MARK ENDS THE LINE — lex.rs:295, `line.split('॰')
+॰ .next()`, which ADR-0017 moved AFTER string recognition in `pieces` and
+॰ which for T0 is unchanged: the first ॰ anywhere on the line still ends
+॰ it. Rust finds the mark per WORD and pushes the prefix; scanning the
+॰ whole range for it and then splitting words inside [आरम्भः ऽ mark) gives
+॰ the same pieces, because the prefix of a word that holds the mark is
+॰ still bounded by the whitespace before it.
+सार्वजनिक वृत्तिः टिप्पणीसीमा आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, an offset out
+    यदि सीमा न्यूनम् ३ आदि
+        प्रत्यागमनम् सीमा ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति आरम्भः ।   ॰ an offset
+    चरः अन्तिमम् ॱॱ न६४ भवति आरभ्य सीमा वियोगः २ समाप्तम् ।   ॰ सीमा वियोगः २ — the न्यूनम् ३ test above is what keeps it ≥ ०
+
+    यावत् सूचकाङ्क न्यूनम् अन्तिमम् आदि
+        ॰ ॥ THE THIRD OCTET DISCRIMINATES, AND IT IS CHECKED INLINE ॥
+        ॰ This was the ONLY per-octet CALL in the lexer: `त्र्यष्टकसाम्यम्` once for
+        ॰ every byte of every line, where `पङ्क्तिसीमा` does its own test inline. All
+        ॰ twelve other uses of that routine are at fixed token positions — O(tokens),
+        ॰ not O(octets).
+        ॰
+        ॰ CHECKING THE FIRST OCTET WOULD SAVE NOTHING. `॰` is U+0970 = २२४ १६५ १७६, and
+        ॰ EVERY Devanagari character is २२४ १६४/१६५ xx — so २२४ is the common case on
+        ॰ this corpus, not the rare one. The THIRD octet, १७६, is the discriminating
+        ॰ one, and it is in range because the loop bound is `सीमा वियोगः २`.
+        ॰
+        ॰ The call is kept for the case that passes, so the three-octet test and its
+        ॰ bounds guard are still one routine and cannot drift from their twelve other
+        ॰ callers.
+        यदि मूल अङ्कः आरभ्य सूचकाङ्क योगः २ समाप्तम् अन्तः समम् १७६ आदि
+            यदि त्र्यष्टकसाम्यम् मूल सूचकाङ्क २२४ १६५ १७६ आदि
+                प्रत्यागमनम् सूचकाङ्क ।
+            इति
+        इति
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् सीमा ।
+इति
+
+॰ the first non-layout octet at or after आरम्भः and before सीमा, or सीमा
+॰ when the rest of the range is blank — `split_whitespace` finding the
+॰ start of the next word.
+सार्वजनिक वृत्तिः पदादिः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, an offset out
+    चरः सूचकाङ्क ॱॱ न६४ भवति आरम्भः ।   ॰ an offset
+
+    यावत् सूचकाङ्क न्यूनम् सीमा आदि
+        यदि अवकाशः आरभ्य मूल अङ्कः सूचकाङ्क अन्तः समाप्तम् आदि
+            सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+            प्रत्यागमनम् सूचकाङ्क ।
+        इति
+    इति
+
+    प्रत्यागमनम् सीमा ।
+इति
+
+॰ where the word beginning at आरम्भः ends — the next layout octet, or सीमा.
+सार्वजनिक वृत्तिः पदान्तिकम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, an offset out
+    चरः सूचकाङ्क ॱॱ न६४ भवति आरम्भः ।   ॰ an offset
+
+    यावत् सूचकाङ्क न्यूनम् सीमा आदि
+        यदि अवकाशः आरभ्य मूल अङ्कः सूचकाङ्क अन्तः समाप्तम् आदि
+            प्रत्यागमनम् सूचकाङ्क ।
+        इति
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् सीमा ।
+इति
+
+॰ ══════════════════ classification ══════════════════
+॰ Rust's `punctuation` — the sign standing alone in [आरम्भः ऽ सीमा), or ०
+॰ for "not a sign". ० rather than सम्भाव्य for the reason वाक्यविभाग gives
+॰ for कारक: ० is already this crate's spelling of "none" in a भेद number,
+॰ and विभज below answers the same way.
+॰ ॱॱ IS TESTED BEFORE ॱ AND THAT ORDER IS LOAD-BEARING — B-007. A label is
+॰ written against its name, प्रारम्भःॱॱ, so a single ॱ matched first would
+॰ make every label two tokens of an identifier and no label could be
+॰ defined at all.
+सार्वजनिक वृत्तिः विरामचिह्न आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, a भेद out — ० for "not a sign", never −१
+    चरः दैर्घ्य ॱॱ न६४ भवति आरभ्य सीमा वियोगः आरम्भः समाप्तम् ।   ॰ सीमा वियोगः आरम्भः — आरम्भः ≤ सीमा by the caller's contract
+
+    यदि दैर्घ्य समम् ६ आदि
+        यदि त्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६५ १७७ आदि
+            यदि त्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ३ समाप्तम् २२४ १६५ १७७ आदि
+                प्रत्यागमनम् चिह्नभेद ।
+            इति
+        इति
+    इति
+
+    यदि दैर्घ्य समम् ३ आदि
+        यदि त्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६५ १६४ आदि
+            प्रत्यागमनम् दण्डभेद ।
+        इति
+        यदि त्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६५ १६५ आदि
+            प्रत्यागमनम् युग्मदण्डभेद ।
+        इति
+        यदि त्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६५ १७७ आदि
+            प्रत्यागमनम् अंशचिह्नभेद ।
+        इति
+        यदि त्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६४ १८९ आदि
+            प्रत्यागमनम् विच्छेदकभेद ।
+        इति
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Rust's `split_trailing_punct` — कम्। is an operand and a daṇḍa, written
+॰ without a space because nothing requires one. answers where the HEAD
+॰ ends; सीमा when nothing is peeled.
+॰ the four peelable signs are ॱॱ ऽ । ॥ and ॱ IS NOT AMONG THEM: the width
+॰ suffix आहारःॱअ८ uses the same character singly and a member access has a
+॰ member, so a word never ENDS in a single ॱ.
+॰ STRICTLY LONGER, never equal — Rust tests `word.len() > p.len()`, so a
+॰ word that IS the sign is classified whole and not peeled to nothing.
+सार्वजनिक वृत्तिः पुच्छविरामः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, an offset out — सीमा when nothing is peeled
+    चरः दैर्घ्य ॱॱ न६४ भवति आरभ्य सीमा वियोगः आरम्भः समाप्तम् ।   ॰ सीमा वियोगः आरम्भः, as above
+
+    यदि दैर्घ्य अधिकम् ६ आदि
+        चरः षट्सरण ॱॱ न६४ भवति आरभ्य सीमा वियोगः ६ समाप्तम् ।   ॰ सीमा वियोगः ६ — guarded by the अधिकम् ६ test above it
+        यदि त्र्यष्टकसाम्यम् मूल षट्सरण २२४ १६५ १७७ आदि
+            यदि त्र्यष्टकसाम्यम् मूल आरभ्य षट्सरण योगः ३ समाप्तम् २२४ १६५ १७७ आदि
+                प्रत्यागमनम् षट्सरण ।
+            इति
+        इति
+    इति
+
+    यदि दैर्घ्य अधिकम् ३ आदि
+        चरः त्रिसरण ॱॱ न६४ भवति आरभ्य सीमा वियोगः ३ समाप्तम् ।   ॰ सीमा वियोगः ३ — guarded by the अधिकम् ३ test above it
+        यदि त्र्यष्टकसाम्यम् मूल त्रिसरण २२४ १६५ १६४ आदि
+            प्रत्यागमनम् त्रिसरण ।
+        इति
+        यदि त्र्यष्टकसाम्यम् मूल त्रिसरण २२४ १६५ १६५ आदि
+            प्रत्यागमनम् त्रिसरण ।
+        इति
+        यदि त्र्यष्टकसाम्यम् मूल त्रिसरण २२४ १६४ १८९ आदि
+            प्रत्यागमनम् त्रिसरण ।
+        इति
+    इति
+
+    प्रत्यागमनम् सीमा ।
+इति
+
+॰ ══════════════════ the arena appender ══════════════════
+॰ push one token. THE KIND IS FIRST, exactly as वाक्यविभाग ॱ वाक्ययोजनम्
+॰ takes it first and for the same stated reason: the call site then SAYS
+॰ which of the eight it is, and a ratchet can see it. The pre-increment
+॰ before the store is the preallocated कोश + सूचकाङ्क convention as व्याकर,
+॰ मध्यरूप and वाक्यविभाग write it, so index ० is unused and चिह्नकसूचकाङ्क
+॰ is both the last index written and the count.
+सार्वजनिक वृत्तिः चिह्नकयोजनम् आदाय भेद ॱॱ न६४ ऽ पाठ ॱॱ अङ्कः अन्तः अ८ ऽ अष्टक ॱॱ न६४ ऽ पाठसीमा ॱॱ न६४ ऽ अक्षर ॱॱ न६४ ऽ पङ्क्ति ॱॱ न६४ ददाति न६४ आदि   ॰ a भेद, three offsets, an akṣara index, a line — and the new index out
+    चरः नव ॱॱ चिह्नक भवति ० ।
+    नव ॱ भेद भवति भेद ।
+    नव ॱ पाठ भवति पाठ ।
+    नव ॱ अष्टक भवति अष्टक ।
+    नव ॱ पाठसीमा भवति पाठसीमा ।
+    नव ॱ अक्षर भवति अक्षर ।
+    नव ॱ पङ्क्ति भवति पङ्क्ति ।
+    चिह्नकसूचकाङ्क भवति आरभ्य चिह्नकसूचकाङ्क योगः १ समाप्तम् ।
+    चिह्नककोश अङ्कः चिह्नकसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् चिह्नकसूचकाङ्क ।
+इति
+
+॰ ॥ चिह्नकपाठः ॥
+॰
+॰ A TOKEN'S `पाठ` IS THE WHOLE SOURCE, NOT ITS OWN TEXT. `चिह्नकयोजनम्` is
+॰ called as `चिह्नकयोजनम् भेद मूल पदारम्भः शिरोन्तः ...` — `मूल` is the entire
+॰ input and the token's text is `पाठ` from `अष्टक` up to `पाठसीमा`. This
+॰ answers that slice as a byte run of its own, so a caller can compare it.
+॰
+॰ WHY IT EXISTS. Every consumer read `चिह्नकम् ॱ पाठ` directly and so held the
+॰ WHOLE SOURCE where it meant one word. `व्याकरॱमेलनम्` compared that against a
+॰ keyword and therefore NEVER MATCHED: `कार्यक्रमपठनम्` skipped every token and
+॰ returned ० declarations with `दोषकोश` EMPTY — no error, just nothing parsed.
+॰ It went unseen because every test built tokens with `चिह्नकयोजनम्` passing the
+॰ word itself as `पाठ` with `अष्टक` and `पाठसीमा` ०, and on THAT shape the
+॰ direct comparison is correct. The margin at `artha.t1:1027` states the
+॰ opposite — "`चिह्नक ॱ पाठ` IS the token's own text and needs no slice" — and
+॰ cites `ir.t1:299`, which reads the same field the same wrong way. The note
+॰ and its precedent were both mistaken.
+॰
+॰ Byte runs are ZERO-based, so the result is filled from ०.
+॰ ॥ खण्डपाठः ॥ a byte run's slice, as a run of its own.
+॰
+॰ EXTRACTED FROM `चिह्नकपाठः` when it gained a SECOND caller (`मण्डलउपसर्गः`
+॰ below). One copy of "copy the bytes from आरम्भः up to सीमा" rather than two.
+सार्वजनिक वृत्तिः खण्डपाठः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ न६४ सीमा ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः सरणम् ॱॱ न६४ भवति ० ।
+    चरः मानम् ॱॱ न६४ भवति आरभ्य सीमा वियोगः आरम्भः समाप्तम् ।
+
+    यावत् सरणम् न्यूनम् मानम् आदि
+        फलम् अङ्कः सरणम् अन्तः भवति पाठ्यम् अङ्कः आरभ्य आरम्भः योगः सरणम् समाप्तम् अन्तः ।
+        सरणम् भवति सरणम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ ॥ मण्डलउपसर्गः ॥ the module half of a qualified name, or an empty run.
+॰
+॰ `पदविभागॱचिह्नककोश` IS ONE TOKEN: the lexer peels only a LEADING or TRAILING
+॰ sign, so an interior `ॱ` stays inside the word. `अर्थ` needs the part BEFORE
+॰ that mark to ask whether the module was imported — accepting any name that
+॰ merely CONTAINS a `ॱ` would resolve a name from a module never imported,
+॰ which is switching the check off rather than performing it.
+॰
+॰ `ॱ` is U+0971, whose UTF-8 is E0 A5 B1 — २२४ १६५ १७७. The three bytes are
+॰ matched together because a lone २२४ begins many Devanagari code points.
+सार्वजनिक वृत्तिः मण्डलउपसर्गः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति अङ्कः अन्तः अ८ आदि
+    चरः सीमा ॱॱ न६४ भवति नाम ॱ दैर्घ्य ।
+    चरः सरणम् ॱॱ न६४ भवति ० ।
+
+    यावत् सरणम् योगः ३ न्यूनम् आरभ्य सीमा योगः १ समाप्तम् आदि
+        यदि नाम अङ्कः सरणम् अन्तः समम् २२४ आदि
+            यदि नाम अङ्कः आरभ्य सरणम् योगः १ समाप्तम् अन्तः समम् १६५ आदि
+                यदि नाम अङ्कः आरभ्य सरणम् योगः २ समाप्तम् अन्तः समम् १७७ आदि
+                    प्रत्यागमनम् खण्डपाठः नाम ० सरणम् ।
+                इति
+            इति
+        इति
+        सरणम् भवति सरणम् योगः १ ।
+    इति
+
+    ॰ not qualified — an EMPTY run, which no module name can equal.
+    चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    प्रत्यागमनम् रिक्तम् ।
+इति
+
+सार्वजनिक वृत्तिः चिह्नकपाठः आदाय चिह्नकम् ॱॱ चिह्नक ददाति अङ्कः अन्तः अ८ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    चरः सरणम् ॱॱ अ६४ भवति ० ।
+    चरः मानम् ॱॱ अ६४ भवति आरभ्य चिह्नकम् ॱ पाठसीमा वियोगः चिह्नकम् ॱ अष्टक समाप्तम् ।
+
+    यावत् सरणम् न्यूनम् मानम् आदि
+        फलम् अङ्कः सरणम् अन्तः भवति चिह्नकम् ॱ पाठ अङ्कः आरभ्य चिह्नकम् ॱ अष्टक योगः सरणम् समाप्तम् अन्तः ।
+        सरणम् भवति सरणम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ ══════════════════ lex ══════════════════
+॰ Rust's `lex`. Walks the source line by line; strips the comment; walks
+॰ the words of what is left; peels a glued sign off each word and emits
+॰ the head and then the sign, in that order and with the sign's own
+॰ offsets, exactly as lex.rs does.
+॰ answers HOW MANY TOKENS IT WROTE. the arena is चिह्नककोश and the count
+॰ is चिह्नकसूचकाङ्क, which is reset here so that lexing a second source
+॰ does not append to the first.
+सार्वजनिक वृत्तिः पदविभाग आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि   ॰ how many tokens were written
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।   ॰ मूल ॱ दैर्घ्य — a length
+    चरः पङ्क्ति ॱॱ न६४ भवति १ ।   ॰ Rust's `line`, counted from १
+    चरः पङ्क्त्यारम्भः ॱॱ न६४ भवति ० ।   ॰ an offset
+    चरः अक्षरसूचकाङ्क ॱॱ न६४ भवति ० ।   ॰ `current_akshara_count` — a code-point index, see (c)
+    चरः पूर्वाष्टक ॱॱ न६४ भवति ० ।   ॰ `prev_byte`
+
+    चिह्नकसूचकाङ्क भवति ० ।
+
+    यावत् पङ्क्त्यारम्भः न्यूनम् दैर्घ्य आदि
+        चरः पङ्क्त्यन्तः ॱॱ न६४ भवति पङ्क्तिसीमा मूल पङ्क्त्यारम्भः ।   ॰ an offset
+        चरः सीमा ॱॱ न६४ भवति टिप्पणीसीमा मूल पङ्क्त्यारम्भः पङ्क्त्यन्तः ।   ॰ an offset
+        चरः स्थितिः ॱॱ न६४ भवति पङ्क्त्यारम्भः ।   ॰ an offset
+
+        यावत् स्थितिः न्यूनम् सीमा आदि
+            चरः पदारम्भः ॱॱ न६४ भवति पदादिः मूल स्थितिः सीमा ।   ॰ an offset
+
+            यदि पदारम्भः समम् सीमा आदि
+                स्थितिः भवति सीमा ।
+            इति अन्यथा आदि
+                चरः पदान्तः ॱॱ न६४ भवति पदान्तिकम् मूल पदारम्भः सीमा ।   ॰ an offset
+
+                ॰ the akṣara index is carried forward over the GAP since the
+                ॰ last token, which is Rust's prev_byte..byte exactly.
+                अक्षरसूचकाङ्क भवति आरभ्य अक्षरसूचकाङ्क योगः आरभ्य अक्षरगणना मूल पूर्वाष्टक पदारम्भः समाप्तम् समाप्तम् ।
+                पूर्वाष्टक भवति पदारम्भः ।
+
+                चरः शिरोन्तः ॱॱ न६४ भवति पुच्छविरामः मूल पदारम्भः पदान्तः ।   ॰ an offset
+                चरः भेद ॱॱ न६४ भवति विरामचिह्न मूल पदारम्भः शिरोन्तः ।   ॰ a भेद
+
+                ॰ anything that is not a sign is a WORD. Rust would ask
+                ॰ is_numeral and then split_sigil here; see (b) and (d) at
+                ॰ the head — सङ्ख्याभेद waits on अक्षरकोश ॱ सङ्ख्या, and T1
+                ॰ has no operand kind by design.
+                यदि भेद समम् ० आदि
+                    भेद भवति पदभेद ।
+                    ॰ ADR-0018 (2026-09-13): the two layout words are VALUES — the Rust lexer hands
+                    ॰ `विवरम्` over as " " and `यतिः` as "\n" (Kind::Str); this lexer never did,
+                    ॰ so the compiled compiler saw two unresolved names and two ० initialisers.
+                    चरः पदपाठम् ॱॱ अङ्कः अन्तः अ८ भवति खण्डपाठः आरभ्य मूल ऽ पदारम्भः ऽ शिरोन्तः समाप्तम् ।
+                    ॰ ADR-0018 names the BARE word only. Inside `उक्तम् … इति` the word is
+                    ॰ text — the interpreter's reading (18 octets), which the two
+                    ॰ comparisons just below and ir.t1's fold arms depend on: until
+                    ॰ 2026-09-14 this classified the quoted word too, the .t1 IR folded
+                    ॰ `उक्तम् विवरम् इति` to one space, and the COMPILED lexer compared every
+                    ॰ word against " " — no layout word was ever शब्दभेद natively, and lex.t1
+                    ॰ compiled by itself emitted ० where the interpreter emitted ३२ (the
+                    ॰ first per-module rung to differ). The token before this one decides.
+                    चरः उक्तानन्तरम् ॱॱ बूल भवति असत्यम् ।
+                    यदि चिह्नकसूचकाङ्क अधिकम् ० आदि
+                        यदि चिह्नकपाठः आरभ्य चिह्नककोश अङ्कः चिह्नकसूचकाङ्क अन्तः समाप्तम् समम् उक्तम् उक्तम् इति आदि
+                            उक्तानन्तरम् भवति सत्यम् ।
+                        इति
+                    इति
+                    यदि उक्तानन्तरम् समम् असत्यम् आदि
+                        यदि पदपाठम् समम् उक्तम् विवरम् इति आदि भेद भवति शब्दभेद । इति
+                        यदि पदपाठम् समम् उक्तम् यतिः इति आदि भेद भवति शब्दभेद । इति
+                    इति
+                इति
+
+                चिह्नकयोजनम् भेद मूल पदारम्भः शिरोन्तः अक्षरसूचकाङ्क पङ्क्ति ।
+
+                ॰ the peeled sign is its own token, at its own offset.
+                यदि शिरोन्तः न्यूनम् पदान्तः आदि
+                    चरः पुच्छभेद ॱॱ न६४ भवति विरामचिह्न मूल शिरोन्तः पदान्तः ।   ॰ a भेद
+                    यदि पुच्छभेद असमम् ० आदि
+                        अक्षरसूचकाङ्क भवति आरभ्य अक्षरसूचकाङ्क योगः आरभ्य अक्षरगणना मूल पूर्वाष्टक शिरोन्तः समाप्तम् समाप्तम् ।
+                        पूर्वाष्टक भवति शिरोन्तः ।
+                        चिह्नकयोजनम् पुच्छभेद मूल शिरोन्तः पदान्तः अक्षरसूचकाङ्क पङ्क्ति ।
+                    इति
+                इति
+
+                स्थितिः भवति पदान्तः ।
+            इति
+        इति
+
+        पङ्क्ति भवति आरभ्य पङ्क्ति योगः १ समाप्तम् ।
+        पङ्क्त्यारम्भः भवति आरभ्य पङ्क्त्यन्तः योगः १ समाप्तम् ।
+    इति
+
+    ॰ ═══ समावेशः आरभ्य <name> समाप्तम् → ONE शब्दभेद token, bytes from the store ═══
+    ॰ The first of the four is rewritten in place to kind ३ with the table's bytes
+    ॰ as its `पाठ`, `अष्टक` ० and `पाठसीमा` the byte count — a token's `पाठ` is the
+    ॰ WHOLE run it indexes into, so a token that IS its own buffer must index from
+    ॰ ०, or `ir.t1`'s literal arm slices a source offset into the wrong bytes.
+    ॰ `अक्षर` and `पङ्क्ति` keep the source's, so a diagnostic still names the line.
+    ॰ The three tokens after it are removed by shifting the tail down and lowering
+    ॰ the CURSOR by three; the arena's length is left alone, and every reader
+    ॰ walks to the cursor, never the length. An unknown name is left as four
+    ॰ tokens — the parser's embed node, `ir.t1`'s cause १२ stub, the honest marker.
+    चरः समावेशक्रमः ॱॱ न६४ भवति १ ।
+    यावत् आरभ्य समावेशक्रमः योगः ३ समाप्तम् न्यूनम् आरभ्य चिह्नकसूचकाङ्क योगः १ समाप्तम् आदि
+        चरः समावेशचिह्नकम् ॱॱ चिह्नक भवति चिह्नककोश अङ्कः समावेशक्रमः अन्तः ।
+        ॰ `चिह्नकपाठः` ALLOCATES a fresh run per call. Calling it on every token
+        ॰ to find four is twenty thousand allocations per source — the bloat the
+        ॰ owner named. `समावेशः` is seven aksaras, २१ octets; test the LENGTH from
+        ॰ the token's own bounds first, and copy only a token that could match.
+        यदि आरभ्य समावेशचिह्नकम् ॱ पाठसीमा वियोगः समावेशचिह्नकम् ॱ अष्टक समाप्तम् समम् २१ आदि
+        यदि चिह्नकपाठः समावेशचिह्नकम् समम् उक्तम् समावेशः इति आदि
+            चरः आरम्भचिह्नकम् ॱॱ चिह्नक भवति चिह्नककोश अङ्कः आरभ्य समावेशक्रमः योगः १ समाप्तम् अन्तः ।
+            चरः समाप्तिचिह्नकम् ॱॱ चिह्नक भवति चिह्नककोश अङ्कः आरभ्य समावेशक्रमः योगः ३ समाप्तम् अन्तः ।
+            यदि चिह्नकपाठः आरम्भचिह्नकम् समम् उक्तम् आरभ्य इति आदि
+                यदि चिह्नकपाठः समाप्तिचिह्नकम् समम् उक्तम् समाप्तम् इति आदि
+                    चरः नामचिह्नकम् ॱॱ चिह्नक भवति चिह्नककोश अङ्कः आरभ्य समावेशक्रमः योगः २ समाप्तम् अन्तः ।
+                    चरः सारणीनाम ॱॱ अङ्कः अन्तः अ८ भवति चिह्नकपाठः नामचिह्नकम् ।
+                    चरः सारणीक्रमः ॱॱ न६४ भवति ० ।
+                    चरः सारणीमिलितम् ॱॱ बूल भवति असत्यम् ।
+                    यावत् सारणीक्रमः न्यूनम् समावेशसंख्या आदि
+                        यदि सारणीमिलितम् समम् असत्यम् आदि
+                            यदि समावेशनामकोश अङ्कः सारणीक्रमः अन्तः समम् सारणीनाम आदि
+                                समावेशचिह्नकम् ॱ भेद भवति ३ ।
+                                समावेशचिह्नकम् ॱ पाठ भवति समावेशपाठकोश अङ्कः सारणीक्रमः अन्तः ।
+                                समावेशचिह्नकम् ॱ अष्टक भवति ० ।
+                                समावेशचिह्नकम् ॱ पाठसीमा भवति समावेशसीमाकोश अङ्कः सारणीक्रमः अन्तः ।
+                                चिह्नककोश अङ्कः समावेशक्रमः अन्तः भवति समावेशचिह्नकम् ।
+                                सारणीमिलितम् भवति सत्यम् ।
+                            इति
+                        इति
+                        सारणीक्रमः भवति सारणीक्रमः योगः १ ।
+                    इति
+                    यदि सारणीमिलितम् समम् सत्यम् आदि
+                        चरः सरणक्रमः ॱॱ न६४ भवति आरभ्य समावेशक्रमः योगः १ समाप्तम् ।
+                        यावत् सरणक्रमः न्यूनम् आरभ्य चिह्नकसूचकाङ्क वियोगः २ समाप्तम् आदि
+                            चिह्नककोश अङ्कः सरणक्रमः अन्तः भवति चिह्नककोश अङ्कः आरभ्य सरणक्रमः योगः ३ समाप्तम् अन्तः ।
+                            सरणक्रमः भवति सरणक्रमः योगः १ ।
+                        इति
+                        चिह्नकसूचकाङ्क भवति आरभ्य चिह्नकसूचकाङ्क वियोगः ३ समाप्तम् ।
+                    इति
+                इति
+            इति
+        इति
+        इति
+        समावेशक्रमः भवति समावेशक्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् चिह्नकसूचकाङ्क ।
+इति
+
+॰ ══════════════════ the kāraka split ══════════════════
+॰ Rust's `split_sigil`, and ADR-0005 with it. answers the ROLE — 1 कर्म,
+॰ 2 करण, 3 अपादान, 4 सम्प्रदान, 5 अधिकरण, ० none — and the caller takes
+॰ the base by length, which is वाक्यविभाग's note on कारकपद.
+॰ RE-SIGNED TO A RANGE THIS COMMIT and otherwise untouched: it indexed
+॰ from the end already, so दैर्घ्य is now सीमा वियोगः आरम्भः and every
+॰ अन्त्य reads from सीमा. That is what makes it CALLABLE — a caller holding
+॰ the source and two offsets could not build the शब्द it used to demand.
+सार्वजनिक वृत्तिः विभज आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि   ॰ two offsets in, a कारक out — ० for none, never −१
+    चरः दैर्घ्य ॱॱ न६४ भवति आरभ्य सीमा वियोगः आरम्भः समाप्तम् ।   ॰ सीमा वियोगः आरम्भः — the न्यूनम् ३ test below guards every अन्त्य
+    यदि दैर्घ्य न्यूनम् ३ आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः अन्त्य१ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः १ समाप्तम् अन्तः ।
+    चरः अन्त्य२ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः २ समाप्तम् अन्तः ।
+    चरः अन्त्य३ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः ३ समाप्तम् अन्तः ।
+
+    यदि अन्त्य३ समम् २२४ आदि
+        यदि अन्त्य२ समम् १६४ आदि
+            ॰ न (करण) -> 0xE0 0xA4 0xA8 -> 224, 164, 168
+            यदि अन्त्य१ समम् १६८ आदि
+                प्रत्यागमनम् २ ।
+            इति
+            ॰ ए (अधिकरण) -> 0xE0 0xA4 0x8F -> 224, 164, 143
+            यदि अन्त्य१ समम् १४३ आदि
+                प्रत्यागमनम् ५ ।
+            इति
+        इति
+    इति
+
+    यदि दैर्घ्य न्यूनम् ६ आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः अन्त्य४ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः ४ समाप्तम् अन्तः ।
+    चरः अन्त्य५ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः ५ समाप्तम् अन्तः ।
+    चरः अन्त्य६ ॱॱ अ८ भवति मूल अङ्कः आरभ्य सीमा वियोगः ६ समाप्तम् अन्तः ।
+
+    ॰ the sigil was absorbed into the final conjunct: a base ending in a
+    ॰ virama fuses with any CONSONANT sigil into one cluster. ् is
+    ॰ 0xE0 0xA5 0x8D -> 224, 165, 141.
+    यदि अन्त्य३ समम् २२४ आदि
+        यदि अन्त्य२ समम् १६५ आदि
+            यदि अन्त्य१ समम् १४१ आदि
+                यदि अन्त्य६ समम् २२४ आदि
+                    यदि अन्त्य५ समम् १६४ आदि
+                        ॰ म् (कर्म) -> 0xE0 0xA4 0xAE (224, 164, 174)
+                        यदि अन्त्य४ समम् १७४ आदि
+                            प्रत्यागमनम् १ ।
+                        इति
+                        ॰ त् (अपादान) -> 0xE0 0xA4 0xA4 (224, 164, 164)
+                        यदि अन्त्य४ समम् १६४ आदि
+                            प्रत्यागमनम् ३ ।
+                        इति
+                        ॰ य् (सम्प्रदान) -> 0xE0 0xA4 0xAF (224, 164, 175)
+                        यदि अन्त्य४ समम् १७५ आदि
+                            प्रत्यागमनम् ४ ।
+                        इति
+                    इति
+                इति
+            इति
+        इति
+    इति
+
+    प्रत्यागमनम् ० ।
+इति

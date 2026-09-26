@@ -1,0 +1,1642 @@
+मण्डलम् उत्सर्जन ॥ ॰ codegen — the port of crates/sadhana/src/t1/regalloc.rs
+॰                    and crates/sadhana/src/t1/x86_64.rs (emit.rs: retired
+॰                    and deleted, `W-237`)
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ CODE GENERATION, task D-002e, doc 03 §8 — the last slice of the D-002
+॰ chain.
+॰
+॰ It takes what मध्यरूप built — वृत्ति, पर्व and the linear आज्ञाकोश —
+॰ decides where every मूल्याङ्क lives, and turns that into text.
+॰ Doc 03 §8's phase 3.4 splits the same work three ways and this file is
+॰ all three: 3.4.7 the linear-scan register allocator, 3.4.8 T0 emission
+॰ for riscv64, and 3.4.11 the x86-64 backend.
+॰ RETIRED PAIR, 2026-09-04 (`W-236`, research/25 §1.2): the 3.4.8 claim is
+॰ WITHDRAWN — `कार्यक्रमोत्सर्जनम्` and its twin `emit.rs` emit a text that is
+॰ NOT T0 (`निधेहि`/`प्रत्यावर्तनम्` are in no mnemonic table, `कोष्ठ५` names no
+॰ register the assembler knows, no operand carries a kāraka), so `सङ्केतन`
+॰ refuses every line; the T0 emitter is `crates/sadhana/src/t1/riscv64.rs`
+॰ with its twin `yantrotsarjana.t1` (यन्त्रोत्सर्जन), and `W-237` deletes the
+॰ retired pair. 3.4.7 and 3.4.11 are not retired; do not extend 3.4.8.
+॰ DELETED, 2026-09-04 (`W-237`): the three routines of 3.4.8 are gone from
+॰ this file and `emit.rs` from the tree — see THE RETIRED T0 PAIR below.
+॰
+॰ ── WHAT THIS FILE REPLACES, AND WHAT IT ACTUALLY HELD ──
+॰ 28 lines of tools/port_encode.py output, and IT WAS NOT THE CODEGEN
+॰ THE FILENAME CLAIMS — it was regalloc.rs's two types and nothing else.
+॰ Not one symbol of emit.rs or x86_64.rs appeared in it: no
+॰ emit_program, no X86_64Emitter, no reg_name. Two thirds of the module
+॰ were absent and the file gave no sign of it.
+॰ It also INVENTED, exactly as ir.t1's predecessor did:
+॰   • लओकएशअनएएनटरय — "LocationEntry". `grep -r LocationEntry` returns
+॰     ZERO hits in any Rust source in this tree. regalloc.rs writes
+॰     `HashMap<ValueId, Location>` and names no entry struct.
+॰   • उतसरजन — a routine taking (ir.Function, AllocationMap) and
+॰     returning `सम्भाव्य अङ्कः अन्तः अ८`. NOTHING in regalloc.rs,
+॰     emit.rs or x86_64.rs returns bytes; both emitters return text.
+॰ And it split `enum Location` into a गणना plus a संरचना without saying
+॰ so, which is the right shape for T1 but was arrived at by accident.
+॰ The generator now refuses to run. Every line below is hand-written
+॰ from the three Rust files named at the top.
+॰
+॰ ── ON THE MODULE NAME ── doc 03 §2's component table names the codegen
+॰ रूपकार (rūpakāra), *"codegen → T0 text"*. spec/marks.tsv has NO row
+॰ for this module at all — it names विश्लेषणम् the disassembler and कोशः
+॰ the object format and stops. The name kept here is उत्सर्जन, for one
+॰ reason only: ir.t1 line 8 already says *"for उत्सर्जन (D-002e) to
+॰ allocate registers over"*, so the sibling that feeds this module has
+॰ committed to the word, and ir.t1 is not this row's file to edit.
+॰ THE DISAGREEMENT IS RECORDED RATHER THAN SILENTLY DECIDED: if रूपकार
+॰ wins, it is one rename here and one line in ir.t1, and doc 03 §2 is
+॰ the authority that should settle it.
+॰
+॰ ── ON THE NAMES ── lexicon words where spec/lexicon.src.tsv has one:
+॰ कोष्ठ register (attested), आवण्टकः allocator (doc11), मुक्तिः free
+॰ (doc11), क्रम order (attested), संख्यानम् count (attested), रेखा line
+॰ (doc05). Derived, and each said out loud because none is in the
+॰ lexicon: अधिकरण — the locative kāraka, the grammarians' word for the
+॰ LOCUS of an action, for Location, the locus a value lives at;
+॰ निक्षेप — a deposit, a thing laid down and kept, for Spill;
+॰ आयुस् — lifespan, for a live interval; सक्रिय — active.
+॰ वचनम् for "the text of" follows encode.t1's सङ्केतनदोषवचनम्.
+॰ यवन IS A PLACEHOLDER AND IS FLAGGED: no lexicon row names an
+॰ instruction-set architecture, so x86-64's emitter has no attested
+॰ name to take. यवन is the classical word for the foreign; a real name
+॰ is a row in spec/lexicon.src.tsv that somebody must file, and until
+॰ then this one is marked rather than passed off as attested.
+॰
+॰ ── ON GROUPING ── spec/grammar-t1.ebnf says operators and their
+॰ precedence are NOT frozen. Every order-dependent expression below is
+॰ bracketed with आरभ्य ॱ समाप्तम्, so the file means one thing under
+॰ either eventual rule. मध्यरूप and संयोजन do the same.
+॰
+॰ ── ON THE ARENAS ── Rust holds HashMap<ValueId,(usize,usize)>,
+॰ Vec<(ValueId,Instruction)> and three parallel Vec pushes. T1 has
+॰ neither a map nor a growable collection. This file invents nothing:
+॰ it adopts the preallocated कोश plus module-level सूचकाङ्क that
+॰ व्याकर committed to and मध्यरूप followed. THE MAPS NEED NO SUBSTITUTE
+॰ AT ALL — मध्यरूप numbers मूल्याङ्क from a dense 1-based counter, so a
+॰ map keyed on ValueId IS an array subscripted by the value number, and
+॰ that is how आयुरारम्भकोश, आयुरन्तकोश and अधिकरणकोश are written. The
+॰ Vec-of-tuples become parallel arrays, because T1 has no tuple.
+॰
+॰ ── ON TEXT ── ADR-0017 (docs/adr/0017-a-string-literal-is-a-token.md)
+॰ gave T1 a string LITERAL TOKEN: `उक्तम् … इति`, taken by the lexer
+॰ before it strips the comment, interior whitespace the source's own,
+॰ `॰` inside it ordinary text, a doubled `इति इति` for the word itself.
+॰ The three routines below that now build text use it.
+॰ NOTHING IN THIS FILE WRITES A `॰` INSIDE A LITERAL, and that is a
+॰ decision rather than an oversight: this file is read by lex_t1, where
+॰ a `॰` inside a string is text, AND by tests/t1_sources.rs, which
+॰ reads every .t1 source with the T0 `lex`, where it still ends the
+॰ line. One literal meaning two things to two readers is the exact
+॰ defect ADR-0017 was written to remove.
+॰
+॰ CONCATENATION IS योगः, AND THIS FILE CHOOSES IT OUT LOUD — AND THEN
+॰ STOPPED USING IT ON 2026-08-30. The paragraph below is kept because it
+॰ is the record of a decision and B-082 still owns the question; what was
+॰ found this session is that the decision HAS NO IMPLEMENTATION. `योगः`
+॰ on two पाठः answers *"expected a number, found Octets"* in the one
+॰ reader that executes T1, so the two routines written on it — देवनागराङ्कः
+॰ and अधिकरणवचनम् — could never have been run. They are appenders now.
+॰ See THE OUTPUT BUFFER below.
+॰ spec/grammar-t1.ebnf freezes no operator at all — "OPERATORS AND
+॰ THEIR PRECEDENCE" is its own last open section — so there is no
+॰ ratified spelling to take, and two candidates existed:
+॰   • अधि, doc 07 §4.2's join and the one crates/sadhana/src/t1/
+॰     drishya.rs implements for a view's text_expr. REFUSED, on its own
+॰     documented rule: pieces joined by अधि are "separated by exactly
+॰     one space". That is right for a view and wrong for assembly,
+॰     where every space in the output is the output's own.
+॰   • योगः, which व्याकर already reads as an infix operator
+॰     (crates/sadhana-t1/src/parse.t1:157 → वास्तुॱयोगद्विकर्मभेद) and
+॰     which this file already writes on every arithmetic line. TAKEN:
+॰     it coins no word, needs no lexer change, and is the same overload
+॰     every language with `+` on strings makes.
+॰ WHAT THAT DOES NOT SETTLE IS THE TYPE, and B-082 owns it: nothing in
+॰ this tree yet distinguishes योगः on two अ६४ from योगः on two पाठः.
+॰ Recorded here rather than left to be discovered there.
+॰
+॰ ── ON ZERO ── मध्यरूप's arenas are 1-based and ० means ABSENT, and
+॰ this file keeps that. ० in आयुरारम्भकोश is `lifetimes.get(v) == None`;
+॰ ० in अधिकरण ॱ भेद is `alloc.locations.get(v) == None`, which is the
+॰ dead-code test emit.rs makes. ONE PLACE NEEDS AN EXCEPTION AND IT IS
+॰ MARKED: register number ० is a real register (x0, %rax), so the free
+॰ list cannot use ० for "empty". मुक्तकोष्ठग्रहणम् returns the register
+॰ PLUS ONE and ० means the list was empty; its one caller subtracts.
+॰
+॰ ── WHAT IS PORTED AND WHAT IS NOT ── regalloc.rs is ported whole:
+॰ all three of its symbols, and the whole body of allocate_registers,
+॰ its CFG flattening, its lifetime pass and its linear scan with the
+॰ spill-the-longer-interval rule. Of emit.rs's and x86_64.rs's seven
+॰ routines ALL SEVEN ARE NOW REAL, as of 2026-08-30. The last three —
+॰ कार्यक्रमोत्सर्जनम्, यवनवृत्त्युत्सर्जनम् and यवनाधिकरणवचनम् — landed
+॰ on TWO decisions and no new code in any other file:
+॰   • THE NEWLINE. ADR-0017 is NOT amended and a string literal still
+॰     holds none. A newline is an OCTET THE EMITTER APPENDS, which is
+॰     ADR-0018's own rule; see THE OUTPUT BUFFER below. ADR-0028's
+॰     allocator was not needed and is not a prerequisite.
+॰   • THE LATIN. ADR-0029 settled the register NAMES; this file settles
+॰     `%`, `$`, `(`, `)` and `-` by the same principle one level down,
+॰     under HOW AT&T PUNCTUATION IS WRITTEN IN THIS REPERTOIRE. Every
+॰     answer there is a citation — C-15-2, the frozen numeral production,
+॰     spec/lexicon.src.tsv — and not a coinage, with the ONE exception
+॰     that is flagged as a debt: see (e) at the foot.
+॰ (b) and (c) at the foot are rewritten to say what cleared them rather
+॰ than deleted, because "it works now" and "here is the decision that
+॰ made it possible" are different facts.
+॰ The ratchet in tests/t1_sources.rs counts emitters with a real body,
+॰ because a count of declared symbols and a count of real bodies would
+॰ both read as finished while the codegen emitted nothing — and
+॰ tests/t1_execution.rs now RUNS all three and asserts the octets,
+॰ because a count of real bodies reads as finished while the emitter
+॰ writes the wrong text. It also records the finding that stopped those
+॰ tests from allocating for real: कोष्ठावण्टनम् cannot be run over a
+॰ real function yet. See (f).
+॰ ══════════════════════════════════════════════════════════════════════
+
+आयातः मध्यरूप ।
+
+
+॰ ══════════════════ where a value lives ══════════════════
+॰ Rust writes `enum Location { Register(u8), Spill(usize) }` — a tagged
+॰ union with a payload. T1 has no such thing: संघः is a reserved word
+॰ the grammar does not define. So the tag is an integer and the two
+॰ payloads are fields of one flat struct, which is what मध्यरूप does for
+॰ आज्ञा and सङ्केतन for its slot kinds. ० is not a kind: it means the
+॰ value is in no location, i.e. it is not in Rust's map at all.
+
+सार्वजनिक चरः कोष्ठाधिकरणभेद ॱॱ न६४ भवति १ ।    ॰ Location::Register(u8)
+सार्वजनिक चरः निक्षेपाधिकरणभेद ॱॱ न६४ भवति २ ।  ॰ Location::Spill(usize)
+
+सार्वजनिक संरचना अधिकरण आरभ्य   ॰ Location
+    भेद ॱॱ न६४ ऽ                 ॰ ० = not allocated; else one of the two above
+    कोष्ठ ॱॱ अ८ ऽ                ॰ Register's u8 — ० is a REAL register
+    निक्षेप ॱॱ अ३२               ॰ Spill's slot number
+समाप्तम् ।
+
+
+॰ ══════════════════ the result of allocation ══════════════════
+॰ Rust's AllocationMap has `locations: HashMap<ValueId, Location>` and
+॰ `num_spills: usize`. The map is keyed on a dense 1-based counter, so
+॰ it is stored as अधिकरणकोश below, SUBSCRIPTED BY THE VALUE NUMBER
+॰ ITSELF rather than appended — this is the one arena in the crate that
+॰ is not filled by an advancing सूचकाङ्क, and it is not, because the key
+॰ is the index. The struct therefore carries how far that array is
+॰ meaningful, not the array.
+
+सार्वजनिक संरचना आवण्टनम् आरभ्य   ॰ AllocationMap
+    अधिकरणसंख्यान ॱॱ न६४ ऽ        ॰ locations: the highest value number mapped
+    निक्षेपसंख्यान ॱॱ न६४          ॰ num_spills
+समाप्तम् ।
+
+
+॰ ══════════════════ the allocator's working state ══════════════════
+॰ Every one of these is a `let mut` inside allocate_registers. Rust gets
+॰ them emptied for free on each call; here they are the module's, as
+॰ व्याकर and मध्यरूप hold theirs, and आवण्टनारम्भः below empties them.
+
+॰ linear_seq: Vec<(ValueId, Instruction)>, as two parallel arrays.
+सार्वजनिक चरः रेखाज्ञाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।    ॰ index into मध्यरूपॱआज्ञाकोश; ० = the synthetic return entry
+सार्वजनिक चरः रेखामूल्यकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।   ॰ the ValueId defined at this position
+सार्वजनिक चरः रेखासंख्यान ॱॱ न६४ भवति ० ।
+
+॰ lifetimes: HashMap<ValueId, (usize, usize)>, as two arrays keyed on
+॰ the value number. आयुरारम्भकोश ० is `lifetimes.get(v) == None`, which
+॰ is what makes `or_insert` and `get_mut` expressible.
+सार्वजनिक चरः आयुरारम्भकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः आयुरन्तकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+
+॰ intervals: Vec<(ValueId, (usize, usize))> sorted by start. Only the
+॰ value number is stored — the pair is fetched from the two arrays above.
+सार्वजनिक चरः क्रमकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः क्रमसंख्यान ॱॱ न६४ भवति ० ।
+
+॰ locations: HashMap<ValueId, Location>. Subscripted by the value number.
+सार्वजनिक चरः अधिकरणकोश ॱॱ अङ्कः अन्तः अधिकरण भवति ० ।
+सार्वजनिक चरः निक्षेपसंख्यान ॱॱ न६४ भवति ० ।            ॰ next_spill
+
+॰ free_registers: Vec<u8>, used as a stack — pushed on expiry, popped on
+॰ allocation. मुक्तकोष्ठसंख्यान is its length and its top.
+सार्वजनिक चरः मुक्तकोष्ठकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः मुक्तकोष्ठसंख्यान ॱॱ न६४ भवति ० ।
+
+॰ active: Vec<(ValueId, end, reg)>, as three parallel arrays. Kept
+॰ sorted by end ascending, so the LAST entry is the longest-lived one —
+॰ which is the entry Rust's `active.last()` reads to choose a spill.
+सार्वजनिक चरः सक्रियमूल्यकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः सक्रियावसानकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः सक्रियकोष्ठकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः सक्रियसंख्यान ॱॱ न६४ भवति ० ।
+
+॰ the highest value number this pass has seen. Rust needs no such thing:
+॰ a HashMap iterates its own keys. An array cannot, so the walk needs a
+॰ bound, and this is it.
+सार्वजनिक चरः मूल्यसीमा ॱॱ न६४ भवति ० ।
+
+
+॰ ══════════════════ constructing a Location ══════════════════
+॰ `Location::Register(r)` and `Location::Spill(s)`, which T1 has to
+॰ spell out because it has no variant constructor to call. One routine,
+॰ because अधिकरण is one struct with a tag — the same move मध्यरूप makes
+॰ for अवसानरचना.
+
+सार्वजनिक वृत्तिः अधिकरणरचना आदाय भेद ॱॱ न६४ ऽ कोष्ठ ॱॱ अ८ ऽ निक्षेप ॱॱ अ३२ ददाति अधिकरण आदि
+    चरः नव ॱॱ अधिकरण भवति ० ।
+    नव ॱ भेद भवति भेद ।
+    नव ॱ कोष्ठ भवति कोष्ठ ।
+    नव ॱ निक्षेप भवति निक्षेप ।
+    प्रत्यागमनम् नव ।
+इति
+
+
+॰ ══════════════════ emptying the state ══════════════════
+॰ The `let mut` declarations at the head of allocate_registers. The two
+॰ lifetime arrays and अधिकरणकोश must be cleared ENTRY BY ENTRY up to the
+॰ previous मूल्यसीमा, because ० in them is load-bearing — a stale start
+॰ from a previous function would make `or_insert` skip a live value.
+
+सार्वजनिक वृत्तिः आवण्टनारम्भः ददाति न६४ आदि
+    ॰ CLEARED TO THE HIGHEST VALUE मध्यरूप HAS HANDED OUT, `W-236` — not to the
+    ॰ previous pass's मूल्यसीमा alone. Note (f) at the foot recorded why this
+    ॰ routine could not run over a real function: मूल्यसीमा is ० on the first
+    ॰ call, so nothing was written before आयुर्निर्णयः read value १ and the
+    ॰ arena refused. This is the second of the two repairs (f) named — "an
+    ॰ आवण्टनारम्भः that is told how many values मध्यरूप handed out" — and the
+    ॰ teller is मध्यरूपॱअग्रिममूल्याङ्क, the counter नवमूल्यम् advances: every
+    ॰ value number a function can name has a written ० before it is read.
+    ॰ Rust's HashMap needs none of this; an absent key IS None there.
+    चरः सीमा ॱॱ न६४ भवति मूल्यसीमा ।
+    यदि मध्यरूपॱअग्रिममूल्याङ्क अधिकम् सीमा आदि
+        सीमा भवति मध्यरूपॱअग्रिममूल्याङ्क ।
+    इति
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य सीमा योगः १ समाप्तम् आदि
+        आयुरारम्भकोश अङ्कः सूचकाङ्क अन्तः भवति ० ।
+        आयुरन्तकोश अङ्कः सूचकाङ्क अन्तः भवति ० ।
+        अधिकरणकोश अङ्कः सूचकाङ्क अन्तः भवति अधिकरणरचना आरभ्य ० ऽ ० ऽ ० समाप्तम् ।
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+    रेखासंख्यान भवति ० ।
+    क्रमसंख्यान भवति ० ।
+    निक्षेपसंख्यान भवति ० ।
+    मुक्तकोष्ठसंख्यान भवति ० ।
+    सक्रियसंख्यान भवति ० ।
+    मूल्यसीमा भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+
+॰ ══════════════════ linear_seq.push ══════════════════
+॰ Rust pushes `(*def_val, inst.clone())`. There is no clone here and
+॰ none is wanted: मध्यरूपॱआज्ञाकोश already holds the instruction and it
+॰ is not moved, so the position stores its INDEX. आज्ञासूचकाङ्क ० is the
+॰ synthetic entry the Return arm pushes, which has no instruction.
+
+सार्वजनिक वृत्तिः रेखायोजनम् आदाय आज्ञासूचकाङ्क ॱॱ न६४ ऽ मूल्यम् ॱॱ न६४ ददाति न६४ आदि
+    रेखासंख्यान भवति आरभ्य रेखासंख्यान योगः १ समाप्तम् ।
+    रेखाज्ञाकोश अङ्कः रेखासंख्यान अन्तः भवति आज्ञासूचकाङ्क ।
+    रेखामूल्यकोश अङ्कः रेखासंख्यान अन्तः भवति मूल्यम् ।
+    यदि मूल्यम् अधिकम् मूल्यसीमा आदि
+        मूल्यसीमा भवति मूल्यम् ।
+    इति
+    प्रत्यागमनम् रेखासंख्यान ।
+इति
+
+
+॰ ══════════════════ step 1 — flatten the CFG ══════════════════
+॰ Rust sorts `func.blocks.keys()` by BlockId and walks them, because a
+॰ HashMap has no order. HERE THE SORT IS ALREADY DONE AND IS NOT
+॰ REWRITTEN: मध्यरूप appends a function's blocks to पर्वकोश in id order
+॰ and records the run as पर्वारम्भ plus पर्वसंख्यान, so walking the run
+॰ IS walking the sorted keys. That invariant is मध्यरूप's, stated in its
+॰ own header, and a second sort here would only be able to disagree
+॰ with it.
+॰
+॰ ON THE DUMMY THE RUST COMMENT PROMISES — regalloc.rs pushes
+॰ `(v, Instruction::ConstInt(0))` for a `Return(Some(v))` and comments
+॰ it "// Dummy use". IT IS NOT A USE. ConstInt falls into the lifetime
+॰ pass's `_ => {}` arm, so no interval end is extended by it; all it
+॰ does is make the sequence one position longer, shifting every later
+॰ block. That is a defect in the Rust original, not in this port, and it
+॰ is ported AS WRITTEN — the returned value's interval ends where its
+॰ last real use was, exactly as in Rust. Fixing it here would put the
+॰ two files out of step and make this file the origin of a behaviour
+॰ rather than the port of one; it belongs on a row against regalloc.rs.
+
+सार्वजनिक वृत्तिः रेखीकरणम् आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    यदि वृत्तिसूचकाङ्क समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः शेषपर्व ॱॱ न६४ भवति कार्यम् ॱ पर्वसंख्यान ।
+
+    यावत् शेषपर्व अधिकम् ० आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+
+        ॰ for (def_val, inst) in &block.insts { linear_seq.push(..) }
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            चरः फलाङ्कः ॱॱ न६४ भवति आदेशः ॱ फलम् ॱ क्रमाङ्क ।
+            चरः अवगणना ॱॱ न६४ भवति रेखायोजनम् आरभ्य आज्ञाङ्कः ऽ फलाङ्कः समाप्तम् ।
+            आज्ञाङ्कः भवति आरभ्य आज्ञाङ्कः योगः १ समाप्तम् ।
+            शेषाज्ञा भवति आरभ्य शेषाज्ञा वियोगः १ समाप्तम् ।
+        इति
+
+        ॰ if let Some(Terminator::Return(Some(v))) = block.terminator
+        यदि पर्वम् ॱ अवसानम् ॱ भेद समम् मध्यरूपॱप्रत्यागमनावसानभेद आदि
+            चरः प्रत्यागतम् ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ।
+            ॰ ० is Return(None) — मध्यरूप's spelling of the inner Option.
+            यदि प्रत्यागतम् अधिकम् ० आदि
+                चरः अवगणनद्वि ॱॱ न६४ भवति रेखायोजनम् आरभ्य ० ऽ प्रत्यागतम् समाप्तम् ।
+            इति
+        इति
+
+        पर्वाङ्कः भवति आरभ्य पर्वाङ्कः योगः १ समाप्तम् ।
+        शेषपर्व भवति आरभ्य शेषपर्व वियोगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् रेखासंख्यान ।
+इति
+
+
+॰ ══════════════════ `if let Some(lt) = lifetimes.get_mut(x)` ══════════════════
+॰ The three-line idiom regalloc.rs writes five times over. A value that
+॰ has no interval yet — get_mut returning None — is left alone, which is
+॰ what the Rust `if let` does and is not the same as clamping it to ०.
+
+सार्वजनिक वृत्तिः आयुर्विस्तारः आदाय मूल्यम् ॱॱ न६४ ऽ पदम् ॱॱ न६४ ददाति न६४ आदि
+    यदि मूल्यम् समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि आयुरारम्भकोश अङ्कः मूल्यम् अन्तः समम् ० आदि
+        प्रत्यागमनम् ० ।     ॰ get_mut returned None
+    इति
+    आयुरन्तकोश अङ्कः मूल्यम् अन्तः भवति पदम् ।
+    प्रत्यागमनम् पदम् ।
+इति
+
+
+॰ ══════════════════ step 2 — compute lifetimes ══════════════════
+॰ `lifetimes.entry(*def_val).or_insert((i, i))` for the definition, then
+॰ one arm per instruction kind for the uses. Add and Sub share a body in
+॰ Rust through an or-pattern; T1 has no or-pattern, so they are two
+॰ यदि with the same three lines.
+॰
+॰ ON THE MISSING Call ARM — see (a) at the foot of the file.
+
+सार्वजनिक वृत्तिः आयुर्निर्णयः ददाति न६४ आदि
+    चरः पदम् ॱॱ न६४ भवति १ ।
+
+    यावत् पदम् न्यूनम् आरभ्य रेखासंख्यान योगः १ समाप्तम् आदि
+        ॰ the definition
+        चरः मूल्यम् ॱॱ न६४ भवति रेखामूल्यकोश अङ्कः पदम् अन्तः ।
+        यदि मूल्यम् अधिकम् ० आदि
+            यदि आयुरारम्भकोश अङ्कः मूल्यम् अन्तः समम् ० आदि
+                आयुरारम्भकोश अङ्कः मूल्यम् अन्तः भवति पदम् ।
+                आयुरन्तकोश अङ्कः मूल्यम् अन्तः भवति पदम् ।
+            इति
+        इति
+
+        ॰ the uses
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति रेखाज्ञाकोश अङ्कः पदम् अन्तः ।
+        यदि आज्ञाङ्कः अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+
+            ॰ Instruction::Add(lhs, rhs)
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱयोगाज्ञाभेद आदि
+                चरः वामाङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः दक्षिणाङ्कः ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणना ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य वामाङ्कः ऽ पदम् समाप्तम् ।
+                चरः अवगणनद्वि ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य दक्षिणाङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ Instruction::Sub(lhs, rhs) — the other half of Rust's or-pattern
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱवियोगाज्ञाभेद आदि
+                चरः वामाङ्कद्वि ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः दक्षिणाङ्कद्वि ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणनत्रि ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य वामाङ्कद्वि ऽ पदम् समाप्तम् ।
+                चरः अवगणनचतुः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य दक्षिणाङ्कद्वि ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ `W-245` — the nine binary kinds that row added share Add's shape
+            ॰ (Rust's or-pattern grew by nine arms: Mul Div Rem Shl Shr And Or
+            ॰ Xor Cmp), and a Store reads the value in वाम. One यदि over a
+            ॰ range test rather than nine copies of the three lines, because
+            ॰ the kinds are numbered ६..१४ in a run and a Store is १६.
+            चरः द्विपदम् ॱॱ बूल भवति असत्यम् ।
+            यदि आदेशः ॱ भेद बृहत्समम् मध्यरूपॱगुणनाज्ञाभेद आदि
+                यदि आदेशः ॱ भेद न्यूनम् आरभ्य मध्यरूपॱतुलनाज्ञाभेद योगः १ समाप्तम् आदि
+                    द्विपदम् भवति सत्यम् ।
+                इति
+            इति
+            यदि द्विपदम् समम् सत्यम् आदि
+                चरः वामाङ्कनव ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः दक्षिणाङ्कनव ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणनषट् ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य वामाङ्कनव ऽ पदम् समाप्तम् ।
+                चरः अवगणनसप्त ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य दक्षिणाङ्कनव ऽ पदम् समाप्तम् ।
+            इति
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱनिधानाज्ञाभेद आदि
+                चरः निहिताङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः अवगणनाष्ट ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य निहिताङ्कः ऽ पदम् समाप्तम् ।
+            इति
+            ॰ ॥ THE INDEX READ'S TWO OPERANDS ARE USES, AND THIS IS THE ARM A
+            ॰ NEW KIND IS SILENTLY MISSING FROM ॥
+            ॰
+            ॰ THIS ROUTINE IS THE TWIN OF `Instruction::operands()` and it is
+            ॰ NOT DERIVED FROM ANYTHING — it is a hand-written list of arms, one
+            ॰ per kind that reads a value, where the Rust side is a `match` the
+            ॰ compiler makes exhaustive. So Rust CANNOT forget a kind here and
+            ॰ this file always can, and nothing goes red at the omission: the
+            ॰ liveness is merely SHORTER, the allocator reuses a register a
+            ॰ moment too early, and the two emitters print different registers.
+            ॰
+            ॰ MEASURED, not reasoned. Without this arm, a five-line program
+            ॰ holding one `क अङ्कः २ अन्तः` diverged in its PROLOGUE — the T1
+            ॰ twin subtracted ऋण३२ where `riscv64.rs` subtracted ऋण४८ — because
+            ॰ the two disagreed about how many callee-saved registers the
+            ॰ routine uses, which follows from the allocation, which follows
+            ॰ from these live ranges. Fourteen of nineteen corpus sources
+            ॰ diverged from that one omission.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱसूच्याज्ञाभेद आदि
+                चरः सूच्याधाराङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः सूच्यन्तराङ्कः ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणनसूच्येकः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य सूच्याधाराङ्कः ऽ पदम् समाप्तम् ।
+                चरः अवगणनसूच्यद्वि ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य सूच्यन्तराङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+
+            ॰ ॥ AND `क्षेत्राज्ञाभेद` IS MISSING FROM THIS ROUTINE ON MAIN ॥
+            ॰ `LoadField`'s base is a use — `ir.rs`'s `operands()` says so, with
+            ॰ the margin "the base is a real use: DCE must not drop what computed
+            ॰ the reference this reads through" — and no arm here extends it.
+            ॰ Its landing was green because a live range that is too short only
+            ॰ bites when it CHANGES an allocation, and on that corpus it did not.
+            ॰
+            ॰ FIXED HERE RATHER THAN ONLY REPORTED, and the choice is worth its
+            ॰ line: it is another lane's measured commit and this arm may move
+            ॰ their figures, which is a real cost. Leaving a known wrong live
+            ॰ range in place to protect a number is the worse trade — the number
+            ॰ would then be measuring the defect. Reported to the trunk in the
+            ॰ same breath so the movement is expected rather than discovered.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱक्षेत्राज्ञाभेद आदि
+                चरः क्षेत्राधाराङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः अवगणनक्षेत्रायुः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य क्षेत्राधाराङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ ॥ `W-283` — THE RULED STORAGE MODEL'S TWO READING KINDS ॥
+            ॰ THE MARGIN ABOVE PREDICTED THIS EXACTLY AND I WALKED INTO IT
+            ॰ ANYWAY. I added `AddrOfGlobal`, `LoadAt` and `StoreAt`, updated
+            ॰ `ir.rs`'s `operands()` — which the compiler forces — and did not
+            ॰ update this hand-written twin. Nothing went red at the omission,
+            ॰ exactly as `:454` says: the liveness was merely SHORTER.
+            ॰
+            ॰ MEASURED, and the signature is the one `:458` records for the
+            ॰ previous instance: FIFTEEN corpus sources diverged, and
+            ॰ `nidana.t1` diverged in its PROLOGUE — the T1 twin subtracted
+            ॰ ऋण१६ where `riscv64.rs` subtracted ऋण३२ — because the two
+            ॰ disagreed about callee-saved registers, which follows from the
+            ॰ allocation, which follows from these live ranges. Fourteen then,
+            ॰ fifteen now, same cause.
+            ॰
+            ॰ `वैश्विकस्थानाज्ञाभेद` २१ GETS NO ARM AND THAT IS NOT AN OVERSIGHT:
+            ॰ it forms an address from a LABEL and takes no value operand, so it
+            ॰ uses nothing. `ir.rs` puts it in the `Vec::new()` group for the
+            ॰ same reason, beside `LoadGlobal`, which is likewise absent here
+            ॰ and likewise correct.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱस्थानाहाराज्ञाभेद आदि
+                चरः स्थानाहाराङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः अवगणनस्थानाहारायुः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य स्थानाहाराङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ BOTH operands are uses, and the second is the one an arm written
+            ॰ from the load's shape would drop: `वाम` is the ADDRESS and
+            ॰ `दक्षिण` is the value STORED. A store that extended only its
+            ॰ address would let the allocator reuse the value's register before
+            ॰ the store reads it — a wrong word written, with nothing red.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱस्थाननिधानाज्ञाभेद आदि
+                चरः निधानस्थानाङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः निधानमूल्याङ्कः ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणननिधानैकः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य निधानस्थानाङ्कः ऽ पदम् समाप्तम् ।
+                चरः अवगणननिधानद्वि ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य निधानमूल्याङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ ॥ `W-284` — THE STORAGE MODEL'S TWO ADDRESS FORMERS ॥
+            ॰ AND THE MARGIN AT `:450` PREDICTED THIS FOR THE THIRD TIME AND IT
+            ॰ WAS WALKED INTO AGAIN. `W-283` recorded "the margin above predicted
+            ॰ this exactly and I walked into it anyway"; `W-284` added three more
+            ॰ kinds, updated `ir.rs`'s `operands()` — which the compiler forces —
+            ॰ and did not update this hand-written twin. Nothing went red at the
+            ॰ omission, exactly as `:454` says.
+            ॰
+            ॰ MEASURED, AND THE SIGNATURE IS THE SAME ONE THREE TIMES RUNNING:
+            ॰ the whole-corpus twin census diverged on SEVENTEEN sources, 26 of
+            ॰ the divergences in a PROLOGUE — `nidana.t1`, `parse.t1` and
+            ॰ `vishlesana.t1` each by exactly 16 octets, the T1 twin subtracting
+            ॰ less because it thought fewer registers were live. Fourteen, then
+            ॰ fifteen, now seventeen. **THE COUNT RISES EACH TIME BECAUSE THE
+            ॰ CORPUS DOES; the cause has not changed once.**
+            ॰
+            ॰ `रचनाज्ञाभेद` २४ GETS NO ARM AND THAT IS NOT AN OVERSIGHT: an
+            ॰ allocation's size is a build-time constant, so it uses no value.
+            ॰ `ir.rs` puts it in the `Vec::new()` group beside `LoadGlobal` and
+            ॰ `वैश्विकस्थान` २१ for the same reason.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱक्षेत्रस्थानाज्ञाभेद आदि
+                चरः क्षेत्रस्थानाधाराङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः अवगणनक्षेत्रस्थानायुः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य क्षेत्रस्थानाधाराङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ BOTH operands are uses — the base AND the index — as the index
+            ॰ READ two arms up already has them. An arm written from the field
+            ॰ address's shape would drop the index, and the allocator would
+            ॰ reuse its register before the add reads it.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱसूचीस्थानाज्ञाभेद आदि
+                चरः सूचीस्थानाधाराङ्कः ॱॱ न६४ भवति आदेशः ॱ वाम ॱ क्रमाङ्क ।
+                चरः सूचीस्थानसूचकाङ्कः ॱॱ न६४ भवति आदेशः ॱ दक्षिण ॱ क्रमाङ्क ।
+                चरः अवगणनसूचीस्थानैकः ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य सूचीस्थानाधाराङ्कः ऽ पदम् समाप्तम् ।
+                चरः अवगणनसूचीस्थानद्वि ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य सूचीस्थानसूचकाङ्कः ऽ पदम् समाप्तम् ।
+            इति
+
+            ॰ Instruction::Call(_, args) — `W-236`, the arm note (a) waited on.
+            ॰ The arguments are the run आदानारम्भ..+आदानसंख्यान of मध्यरूप's
+            ॰ fourth arena आदानकोश (`W-204`), each a मूल्याङ्क, and every one
+            ॰ is a USE at this position — Rust's `for arg in args` extends each
+            ॰ interval's end to `i`, and so does this.
+            यदि आदेशः ॱ भेद समम् मध्यरूपॱआह्वानाज्ञाभेद आदि
+                चरः आदानक्रमः ॱॱ न६४ भवति ० ।
+                यावत् आदानक्रमः न्यूनम् आदेशः ॱ आदानसंख्यान आदि
+                    चरः आदानम् ॱॱ मध्यरूपॱमूल्याङ्क भवति मध्यरूपॱआदानकोश अङ्कः आरभ्य आदेशः ॱ आदानारम्भ योगः आदानक्रमः समाप्तम् अन्तः ।
+                    चरः अवगणनपञ्च ॱॱ न६४ भवति आयुर्विस्तारः आरभ्य आदानम् ॱ क्रमाङ्क ऽ पदम् समाप्तम् ।
+                    आदानक्रमः भवति आरभ्य आदानक्रमः योगः १ समाप्तम् ।
+                इति
+            इति
+            ॰ Everything else — Rust's `_ => {}`, which is genuinely nothing.
+        इति
+
+        पदम् भवति आरभ्य पदम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् रेखासंख्यान ।
+इति
+
+
+॰ ══════════════════ step 3a — collect and sort the intervals ══════════════════
+॰ `lifetimes.into_iter().collect()` then `sort_by_key(start)`. The
+॰ collect is a walk of the value numbers keeping those with a lifetime;
+॰ the sort is written out because T1 has no sort.
+॰
+॰ IT IS AN INSERTION SORT AND THAT IS THE POINT: Rust's `sort_by_key` is
+॰ STABLE, and stability is observable here — two values whose intervals
+॰ start at the same position are allocated in the order the map yielded
+॰ them, and the one allocated second may be the one spilled. A selection
+॰ sort would be shorter and would quietly reorder ties. The strict
+॰ अधिकम् below is what keeps equal starts in place.
+
+सार्वजनिक वृत्तिः अन्तरालक्रमः ददाति न६४ आदि
+    क्रमसंख्यान भवति ० ।
+    चरः मूल्यम् ॱॱ न६४ भवति १ ।
+    यावत् मूल्यम् न्यूनम् आरभ्य मूल्यसीमा योगः १ समाप्तम् आदि
+        यदि आयुरारम्भकोश अङ्कः मूल्यम् अन्तः अधिकम् ० आदि
+            क्रमसंख्यान भवति आरभ्य क्रमसंख्यान योगः १ समाप्तम् ।
+            क्रमकोश अङ्कः क्रमसंख्यान अन्तः भवति मूल्यम् ।
+        इति
+        मूल्यम् भवति आरभ्य मूल्यम् योगः १ समाप्तम् ।
+    इति
+
+    चरः बाह्यम् ॱॱ न६४ भवति २ ।
+    यावत् बाह्यम् न्यूनम् आरभ्य क्रमसंख्यान योगः १ समाप्तम् आदि
+        चरः धृतम् ॱॱ न६४ भवति क्रमकोश अङ्कः बाह्यम् अन्तः ।
+        चरः धृतारम्भ ॱॱ न६४ भवति आयुरारम्भकोश अङ्कः धृतम् अन्तः ।
+        चरः स्थलम् ॱॱ न६४ भवति बाह्यम् ।
+        चरः चलनम् ॱॱ न६४ भवति १ ।
+        यावत् चलनम् समम् १ आदि
+            चलनम् भवति ० ।
+            यदि स्थलम् अधिकम् १ आदि
+                चरः पूर्वाङ्कः ॱॱ न६४ भवति आरभ्य स्थलम् वियोगः १ समाप्तम् ।
+                चरः पूर्वः ॱॱ न६४ भवति क्रमकोश अङ्कः पूर्वाङ्कः अन्तः ।
+                चरः पूर्वारम्भ ॱॱ न६४ भवति आयुरारम्भकोश अङ्कः पूर्वः अन्तः ।
+                यदि पूर्वारम्भ अधिकम् धृतारम्भ आदि
+                    क्रमकोश अङ्कः स्थलम् अन्तः भवति पूर्वः ।
+                    स्थलम् भवति पूर्वाङ्कः ।
+                    चलनम् भवति १ ।
+                इति
+            इति
+        इति
+        क्रमकोश अङ्कः स्थलम् अन्तः भवति धृतम् ।
+        बाह्यम् भवति आरभ्य बाह्यम् योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् क्रमसंख्यान ।
+इति
+
+
+॰ ══════════════════ the free-register stack ══════════════════
+॰ `(0..num_registers).rev().collect()` — highest first, so the pop that
+॰ follows hands out register ० first. The `.rev()` is not decoration:
+॰ x86_64.rs's reg_name maps ० to %rax and १ to %rbx, and its own test
+॰ asserts on exactly that assignment.
+
+सार्वजनिक वृत्तिः मुक्तकोष्ठारम्भः आदाय कोष्ठसंख्या ॱॱ अ८ ददाति न६४ आदि
+    मुक्तकोष्ठसंख्यान भवति ० ।
+    चरः शेषम् ॱॱ न६४ भवति कोष्ठसंख्या ।
+    यावत् शेषम् अधिकम् ० आदि
+        मुक्तकोष्ठसंख्यान भवति आरभ्य मुक्तकोष्ठसंख्यान योगः १ समाप्तम् ।
+        मुक्तकोष्ठकोश अङ्कः मुक्तकोष्ठसंख्यान अन्तः भवति आरभ्य शेषम् वियोगः १ समाप्तम् ।
+        शेषम् भवति आरभ्य शेषम् वियोगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् मुक्तकोष्ठसंख्यान ।
+इति
+
+॰ free_registers.pop(). RETURNS THE REGISTER PLUS ONE, and ० means the
+॰ stack was empty — because register ० is real and cannot double as the
+॰ absent marker the rest of this crate uses. Its one caller subtracts.
+सार्वजनिक वृत्तिः मुक्तकोष्ठग्रहणम् ददाति न६४ आदि
+    यदि मुक्तकोष्ठसंख्यान समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः कोष्ठम् ॱॱ न६४ भवति मुक्तकोष्ठकोश अङ्कः मुक्तकोष्ठसंख्यान अन्तः ।
+    मुक्तकोष्ठसंख्यान भवति आरभ्य मुक्तकोष्ठसंख्यान वियोगः १ समाप्तम् ।
+    प्रत्यागमनम् आरभ्य कोष्ठम् योगः १ समाप्तम् ।
+इति
+
+॰ free_registers.push(reg), inside the retain closure.
+सार्वजनिक वृत्तिः मुक्तकोष्ठनिवेशः आदाय कोष्ठम् ॱॱ न६४ ददाति न६४ आदि
+    मुक्तकोष्ठसंख्यान भवति आरभ्य मुक्तकोष्ठसंख्यान योगः १ समाप्तम् ।
+    मुक्तकोष्ठकोश अङ्कः मुक्तकोष्ठसंख्यान अन्तः भवति कोष्ठम् ।
+    प्रत्यागमनम् मुक्तकोष्ठसंख्यान ।
+इति
+
+
+॰ ══════════════════ the active list ══════════════════
+
+॰ active.push((vid, end, reg)).
+सार्वजनिक वृत्तिः सक्रिययोजनम् आदाय मूल्यम् ॱॱ न६४ ऽ अवसानपदम् ॱॱ न६४ ऽ कोष्ठम् ॱॱ न६४ ददाति न६४ आदि
+    सक्रियसंख्यान भवति आरभ्य सक्रियसंख्यान योगः १ समाप्तम् ।
+    सक्रियमूल्यकोश अङ्कः सक्रियसंख्यान अन्तः भवति मूल्यम् ।
+    सक्रियावसानकोश अङ्कः सक्रियसंख्यान अन्तः भवति अवसानपदम् ।
+    सक्रियकोष्ठकोश अङ्कः सक्रियसंख्यान अन्तः भवति कोष्ठम् ।
+    प्रत्यागमनम् सक्रियसंख्यान ।
+इति
+
+॰ active.pop(). Rust discards the popped triple, having read it through
+॰ `active.last()` first; so does this, returning only where it was.
+सार्वजनिक वृत्तिः सक्रियापनयनम् ददाति न६४ आदि
+    यदि सक्रियसंख्यान समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    सक्रियसंख्यान भवति आरभ्य सक्रियसंख्यान वियोगः १ समाप्तम् ।
+    प्रत्यागमनम् आरभ्य सक्रियसंख्यान योगः १ समाप्तम् ।
+इति
+
+॰ active.sort_by_key(|&(_, e, _)| e). Insertion sort over three parallel
+॰ arrays moved in step, stable for the reason अन्तरालक्रमः gives.
+सार्वजनिक वृत्तिः सक्रियक्रमः ददाति न६४ आदि
+    चरः बाह्यम् ॱॱ न६४ भवति २ ।
+    यावत् बाह्यम् न्यूनम् आरभ्य सक्रियसंख्यान योगः १ समाप्तम् आदि
+        चरः धृतमूल्यम् ॱॱ न६४ भवति सक्रियमूल्यकोश अङ्कः बाह्यम् अन्तः ।
+        चरः धृतावसानम् ॱॱ न६४ भवति सक्रियावसानकोश अङ्कः बाह्यम् अन्तः ।
+        चरः धृतकोष्ठम् ॱॱ न६४ भवति सक्रियकोष्ठकोश अङ्कः बाह्यम् अन्तः ।
+        चरः स्थलम् ॱॱ न६४ भवति बाह्यम् ।
+        चरः चलनम् ॱॱ न६४ भवति १ ।
+        यावत् चलनम् समम् १ आदि
+            चलनम् भवति ० ।
+            यदि स्थलम् अधिकम् १ आदि
+                चरः पूर्वाङ्कः ॱॱ न६४ भवति आरभ्य स्थलम् वियोगः १ समाप्तम् ।
+                चरः पूर्वावसानम् ॱॱ न६४ भवति सक्रियावसानकोश अङ्कः पूर्वाङ्कः अन्तः ।
+                यदि पूर्वावसानम् अधिकम् धृतावसानम् आदि
+                    चरः पूर्वमूल्यम् ॱॱ न६४ भवति सक्रियमूल्यकोश अङ्कः पूर्वाङ्कः अन्तः ।
+                    चरः पूर्वकोष्ठम् ॱॱ न६४ भवति सक्रियकोष्ठकोश अङ्कः पूर्वाङ्कः अन्तः ।
+                    सक्रियमूल्यकोश अङ्कः स्थलम् अन्तः भवति पूर्वमूल्यम् ।
+                    सक्रियावसानकोश अङ्कः स्थलम् अन्तः भवति पूर्वावसानम् ।
+                    सक्रियकोष्ठकोश अङ्कः स्थलम् अन्तः भवति पूर्वकोष्ठम् ।
+                    स्थलम् भवति पूर्वाङ्कः ।
+                    चलनम् भवति १ ।
+                इति
+            इति
+        इति
+        सक्रियमूल्यकोश अङ्कः स्थलम् अन्तः भवति धृतमूल्यम् ।
+        सक्रियावसानकोश अङ्कः स्थलम् अन्तः भवति धृतावसानम् ।
+        सक्रियकोष्ठकोश अङ्कः स्थलम् अन्तः भवति धृतकोष्ठम् ।
+        बाह्यम् भवति आरभ्य बाह्यम् योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् सक्रियसंख्यान ।
+इति
+
+॰ active.retain(|&(_, a_end, reg)| if a_end <= start { free.push(reg); false } else { true }).
+॰ A retain over an array is a compacting walk: one read index, one write
+॰ index, and the survivors copied down. The order of survivors is
+॰ preserved, which retain guarantees and the sort above relies on.
+सार्वजनिक वृत्तिः सक्रियशोधनम् आदाय आरम्भपदम् ॱॱ न६४ ददाति न६४ आदि
+    चरः पठनम् ॱॱ न६४ भवति १ ।
+    चरः न्यासः ॱॱ न६४ भवति ० ।
+    यावत् पठनम् न्यूनम् आरभ्य सक्रियसंख्यान योगः १ समाप्तम् आदि
+        चरः मूल्यम् ॱॱ न६४ भवति सक्रियमूल्यकोश अङ्कः पठनम् अन्तः ।
+        चरः अवसानम् ॱॱ न६४ भवति सक्रियावसानकोश अङ्कः पठनम् अन्तः ।
+        चरः कोष्ठम् ॱॱ न६४ भवति सक्रियकोष्ठकोश अङ्कः पठनम् अन्तः ।
+
+        ॰ a_end <= start — expired. Its register goes back to the free list.
+        यदि अवसानम् न्यूनम् आरभ्य आरम्भपदम् योगः १ समाप्तम् आदि
+            चरः अवगणना ॱॱ न६४ भवति मुक्तकोष्ठनिवेशः कोष्ठम् ।
+        इति
+
+        ॰ a_end > start — kept, and copied down to the write index.
+        यदि अवसानम् अधिकम् आरम्भपदम् आदि
+            न्यासः भवति आरभ्य न्यासः योगः १ समाप्तम् ।
+            सक्रियमूल्यकोश अङ्कः न्यासः अन्तः भवति मूल्यम् ।
+            सक्रियावसानकोश अङ्कः न्यासः अन्तः भवति अवसानम् ।
+            सक्रियकोष्ठकोश अङ्कः न्यासः अन्तः भवति कोष्ठम् ।
+        इति
+
+        पठनम् भवति आरभ्य पठनम् योगः १ समाप्तम् ।
+    इति
+    सक्रियसंख्यान भवति न्यासः ।
+    प्रत्यागमनम् सक्रियसंख्यान ।
+इति
+
+
+॰ ══════════════════ locations.insert ══════════════════
+॰ The key is the index, so an insert is a write. मूल्यसीमा is raised so
+॰ that आवण्टनारम्भः can clear exactly what was written.
+
+सार्वजनिक वृत्तिः अधिकरणन्यासः आदाय मूल्यम् ॱॱ न६४ ऽ अधिकरणम् ॱॱ अधिकरण ददाति न६४ आदि
+    यदि मूल्यम् समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    अधिकरणकोश अङ्कः मूल्यम् अन्तः भवति अधिकरणम् ।
+    यदि मूल्यम् अधिकम् मूल्यसीमा आदि
+        मूल्यसीमा भवति मूल्यम् ।
+    इति
+    प्रत्यागमनम् मूल्यम् ।
+इति
+
+
+॰ ══════════════════ allocate_registers ══════════════════
+॰ regalloc.rs's only public routine and the whole of D-002e that runs.
+॰ The three numbered steps of the Rust body are the three routines
+॰ above; what is left here is step 3's scan, written out.
+॰
+॰ Rust takes `&Function`; this takes its index into मध्यरूपॱवृत्तिकोश,
+॰ because T1 has no reference and मध्यरूप's arenas are the function.
+॰
+॰ THE SPILL RULE IS THE PART WORTH READING TWICE. When no register is
+॰ free, Rust looks at `active.last()` — the longest-lived active
+॰ interval, the list being sorted by end. If that one outlives the
+॰ current value it is spilled and its register handed over; otherwise
+॰ the current value is spilled and gets no register at all. Rust writes
+॰ this as if/else inside `if let Some(..)`; the two यदि below are the
+॰ same partition, `>` and `<=`, and the third branch is Rust's
+॰ `else { .. }` on an empty active list, which its own comment calls
+॰ "shouldn't happen if num_registers > 0" and which is ported anyway.
+
+सार्वजनिक वृत्तिः कोष्ठावण्टनम् आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ऽ कोष्ठसंख्या ॱॱ अ८ ददाति आवण्टनम् आदि
+    चरः अवगणना ॱॱ न६४ भवति आवण्टनारम्भः ।
+    चरः अवगणनद्वि ॱॱ न६४ भवति रेखीकरणम् वृत्तिसूचकाङ्क ।
+    चरः अवगणनत्रि ॱॱ न६४ भवति आयुर्निर्णयः ।
+    चरः अवगणनचतुः ॱॱ न६४ भवति अन्तरालक्रमः ।
+    चरः अवगणनपञ्च ॱॱ न६४ भवति मुक्तकोष्ठारम्भः कोष्ठसंख्या ।
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति १ ।
+    यावत् सूचकाङ्क न्यूनम् आरभ्य क्रमसंख्यान योगः १ समाप्तम् आदि
+        चरः मूल्यम् ॱॱ न६४ भवति क्रमकोश अङ्कः सूचकाङ्क अन्तः ।
+        चरः आरम्भपदम् ॱॱ न६४ भवति आयुरारम्भकोश अङ्कः मूल्यम् अन्तः ।
+        चरः अवसानपदम् ॱॱ न६४ भवति आयुरन्तकोश अङ्कः मूल्यम् अन्तः ।
+
+        ॰ expire old intervals
+        चरः अवगणनषट् ॱॱ न६४ भवति सक्रियशोधनम् आरम्भपदम् ।
+
+        ॰ free_registers.pop() — ० is the empty list, not register ०
+        चरः गृहीतम् ॱॱ न६४ भवति मुक्तकोष्ठग्रहणम् ।
+
+        ॰ Some(reg) — allocate a register
+        यदि गृहीतम् अधिकम् ० आदि
+            चरः कोष्ठम् ॱॱ न६४ भवति आरभ्य गृहीतम् वियोगः १ समाप्तम् ।
+            चरः अधि ॱॱ अधिकरण भवति अधिकरणरचना आरभ्य कोष्ठाधिकरणभेद ऽ कोष्ठम् ऽ ० समाप्तम् ।
+            चरः अवगणनसप्त ॱॱ न६४ भवति अधिकरणन्यासः आरभ्य मूल्यम् ऽ अधि समाप्तम् ।
+            चरः अवगणनाष्ट ॱॱ न६४ भवति सक्रिययोजनम् आरभ्य मूल्यम् ऽ अवसानपदम् ऽ कोष्ठम् समाप्तम् ।
+            चरः अवगणननव ॱॱ न६४ भवति सक्रियक्रमः ।
+        इति
+
+        ॰ None — spill something
+        यदि गृहीतम् समम् ० आदि
+            ॰ active.last()
+            यदि सक्रियसंख्यान अधिकम् ० आदि
+                चरः दीर्घमूल्यम् ॱॱ न६४ भवति सक्रियमूल्यकोश अङ्कः सक्रियसंख्यान अन्तः ।
+                चरः दीर्घावसानम् ॱॱ न६४ भवति सक्रियावसानकोश अङ्कः सक्रियसंख्यान अन्तः ।
+                चरः दीर्घकोष्ठम् ॱॱ न६४ भवति सक्रियकोष्ठकोश अङ्कः सक्रियसंख्यान अन्तः ।
+
+                ॰ spill_end > end — spill the active one, take its register
+                यदि दीर्घावसानम् अधिकम् अवसानपदम् आदि
+                    चरः अधिद्वि ॱॱ अधिकरण भवति अधिकरणरचना आरभ्य निक्षेपाधिकरणभेद ऽ ० ऽ निक्षेपसंख्यान समाप्तम् ।
+                    चरः अवगणनदश ॱॱ न६४ भवति अधिकरणन्यासः आरभ्य दीर्घमूल्यम् ऽ अधिद्वि समाप्तम् ।
+                    निक्षेपसंख्यान भवति आरभ्य निक्षेपसंख्यान योगः १ समाप्तम् ।
+
+                    चरः अधित्रि ॱॱ अधिकरण भवति अधिकरणरचना आरभ्य कोष्ठाधिकरणभेद ऽ दीर्घकोष्ठम् ऽ ० समाप्तम् ।
+                    चरः अवगणनैकादश ॱॱ न६४ भवति अधिकरणन्यासः आरभ्य मूल्यम् ऽ अधित्रि समाप्तम् ।
+
+                    चरः अवगणनद्वादश ॱॱ न६४ भवति सक्रियापनयनम् ।
+                    चरः अवगणनत्रयोदश ॱॱ न६४ भवति सक्रिययोजनम् आरभ्य मूल्यम् ऽ अवसानपदम् ऽ दीर्घकोष्ठम् समाप्तम् ।
+                    चरः अवगणनचतुर्दश ॱॱ न६४ भवति सक्रियक्रमः ।
+                इति
+
+                ॰ spill_end <= end — spill the current value instead
+                यदि दीर्घावसानम् न्यूनम् आरभ्य अवसानपदम् योगः १ समाप्तम् आदि
+                    चरः अधिचतुः ॱॱ अधिकरण भवति अधिकरणरचना आरभ्य निक्षेपाधिकरणभेद ऽ ० ऽ निक्षेपसंख्यान समाप्तम् ।
+                    चरः अवगणनपञ्चदश ॱॱ न६४ भवति अधिकरणन्यासः आरभ्य मूल्यम् ऽ अधिचतुः समाप्तम् ।
+                    निक्षेपसंख्यान भवति आरभ्य निक्षेपसंख्यान योगः १ समाप्तम् ।
+                इति
+            इति
+
+            ॰ the empty-active branch Rust calls "shouldn't happen"
+            यदि सक्रियसंख्यान समम् ० आदि
+                चरः अधिपञ्च ॱॱ अधिकरण भवति अधिकरणरचना आरभ्य निक्षेपाधिकरणभेद ऽ ० ऽ निक्षेपसंख्यान समाप्तम् ।
+                चरः अवगणनषोडश ॱॱ न६४ भवति अधिकरणन्यासः आरभ्य मूल्यम् ऽ अधिपञ्च समाप्तम् ।
+                निक्षेपसंख्यान भवति आरभ्य निक्षेपसंख्यान योगः १ समाप्तम् ।
+            इति
+        इति
+
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+
+    ॰ AllocationMap { locations, num_spills: next_spill }
+    चरः फलम् ॱॱ आवण्टनम् भवति ० ।
+    फलम् ॱ अधिकरणसंख्यान भवति मूल्यसीमा ।
+    फलम् ॱ निक्षेपसंख्यान भवति निक्षेपसंख्यान ।
+    प्रत्यागमनम् फलम् ।
+इति
+
+
+॰ ══════════════════ THE OUTPUT BUFFER ══════════════════
+॰ WRITTEN 2026-08-30. THIS IS WHAT UNBLOCKED (b)(4), AND IT IS NOT AN
+॰ AMENDMENT TO ADR-0017 — the ADR is untouched and a string literal still
+॰ holds no newline. The owner's decision of 2026-08-30 is the other half
+॰ of ADR-0018's *"a line break is written by the emitter as a byte, not
+॰ smuggled inside quotes"*: A NEWLINE IS AN OCTET THE EMITTER APPENDS.
+॰
+॰ So the emitters do not build a पाठः with योगः at all. They append into
+॰ ONE preallocated `अङ्कः अन्तः अ८` through a module-level cursor — the
+॰ same कोश-plus-सूचकाङ्क shape this file already uses for every Vec, and
+॰ the same `पाठांशयोजनम्` shape वाक्यविभाग:421 uses for a push. Indexed
+॰ assignment into a byte slice is what makes it possible and it is not
+॰ invented here: वाक्यविभाग:957-959 already fills `दत्तक्षेत्रआज्ञाकूटः`
+॰ that way, and nirvahana.rs:889 reads it.
+॰
+॰ AND IT MOVED THREE ROUTINES OFF योगः, WHICH IS A CORRECTION AND NOT A
+॰ REFACTOR. `योगः` on two पाठः is the overload the ON TEXT note at the
+॰ head chose and B-082 still owes a type for — and NOTHING IN THIS TREE
+॰ IMPLEMENTS IT. Measured 2026-08-30: `उक्तम् क इति योगः उक्तम् ख इति`
+॰ run through the interpreter answers *"expected a number, found
+॰ Octets"*. So देवनागराङ्कः and अधिकरणवचनम् were text that could not be
+॰ EXECUTED, which is precisely the defect D-002j was filed over one layer
+॰ up — a routine that reads as real to every ratchet in the crate and has
+॰ never been run. Both are rewritten below as appenders. The ON TEXT
+॰ note's choice of योगः is left standing as the record of a decision;
+॰ what this section adds is that the decision has no implementation, and
+॰ that an emitter does not need one.
+॰
+॰ THE TWO LAYOUT OCTETS ARE ADR-0018's TWO WORDS, READ RATHER THAN TYPED.
+॰ `यतिः` is LINE FEED and `विवरम्` is SPACE, and `lex_t1` hands each over
+॰ as a one-character `Kind::Str`. So the octet is `यतिः अङ्कः ० अन्तः`
+॰ and not a bare १०: the global cannot drift from the ADR, because it IS
+॰ the ADR's word, indexed.
+
+सार्वजनिक चरः यत्यष्टकम् ॱॱ अ६४ भवति यतिः अङ्कः ० अन्तः ।     ॰ U+000A, ADR-0018
+सार्वजनिक चरः विवराष्टकम् ॱॱ अ६४ भवति विवरम् अङ्कः ० अन्तः ।  ॰ U+0020, ADR-0018
+
+॰ The emitted text, and how far it is written. ZERO-BASED, unlike every
+॰ arena above: a byte slice is subscripted from ० everywhere in this crate
+॰ (`पाठ्यम् अङ्कः सूचकाङ्क अन्तः`), and the one-based rule is the arenas'.
+सार्वजनिक चरः निर्गमकोश ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः निर्गमसूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+॰ देवनागराङ्कः's digits, least significant first. An arena and not a byte
+॰ slice because a Devanagari digit is THREE octets and the digits are
+॰ produced in the wrong order: the remainders are collected here and the
+॰ akṣaras appended from the top down.
+सार्वजनिक चरः अङ्कावशेषकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+
+॰ `let mut out = String::new()` / `self.output.clear()`.
+सार्वजनिक वृत्तिः निर्गमारम्भः ददाति अ६४ आदि
+    निर्गमसूचकाङ्क भवति ० ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ ONE octet at the cursor. Every other appender is this one in a loop.
+सार्वजनिक वृत्तिः अष्टकयोजनम् आदाय अष्टकम् ॱॱ अ६४ ददाति अ६४ आदि
+    निर्गमकोश अङ्कः निर्गमसूचकाङ्क अन्तः भवति अष्टकम् ।
+    निर्गमसूचकाङ्क भवति आरभ्य निर्गमसूचकाङ्क योगः १ समाप्तम् ।
+    प्रत्यागमनम् निर्गमसूचकाङ्क ।
+इति
+
+॰ `\n` — the whole of what four of these routines waited on.
+सार्वजनिक वृत्तिः यतियोजनम् ददाति अ६४ आदि
+    प्रत्यागमनम् अष्टकयोजनम् यत्यष्टकम् ।
+इति
+
+॰ n spaces. emit_program indents by four and emit_function by two, and
+॰ ADR-0017's *"a string may not begin with a space"* is why neither indent
+॰ can live inside a literal.
+सार्वजनिक वृत्तिः विवरयोजनम् आदाय संख्या ॱॱ अ६४ ददाति अ६४ आदि
+    चरः शेषम् ॱॱ न६४ भवति संख्या ।
+    यावत् शेषम् अधिकम् ० आदि
+        चरः अवगणना ॱॱ न६४ भवति अष्टकयोजनम् विवराष्टकम् ।
+        शेषम् भवति आरभ्य शेषम् वियोगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् निर्गमसूचकाङ्क ।
+इति
+
+॰ `out.push_str(s)`.
+सार्वजनिक वृत्तिः पाठयोजनम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः अवगणना ॱॱ न६४ भवति अष्टकयोजनम् पाठ्यम् अङ्कः सूचकाङ्क अन्तः ।
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् निर्गमसूचकाङ्क ।
+इति
+
+॰ `टिप्पनीचिह्नयोजनम्` STOOD HERE — the `॰` U+0970 comment mark appended as its
+॰ three UTF-8 octets, for `कार्यक्रमोत्सर्जनम्`'s port of emit.rs's
+॰ `; Unimplemented instruction` line. DELETED with that routine, `W-237`,
+॰ 2026-09-04: its only caller went, its Rust twin (a `format!` in `emit.rs`)
+॰ went with the file, and the T0 emitter that reaches the machine writes no
+॰ comment (research/25 §2.8). The decision it carried — a character a literal
+॰ cannot hold is a byte the emitter appends — is the same one `यतियोजनम्`
+॰ carries, and stays.
+
+॰ The run from `आदिस्थलम्` to the cursor — what a routine that appended
+॰ its own piece hands back.
+॰
+॰ THIS IS WHY NO ROUTINE HERE NEEDS AN ALLOCATOR AND WHY ADR-0028 IS NOT
+॰ A PREREQUISITE. Rust's format_location returns an owned String and its
+॰ caller pushes it; here the routine writes AT THE CURSOR and returns a
+॰ VIEW of what it wrote, so the push has already happened and the text is
+॰ never owned twice. The view is stable because a byte-slice write is
+॰ copy-on-write (nirvahana.rs:889): a slice taken now is not disturbed by
+॰ a later append.
+सार्वजनिक वृत्तिः निर्गमांशः आदाय आदिस्थलम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
+    प्रत्यागमनम् निर्गमकोश अङ्कः आदिस्थलम् अन्तः निर्गमसूचकाङ्क ।
+इति
+
+
+॰ ══════════════════ THE NUMERAL APPENDER (was: emit.rs — THE T0 TEXT BACK END) ══════════════════
+॰ Two routines stay of what was emit.rs's port: अङ्कचिह्नम् and देवनागराङ्कः,
+॰ the numeral appender, whose Rust original is now `riscv64::devanagari`
+॰ (`यन्त्रोत्सर्जन ॱ यन्त्राङ्कः` writes through it). The other three were
+॰ deleted by `W-237` — see THE RETIRED T0 PAIR below. What cleared the
+॰ newline for all of them, and still holds, is that the buffer above
+॰ appends U+000A as an octet: (b)(4) cleared without ADR-0017 being touched.
+
+॰ One digit of `n.to_string()`'s character map, written out as ten arms.
+॰ RUST MAPS A CHARACTER ONTO A CHARACTER AND T1 CANNOT: the frozen
+॰ grammar lists अक्षरम् as a TYPE and gives no production that writes a
+॰ character down. So the digit arrives as a NUMBER and leaves as a
+॰ one-akṣara पाठः, and no character literal is needed — which is why
+॰ the old note (b)(3), that देवनागराङ्कः "needs a character literal to
+॰ map '0' onto '०'", is withdrawn rather than merely satisfied.
+॰ The last line is the ० arm and the fall-through at once. It is total
+॰ rather than lucky: every argument this routine is given is a
+॰ remainder modulo १०, and देवनागराङ्कः is its only caller.
+सार्वजनिक वृत्तिः अङ्कचिह्नम् आदाय अङ्कम् ॱॱ अ६४ ददाति पाठः आदि
+    यदि अङ्कम् समम् १ आदि प्रत्यागमनम् उक्तम् १ इति । इति
+    यदि अङ्कम् समम् २ आदि प्रत्यागमनम् उक्तम् २ इति । इति
+    यदि अङ्कम् समम् ३ आदि प्रत्यागमनम् उक्तम् ३ इति । इति
+    यदि अङ्कम् समम् ४ आदि प्रत्यागमनम् उक्तम् ४ इति । इति
+    यदि अङ्कम् समम् ५ आदि प्रत्यागमनम् उक्तम् ५ इति । इति
+    यदि अङ्कम् समम् ६ आदि प्रत्यागमनम् उक्तम् ६ इति । इति
+    यदि अङ्कम् समम् ७ आदि प्रत्यागमनम् उक्तम् ७ इति । इति
+    यदि अङ्कम् समम् ८ आदि प्रत्यागमनम् उक्तम् ८ इति । इति
+    यदि अङ्कम् समम् ९ आदि प्रत्यागमनम् उक्तम् ९ इति । इति
+    प्रत्यागमनम् उक्तम् ० इति ।
+इति
+
+॰ to_devanagari_numeral(n: i64) -> String.
+॰ THE HYPHEN IS THE ONE CHARACTER OF THIS ROUTINE THAT COULD NOT BE
+॰ PORTED. Rust maps the ten ASCII digits onto the Devanagari ten and
+॰ passes '-' through unchanged; U+002D is outside doc 15's repertoire
+॰ exactly as a Latin letter is. It is not respelled by invention
+॰ either — spec/grammar-t1.ebnf's own numeral production is
+॰ `[ "ऋण" ] , ( binary | octal | hexadecimal | decimal )`, so ऋण५ is
+॰ how this language already writes a negative five, and emitting `-५`
+॰ would emit a numeral T0 cannot read back.
+॰ TWO FURTHER DIFFERENCES, both stated rather than left to be found:
+॰   • T1 HAS NO REMAINDER OPERATOR. व्याकर's binary set is योगः
+॰     वियोगः गुणनम् विभाजनम् and the comparisons, so `n % १०` is
+॰     written as n minus its truncated tenth times ten. That assumes
+॰     विभाजनम् truncates toward zero, as Rust's `/` on i64 does.
+॰   • THE MAGNITUDE IS TAKEN ON THE NEGATIVE SIDE, not the positive
+॰     one. The least representable इ६४ has no positive counterpart, so
+॰     a routine that negated first would be wrong on exactly one input
+॰     and right on every test anybody would write. Rust's to_string is
+॰     not wrong there, so neither is this.
+॰ REWRITTEN 2026-08-30 FROM योगः TO AN APPENDER, and that is a repair
+॰ rather than a style change: the योगः version could not be executed at
+॰ all — see THE OUTPUT BUFFER above. The sign is still `ऋण` and the
+॰ digits are still अङ्कचिह्नम्'s; what changed is where they are put.
+॰ THE ORDER IS THE ONE THING THE REWRITE HAD TO SOLVE. The old body
+॰ PREPENDED each digit, which an append-only buffer cannot do, so the
+॰ remainders are collected into अङ्कावशेषकोश least-significant first and
+॰ walked back out from the top. Same digits, same sign, same magnitude
+॰ taken on the negative side for the same reason.
+सार्वजनिक वृत्तिः देवनागराङ्कः आदाय मूल्यम् ॱॱ इ६४ ददाति अङ्कः अन्तः अ८ आदि
+    चरः आदिस्थलम् ॱॱ अ६४ भवति निर्गमसूचकाङ्क ।
+
+    यदि मूल्यम् समम् ० आदि
+        चरः अवगणना ॱॱ न६४ भवति पाठयोजनम् उक्तम् ० इति ।
+        प्रत्यागमनम् निर्गमांशः आदिस्थलम् ।
+    इति
+
+    चरः शेषम् ॱॱ इ६४ भवति मूल्यम् ।
+    यदि मूल्यम् अधिकम् ० आदि
+        शेषम् भवति आरभ्य ० वियोगः मूल्यम् समाप्तम् ।
+    इति
+    यदि मूल्यम् न्यूनम् ० आदि
+        चरः अवगणनद्वि ॱॱ न६४ भवति पाठयोजनम् उक्तम् ऋण इति ।
+    इति
+
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+    यावत् शेषम् न्यूनम् ० आदि
+        चरः भागः ॱॱ इ६४ भवति आरभ्य शेषम् विभाजनम् १० समाप्तम् ।
+        संख्यानम् भवति आरभ्य संख्यानम् योगः १ समाप्तम् ।
+        अङ्कावशेषकोश अङ्कः संख्यानम् अन्तः भवति आरभ्य आरभ्य भागः गुणनम् १० समाप्तम् वियोगः शेषम् समाप्तम् ।
+        शेषम् भवति भागः ।
+    इति
+
+    यावत् संख्यानम् अधिकम् ० आदि
+        ॰ EXPLICIT ON PURPOSE — THE ONE SITE WHERE THE TWO READINGS DISAGREE.
+        ॰ `f g आरभ्य x समाप्तम्` is ambiguous and no parser can settle it: the
+        ॰ token sequences are IDENTICAL and only ARITY tells them apart, which is
+        ॰ semantic. Of the corpus's thirteen group-in-a-run sites, ELEVEN need the
+        ॰ group to BE the next argument (lex.t1:330 passes five arguments to a
+        ॰ five-parameter routine and can only do so that way), and juxtaposition
+        ॰ takes that reading.
+        ॰
+        ॰ THIS SITE NEEDED THE OTHER ONE. `पाठयोजनम्` (:780) takes ONE argument and
+        ॰ `अङ्कचिह्नम्` (:833) takes ONE and returns `पाठः` — precisely what
+        ॰ `पाठयोजनम्` consumes. So the meaning is nested, and under the eleven-site
+        ॰ reading it parsed as `पाठयोजनम्(अङ्कचिह्नम्, group)`: two arguments to a
+        ॰ one-parameter routine, with `अङ्कचिह्नम्` passed as a value and never
+        ॰ called. Resolve and typecheck both pass on that — nothing in the chain
+        ॰ compares arity yet — so it was a WRONG PROGRAM THAT LOOKS RIGHT.
+        ॰
+        ॰ The brackets are written out rather than the grammar being changed. The
+        ॰ language keeps one reading; this line says which one it meant.
+        चरः अवगणनत्रि ॱॱ न६४ भवति पाठयोजनम् आरभ्य अङ्कचिह्नम् आरभ्य अङ्कावशेषकोश अङ्कः संख्यानम् अन्तः समाप्तम् समाप्तम् ।
+        संख्यानम् भवति आरभ्य संख्यानम् वियोगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् निर्गमांशः आदिस्थलम् ।
+इति
+
+
+
+॰ `alloc.locations.get(v)` — Rust's Option, which T1 spells as भेद ०.
+॰ TWO TESTS AND NOT ONE, and the second is the arena's rather than the
+॰ port's: a value number past what this pass allocated is outside
+॰ अधिकरणकोश, and reading it is an error rather than a शून्यम्.
+॰ आवण्टनम् ॱ अधिकरणसंख्यान is exactly how far the array is meaningful —
+॰ which is what that field was declared to carry and what makes the
+॰ आवण्टितम् parameter of both emitters load-bearing.
+सार्वजनिक वृत्तिः अधिकरणग्रहणम् आदाय मूल्यम् ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अधिकरण आदि
+    यदि मूल्यम् समम् ० आदि
+        प्रत्यागमनम् अधिकरणरचना आरभ्य ० ऽ ० ऽ ० समाप्तम् ।
+    इति
+    यदि मूल्यम् अधिकम् सीमा आदि
+        प्रत्यागमनम् अधिकरणरचना आरभ्य ० ऽ ० ऽ ० समाप्तम् ।
+    इति
+    प्रत्यागमनम् अधिकरणकोश अङ्कः मूल्यम् अन्तः ।
+इति
+
+
+॰ `rn_out != rn1` — x86_64.rs compares two FORMATTED strings to decide
+॰ whether the move that puts the left operand in the destination is
+॰ needed. THIS COMPARES THE LOCATIONS INSTEAD, and the two are the same
+॰ test: अधिकरणवचनम् and यवनाधिकरणवचनम् are both injective on a location
+॰ — a register number and a spill slot each go to their own text — so two
+॰ locations render alike exactly when they are the same location.
+॰ Doing it on the text would need two runs held at once, which an
+॰ append-only buffer cannot hand out; doing it on the struct needs
+॰ nothing and says what the Rust meant.
+सार्वजनिक वृत्तिः अधिकरणसाम्यम् आदाय एकम् ॱॱ अधिकरण ऽ द्वितीयम् ॱॱ अधिकरण ददाति अ६४ आदि
+    यदि एकम् ॱ भेद असमम् द्वितीयम् ॱ भेद आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि एकम् ॱ भेद समम् कोष्ठाधिकरणभेद आदि
+        यदि एकम् ॱ कोष्ठ असमम् द्वितीयम् ॱ कोष्ठ आदि
+            प्रत्यागमनम् ० ।
+        इति
+    इति
+    यदि एकम् ॱ भेद समम् निक्षेपाधिकरणभेद आदि
+        यदि एकम् ॱ निक्षेप असमम् द्वितीयम् ॱ निक्षेप आदि
+            प्रत्यागमनम् ० ।
+        इति
+    इति
+    प्रत्यागमनम् १ ।
+इति
+
+
+
+
+
+॰ ══════════════════ THE RETIRED T0 PAIR — DELETED, `W-237`, 2026-09-04 ══════════════════
+॰ Three routines stood here until this row: `अधिकरणवचनम्` (emit.rs's
+॰ `format_location`), `त्रिपदवचनम्` (the operand tail its Add and Sub shared)
+॰ and `कार्यक्रमोत्सर्जनम्` (`emit_program`), 3.4.8 "T0 emission for riscv64".
+॰ Their text was NOT T0 — `निधेहि`/`प्रत्यावर्तनम्` are in no mnemonic table,
+॰ `कोष्ठ५` names no register the assembler knows, no operand carries a kāraka
+॰ — and `सङ्केतन` refused every line of it (research/25 §1.2). `W-236`'s header
+॰ note withdrew the claim; this row deletes the routines and `emit.rs` with
+॰ them, so that nothing in the tree calls itself the RISC-V emitter but the
+॰ one that reaches the machine: `crates/sadhana/src/t1/riscv64.rs` and its
+॰ twin `yantrotsarjana.t1` (यन्त्रोत्सर्जन), measured over the corpus by
+॰ `crates/yantra/tests/paradigm_encode.rs`. What the three needed and STAYS is
+॰ the output buffer above (निर्गमकोश, the appenders, देवनागराङ्कः) — the RISC-V twin and the AMD64 back end below both write through it.
+॰ Twin-table rows moved in `tests/t1_sources.rs`; the three octet tests went
+॰ from `tests/t1_execution.rs`; the buffer's mutations are killed there
+॰ through `यवनवृत्त्युत्सर्जनम्` now.
+
+॰ ══════════════════ x86_64.rs — THE AMD64 BACK END ══════════════════
+॰ Five symbols, one struct and four routines. The struct is real — one
+॰ पाठः field, as Rust has. ONE ROUTINE IS NOW REAL AND THREE ARE
+॰ STUBS, and (c) below is rewritten because it named ONE of them as
+॰ Latin-blocked and the count is three: everything this back end emits
+॰ is GNU as syntax, in Latin, and the repertoire refuses it. The one
+॰ that could be written is the one that emits no target text.
+
+सार्वजनिक संरचना यवनोत्सर्जकः आरभ्य   ॰ X86_64Emitter
+    निर्गमः ॱॱ पाठः                    ॰ output: String
+समाप्तम् ।
+
+॰ X86_64Emitter::new() -> Self { output: String::new() }.
+॰ `String::new()` is the EMPTY literal, which ADR-0017's production
+॰ admits with zero repetitions: `उक्तम् इति`. The struct is built the
+॰ way अधिकरणरचना above builds अधिकरण, because T1 has no struct literal.
+सार्वजनिक वृत्तिः यवनोत्सर्जकारम्भः ददाति यवनोत्सर्जकः आदि
+    चरः नव ॱॱ यवनोत्सर्जकः भवति ० ।
+    नव ॱ निर्गमः भवति उक्तम् इति ।
+    प्रत्यागमनम् नव ।
+इति
+
+॰ ══════ HOW AT&T PUNCTUATION IS WRITTEN IN THIS REPERTOIRE ══════
+॰ WRITTEN 2026-08-30, and it is the decision the two routines below were
+॰ stubbed for. ADR-0029 settled the register NAMES — Devanagari, no Latin
+॰ escape, translated BY ROLE. It settled nothing about `%`, `$`, `(`, `)`
+॰ or `-`, and note (c) below was right that those stop the emitter before
+॰ a register name is even reached. Each is answered here, and each answer
+॰ is a citation rather than a coinage.
+॰
+॰ (1) `(` AND `)` — doc 15 §6.2's contingency C-15-2 IS THE BINDING
+॰     SYMBOL TABLE (§3.1 is superseded: task A-033 measured font coverage
+॰     and found ० of २७ Devanagari faces render `꣼ ꣸`). C-15-2 keeps six
+॰     base-block signs and uses PAIRED KEYWORDS for everything else, and
+॰     it assigns group-open and group-close by name: `आरभ्य` … `समाप्तम्`.
+॰     So `(%rbp)` is `आरभ्य आधारसूचकः समाप्तम्`. Nothing is invented; the
+॰     two words are the ones this whole language already uses for a
+॰     bracket, which is P-1 — *prefer words to signs* — applied where it
+॰     was already applied.
+॰
+॰ (2) `-` — `ऋण`, which देवनागराङ्कः above already settled and states in
+॰     its own margin: spec/grammar-t1.ebnf's numeral production is
+॰     `[ "ऋण" ] , ( binary | … )`, so ऋण८ is how this language writes
+॰     negative eight. The routine below does not spell the sign at all —
+॰     it hands देवनागराङ्कः a negative number and lets the routine that
+॰     owns the sign write it.
+॰
+॰ (3) `%` AND `$` — NOT RENDERED, AND THAT IS A DECISION WITH A REASON
+॰     RATHER THAN A DROPPED CHARACTER. ADR-0029 says to translate the
+॰     ROLE. Translated, these two are DISAMBIGUATORS INSIDE ONE
+॰     NAMESPACE: in Latin gas `rax`, `main` and `10` are all bare words,
+॰     so a sigil is what says which is a register and which an immediate.
+॰     In this rendering the three are already three different shapes — a
+॰     register operand is one of the fourteen Devanagari words of
+॰     spec/registers-amd64.tsv, a CLOSED set; an immediate is a
+॰     Devanagari numeral (ADR-0023); a label is a name. The role is found
+॰     already carried, and the boundary pass ADR-0029 requires — *"a
+॰     mapping over the same TSV, read in the other direction"* — puts the
+॰     sigils back from the same table it takes the names from.
+॰     THE ALTERNATIVE WAS TO TAKE A SIGN FOR THEM AND IT IS REFUSED: of
+॰     C-15-2's six, `।` `॥` `॰` `ॱ` `ऽ` `ॐ` all carry a role in this tree
+॰     already, and giving one a second meaning is the exact defect
+॰     ADR-0018 refused `अवसानम्` over.
+॰
+॰ (4) `, ` — `ऽ` and a space. C-15-2 assigns the argument separator to
+॰     AVAGRAHA by name. THIS DIFFERS FROM emit.rs's PORT ABOVE, which
+॰     writes a bare space, and the difference is the two languages': T0
+॰     separates operands by whitespace (spec/lib-mudraka.sas), gas by a
+॰     comma, and each back end is spelled in the syntax it targets.
+॰
+॰ (5) THE MNEMONICS AND THE TWO FRAME REGISTERS, which are NOT punctuation
+॰     and are the part of this decision with a debt against it:
+॰       • `pushq` → `स्तूपारोपः`, `popq` → `स्तूपापहारः` —
+॰         spec/lexicon.src.tsv:396 and :395, both glossed `mnemonic`.
+॰       • `addq` → `योगः` — lexicon, and spec/mnemonics-riscv64.src.tsv:26.
+॰       • `ret` → `प्रत्यागमनम्` — spec/lexicon.src.tsv:239, `return`,
+॰         glossed `mnemonic+keyword`.
+॰       • `movq` → `निधेहि`. NOT FROM A TABLE, and said out loud: no
+॰         `mv`/`move` family exists in spec/mnemonics-riscv64.src.tsv, so
+॰         the word is taken from the sibling emitter in this same tree
+॰         (crates/sadhana/src/t1/emit.rs:55 writes `निधेहि` for the T0
+॰         move) so that one compiler spells a move one way.
+॰       • `%rsp` → `स्तूपसूचकः` — spec/lexicon.src.tsv:394 `stack pointer`,
+॰         and spec/registers-riscv64.tsv:13 already carries it for `sp`.
+॰       • `%rbp` → `आधारसूचकः`. **THE ONE NAME NO ROW IN THIS TREE
+॰         CARRIES**, and it is flagged rather than passed off: rbp is the
+॰         frame BASE POINTER, spec/registers-amd64.tsv covers only the
+॰         fourteen ALLOCATABLE registers by its own header (`0..13`, what
+॰         reg_name matches on) and neither rbp nor rsp is among them.
+॰         `आधारसूचकः` is formed by that table's own rule — `आधारः` is its
+॰         word for Base and `-सूचकः` is how स्तूपसूचकः, विश्वसूचकः and
+॰         तन्तुसूचकः are all built — but a derivation made HERE is a table
+॰         row written in the wrong file. See (e) at the foot for the row
+॰         that is owed.
+
+॰ X86_64Emitter::format_location(&self, &Location) -> String
+॰ `%{reg_name}` and `-{(slot+1)*8}(%rbp)`, under (1), (2), (3) and (5)
+॰ above. Returns the run it wrote, for the reason निर्गमांशः gives.
+सार्वजनिक वृत्तिः यवनाधिकरणवचनम् आदाय अधिकरणम् ॱॱ अधिकरण ददाति अङ्कः अन्तः अ८ आदि
+    चरः आदिस्थलम् ॱॱ अ६४ भवति निर्गमसूचकाङ्क ।
+
+    ॰ Location::Register(id) => format!("%{}", self.reg_name(id))
+    यदि अधिकरणम् ॱ भेद समम् कोष्ठाधिकरणभेद आदि
+        चरः लेखैक ॱॱ अ६४ भवति पाठयोजनम् आरभ्य कोष्ठनाम अधिकरणम् ॱ कोष्ठ समाप्तम् ।    ॰ W-227: a nested call is bracketed — the flat list read this as two arguments
+    इति
+
+    ॰ Location::Spill(slot) => format!("-{}(%rbp)", (slot + 1) * 8)
+    यदि अधिकरणम् ॱ भेद समम् निक्षेपाधिकरणभेद आदि
+        चरः विस्थापनम् ॱॱ इ६४ भवति आरभ्य आरभ्य अधिकरणम् ॱ निक्षेप योगः १ समाप्तम् गुणनम् ८ समाप्तम् ।
+        चरः लेखद्वि ॱॱ अङ्कः अन्तः अ८ भवति देवनागराङ्कः आरभ्य ० वियोगः विस्थापनम् समाप्तम् ।
+        चरः लेखत्रि ॱॱ अ६४ भवति विवरयोजनम् १ ।
+        चरः लेखचतुः ॱॱ अ६४ भवति पाठयोजनम् उक्तम् आरभ्य इति ।
+        चरः लेखपञ्च ॱॱ अ६४ भवति विवरयोजनम् १ ।
+        चरः लेखषट् ॱॱ अ६४ भवति पाठयोजनम् उक्तम् आधारसूचकः इति ।
+        चरः लेखसप्त ॱॱ अ६४ भवति विवरयोजनम् १ ।
+        चरः लेखाष्ट ॱॱ अ६४ भवति पाठयोजनम् उक्तम् समाप्तम् इति ।
+    इति
+
+    ॰ भेद ० is `alloc.locations.get(v) == None`, which x86_64.rs never
+    ॰ reaches. The empty run is what a caller that did would get.
+    प्रत्यागमनम् निर्गमांशः आदिस्थलम् ।
+इति
+
+॰ `, ` — (4) above. One routine so the separator is spelled in one place.
+सार्वजनिक वृत्तिः विच्छेदयोजनम् ददाति अ६४ आदि
+    चरः लेखैक ॱॱ अ६४ भवति पाठयोजनम् उक्तम् ऽ इति ।
+    प्रत्यागमनम् विवरयोजनम् १ ।
+इति
+
+॰ X86_64Emitter::emit_function(&mut self, &Function, &AllocationMap)
+॰ Twelve push_str calls, every one ending in a newline and most beginning
+॰ with two spaces. WRITTEN 2026-08-30: the newline is an octet (see THE
+॰ OUTPUT BUFFER) and the Latin is answered above, item by item.
+॰
+॰ DIVERGENCE, stated: Rust returns `()` and leaves the text in
+॰ `self.output`. This returns the run it wrote, because यवनोत्सर्जकः is
+॰ built by यवनोत्सर्जकारम्भः and never threaded through this routine —
+॰ T1 has no `&mut self`. The text goes to the same place either way.
+सार्वजनिक वृत्तिः यवनवृत्त्युत्सर्जनम् आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ऽ आवण्टितम् ॱॱ आवण्टनम् ददाति अङ्कः अन्तः अ८ आदि
+    चरः अवगणना ॱॱ न६४ भवति निर्गमारम्भः ।
+    चरः आदिस्थलम् ॱॱ अ६४ भवति निर्गमसूचकाङ्क ।
+
+    ॰ "  .globl main\n" and "main:\n" — just mock the name, as emit.rs does
+    चरः लेखैक ॱॱ अ६४ भवति विवरयोजनम् २ ।
+    चरः लेखद्वि ॱॱ अ६४ भवति पाठयोजनम् उक्तम् वैश्विकम् इति ।
+    चरः लेखत्रि ॱॱ अ६४ भवति विवरयोजनम् १ ।
+    चरः लेखचतुः ॱॱ अ६४ भवति पाठयोजनम् उक्तम् मुख्यम् इति ।
+    चरः लेखपञ्च ॱॱ अ६४ भवति यतियोजनम् ।
+    चरः लेखषट् ॱॱ अ६४ भवति पाठयोजनम् उक्तम् मुख्यम्ॱॱ इति ।
+    चरः लेखसप्त ॱॱ अ६४ भवति यतियोजनम् ।
+
+    ॰ Prologue — "  pushq %rbp\n" and "  movq %rsp, %rbp\n"
+    चरः लेखाष्ट ॱॱ अ६४ भवति विवरयोजनम् २ ।
+    चरः लेखनव ॱॱ अ६४ भवति पाठयोजनम् उक्तम् स्तूपारोपः इति ।
+    चरः लेखदश ॱॱ अ६४ भवति विवरयोजनम् १ ।
+    चरः लेखैकादश ॱॱ अ६४ भवति पाठयोजनम् उक्तम् आधारसूचकः इति ।
+    चरः लेखद्वादश ॱॱ अ६४ भवति यतियोजनम् ।
+    चरः लेखत्रयोदश ॱॱ अ६४ भवति विवरयोजनम् २ ।
+    चरः लेखचतुर्दश ॱॱ अ६४ भवति पाठयोजनम् उक्तम् निधेहि इति ।
+    चरः लेखपञ्चदश ॱॱ अ६४ भवति विवरयोजनम् १ ।
+    चरः लेखषोडश ॱॱ अ६४ भवति पाठयोजनम् उक्तम् स्तूपसूचकः इति ।
+    चरः लेखसप्तदश ॱॱ अ६४ भवति विच्छेदयोजनम् ।
+    चरः लेखाष्टादश ॱॱ अ६४ भवति पाठयोजनम् उक्तम् आधारसूचकः इति ।
+    चरः लेखैकोनविंशति ॱॱ अ६४ भवति यतियोजनम् ।
+
+    यदि वृत्तिसूचकाङ्क अधिकम् ० आदि
+        चरः अवगणनद्वि ॱॱ न६४ भवति यवनपर्वोत्सर्जनम् आरभ्य वृत्तिसूचकाङ्क ऽ आवण्टितम् समाप्तम् ।
+    इति
+
+    ॰ Epilogue — "  popq %rbp\n" and "  ret\n"
+    चरः लेखविंशति ॱॱ अ६४ भवति विवरयोजनम् २ ।
+    चरः लेखैकविंशति ॱॱ अ६४ भवति पाठयोजनम् उक्तम् स्तूपापहारः इति ।
+    चरः लेखद्वाविंशति ॱॱ अ६४ भवति विवरयोजनम् १ ।
+    चरः लेखत्रयोविंशति ॱॱ अ६४ भवति पाठयोजनम् उक्तम् आधारसूचकः इति ।
+    चरः लेखचतुर्विंशति ॱॱ अ६४ भवति यतियोजनम् ।
+    चरः लेखपञ्चविंशति ॱॱ अ६४ भवति विवरयोजनम् २ ।
+    चरः लेखषड्विंशति ॱॱ अ६४ भवति पाठयोजनम् उक्तम् प्रत्यागमनम् इति ।
+    चरः लेखसप्तविंशति ॱॱ अ६४ भवति यतियोजनम् ।
+
+    प्रत्यागमनम् निर्गमांशः आदिस्थलम् ।
+इति
+
+॰ The block walk of emit_function, split out so the prologue and epilogue
+॰ above read as the two halves they are. Same flattening as रेखीकरणम्
+॰ and कार्यक्रमोत्सर्जनम् — see (d) at the foot for the absent sort.
+सार्वजनिक वृत्तिः यवनपर्वोत्सर्जनम् आदाय वृत्तिसूचकाङ्क ॱॱ अ६४ ऽ आवण्टितम् ॱॱ आवण्टनम् ददाति अ६४ आदि
+    चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
+    चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
+    चरः शेषपर्व ॱॱ न६४ भवति कार्यम् ॱ पर्वसंख्यान ।
+
+    यावत् शेषपर्व अधिकम् ० आदि
+        चरः पर्वम् ॱॱ मध्यरूपॱपर्व भवति मध्यरूपॱपर्वकोश अङ्कः पर्वाङ्कः अन्तः ।
+        चरः आज्ञाङ्कः ॱॱ न६४ भवति पर्वम् ॱ आज्ञारम्भ ।
+        चरः शेषाज्ञा ॱॱ न६४ भवति पर्वम् ॱ आज्ञासंख्यान ।
+
+        यावत् शेषाज्ञा अधिकम् ० आदि
+            चरः आदेशः ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः आज्ञाङ्कः अन्तः ।
+            चरः फलाङ्कः ॱॱ न६४ भवति आदेशः ॱ फलम् ॱ क्रमाङ्क ।
+            चरः लक्ष्यम् ॱॱ अधिकरण भवति अधिकरणग्रहणम् आरभ्य फलाङ्कः ऽ आवण्टितम् ॱ अधिकरणसंख्यान समाप्तम् ।
+
+            यदि लक्ष्यम् ॱ भेद अधिकम् ० आदि
+                ॰ Instruction::ConstInt(c) => "  movq ${c}, {rname}\n"
+                यदि आदेशः ॱ भेद समम् मध्यरूपॱध्रुवाज्ञाभेद आदि
+                    चरः लेखैक ॱॱ अ६४ भवति विवरयोजनम् २ ।
+                    चरः लेखद्वि ॱॱ अ६४ भवति पाठयोजनम् उक्तम् निधेहि इति ।
+                    चरः लेखत्रि ॱॱ अ६४ भवति विवरयोजनम् १ ।
+                    चरः लेखचतुः ॱॱ अङ्कः अन्तः अ८ भवति देवनागराङ्कः आदेशः ॱ ध्रुवमूल्यम् ।
+                    चरः लेखपञ्च ॱॱ अ६४ भवति विच्छेदयोजनम् ।
+                    चरः लेखषट् ॱॱ अङ्कः अन्तः अ८ भवति यवनाधिकरणवचनम् लक्ष्यम् ।
+                    चरः लेखसप्त ॱॱ अ६४ भवति यतियोजनम् ।
+                इति
+
+                ॰ Instruction::Add(v1, v2) — a two-operand ISA, so the
+                ॰ destination must already hold the left operand
+                यदि आदेशः ॱ भेद समम् मध्यरूपॱयोगाज्ञाभेद आदि
+                    चरः वामाधिकरणम् ॱॱ अधिकरण भवति अधिकरणग्रहणम् आरभ्य आदेशः ॱ वाम ॱ क्रमाङ्क ऽ आवण्टितम् ॱ अधिकरणसंख्यान समाप्तम् ।
+                    चरः दक्षिणाधिकरणम् ॱॱ अधिकरण भवति अधिकरणग्रहणम् आरभ्य आदेशः ॱ दक्षिण ॱ क्रमाङ्क ऽ आवण्टितम् ॱ अधिकरणसंख्यान समाप्तम् ।
+
+                    ॰ if rn_out != rn1 { "  movq {rn1}, {rn_out}\n" }
+                    यदि अधिकरणसाम्यम् आरभ्य लक्ष्यम् ऽ वामाधिकरणम् समाप्तम् समम् ० आदि
+                        चरः लेखाष्ट ॱॱ अ६४ भवति विवरयोजनम् २ ।
+                        चरः लेखनव ॱॱ अ६४ भवति पाठयोजनम् उक्तम् निधेहि इति ।
+                        चरः लेखदश ॱॱ अ६४ भवति विवरयोजनम् १ ।
+                        चरः लेखैकादश ॱॱ अङ्कः अन्तः अ८ भवति यवनाधिकरणवचनम् वामाधिकरणम् ।
+                        चरः लेखद्वादश ॱॱ अ६४ भवति विच्छेदयोजनम् ।
+                        चरः लेखत्रयोदश ॱॱ अङ्कः अन्तः अ८ भवति यवनाधिकरणवचनम् लक्ष्यम् ।
+                        चरः लेखचतुर्दश ॱॱ अ६४ भवति यतियोजनम् ।
+                    इति
+
+                    ॰ "  addq {rn2}, {rn_out}\n"
+                    चरः लेखपञ्चदश ॱॱ अ६४ भवति विवरयोजनम् २ ।
+                    चरः लेखषोडश ॱॱ अ६४ भवति पाठयोजनम् उक्तम् योगः इति ।
+                    चरः लेखसप्तदश ॱॱ अ६४ भवति विवरयोजनम् १ ।
+                    चरः लेखाष्टादश ॱॱ अङ्कः अन्तः अ८ भवति यवनाधिकरणवचनम् दक्षिणाधिकरणम् ।
+                    चरः लेखैकोनविंशति ॱॱ अ६४ भवति विच्छेदयोजनम् ।
+                    चरः लेखविंशति ॱॱ अङ्कः अन्तः अ८ भवति यवनाधिकरणवचनम् लक्ष्यम् ।
+                    चरः लेखैकविंशति ॱॱ अ६४ भवति यतियोजनम् ।
+                इति
+
+                ॰ Rust's `_ => {}` — genuinely nothing. NOT emit.rs's `_`
+                ॰ arm, which writes a comment; x86_64.rs writes no line at
+                ॰ all for a Sub, and that difference is ported as it stands.
+            इति
+
+            आज्ञाङ्कः भवति आरभ्य आज्ञाङ्कः योगः १ समाप्तम् ।
+            शेषाज्ञा भवति आरभ्य शेषाज्ञा वियोगः १ समाप्तम् ।
+        इति
+
+        पर्वाङ्कः भवति आरभ्य पर्वाङ्कः योगः १ समाप्तम् ।
+        शेषपर्व भवति आरभ्य शेषपर्व वियोगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् निर्गमसूचकाङ्क ।
+इति
+
+॰ X86_64Emitter::reg_name(&self, usize) -> &'static str
+॰
+॰ WRITTEN 2026-08-30, and what unblocked it was a TABLE, not an allocator.
+॰ वाक्यविभाग:845 names the blocker these emitters share: "spec/…tsv gains a
+॰ Devanagari column, or the shape oracle compares भेद numbers instead of
+॰ words. It is the same blocker that holds four of उत्सर्जन's seven
+॰ emitters." ADR-0029 settled what the column may contain — Devanagari, no
+॰ Latin escape — and spec/registers-amd64.tsv now carries it, so the
+॰ condition that note set is met for THIS routine.
+॰
+॰ THE NAMES ARE ROLES, NOT SOUNDS, and that is ADR-0029 as AMENDED rather
+॰ than as first written. registers-riscv64.tsv was already generated with
+॰ शून्यः for `zero` and स्तूपसूचकः for `sp`, so one compiler would have
+॰ held two register tables spelled by two principles. rax IS the
+॰ Accumulator and rcx the Counter; r8-r15 have no role and stay numbers.
+॰
+॰ RETURNS A SLICE AND NOT पाठः. The stub said पाठः, which is what
+॰ यवनाधिकरणवचनम् above needs — Rust's format_location returns an owned
+॰ String. reg_name returns &'static str, a BORROW into the binary, and
+॰ कारकनाम (वाक्यविभाग:2368) is the same shape already written this way.
+॰ An owned string here would need ADR-0028's allocator for nothing.
+॰
+॰ DIVERGENCE, stated: Rust panics with "out of registers" past 13. This
+॰ returns the empty slice, because the allocator hands out 0..13 and never
+॰ more (x86_64.rs:118), so the arm is unreachable rather than lenient. A
+॰ caller that prints an empty register name has been given an index the
+॰ allocator could not have produced.
+सार्वजनिक वृत्तिः कोष्ठनाम आदाय कोष्ठाङ्कः ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
+    यदि कोष्ठाङ्कः समम् ० आदि प्रत्यागमनम् उक्तम् सञ्चयः इति । इति
+    यदि कोष्ठाङ्कः समम् १ आदि प्रत्यागमनम् उक्तम् आधारः इति । इति
+    यदि कोष्ठाङ्कः समम् २ आदि प्रत्यागमनम् उक्तम् गणकः इति । इति
+    यदि कोष्ठाङ्कः समम् ३ आदि प्रत्यागमनम् उक्तम् दत्तम् इति । इति
+    यदि कोष्ठाङ्कः समम् ४ आदि प्रत्यागमनम् उक्तम् मूलाङ्कः इति । इति
+    यदि कोष्ठाङ्कः समम् ५ आदि प्रत्यागमनम् उक्तम् लक्ष्याङ्कः इति । इति
+    यदि कोष्ठाङ्कः समम् ६ आदि प्रत्यागमनम् उक्तम् कोष्ठ८ इति । इति
+    यदि कोष्ठाङ्कः समम् ७ आदि प्रत्यागमनम् उक्तम् कोष्ठ९ इति । इति
+    यदि कोष्ठाङ्कः समम् ८ आदि प्रत्यागमनम् उक्तम् कोष्ठ१० इति । इति
+    यदि कोष्ठाङ्कः समम् ९ आदि प्रत्यागमनम् उक्तम् कोष्ठ११ इति । इति
+    यदि कोष्ठाङ्कः समम् १० आदि प्रत्यागमनम् उक्तम् कोष्ठ१२ इति । इति
+    यदि कोष्ठाङ्कः समम् ११ आदि प्रत्यागमनम् उक्तम् कोष्ठ१३ इति । इति
+    यदि कोष्ठाङ्कः समम् १२ आदि प्रत्यागमनम् उक्तम् कोष्ठ१४ इति । इति
+    यदि कोष्ठाङ्कः समम् १३ आदि प्रत्यागमनम् उक्तम् कोष्ठ१५ इति । इति
+
+    चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    प्रत्यागमनम् रिक्तम् ।
+इति
+
+
+॰ ══════════════════ what is NOT ported, and why ══════════════════
+॰
+॰ (a) CLOSED BY `W-236` (2026-09-04), KEPT FOR ir.t1's REASON: its stated
+॰     wait was right and is over. It read: "आयुर्निर्णयः HAS NO Call ARM
+॰     … there is no fourth arena holding argument value numbers … When it
+॰     lands, this arm is six lines and आयुर्विस्तारः is already the body
+॰     of them." `W-204` landed the fourth arena, मध्यरूपॱआदानकोश, and the
+॰     builder's call arm; the six lines are in आयुर्निर्णयः now. What made
+॰     them urgent rather than tidy: the T1 RISC-V emitter (yantrotsarjana
+॰     .t1) allocates through कोष्ठावण्टनम् and its text must agree with
+॰     riscv64.rs's octet for octet — an argument whose interval ended at
+॰     its definition would free its register one instruction early, and
+॰     the two twins would name different स्थिरs for the same value.
+॰
+॰ (b) WHAT BLOCKED THE TWO EMITTERS, AND WHAT CLEARED EACH OF IT.
+॰     NOTHING HERE IS OPEN ANY MORE — every numbered item below is
+॰     answered, and the note is kept whole because the answers are only
+॰     legible beside the questions they closed. It is REWRITTEN rather
+॰     than amended each time, on the rule this file follows: a list with
+॰     one stale entry teaches the next reader to skip the part that is
+॰     still true.
+॰
+॰     CLEARED, by docs/adr/0017-a-string-literal-is-a-token.md:
+॰       1. THE STRING LITERAL TOKEN — the thing the old note correctly
+॰          said was "an ADR against spec/grammar-t1.ebnf" and not
+॰          something a port could close. It is that ADR. `token` now
+॰          lists `string`, crates/sadhana/src/lex.rs `lex_t1` reads it,
+॰          and `उक्तम् … इति` is one token where it used to be five.
+॰       2. A GROWABLE पाठः — WITHDRAWN, because it was never needed.
+॰          `out.push_str(s)` is `out = out योगः s`, and the result of a
+॰          concatenation is an EXPRESSION whose growth belongs to the
+॰          operator and not to the program. The preallocated कोश this
+॰          file uses for every Vec is therefore NOT introduced for
+॰          text, and no arena was added. See ON TEXT at the head for
+॰          which operator and what B-082 still owes it.
+॰       3. FORMATTED INTERPOLATION — WITHDRAWN for the same reason
+॰          once (1) and (2) hold: `format!` is a concatenation of
+॰          pieces. Its stated bottom, that देवनागराङ्कः "needs a
+॰          character literal to map '0' onto '०'", was an artefact of
+॰          reading Rust's char-to-char map as the only shape. A digit
+॰          taken as a NUMBER and returned as a one-akṣara पाठः needs
+॰          no character literal; अङ्कचिह्नम् above is that, in ten
+॰          lines.
+॰
+॰     CLEARED 2026-08-30, AND THE ANSWER WAS NOT THE ONE THIS NOTE
+॰     ASKED FOR:
+॰       4. A STRING CANNOT HOLD A NEWLINE, AND CANNOT BEGIN OR END
+॰          WITH A SPACE. Both are ADR-0017's, in its own *What this
+॰          does NOT settle*: a string does not cross a newline, there
+॰          is no escape for one, and a leading or trailing space is
+॰          "not representable, because the delimiters are words and
+॰          words are whitespace-separated". BOTH EMITTERS ARE LINE
+॰          ORIENTED — emit_program's eight push_str calls all end in a
+॰          newline and six begin with four spaces; emit_function's
+॰          twelve do the same — so this is not an inconvenience, it is
+॰          the format. **ALL OF THAT IS STILL TRUE, AND NONE OF IT WAS
+॰          THE BLOCKER.** This note asked for a successor ADR giving
+॰          `उक्तम् … इति` an escape. It did not get one and does not
+॰          need one: the owner's decision of 2026-08-30 is that A
+॰          NEWLINE IS A BYTE THE EMITTER APPENDS, which is what
+॰          ADR-0018 already says — *"a line break is written by the
+॰          emitter as a byte, through the routine that appends one, not
+॰          smuggled inside quotes"*. The indent is the same answer: a
+॰          string that may not BEGIN with a space is not asked to, and
+॰          विवरयोजनम् writes four. ADR-0017 is untouched to the letter,
+॰          which is the part of this that was worth waiting for.
+॰          THE MISTAKE THIS NOTE MADE IS WORTH NAMING, because it cost
+॰          the row time: it read "the emitter needs a newline" as "the
+॰          STRING needs a newline", and the second does not follow from
+॰          the first. A literal is one token; a line is an output.
+॰       5. THE AMD64 TEXT IS LATIN — (c), cleared by ADR-0029 and this
+॰          file's punctuation decision.
+॰
+॰ (c) THE LATIN BLOCKER WAS THREE OF x86_64.rs's FOUR ROUTINES, NOT
+॰     कोष्ठनाम ALONE — and all three are written as of 2026-08-30.
+॰     That count was a correction to this note and it was found the only
+॰     way it could be, by writing the ones that could be written and
+॰     reading what the other three actually emit:
+॰       • कोष्ठनाम returns "rax" … "r15": fourteen names in Latin,
+॰         which is what this note already said.
+॰       • यवनाधिकरणवचनम् returns `%{name}` and `-{n}(%rbp)`. `%`, `(`,
+॰         `)` and `-` are outside the repertoire BEFORE a register
+॰         name is reached, so it is blocked even if कोष्ठनाम were not.
+॰       • यवनवृत्त्युत्सर्जनम् emits `.globl main`, `main:`,
+॰         `pushq %rbp`, `movq %rsp, %rbp`, `movq`, `addq`,
+॰         `popq %rbp` and `ret` — GNU as syntax throughout, and
+॰         blocked on (b)(4) as well.
+॰     WHY THIS IS A BLOCKER HERE AND A RESPELLING IN emit.rs, WHICH IS
+॰     THE PART THAT IS NOT ARBITRARY: emit.rs emits T0, AND T0 IS A
+॰     DEVANAGARI LANGUAGE. Its `x5`, `a0`, `main` and `;` are Latin
+॰     PLACEHOLDERS in a Rust mock — the file's own comment says "We
+॰     mock the function name" — standing in for text that
+॰     spec/registers-riscv64.tsv and spec/directives.tsv already spell
+॰     in Devanagari, so respelling them moves the output TOWARD T0 and
+॰     not away from the Rust. x86_64.rs emits assembly for a
+॰     Latin-script assembler, where `movq` stands in for nothing:
+॰     respelled, it stops being AMD64. ADR-0017 drew this line itself —
+॰     "a Latin letter inside `उक्तम् … इति` is refused exactly as it is
+॰     anywhere else, which is also why this ADR does not unblock
+॰     D-002e's कोष्ठनाम" — and what is new here is only that it falls
+॰     in three places.
+॰     THE DECISION IS TAKEN, IN TWO PARTS, AND THIS NOTE IS THE RECORD
+॰     OF WHERE EACH PART LIVES:
+॰       • THE NAMES — docs/adr/0029, 2026-08-30. Devanagari, no Latin
+॰         escape, TRANSLATED BY ROLE rather than transcribed by sound,
+॰         with spec/registers-amd64.tsv as the table. This note used to
+॰         offer "transliterate, or keep the mapping numeric"; the answer
+॰         is neither, and it was the tree's rather than the ADR's —
+॰         spec/registers-riscv64.tsv was already generated by role
+॰         (शून्यः for `zero`), and one compiler with two register tables
+॰         spelled by two principles is worse than either principle.
+॰         The transliteration this note feared — `रक्स्` for `rax` — is
+॰         exactly the एनकओडइनग mistake, and it was refused for that
+॰         reason.
+॰       • THE PUNCTUATION AND THE MNEMONICS — this file, 2026-08-30, in
+॰         HOW AT&T PUNCTUATION IS WRITTEN IN THIS REPERTOIRE above
+॰         यवनाधिकरणवचनम्. ADR-0029 said nothing about `%`, `$`, `(`,
+॰         `)` or `-`, which this note had correctly found were the
+॰         characters that stop the emitter FIRST. Each is answered by a
+॰         citation there.
+॰     AND THE COST ADR-0029 NAMED IS REAL AND IS NOT SOFTENED HERE: the
+॰     emitted text is not consumable by `as` verbatim, and a boundary
+॰     pass reading the same TSV in the other direction is what makes it
+॰     so. That pass does not exist yet and is not this file's.
+॰     यवनोत्सर्जकारम्भः was the one routine of the four the blocker did
+॰     not reach, because it emits no target text at all: `String::new()`
+॰     is the empty literal.
+॰
+॰ (d) रेखीकरणम् DOES NOT SORT, and that is deliberate, not missing.
+॰     regalloc.rs sorts func.blocks.keys() because a HashMap has no
+॰     order; मध्यरूप stores a function's blocks as a contiguous run
+॰     appended in id order, so the run is the sorted key list already.
+॰     Written out at the head of that routine so the absent sort reads
+॰     as a decision rather than an omission.
+॰
+॰ (e) THE AMD64 BACK END NAMES TWO REGISTERS NO TABLE IN THIS TREE
+॰     CARRIES, AND ONE OF THEM IS A DEBT.
+॰     spec/registers-amd64.tsv covers the fourteen ALLOCATABLE registers
+॰     and says so in its own header: the number column is "the index
+॰     `X86_64Emitter::reg_name` matches on … 0..13". emit_function's
+॰     prologue and epilogue need TWO MORE, and neither is allocatable:
+॰       • `%rsp` → स्तूपसूचकः. NOT A DEBT: spec/lexicon.src.tsv:394 has
+॰         the row, glossed `stack pointer`, and spec/registers-riscv64
+॰         .tsv:13 already spells `sp` with it. Read, not coined.
+॰       • `%rbp` → आधारसूचकः. A DEBT, and it is stated rather than
+॰         passed off as attested. No row anywhere in spec/ carries it.
+॰         It is DERIVED under the two tables' own rule — `आधारः` is
+॰         registers-amd64.tsv's word for the Base and `-सूचकः` is how
+॰         स्तूपसूचकः, विश्वसूचकः and तन्तुसूचकः are every one of them
+॰         built, all three marked `derived` in the lexicon — but a
+॰         derivation made in an EMITTER is a table row written in the
+॰         wrong file, which is the same objection encode.t1's blocker
+॰         (a) makes about hand-copying a derived table.
+॰     THE ROW THAT IS OWED: spec/registers-amd64.tsv gains rbp and rsp,
+॰     marked non-allocatable so कोष्ठनाम's fourteen-arm dispatch and the
+॰     `table.len() == 14` assertion in tests/t1_execution.rs both stay
+॰     true, and this file reads the names from it. That file is not this
+॰     row's to edit.
+॰     THE MNEMONICS ARE THE SAME SHAPE OF DEBT, one size smaller: four
+॰     of the five are lexicon or mnemonic-table rows read straight
+॰     (स्तूपारोपः :396, स्तूपापहारः :395, योगः mnemonics:26,
+॰     प्रत्यागमनम् :239) and `movq` → निधेहि is taken from the sibling
+॰     emitter in this tree because no `mv` family exists in
+॰     spec/mnemonics-riscv64.src.tsv. There is no spec/mnemonics-amd64
+॰     .tsv at all, and if this back end grows past two instructions
+॰     there needs to be one.
+॰
+॰ (f) CLOSED BY `W-236` (2026-09-04). It read: "कोष्ठावण्टनम् CANNOT BE RUN
+॰     OVER A REAL FUNCTION … आयुर्निर्णयः asks `आयुरारम्भकोश अङ्कः मूल्यम्
+॰     अन्तः समम् ०`, which is Rust's `lifetimes.get(v) == None`; a HashMap
+॰     answers None for an absent key, but an arena here is grown only by
+॰     WRITES … आवण्टनारम्भः clears `1..=मूल्यसीमा` and मूल्यसीमा is ० on
+॰     the first call." It named two repairs and refused to make either
+॰     inside an emitter row. The second one is made — आवण्टनारम्भः is told
+॰     how many values मध्यरूप handed out (मध्यरूपॱअग्रिममूल्याङ्क) and
+॰     clears that far — by the row whose emitter NEEDS the allocator to
+॰     run, which is the row the note was waiting for. The test that
+॰     asserted the refusal by name is struck as it asked to be; in its
+॰     place tests/t1_execution.rs runs कोष्ठावण्टनम् over the same fixture
+॰     and asserts its answer against `regalloc.rs`'s, value by value.
+॰

@@ -1,0 +1,19 @@
+[package]
+name = "yantra"
+version = "0.0.1"
+edition.workspace = true
+publish = false
+
+# No `crate-type` — a plain rlib. The browser still runs THIS interpreter: `yantra-wasm`
+# depends on it and is the only cdylib. Naming `cdylib` here as well made a HOST build emit
+# `libyantra.dylib`, whose Mach-O `install_name` embeds the absolute output path — so two
+# builds in two target dirs differ from identical code, and `check-reproducible.sh` fails
+# on a difference that is not in the program.
+
+[dev-dependencies]
+# The ELF writer that produces the artefact QEMU runs. The loader is tested against THAT
+# rather than against a fixture this crate invents — see tests/interpreter.rs.
+sadhana = { path = "../sadhana" }
+
+[lints]
+workspace = true

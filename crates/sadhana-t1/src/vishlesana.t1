@@ -1,0 +1,1273 @@
+मण्डलम् विश्लेषण ॥ ॰ vishlesana — the port of crates/sadhana/src/vishlesana.rs
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE.
+॰ 42 type positions: 39 `अ६४` become `न६४`, 2 `इ६४` become `अ६४`, and ONE `अ६४`
+॰ IS LEFT EXACTLY AS IT STANDS because it was already right — see उद्धरणम्.
+॰
+॰ THE RUST TWIN IS `crates/sadhana/src/vishlesana.rs`, AND UNLIKE `ast.t1`'s IT
+॰ DOES NOT RUN OUT: every routine below has a counterpart there, and the twin
+॰ declares its signs in as many words. It holds exactly TWO signed things —
+॰ `Decoded::operands: Vec<(String, i64)>` at `:50` and `fn extract(..) -> i64`
+॰ at `:58` — against `width_of(..) -> usize` `:85`, `decode_at(bytes, offset:
+॰ usize)` `:125`, and `count_ones`, which is `u32`. Those two are the 2 that
+॰ move to `अ६४`; everything else here is a LENGTH, an INDEX, a SHIFT DISTANCE,
+॰ a POPULATION COUNT, a single extracted BIT, or a slot KIND in सङ्केतन's
+॰ numbering — none of which can be negative, and all of which the twin declares
+॰ `usize` or `u32`.
+॰
+॰ T0 CONFIRMS THE GLOSS INDEPENDENTLY OF DOC 02: `crates/sadhana/tests/
+॰ type_classes.rs:94-95` assembles `भिन्नरूपान्तरम्ॱभ६४ॱन६४` to `fcvt.d.lu` and
+॰ `भिन्नरूपान्तरम्ॱभ६४ॱअ६४` to `fcvt.d.l` — the RISC-V mnemonics for convert
+॰ FROM UNSIGNED long and FROM SIGNED long. So `न` = `u64` and `अ` = `i64` is a
+॰ claim already checked by an assembler test, not only by a lexicon row.
+॰
+॰ TWO SITES HERE ARE INVISIBLE TO THE 1378 CENSUS AND WERE STILL REPAIRED, which
+॰ is the second time this row has met that (the first was `ir.t1:299`). The
+॰ census reads the token immediately after `ॱॱ` or `ददाति`; where a slice is
+॰ declared that token is `अङ्कः`, and the element type sits two words further on.
+॰ `अवकाशमूल्यानि`'s `मूल्यानि ॱॱ अङ्कः अन्तः इ६४` and `अवकाशभेदाः`'s
+॰ `भेदाः ॱॱ अङ्कः अन्तः अ६४` are both such sites. THE CENSUS IS A LOWER BOUND ON
+॰ THE WORK AND NOT A DESCRIPTION OF IT, and a cycle that repaired only what the
+॰ ledger can see would leave a slice and its element disagreeing.
+॰ ══════════════════════════════════════════════════════════════════════
+
+॰ ══════════════════════════════════════════════════════════════════════
+॰ THE DISASSEMBLER, task B-013, ported for D-002b/D-002c, doc 03 §8.
+॰
+॰ ── THIS FILE HELD THE WRONG MODULE, AND THAT IS WHY THE LINKER STALLED ──
+॰ Until this port it contained the T1 compiler's SEMA — Resolver, Scope,
+॰ SymbolEntry, TypeKind — machine-transliterated as मण्डलम् वइशलएसअन.
+॰ That content belongs to crates/sadhana/src/t1/resolve.rs and typecheck.rs,
+॰ whose name in doc 03 §2 is अर्थ, not विश्लेषण. It is REHOMED, not deleted:
+॰ it is now अर्थ.त१ (artha.t1), hand written, with its own gap list.
+॰
+॰ विश्लेषणम् is "taking apart", the counterpart to साधनम् which puts
+॰ together — spec/marks.tsv row `vishlesana`, spec/lexicon.src.tsv line 437,
+॰ task B-013. Its Rust original is crates/sadhana/src/vishlesana.rs, 231
+॰ lines, and that is what is ported here.
+॰
+॰ The misfiling was not cosmetic. संयोजन's own stub note (b) reads "संस्कारः
+॰ needs विश्लेषण ॱ decode ... विश्लेषण is still port_encode.py output", and
+॰ what it was reading was a file that could not have had decode in it,
+॰ because it was not the disassembler at all. A generator that puts the
+॰ right text in the wrong file produces a blocker nobody can see the shape
+॰ of, because the file named in the blocker LOOKS like it was merely
+॰ unfinished.
+॰
+॰ ── THIS IS A TEST INSTRUMENT BEFORE IT IS A TOOL ──
+॰ Nothing in SANSOS needs to read machine code yet. What it needs is a
+॰ SECOND, INDEPENDENT consumer of the derived encoding table, because the
+॰ encoder only ever uses that table in ONE direction, and a direction is
+॰ where this project keeps finding defects. Four mask bugs shipped and were
+॰ caught late; each was invisible while encoding, because the encoder starts
+॰ from a pattern whose operand bits are zero and ORs values in — it never
+॰ asks whether the mask is RIGHT, only whether the bits it sets are free.
+॰ Decoding asks the other question: पदम् युक् आवरण समम् आकृति is a claim
+॰ about every bit at once.
+॰
+॰ ── ON GROUPING ── every order-dependent expression below is bracketed
+॰ with आरभ्य ॱ समाप्तम्. spec/grammar-t1.ebnf freezes the three phrase
+॰ constructs and says out loud that OPERATORS AND THEIR PRECEDENCE ARE NOT
+॰ FROZEN, and both readings already exist in this crate. संयोजन brackets for
+॰ the same reason; this file follows it.
+॰
+॰ ── WHAT IS NOT PORTED, AND WHY ── NOTHING IS, SINCE 2026-08-30. This note
+॰ used to read "EVERY unported routine waits on सङ्केतन ॱ सङ्केताः, the
+॰ derived table, and on nothing else". THE BLOCKER WAS STALE AND THE
+॰ ARITHMETIC OF IT WAS WRONG TWICE OVER: the table has been reachable as
+॰ `समावेशः आरभ्य सङ्केतकोशः समाप्तम्` since ADR-0019, and — the part that
+॰ actually mattered — NOTHING HERE EVER WANTED THE WHOLE TABLE. सङ्केताः
+॰ returns every row and so does need a collection; विश्लेषणम् wants ONE ROW.
+॰ See the section "the derived table, read one row at a time" at the foot.
+॰ ══════════════════════════════════════════════════════════════════════
+
+आयातः सङ्केतन ।
+आयातः पदविभाग ।   ॰ the spec-table store: `समावेशपाठः` answers a table by name (2026-09-14)
+
+
+॰ ══════════════════ mirrored constants ══════════════════
+
+॰ how wide an encoding is — सङ्केत ॱ अंशसंख्या is 16 or 32 and nothing else.
+॰ integers rather than a गणना because the field they are compared against is
+॰ an अ३२ in सङ्केतन, which is where the table reader will write them.
+सार्वजनिक चरः विस्तृतांशाः ॱॱ अ३२ भवति ३२ ।     ॰ Encoding::bits == 32
+सार्वजनिक चरः सङ्कुचितांशाः ॱॱ अ३२ भवति १६ ।    ॰ Encoding::bits == 16
+
+॰ how many octets each instruction form occupies.
+सार्वजनिक चरः विस्तृतदैर्घ्यम् ॱॱ न६४ भवति ४ ।
+सार्वजनिक चरः सङ्कुचितदैर्घ्यम् ॱॱ न६४ भवति २ ।
+
+॰ the two low bits RISC-V reserves to say how long an instruction is.
+॰ anything whose bottom two bits are not ०ब११ is a 16-bit compressed form.
+सार्वजनिक चरः दैर्घ्यावरणम् ॱॱ अ१६ भवति ३ ।
+सार्वजनिक चरः विस्तृतचिह्नम् ॱॱ अ१६ भवति ३ ।
+
+
+॰ ══════════════════ what a decode produces ══════════════════
+
+॰ one operand, taken apart — Rust's (String, i64) tuple in Decoded.operands.
+॰ T1 has no tuple type, so the pair is a struct, which is the same shape
+॰ सङ्केतन ॱ अंशयुग्म already uses for its (u32, u32) map entries.
+॰ THE KIND IS AN INTEGER, NOT A STRING. Rust carries slot.kind as `reg`,
+॰ `simm`, `disp` and so on; सङ्केतन maps that column onto कोष्ठभेद …
+॰ अन्तरभेद because T1 has no string-equality operator yet. This mirrors
+॰ सङ्केतन rather than Rust so that one comparison serves both files.
+सार्वजनिक संरचना क्रियामूल्यम् आरभ्य
+  भेद ॱॱ न६४ ऽ        ॰ the slot kind, in सङ्केतन's numbering — a discriminant,
+                     ॰ unsigned; was अ६४ before ADR-0030's repair
+  मूल्यम् ॱॱ अ६४       ॰ the value; sign-extended when the slot is signed.
+                     ॰ `Decoded::operands: Vec<(String, i64)>`, vishlesana.rs:50 —
+                     ॰ one of the file's two signed sites; was इ६४
+समाप्तम् ।
+
+॰ one instruction, taken apart — Decoded.
+सार्वजनिक संरचना विश्लिष्टम् आरभ्य
+  आज्ञा ॱॱ पाठ ऽ                            ॰ insn: the RISC-V mnemonic that matched
+  कुल ॱॱ पाठ ऽ                              ॰ family: the Sassembly family it belongs to
+  मूल्यानि ॱॱ अङ्कः अन्तः क्रियामूल्यम्       ॰ operands: one per slot, in written order
+समाप्तम् ।
+
+
+॰ ══════════════════ pulling a value back out of a word ══════════════════
+
+॰ whether a slot's value is two's complement — Rust's
+॰ slot.kind == "disp" || slot.kind == "simm".
+॰ this is the WHOLE of the sign question and it is asked separately because
+॰ getting it wrong is invisible to a round trip: reading addi's ऋण१ as ४०९५
+॰ re-encodes to the same word and is still the wrong number.
+सार्वजनिक वृत्तिः चिह्नितावकाशः आदाय भेद ॱॱ न६४ ददाति बूल आदि
+    यदि भेद समम् सङ्केतनॱअन्तरभेद आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि भेद समम् सङ्केतनॱसचिह्नतत्कालभेद आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ pull a value back out of a word using the slot's derived bit map — extract.
+॰ THE EXACT INVERSE OF सङ्केतन ॱ स्थापनम्: that walks value-bit to
+॰ encoding-bit SETTING bits, this walks the same pairs READING them. Nothing
+॰ here knows that a jal scatters its displacement across four discontiguous
+॰ runs — the derived map knows, and the map was measured. That is the whole
+॰ argument for a disassembler existing at all.
+॰
+॰ the sign is the top MAPPED bit, not bit 63, and the width comes from
+॰ सङ्केतन ॱ अवकाशविस्तारः, which is the same maximum over न्यास that Rust
+॰ writes as map.iter().map(|(f, _)| *f).max().
+॰ how many (value bit, encoding bit) pairs a slot's map carries.
+॰ THE MAP CAN BE EMPTY AND THE ARENA HOLDING IT CANNOT. `fixed:0x00000000`,
+॰ which is how the eight compressed rows that fold an implicit sp into the
+॰ encoding write their first slot, has no map at all — Rust reads it as
+॰ `p.get(2).map(…).unwrap_or_default()`. An `अङ्कः अन्तः T` in this language
+॰ is born with one slot and nothing shrinks it, so a map of ० pairs and a map
+॰ of १ both report ॱ दैर्घ्य १, and entry ० is what separates them: शून्यम् in
+॰ the first, a record in the second.
+॰ WITHOUT THIS, उद्धरणम् asks a शून्यम् for its मूलांश and the eight rows are
+॰ undecodable. It is the same reading मूल्यसंख्या and अवकाशमूल्यानि give one
+॰ level up, and it is a fact about the LANGUAGE and not about this table.
+सार्वजनिक वृत्तिः न्याससंख्या आदाय अवकाशः ॱॱ सङ्केतनॱअवकाश ददाति अ६४ आदि
+    यदि अवकाशः ॱ न्यास ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि अवकाशः ॱ न्यास अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् अवकाशः ॱ न्यास ॱ दैर्घ्य ।
+इति
+
+॰ THE BIAS STEP the twin gained in `W-233` and this file lacked until `W-236`
+॰ — vishlesana.rs `extract`, its `slot.bias != 0` block. A biased field holds
+॰ its values from आधार upward and सङ्केतन ॱ स्थापनम् drops the value bits the
+॰ map does not reach: x8..x15 go into three bits as 0..7 because 8 has no
+॰ mapping. Read back, 0..7 are the WRONG REGISTERS — the bytes round-trip and
+॰ s0 is reported as x0, which was every one of W-211's 27 compressed
+॰ exceptions (c.srli ×12, c.ld ×6, c.sd ×5, c.xor ×3, c.sub ×1). The value
+॰ that was placed is the one in आधार..आधार+span congruent to the reading, so
+॰ the span is added back until the reading is in range; c.add's five-bit rs2
+॰ has आधार १ and reads 1..31 as themselves — only a reading BELOW the bias
+॰ moves. Rust's `div_ceil` is written out as (n + span − 1) / span.
+सार्वजनिक वृत्तिः आधारयुक्तम् आदाय अवकाशः ॱॱ सङ्केतनॱअवकाश मूल्यम् ॱॱ अ६४ ददाति अ६४ आदि
+    यदि अवकाशः ॱ आधार समम् ० आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    चरः विस्तारः ॱॱ न६४ भवति सङ्केतनॱअवकाशविस्तारः अवकाशः ।
+    यदि विस्तारः समम् ० आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    यदि विस्तारः बृहत्समम् ६४ आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    यदि मूल्यम् बृहत्समम् अवकाशः ॱ आधार आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    चरः व्याप्तिः ॱॱ अ६४ भवति १ वामसृ विस्तारः ।
+    चरः न्यूनता ॱॱ अ६४ भवति अवकाशः ॱ आधार वियोगः मूल्यम् ।
+    चरः गुणकः ॱॱ अ६४ भवति आरभ्य आरभ्य न्यूनता योगः व्याप्तिः समाप्तम् वियोगः १ समाप्तम् विभाजनम् व्याप्तिः ।
+    प्रत्यागमनम् मूल्यम् योगः आरभ्य व्याप्तिः गुणनम् गुणकः समाप्तम् ।
+इति
+
+सार्वजनिक वृत्तिः उद्धरणम् आदाय अवकाशः ॱॱ सङ्केतनॱअवकाश पदम् ॱॱ अ३२ ददाति अ६४ आदि
+    ॰ LEFT EXACTLY AS IT STANDS, AND IT IS THE ONE SITE IN THIS FILE A SWEEP
+    ॰ WOULD HAVE BROKEN. The twin writes `let mut value: u64 = 0` and returns
+    ॰ `value as i64` (vishlesana.rs:59, :74), so the twin has TWO bindings here
+    ॰ and T1, having no cast, has one. What that one binding must be is decided
+    ॰ by where it goes: it is returned from a routine that returns अ६४, and the
+    ॰ subtraction below can make it negative. So it is the SIGNED one, and अ६४
+    ॰ was already its right spelling under ADR-0030's reading. Same shape as
+    ॰ ir.t1:299, which cycle 511 left for the same reason.
+    ॰ a slot with no map holds no bits of the word, and Rust's fold over an
+    ॰ empty map answers ० the same way.
+    यदि न्याससंख्या अवकाशः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः मूल्यम् ॱॱ अ६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति अवकाशः ॱ न्यास ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः युग्मम् ॱॱ सङ्केतनॱअंशयुग्म भवति अवकाशः ॱ न्यास अङ्कः सूचकाङ्क अन्तः ।
+        चरः अंशः ॱॱ न६४ भवति आरभ्य पदम् दक्षिणसृ युग्मम् ॱ सङ्केतांश समाप्तम् युक् १ ।
+        यदि अंशः समम् १ आदि
+            मूल्यम् भवति मूल्यम् विकल्प आरभ्य १ वामसृ युग्मम् ॱ मूलांश समाप्तम् ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    ॰ an unsigned field is finished here — after the BIAS STEP.
+    यदि चिह्नितावकाशः अवकाशः ॱ भेद समम् असत्यम् आदि
+        प्रत्यागमनम् आधारयुक्तम् आरभ्य अवकाशः ऽ मूल्यम् समाप्तम् ।
+    इति
+
+    चरः विस्तारः ॱॱ न६४ भवति सङ्केतनॱअवकाशविस्तारः अवकाशः ।
+    यदि विस्तारः समम् ० आदि
+        प्रत्यागमनम् मूल्यम् ।
+    इति
+    ॰ a 64-bit field has no bit above its sign to borrow from, so it is
+    ॰ already the number it means. Rust guards this with width < 64.
+    यदि विस्तारः न्यूनम् ६४ आदि
+        चरः चिह्नांशः ॱॱ न६४ भवति आरभ्य मूल्यम् दक्षिणसृ आरभ्य विस्तारः वियोगः १ समाप्तम् समाप्तम् युक् १ ।
+        यदि चिह्नांशः समम् १ आदि
+            प्रत्यागमनम् मूल्यम् वियोगः आरभ्य १ वामसृ विस्तारः समाप्तम् ।
+        इति
+    इति
+
+    प्रत्यागमनम् आधारयुक्तम् आरभ्य अवकाशः ऽ मूल्यम् समाप्तम् ।
+इति
+
+॰ every operand of one encoding, read out of one word, written into a
+॰ caller's slice — the map over e.slots inside Rust's decode.
+॰
+॰ THIS IS THE ROUTINE संयोजन ॱ पदपुनर्निर्माणम् WAS MISSING. That function
+॰ already takes मूल्यानि, "the decoded operand list, one entry per slot in
+॰ written order", and nothing in the tree produced one. It is written into a
+॰ caller's slice rather than returned because T1 has no growable collection;
+॰ the count of slots is the count written, so the caller sizes it from
+॰ सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य. This is the same shape संयोजन ॱ
+॰ अष्टाष्टकनिधानम् uses to write octets into a section.
+॰
+॰ ० means NOTHING WAS WRITTEN, and it is returned for two different reasons:
+॰ the slice was too short, or the encoding has no operands at all. A partial
+॰ fill is refused outright because it would leave the caller a list it could
+॰ not tell from a complete one.
+॰ THE SECOND READING OF ० IS NOT AN ERROR AND A CALLER MUST NOT TREAT IT AS
+॰ ONE. ecall fixes every bit and has zero slots; so do fence.i and the
+॰ compressed c.nop. A caller that refuses ० refuses those instructions. The
+॰ two are told apart by asking सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य first, which is
+॰ what a caller sizing the slice has already done.
+सार्वजनिक वृत्तिः अवकाशमूल्यानि आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत पदम् ॱॱ अ३२ मूल्यानि ॱॱ अङ्कः अन्तः अ६४ ददाति न६४ आदि
+    ॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY, and that is why the ० case
+    ॰ is asked FIRST and not by दैर्घ्य. `चरः x ॱॱ अङ्कः अन्तः T भवति ०` gives
+    ॰ a store of one slot and nothing shrinks it, so an encoding with NO
+    ॰ operands and one with ONE both report ॱ दैर्घ्य १. They are told apart by
+    ॰ entry ०, which is शून्यम् in the first and a record in the second. ecall,
+    ॰ ebreak, fence.i and c.nop are the four rows this distinguishes; without
+    ॰ it the loop below asks उद्धरणम् for the slots of a शून्यम्.
+    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    यदि मूल्यानि ॱ दैर्घ्य न्यूनम् दैर्घ्य आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+        मूल्यानि अङ्कः सूचकाङ्क अन्तः भवति उद्धरणम् अवकाशः पदम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
+॰ the KINDS of the same operands, in the same order, into a caller's slice.
+॰ separate from अवकाशमूल्यानि because Rust's operand is a (kind, value) pair
+॰ and a caller that wants only the values — संयोजन ॱ पदपुनर्निर्माणम् is
+॰ exactly that caller — should not have to allocate a slice of क्रियामूल्यम्
+॰ to get them. Together the two fill one विश्लिष्टम् ॱ मूल्यानि.
+सार्वजनिक वृत्तिः अवकाशभेदाः आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत भेदाः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    ॰ the same empty-arena reading अवकाशमूल्यानि gives above, for the same
+    ॰ four rows.
+    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    यदि भेदाः ॱ दैर्घ्य न्यूनम् दैर्घ्य आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+        भेदाः अङ्कः सूचकाङ्क अन्तः भवति अवकाशः ॱ भेद ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
+
+॰ ══════════════════ how wide the instruction is ══════════════════
+
+॰ how many OCTETS the instruction starting with this halfword occupies —
+॰ width_of. RISC-V puts the length in the low bits of the first halfword.
+॰ That is why a decoder can walk a mixed-width stream at all without being
+॰ told where the boundaries are, and why walking it two octets at a time and
+॰ hoping is not necessary (B-058b1).
+सार्वजनिक वृत्तिः आज्ञादैर्घ्यम् आदाय प्रथमार्धपदम् ॱॱ अ१६ ददाति न६४ आदि
+    यदि आरभ्य प्रथमार्धपदम् युक् दैर्घ्यावरणम् समाप्तम् समम् विस्तृतचिह्नम् आदि
+        प्रत्यागमनम् विस्तृतदैर्घ्यम् ।
+    इति
+    प्रत्यागमनम् सङ्कुचितदैर्घ्यम् ।
+इति
+
+
+॰ ══════════════════ choosing which encoding a word is ══════════════════
+
+॰ how many bits a mask fixes — Rust's u32::count_ones.
+॰ अंशगणना is the attested word for a population count (spec/lexicon.src.tsv
+॰ line 6), so this is named rather than spelled. It is written out because
+॰ T1 has no such operator, and it is here rather than in सङ्केतन because the
+॰ encoder never asks the question: only a decoder ranks masks.
+सार्वजनिक वृत्तिः अंशगणना आदाय मूल्यम् ॱॱ अ३२ ददाति न६४ आदि
+    चरः गणितम् ॱॱ न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् ३२ आदि
+        यदि आरभ्य मूल्यम् दक्षिणसृ सूचकाङ्क समाप्तम् युक् १ समम् १ आदि
+            गणितम् भवति गणितम् योगः १ ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् गणितम् ।
+इति
+
+॰ whether ONE encoding claims this word — Rust's
+॰ e.bits == n && word & e.mask == e.pattern.
+॰ THE WIDTH TEST IS NOT DECORATION. A 16-bit pattern compared against a
+॰ 32-bit word matches on the high bits being zero, which is every c.nop
+॰ shaped encoding claiming every word that happens to start with one. That
+॰ is why Rust keeps सङ्कुचितविश्लेषणम् separate from विश्लेषणम् rather than
+॰ folding them, and why the width is a parameter here.
+सार्वजनिक वृत्तिः सङ्केतमेलनम् आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति बूल आदि
+    यदि सङ्केतः ॱ अंशसंख्या असमम् अपेक्षितांशाः आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि आरभ्य पदम् युक् सङ्केतः ॱ आवरण समाप्तम् समम् सङ्केतः ॱ आकृति आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ HOW MANY encodings claim this word — the length of Rust's candidates.
+॰ more than one is A FAULT IN THE TABLE rather than an ambiguity in the ISA:
+॰ two instructions that constrain the same bits to the same values are the
+॰ same instruction. tests/roundtrip.rs asserts this is never two, and that
+॰ assertion is the reason candidates is public in Rust at all.
+सार्वजनिक वृत्तिः मेलनगणना आदाय सङ्केताः ॱॱ अङ्कः अन्तः सङ्केतनॱसङ्केत पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति न६४ आदि
+    चरः गणितम् ॱॱ न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केताः ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः सङ्केतः ॱॱ सङ्केतनॱसङ्केत भवति सङ्केताः अङ्कः सूचकाङ्क अन्तः ।
+        यदि सङ्केतमेलनम् सङ्केतः पदम् अपेक्षितांशाः आदि
+            गणितम् भवति गणितम् योगः १ ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् गणितम् ।
+इति
+
+॰ WHICH encoding a word is, given the table — the whole of Rust's decode
+॰ except for fetching the table and building the Decoded.
+॰
+॰ THE MOST CONSTRAINED MATCH IS THE MORE SPECIFIC CLAIM. ecall fixes every
+॰ bit and shares its opcode with the CSR instructions; c.nop is c.addi with
+॰ rd and imm zero and both fit ०ऽ०००१. The one fixing more bits is the one
+॰ meant. Rust writes this as sort_by_key(Reverse(mask.count_ones())) and
+॰ takes the first; a STABLE sort keeps the earlier of two equal masks, which
+॰ is why the comparison below is a strict न्यूनम् and not a अधिकम् the other
+॰ way round — a tie must not move the winner.
+॰
+॰ RETURNS THE TABLE LENGTH WHEN NOTHING MATCHES, T1 having no reference to
+॰ return. संयोजन ॱ पूरणीयावकाशः and सङ्केतन ॱ आवरणावकाशः report the same
+॰ way, and the convention is worth more than a सम्भाव्य here because every
+॰ caller immediately indexes with the answer.
+सार्वजनिक वृत्तिः निर्णायकसङ्केतः आदाय सङ्केताः ॱॱ अङ्कः अन्तः सङ्केतनॱसङ्केत पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केताः ॱ दैर्घ्य ।
+    चरः वरितम् ॱॱ न६४ भवति दैर्घ्य ।
+    चरः वरितगणना ॱॱ न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः सङ्केतः ॱॱ सङ्केतनॱसङ्केत भवति सङ्केताः अङ्कः सूचकाङ्क अन्तः ।
+        यदि सङ्केतमेलनम् सङ्केतः पदम् अपेक्षितांशाः आदि
+            चरः बद्धांशाः ॱॱ न६४ भवति अंशगणना सङ्केतः ॱ आवरण ।
+            यदि वरितम् समम् दैर्घ्य आदि
+                वरितम् भवति सूचकाङ्क ।
+                वरितगणना भवति बद्धांशाः ।
+            इति अन्यथा आदि
+                यदि वरितगणना न्यूनम् बद्धांशाः आदि
+                    वरितम् भवति सूचकाङ्क ।
+                    वरितगणना भवति बद्धांशाः ।
+                इति
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् वरितम् ।
+इति
+
+॰ the 32-bit form of a named mnemonic — the find inside Rust's reassemble
+॰ and inside संयोजन's संस्कारः.
+॰ NAMES ARE COMPARED AS पाठ here, which the सङ्केतन slot kinds deliberately
+॰ are not: a mnemonic has no integer numbering to mirror, and the table is
+॰ where its spelling lives. returns the table length as the not-found
+॰ answer, as निर्णायकसङ्केतः does.
+सार्वजनिक वृत्तिः नामसङ्केतः आदाय सङ्केताः ॱॱ अङ्कः अन्तः सङ्केतनॱसङ्केत आज्ञा ॱॱ पाठ अपेक्षितांशाः ॱॱ अ३२ ददाति न६४ आदि
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केताः ॱ दैर्घ्य ।
+
+    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
+        चरः सङ्केतः ॱॱ सङ्केतनॱसङ्केत भवति सङ्केताः अङ्कः सूचकाङ्क अन्तः ।
+        यदि सङ्केतः ॱ अंशसंख्या समम् अपेक्षितांशाः आदि
+            यदि सङ्केतः ॱ आज्ञा समम् आज्ञा आदि
+                प्रत्यागमनम् सूचकाङ्क ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
+
+॰ ══════════════════ reading a word out of a byte stream ══════════════════
+
+॰ two little-endian octets at स्थानाङ्कः — the halfword every walk starts
+॰ from, because आज्ञादैर्घ्यम् needs it before the width is known.
+॰ शून्यम् when the stream is too short: a short read must not become a
+॰ halfword of zeroes, which is a legal compressed instruction.
+सार्वजनिक वृत्तिः अर्धपदग्रहणम् आदाय अष्टकाः ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ ददाति सम्भाव्य अ१६ आदि
+    चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः २ ।
+    यदि अष्टकाः ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः अधरम् ॱॱ अ१६ भवति अष्टकाः अङ्कः स्थानाङ्कः अन्तः ।
+    चरः उपरि ॱॱ अ१६ भवति अष्टकाः अङ्कः स्थानाङ्कः योगः १ अन्तः ।
+    प्रत्यागमनम् अधरम् विकल्प आरभ्य उपरि वामसृ ८ समाप्तम् ।
+इति
+
+॰ four little-endian octets at स्थानाङ्कः — the word संयोजन ॱ संस्कारः
+॰ reads before it patches, spelled there as
+॰ u32::from_le_bytes(text[at..at + 4]).
+॰ WHY FOUR MAY BE READ UNCONDITIONALLY THERE, AND NOT HERE: a relocation is
+॰ only ever recorded for an instruction naming a symbol the file does not
+॰ define, and सङ्केतन ॱ सङ्कोचः begins by encoding the wide form, which
+॰ fails for exactly those — so an instruction carrying a relocation cannot
+॰ have been compressed. That is a property of the CALLER, not of this
+॰ routine, so the length is checked here and the caller may skip the check.
+सार्वजनिक वृत्तिः पदग्रहणम् आदाय अष्टकाः ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ ददाति सम्भाव्य अ३२ आदि
+    चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः ४ ।
+    यदि अष्टकाः ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पदम् ॱॱ अ३२ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् ४ आदि
+        चरः अष्टकम् ॱॱ अ३२ भवति अष्टकाः अङ्कः स्थानाङ्कः योगः सूचकाङ्क अन्तः ।
+        चरः सरणम् ॱॱ न६४ भवति सूचकाङ्क वामसृ ३ ।
+        पदम् भवति पदम् विकल्प आरभ्य अष्टकम् वामसृ सरणम् समाप्तम् ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति
+
+
+॰ ══════════════════ the derived table, read one row at a time ══════════════════
+॰
+॰ ── THE BLOCKER THAT STOOD HERE WAS STALE, AND IT WAS WRONG IN ITS PREMISE
+॰ AS WELL AS IN ITS DATE ── it read: "THERE IS EXACTLY ONE BLOCKER AND IT IS
+॰ NOT IN THIS FILE. Every routine below wants सङ्केतन ॱ सङ्केताः, the derived
+॰ encoding table, which Rust gets from include_str! over
+॰ spec/encodings-riscv64.tsv and which T1 cannot have because it has neither
+॰ include nor a file reader."
+॰
+॰ T1 HAS HAD AN INCLUDE SINCE ADR-0019, and spec/encodings-riscv64.tsv has
+॰ carried the name सङ्केतकोशः in crates/sadhana/src/t1/anita.rs since that ADR
+॰ landed. That is the date half, and it is the smaller half.
+॰
+॰ THE PREMISE HALF: NOTHING HERE EVER WANTED THE WHOLE TABLE. सङ्केताः
+॰ returns EVERY row and so does need a collection — which is why it is still a
+॰ stub in सङ्केतन and why nothing below calls it. विश्लेषणम् wants ONE ROW:
+॰ which encoding sits at this instruction word. A row is found by walking the
+॰ file and read by offset, with no collection anywhere, and that idiom was
+॰ already proven twice in this crate before this file used it — सङ्केतन ॱ
+॰ कोष्ठाङ्कः over spec/registers-riscv64.tsv and संयोजन ॱ भेदाङ्कः over
+॰ spec/relocations-riscv64.tsv. Waiting on सङ्केताः to read one row is like
+॰ waiting on a directory listing to open a file whose name you hold.
+॰
+॰ A ROW IS A ONE-BASED OFFSET AND ० MEANS NO ROW, the convention कोष्ठपङ्क्तिः
+॰ and भेदपङ्क्तिः both state in their own margins and for the same reason: the
+॰ first row begins at offset ० and शून्यम् is ०, so a raw offset could not
+॰ report absence.
+॰
+॰ MIRRORING THE TABLE HERE WOULD STILL BE THE WRONG FIX, and that one clause
+॰ of the old note is kept verbatim in spirit: this module's ENTIRE REASON TO
+॰ EXIST is to be a second, INDEPENDENT reader of that one table. A hand-typed
+॰ copy in the second reader makes the two agree by construction and checks
+॰ nothing, which is precisely the defect class B-058a found. Every number
+॰ below — every pattern, every mask, every bit of every field map — is read
+॰ out of the file at run time. The only octets written down in this file are
+॰ the SEPARATORS of the table's own grammar and the first letters of the six
+॰ slot kinds, and those are checked by
+॰ crates/sadhana-t1/tests/t1_execution.rs against the file itself.
+॰
+॰ ── THE COLUMNS OF spec/encodings-riscv64.tsv, counted from ० ──
+॰   ० insn   १ family   २ mnemonic   ३ pattern   ४ mask   ५ bits
+॰   ६ fields  ७ width    ८ converts   ९ operand_shape
+॰ The header row is refused by its own contents rather than by name: its
+॰ `bits` cell is not a run of decimal digits, so सङ्केतन ॱ दशाङ्कमूल्यम्
+॰ answers शून्यम् and no width can equal it. That is the same argument
+॰ कोष्ठपङ्क्तिः makes for the register table's header.
+
+॰ how many विभाजकम्-separated pieces the run [आदिः, अवसानम्) holds.
+॰ the generic of सङ्केतन ॱ क्षेत्रसंख्या, which counts TABs and only TABs.
+॰ the fields column nests THREE separators — `|` between slots, `:` inside one
+॰ slot, `;` between the pairs of a map — so the separator is a parameter here
+॰ rather than three near-copies of one loop.
+॰ AN EMPTY RUN HOLDS NO PIECES, which is not what a separator count would say:
+॰ क्षेत्रसंख्या starts at १ because a line always has a first field, and a
+॰ field that is not there does not.
+सार्वजनिक वृत्तिः खण्डसंख्या आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ विभाजकम् ॱॱ अ८ ददाति अ६४ आदि
+    यदि आदिः बृहत्समम् अवसानम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः संख्यानम् ॱॱ अ६४ भवति १ ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति आदिः ।
+
+    यावत् सूचकाङ्क न्यूनम् अवसानम् आदि
+        यदि पाठ्यम् अङ्कः सूचकाङ्क अन्तः समम् विभाजकम् आदि
+            संख्यानम् भवति संख्यानम् योगः १ ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+॰ where the क्रमः-th piece of that run begins — सङ्केतन ॱ क्षेत्रारम्भः with
+॰ the separator opened up. a क्रमः past the last piece answers अवसानम्, so the
+॰ pair with खण्डसीमा is the empty range and no caller reads octets that are
+॰ not there. That is what makes the missing `bias` part of a slot read as
+॰ absent rather than as ०.
+सार्वजनिक वृत्तिः खण्डारम्भः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ विभाजकम् ॱॱ अ८ क्रमः ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थितिः ॱॱ अ६४ भवति आदिः ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+
+    यावत् संख्यानम् न्यूनम् क्रमः आदि
+        चरः विरामः ॱॱ अ६४ भवति सङ्केतन ॱ अष्टकान्वेषणम् पाठ्यम् स्थितिः अवसानम् विभाजकम् ।
+        यदि विरामः समम् अवसानम् आदि
+            प्रत्यागमनम् अवसानम् ।
+        इति
+        स्थितिः भवति विरामः योगः १ ।
+        संख्यानम् भवति संख्यानम् योगः १ ।
+    इति
+
+    प्रत्यागमनम् स्थितिः ।
+इति
+
+॰ where that same piece ends — the next विभाजकम्, or अवसानम्.
+सार्वजनिक वृत्तिः खण्डसीमा आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ विभाजकम् ॱॱ अ८ क्रमः ॱॱ अ६४ ददाति अ६४ आदि
+    चरः स्थितिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् आदिः अवसानम् विभाजकम् क्रमः ।
+    प्रत्यागमनम् सङ्केतन ॱ अष्टकान्वेषणम् पाठ्यम् स्थितिः अवसानम् विभाजकम् ।
+इति
+
+॰ the hexadecimal value of the क्रमः-th TAB field of one line — the pattern
+॰ and the mask columns, and the mask of a slot.
+सार्वजनिक वृत्तिः क्षेत्रषोडशाङ्कः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ क्रमः ॱॱ अ६४ ददाति सम्भाव्य अ६४ आदि
+    चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा क्रमः ।
+    चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा क्रमः ।
+    प्रत्यागमनम् सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् क्षेत्रादिः क्षेत्रान्तः ।
+इति
+
+॰ WHETHER the क्रमः-th TAB field is a hexadecimal numeral — `क्षेत्रषोडशाङ्कः`
+॰ over the same span, asking presence instead of reading it off the value.
+॰ A caller needs this wherever the field may legitimately be ०; see the
+॰ header on `सङ्केतन ॱ षोडशाङ्कवाचकः` for why the value cannot answer it.
+सार्वजनिक वृत्तिः क्षेत्रषोडशाङ्कवाचकः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ क्रमः ॱॱ अ६४ ददाति बूल आदि
+    चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा क्रमः ।
+    चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा क्रमः ।
+    प्रत्यागमनम् सङ्केतन ॱ षोडशाङ्कवाचकः पाठ्यम् क्षेत्रादिः क्षेत्रान्तः ।
+इति
+
+॰ the decimal value of the क्रमः-th TAB field — the bits column and the width
+॰ column. शून्यम् for `-` and for the header's own words, which is how both
+॰ refuse themselves.
+सार्वजनिक वृत्तिः क्षेत्रदशाङ्कः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ क्रमः ॱॱ अ६४ ददाति सम्भाव्य अ६४ आदि
+    चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा क्रमः ।
+    चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा क्रमः ।
+    प्रत्यागमनम् सङ्केतन ॱ दशाङ्कमूल्यम् पाठ्यम् क्षेत्रादिः क्षेत्रान्तः ।
+इति
+
+॰ where the row of the encoding that claims पदम् begins, ONE-BASED; ० means
+॰ no row claims it. This is निर्णायकसङ्केतः over the FILE instead of over a
+॰ slice — the same selection, and deliberately the same shape, so that the two
+॰ can be read against each other.
+॰
+॰ THE MOST CONSTRAINED MATCH IS THE MORE SPECIFIC CLAIM, and the tie rule is
+॰ load bearing: वरितबन्धः न्यूनम् बद्धांशाः is STRICT, so the FIRST of two rows
+॰ fixing equally many bits wins, which is what Rust's stable sort_by_key does.
+॰ THE RUNNING BEST IS वरितबन्धः HERE AND वरितगणना IN निर्णायकसङ्केतः, and the
+॰ two names are deliberately different for a reason that is not style: the
+॰ comparison line would otherwise be word-for-word identical in two routines,
+॰ and tests/t1_execution.rs's mutate() refuses a pattern that matches twice —
+॰ so the selection rule could not have been mutation-tested at all.
+सार्वजनिक वृत्तिः सङ्केतपङ्क्तिः आदाय पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति अ६४ आदि
+    चरः सूचीसंख्या ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतसंख्या ।
+    चरः सूचीक्रमः ॱॱ अ६४ भवति १ ।
+    चरः वरितम् ॱॱ अ६४ भवति ० ।
+    चरः वरितबन्धः ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचीक्रमः न्यूनम् आरभ्य सूचीसंख्या योगः १ समाप्तम् आदि
+        यदि सङ्केतन ॱ सूचितांशसंख्या सूचीक्रमः समम् अपेक्षितांशाः आदि
+            यदि सङ्केतन ॱ सूचितरूपसिद्धम् सूचीक्रमः समम् सत्यम् आदि
+                चरः आकृतिः ॱॱ अ६४ भवति सङ्केतन ॱ सूचिताकृतिः सूचीक्रमः ।
+                चरः आवरणम् ॱॱ अ६४ भवति सङ्केतन ॱ सूचितावरणम् सूचीक्रमः ।
+
+                यदि आरभ्य पदम् युक् आवरणम् समाप्तम् समम् आकृतिः आदि
+                    चरः बद्धांशाः ॱॱ अ६४ भवति अंशगणना आवरणम् ।
+                    चरः आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतारम्भः सूचीक्रमः ।
+                    यदि वरितम् समम् ० आदि
+                        वरितम् भवति आरम्भः योगः १ ।
+                        वरितबन्धः भवति बद्धांशाः ।
+                    इति अन्यथा आदि
+                        यदि वरितबन्धः न्यूनम् बद्धांशाः आदि
+                            वरितम् भवति आरम्भः योगः १ ।
+                            वरितबन्धः भवति बद्धांशाः ।
+                        इति
+                    इति
+                इति
+            इति
+        इति
+
+        सूचीक्रमः भवति सूचीक्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् वरितम् ।
+इति
+
+॰ where the row of a NAMED mnemonic of the given width begins, ONE-BASED —
+॰ the find inside Rust's reassemble, `e.insn == d.insn && e.bits == 32`, and
+॰ the lookup संयोजन ॱ संस्कारः named as the half it had nowhere to ask.
+॰ THE NAME IS COMPARED AS OCTETS by सङ्केतन ॱ क्षेत्रसाम्यम्, which is what
+॰ the slot kinds deliberately are not: a mnemonic has no integer numbering to
+॰ mirror, and the table is where its spelling lives.
+सार्वजनिक वृत्तिः नामपङ्क्तिः आदाय नाम ॱॱ अङ्कः अन्तः अ८ अपेक्षितांशाः ॱॱ अ३२ ददाति अ६४ आदि
+    चरः सूचीक्रमः ॱॱ अ६४ भवति सङ्केतन ॱ सङ्केतसूचीक्रमः नाम अपेक्षितांशाः ।
+
+    यदि सूचीक्रमः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतारम्भः सूचीक्रमः ।
+    प्रत्यागमनम् आरम्भः योगः १ ।
+इति
+
+
+॰ ══════════════════ one row, taken apart ══════════════════
+
+॰ how many operand slots one row declares.
+॰ THE SIX ROWS WITH NONE SAY SO IN WORDS: the fields cell of ecall, ebreak,
+॰ fence.i and the compressed forms beside them is the literal `(none)`, which
+॰ Rust tests as a string and which is tested here by its first octet — ४० is
+॰ `(`, and no slot kind begins with one. Rust's own reader writes the same
+॰ special case (`if f[6] == "(none)"`), so this is a port of a branch and not
+॰ a guess about the table.
+सार्वजनिक वृत्तिः पङ्क्त्यवकाशसंख्या आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ ददाति अ६४ आदि
+    चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ६ ।
+    चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ६ ।
+
+    यदि क्षेत्रादिः बृहत्समम् क्षेत्रान्तः आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि पाठ्यम् अङ्कः क्षेत्रादिः अन्तः समम् ४० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    प्रत्यागमनम् खण्डसंख्या पाठ्यम् क्षेत्रादिः क्षेत्रान्तः १२४ ।
+इति
+
+॰ the सङ्केतन number of the slot kind written at [आदिः, अवसानम्).
+॰ THE KIND IS AN INTEGER HERE AND A STRING IN RUST, and the reason is at
+॰ क्रियामूल्यम् above: सङ्केतन numbers the column so that one comparison
+॰ serves both files.
+॰ COMPARED BY FIRST OCTET, the way सङ्केतन ॱ कोष्ठप्लवः compares `float`
+॰ against १०२. The table's own schema fixes the spellings — reg, freg, imm,
+॰ simm, disp, fixed — and only two of the six share a first letter, so the
+॰ second octet is asked for those two and for nothing else. ११४ is `r`, १०५
+॰ `i`, ११५ `s`, १०० `d`, १०२ `f`. `label` is not in this column: it is a
+॰ Sassembly-level kind, which is why सङ्केतनॱनामाङ्कभेद is never answered.
+सार्वजनिक वृत्तिः अवकाशभेदाङ्कः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ ददाति अ६४ आदि
+    यदि आदिः बृहत्समम् अवसानम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः प्रथमम् ॱॱ अ८ भवति पाठ्यम् अङ्कः आदिः अन्तः ।
+
+    यदि प्रथमम् समम् ११४ आदि
+        प्रत्यागमनम् सङ्केतनॱकोष्ठभेद ।
+    इति
+    यदि प्रथमम् समम् १०५ आदि
+        प्रत्यागमनम् सङ्केतनॱतत्कालभेद ।
+    इति
+    यदि प्रथमम् समम् ११५ आदि
+        प्रत्यागमनम् सङ्केतनॱसचिह्नतत्कालभेद ।
+    इति
+    यदि प्रथमम् समम् १०० आदि
+        प्रत्यागमनम् सङ्केतनॱअन्तरभेद ।
+    इति
+    यदि प्रथमम् समम् १०२ आदि
+        यदि आरभ्य आदिः योगः १ समाप्तम् न्यूनम् अवसानम् आदि
+            यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः समम् ११४ आदि
+                प्रत्यागमनम् सङ्केतनॱप्लवकोष्ठभेद ।
+            इति
+        इति
+        प्रत्यागमनम् सङ्केतनॱस्थिरभेद ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति
+
+॰ the (value bit, encoding bit) pairs of one slot, read out of `0>7;1>8;…`.
+॰ THIS IS THE MEASURED MAP AND NOTHING ELSE KNOWS IT. Nothing in this file
+॰ knows that a jal scatters its displacement across four discontiguous runs;
+॰ the map knows, and the map was measured by tools/gen-encodings.py from the
+॰ assembler. That is the whole argument for a disassembler existing at all,
+॰ and it is why this routine reads the pairs rather than a format letter.
+॰
+॰ ZERO-BASED, entry क्रमः at index क्रमः, because सङ्केतन ॱ स्थापनम् and
+॰ उद्धरणम् above both walk न्यास from ० to ॱ दैर्घ्य. Every slot in the table
+॰ has at least one pair, so the empty-arena reading पङ्क्त्यवकाशसंख्या has to
+॰ make for the SLOT list does not arise for the PAIR list.
+सार्वजनिक वृत्तिः न्यासरचना आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ ददाति अङ्कः अन्तः अंशयुग्म आदि
+    चरः न्यासः ॱॱ अङ्कः अन्तः अंशयुग्म भवति ० ।
+    चरः संख्यानम् ॱॱ अ६४ भवति खण्डसंख्या पाठ्यम् आदिः अवसानम् ५९ ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        चरः युग्मादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् आदिः अवसानम् ५९ सूचकाङ्क ।
+        चरः युग्मान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् आदिः अवसानम् ५९ सूचकाङ्क ।
+        चरः विरामः ॱॱ अ६४ भवति सङ्केतन ॱ अष्टकान्वेषणम् पाठ्यम् युग्मादिः युग्मान्तः ६२ ।
+        ॰ THE WHETHER IS ASKED OF THE TEXT, NOT OF THE PAYLOAD WORD, AND THAT
+        ॰ IS THE WHOLE OF `0x80009cbc`. `सम्भाव्य` is one word with ० meaning
+        ॰ ABSENT (`ir.t1`, kind ५), so `यदि मूलम् असमम् शून्यम्` reads a
+        ॰ `मूलांश` of ० as a MISSING PAIR in compiled code while the
+        ॰ interpreter keeps `Some(०)` and `शून्यम्` apart — measured, ७००१
+        ॰ against ७००२. `मूलांश` is a BIT NUMBER and bit ० is ordinary: 484 of
+        ॰ this table's 2801 pairs carry it and EVERY register slot opens with
+        ॰ one (`add` carries `0>7`, `0>15`, `0>20`). Those pairs were skipped
+        ॰ natively, index ० of `न्यास` was never written, and
+        ॰ `सङ्केतनॱअवकाशविस्तारः` — which walks `न्यास` from ० — read
+        ॰ `युग्मम् ॱ मूलांश` off a null and faulted at address ०.
+        ॰
+        ॰ `दशाङ्कवाचकः` asks the question this routine actually means: is the
+        ॰ cell a non-empty run of decimal digits. It answers सत्यम् for `0` and
+        ॰ असत्यम् for an empty cell or a `-`, which is the same set
+        ॰ `दशाङ्कमूल्यम्` refuses — so a MALFORMED pair is still dropped and
+        ॰ does not arrive as a present ०. That is the case that must stay
+        ॰ REFUSED, and it is what separates this repair from one that writes
+        ॰ every pair unconditionally.
+        चरः मूलवाचकः ॱॱ बूल भवति सङ्केतन ॱ दशाङ्कवाचकः पाठ्यम् युग्मादिः विरामः ।
+        चरः गन्तृवाचकः ॱॱ बूल भवति सङ्केतन ॱ दशाङ्कवाचकः पाठ्यम् आरभ्य विरामः योगः १ समाप्तम् युग्मान्तः ।
+        चरः मूलम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ दशाङ्कमूल्यम् पाठ्यम् युग्मादिः विरामः ।
+        चरः गन्तृ ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ दशाङ्कमूल्यम् पाठ्यम् आरभ्य विरामः योगः १ समाप्तम् युग्मान्तः ।
+
+        यदि मूलवाचकः समम् सत्यम् आदि
+            यदि गन्तृवाचकः समम् सत्यम् आदि
+                चरः नव ॱॱ सङ्केतनॱअंशयुग्म भवति ० ।
+                नव ॱ मूलांश भवति मूलम् ।
+                नव ॱ सङ्केतांश भवति गन्तृ ।
+                न्यासः अङ्कः सूचकाङ्क अन्तः भवति नव ।
+            इति
+        इति
+
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् न्यासः ।
+इति
+
+॰ one operand slot of one row — Rust's inner filter_map over `f[6]`.
+॰ a slot is `kind:mask:map` and MAY carry a fourth `:bias`; this table never
+॰ writes one, so the range for piece ३ is empty and दशाङ्कमूल्यम् answers
+॰ शून्यम् rather than ०. Rust says the same thing as
+॰ `p.get(3).and_then(…).unwrap_or(0)`.
+सार्वजनिक वृत्तिः पङ्क्त्यवकाशः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ क्रमः ॱॱ अ६४ ददाति अवकाश आदि
+    चरः नव ॱॱ सङ्केतनॱअवकाश भवति ० ।
+    चरः क्षेत्रादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ६ ।
+    चरः क्षेत्रान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ६ ।
+    चरः अवकाशादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् क्षेत्रादिः क्षेत्रान्तः १२४ क्रमः ।
+    चरः अवकाशान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् क्षेत्रादिः क्षेत्रान्तः १२४ क्रमः ।
+
+    चरः भेदादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् अवकाशादिः अवकाशान्तः ५८ ० ।
+    चरः भेदान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् अवकाशादिः अवकाशान्तः ५८ ० ।
+    चरः आवरणादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् अवकाशादिः अवकाशान्तः ५८ १ ।
+    चरः आवरणान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् अवकाशादिः अवकाशान्तः ५८ १ ।
+    चरः न्यासादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् अवकाशादिः अवकाशान्तः ५८ २ ।
+    चरः न्यासान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् अवकाशादिः अवकाशान्तः ५८ २ ।
+    चरः आधारादिः ॱॱ अ६४ भवति खण्डारम्भः पाठ्यम् अवकाशादिः अवकाशान्तः ५८ ३ ।
+    चरः आधारान्तः ॱॱ अ६४ भवति खण्डसीमा पाठ्यम् अवकाशादिः अवकाशान्तः ५८ ३ ।
+
+    चरः आवरणम् ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ षोडशाङ्कमूल्यम् पाठ्यम् आवरणादिः आवरणान्तः ।
+    चरः आधारः ॱॱ सम्भाव्य अ६४ भवति सङ्केतन ॱ दशाङ्कमूल्यम् पाठ्यम् आधारादिः आधारान्तः ।
+
+    नव ॱ भेद भवति अवकाशभेदाङ्कः पाठ्यम् भेदादिः भेदान्तः ।
+    नव ॱ न्यास भवति न्यासरचना पाठ्यम् न्यासादिः न्यासान्तः ।
+    नव ॱ आवरण भवति ० ।
+    नव ॱ आधार भवति ० ।
+
+    यदि आवरणम् असमम् शून्यम् आदि
+        नव ॱ आवरण भवति आवरणम् ।
+    इति
+    यदि आधारः असमम् शून्यम् आदि
+        नव ॱ आधार भवति आधारः ।
+    इति
+
+    प्रत्यागमनम् नव ।
+इति
+
+॰ whether an operand shape opens with `iorw` — takes_domains, and fence is
+॰ the one row in the table it is true of. Rust asks
+॰ `f[9].split(',').any(|o| o.trim() == "iorw")`; the shapes that carry a
+॰ domain set carry it FIRST, so the opening four octets answer the same
+॰ question over this table. १०५ १११ ११४ ११९ are `i` `o` `r` `w`.
+सार्वजनिक वृत्तिः क्षेत्रवाचकः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आदिः ॱॱ अ६४ अवसानम् ॱॱ अ६४ ददाति बूल आदि
+    यदि आरभ्य आदिः योगः ४ समाप्तम् अधिकम् अवसानम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आदिः अन्तः असमम् १०५ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः असमम् १११ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः २ समाप्तम् अन्तः असमम् ११४ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः ३ समाप्तम् अन्तः असमम् ११९ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ the whole of one row as a सङ्केतनॱसङ्केत — Rust's per-line closure inside
+॰ encodings(), for ONE line.
+॰ THE SLOT LIST IS ZERO-BASED for the reason न्यासरचना gives: the three
+॰ routines that walk अवकाशाः — स्थापनम्, उद्धरणम् and अवकाशमूल्यानि — count
+॰ from ०. A row with no slots leaves entry ० शून्यम्, which is the only way
+॰ this language can say "none": an arena is born with one slot and nothing
+॰ shrinks it. अवकाशमूल्यानि asks that question first, and says so.
+॰ ॥ PROBE — THE SAME WRITE, FROM A DIFFERENT MODULE ॥ (2026-09-18)
+॰ `सङ्केतनॱखण्डलेखनपरीक्षा` does exactly this and answers ६००३ NATIVELY: a record
+॰ local declared ०, a slice-derived run, the field write. It lives in `सङ्केतन`,
+॰ which DEFINES `सङ्केत`.
+॰
+॰ The faulting site is in THIS module, writing a field of a record type that
+॰ belongs to another one. That is the difference the encode-hosted probe
+॰ controlled away without meaning to, and it is the last structural difference
+॰ between a write that works and a write that faults.
+॰
+॰   ६००३ here   a cross-module record field write is fine; the difference is in
+॰               the sequence, not the operation
+॰   faults      writing a field of ANOTHER module's record type faults natively —
+॰               a four-statement reproduction, and it would explain why 232
+॰               records of encoding are correct right up to the first call into
+॰               this module's parser
+सार्वजनिक वृत्तिः परमण्डलक्षेत्रलेखनपरीक्षा ददाति न६४ आदि
+    चरः नव ॱॱ सङ्केतनॱसङ्केत भवति ० ।
+    चरः स्रोतः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् योगःपदम् इति ।
+    चरः खण्डः ॱॱ अङ्कः अन्तः अ८ भवति स्रोतः अङ्कः ० अन्तः ३ ।
+    नव ॱ आज्ञा भवति खण्डः ।
+    प्रत्यागमनम् ६००० योगः नव ॱ आज्ञा ॱ दैर्घ्य ।
+इति
+
+सार्वजनिक वृत्तिः पङ्क्तिसङ्केतः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ ददाति सङ्केत आदि
+    ॰ QUALIFIED, AND THE BARE NAME IS WHY THE COMPILED COMPILER FAULTED
+    ॰ (2026-09-18). `सङ्केत` belongs to `सङ्केतन`; written bare it typechecks, the
+    ॰ interpreter allocates it, and `ir.t1` does NOT — its remote-struct path is
+    ॰ gated on `रचनोपसर्गः ॱ दैर्घ्य अधिकम् ०`, a MODULE PREFIX on the type name.
+    ॰ Without one the declaration falls through to `ध्रुवरचना ०`, the local holds
+    ॰ zero, and the first field write is `sd s0, 0(s2)` with s2 = ० — read out of
+    ॰ the image at 0x8006e564.
+    ॰
+    ॰ The margin at ir.t1:3641 describes this exact failure and dates its fix to
+    ॰ 2026-09-13: "the local lookup finds nothing for a qualified type … the
+    ॰ compiled parser faulted at address ० on its first node". That fix handles
+    ॰ the QUALIFIED spelling. The bare one was never covered.
+    ॰
+    ॰ `परमण्डलक्षेत्रलेखनपरीक्षा` eight lines above is the control: same module,
+    ॰ same type, same statement, written QUALIFIED — and it answers ६००३
+    ॰ natively while this line faulted.
+    चरः नव ॱॱ सङ्केतनॱसङ्केत भवति ० ।
+
+    चरः आज्ञादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+    चरः आज्ञान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+    चरः कुलादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+    चरः कुलान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+
+    ॰ 9401 — the four span lookups returned; nothing has been written to `नव` yet.
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९४०१ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९४०१ ।
+    इति
+    ॰ SPLIT IN TWO (2026-09-18), because one statement was doing two things and a
+    ॰ marker between them is the only way to tell which one faults. The right hand
+    ॰ side is a SLICE — `पाठ्यम् अङ्कः X अन्तः Y` builds a FRESH BLOCK — and the
+    ॰ left is a field write to a record local declared ०.
+    ॰
+    ॰ RUNG 86 ALREADY RULES OUT THE FIELD WRITE as the general explanation:
+    ॰ `सङ्केतनदोषरचना` (encode.t1:1626) declares `चरः नव ॱॱ सङ्केतनदोष भवति ०` and
+    ॰ writes fields to it, and that routine answers ७२४२ NATIVELY. So a ०-declared
+    ॰ record local is writable; the slice is what has not been shown.
+    चरः आज्ञापाठः ॱॱ अङ्कः अन्तः अ८ भवति पाठ्यम् अङ्कः आज्ञादिः अन्तः आज्ञान्तः ।
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९५०१ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९५०१ ।
+    इति
+    ॰ ९६०१ — THE SLICE'S LENGTH, not merely that it returned (2026-09-18).
+    ॰ Rung 95 showed `९५०१` reached, so the slice RETURNS. That is not the same as
+    ॰ its returning something sound: a run that comes back empty, or with a length
+    ॰ the interpreter does not agree on, would return and then be written into a
+    ॰ field — and the write is what faults.
+    ॰
+    ॰ THIS IS THE ALLOCATOR QUESTION IN THE ONLY FORM THE COMPILED SIDE CAN ASK IT.
+    ॰ `रचनासूचकः` is an emitter-owned label (ir.t1:587), not a `.t1` variable, so
+    ॰ the compiled compiler cannot read its own allocation cursor — a state dump
+    ॰ specified in terms of that cursor is not emittable from this side without new
+    ॰ runtime support. A run's `दैर्घ्य` IS visible, and a length that differs from
+    ॰ the interpreter's is the same evidence one layer up.
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९६०१ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९६०१ ।
+        चरः अवगणन९६०२ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् आज्ञापाठः ॱ दैर्घ्य ।
+    इति
+॰ THE PROBE THAT ASKED NOTHING, REMOVED 2026-09-23. A cycle wrote
+॰ `नव ॱ पङ्क्ति भवति ० ।` here to split "is `नव` usable at all" from "is the RUN
+॰ write the subject", on the stated premise that `पङ्क्ति` is "a scalar field of
+॰ the same record". IT IS NOT: `सङ्केतनॱसङ्केत` has ten fields — आज्ञा, कुल,
+॰ आकृति, आवरण, अंशसंख्या, अवकाशाः, विस्तार, परिवर्तनस्रोतः, परिवर्तनगन्तृ,
+॰ क्षेत्रस्वीकार — and none of them is `पङ्क्ति`. `अर्थ` never typed an
+॰ assignment's target, so the write was accepted and `ir.t1` planted a stub
+॰ (cause ३९, one of this corpus's last two). The probe therefore tested nothing
+॰ it claimed to test, and the first field write to land is `आज्ञा` below.
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९७०१ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९७०१ ।
+    इति
+    नव ॱ आज्ञा भवति आज्ञापाठः ।
+    ॰ 9402 — the FIRST field write to the ०-declared record local landed.
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९४०२ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९४०२ ।
+    इति
+    नव ॱ कुल भवति पाठ्यम् अङ्कः कुलादिः अन्तः कुलान्तः ।
+    ॰ 9403 — the SECOND field write landed.
+    यदि सङ्केतनॱविन्यासमुद्रणार्हम् समम् सत्यम् आदि
+        चरः अवगणन९४०३ ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् ९४०३ ।
+    इति
+
+    चरः आकृतिः ॱॱ सम्भाव्य अ६४ भवति क्षेत्रषोडशाङ्कः पाठ्यम् आरम्भः सीमा ३ ।
+    चरः आवरणम् ॱॱ सम्भाव्य अ६४ भवति क्षेत्रषोडशाङ्कः पाठ्यम् आरम्भः सीमा ४ ।
+    चरः अंशाः ॱॱ सम्भाव्य अ६४ भवति क्षेत्रदशाङ्कः पाठ्यम् आरम्भः सीमा ५ ।
+
+    यदि आकृतिः असमम् शून्यम् आदि
+        नव ॱ आकृति भवति आकृतिः ।
+    इति
+    यदि आवरणम् असमम् शून्यम् आदि
+        नव ॱ आवरण भवति आवरणम् ।
+    इति
+    यदि अंशाः असमम् शून्यम् आदि
+        नव ॱ अंशसंख्या भवति अंशाः ।
+    इति
+
+    नव ॱ विस्तार भवति क्षेत्रदशाङ्कः पाठ्यम् आरम्भः सीमा ७ ।
+
+    ॰ converts — `a,b`, and `-` where the row moves nothing between types.
+    चरः परिवर्तनादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ८ ।
+    चरः परिवर्तनान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ८ ।
+    चरः अल्पविरामः ॱॱ अ६४ भवति सङ्केतन ॱ अष्टकान्वेषणम् पाठ्यम् परिवर्तनादिः परिवर्तनान्तः ४४ ।
+
+    यदि अल्पविरामः न्यूनम् परिवर्तनान्तः आदि
+        नव ॱ परिवर्तनस्रोतः भवति पाठ्यम् अङ्कः परिवर्तनादिः अन्तः अल्पविरामः ।
+        नव ॱ परिवर्तनगन्तृ भवति पाठ्यम् अङ्कः आरभ्य अल्पविरामः योगः १ समाप्तम् अन्तः परिवर्तनान्तः ।
+    इति
+
+    चरः रूपादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ९ ।
+    चरः रूपान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ९ ।
+    नव ॱ क्षेत्रस्वीकार भवति क्षेत्रवाचकः पाठ्यम् रूपादिः रूपान्तः ।
+
+    चरः संख्यानम् ॱॱ अ६४ भवति पङ्क्त्यवकाशसंख्या पाठ्यम् आरम्भः सीमा ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        नव ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः भवति पङ्क्त्यवकाशः पाठ्यम् आरम्भः सीमा सूचकाङ्क ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् नव ।
+इति
+
+॰ one row and one word, made into a विश्लिष्टम् — the tail of Rust's decode,
+॰ the map over e.slots that builds Decoded.
+सार्वजनिक वृत्तिः पङ्क्तिविश्लिष्टम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ पदम् ॱॱ अ३२ ददाति विश्लिष्टम् आदि
+    चरः नव ॱॱ विश्लिष्टम् भवति ० ।
+
+    चरः आज्ञादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
+    चरः आज्ञान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+    चरः कुलादिः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा १ ।
+    चरः कुलान्तः ॱॱ अ६४ भवति सङ्केतन ॱ क्षेत्रसीमा पाठ्यम् आरम्भः सीमा १ ।
+
+    नव ॱ आज्ञा भवति पाठ्यम् अङ्कः आज्ञादिः अन्तः आज्ञान्तः ।
+    नव ॱ कुल भवति पाठ्यम् अङ्कः कुलादिः अन्तः कुलान्तः ।
+
+    चरः संख्यानम् ॱॱ अ६४ भवति पङ्क्त्यवकाशसंख्या पाठ्यम् आरम्भः सीमा ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        चरः अवकाशः ॱॱ अवकाश भवति पङ्क्त्यवकाशः पाठ्यम् आरम्भः सीमा सूचकाङ्क ।
+        चरः क्रिया ॱॱ क्रियामूल्यम् भवति ० ।
+        क्रिया ॱ भेद भवति अवकाशः ॱ भेद ।
+        क्रिया ॱ मूल्यम् भवति उद्धरणम् अवकाशः पदम् ।
+        नव ॱ मूल्यानि अङ्कः सूचकाङ्क अन्तः भवति क्रिया ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् नव ।
+इति
+
+॰ how many operands a विश्लिष्टम् carries.
+॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY, so ० operands and १ operand
+॰ both read ॱ दैर्घ्य १, and entry ० is what separates them. This is the same
+॰ reading अवकाशमूल्यानि opens with, named once so that पुनःसंयोजनम् and a
+॰ test can both ask it.
+सार्वजनिक वृत्तिः मूल्यसंख्या आदाय विश्लिष्टः ॱॱ विश्लिष्टम् ददाति अ६४ आदि
+    यदि विश्लिष्टः ॱ मूल्यानि ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि विश्लिष्टः ॱ मूल्यानि अङ्कः ० अन्तः समम् शून्यम् आदि
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् विश्लिष्टः ॱ मूल्यानि ॱ दैर्घ्य ।
+इति
+
+
+॰ ══════════════════ what the file exists to answer ══════════════════
+
+॰ every 32-bit encoding whose fixed bits match पदम् — candidates.
+॰ MORE THAN ONE IS A FAULT IN THE TABLE rather than an ambiguity in the ISA:
+॰ two instructions that constrain the same bits to the same values are the
+॰ same instruction. Rust's tests/roundtrip.rs asserts this never returns two,
+॰ and that assertion is the reason candidates is public in Rust at all.
+॰
+॰ ZERO-BASED, and NO MATCH IS A STORE WHOSE ENTRY ० IS शून्यम् — an arena
+॰ here is born with one slot and cannot be shrunk, so ॱ दैर्घ्य १ is what both
+॰ "none" and "one" report and only entry ० tells them apart. A caller that
+॰ reads ॱ दैर्घ्य alone invents a candidate for every undefined word.
+सार्वजनिक वृत्तिः सम्भाविनः आदाय पदम् ॱॱ अ३२ ददाति अङ्कः अन्तः सङ्केतनॱसङ्केत आदि
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
+    चरः फलम् ॱॱ अङ्कः अन्तः सङ्केत भवति ० ।
+    चरः सूचीसंख्या ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतसंख्या ।
+    चरः सूचीक्रमः ॱॱ अ६४ भवति १ ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचीक्रमः न्यूनम् आरभ्य सूचीसंख्या योगः १ समाप्तम् आदि
+        यदि सङ्केतन ॱ सूचितांशसंख्या सूचीक्रमः समम् विस्तृतांशाः आदि
+            यदि सङ्केतन ॱ सूचितरूपसिद्धम् सूचीक्रमः समम् सत्यम् आदि
+                चरः आकृतिः ॱॱ अ६४ भवति सङ्केतन ॱ सूचिताकृतिः सूचीक्रमः ।
+                चरः आवरणम् ॱॱ अ६४ भवति सङ्केतन ॱ सूचितावरणम् सूचीक्रमः ।
+
+                यदि आरभ्य पदम् युक् आवरणम् समाप्तम् समम् आकृतिः आदि
+                    चरः आरम्भः ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतारम्भः सूचीक्रमः ।
+                    चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतसीमा सूचीक्रमः ।
+                    फलम् अङ्कः संख्यानम् अन्तः भवति पङ्क्तिसङ्केतः पाठ्यम् आरम्भः सीमा ।
+                    संख्यानम् भवति संख्यानम् योगः १ ।
+                इति
+            इति
+        इति
+
+        सूचीक्रमः भवति सूचीक्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ how many encodings claim पदम् — the LENGTH of Rust's candidates, without
+॰ building them. सम्भाविनः cannot report ० through a store that cannot be
+॰ empty; this can, and it is what a caller checking the table for ambiguity
+॰ actually wants.
+सार्वजनिक वृत्तिः सम्भाविसंख्या आदाय पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति अ६४ आदि
+    चरः सूचीसंख्या ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतसंख्या ।
+    चरः सूचीक्रमः ॱॱ अ६४ भवति १ ।
+    चरः संख्यानम् ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचीक्रमः न्यूनम् आरभ्य सूचीसंख्या योगः १ समाप्तम् आदि
+        यदि सङ्केतन ॱ सूचितांशसंख्या सूचीक्रमः समम् अपेक्षितांशाः आदि
+            यदि सङ्केतन ॱ सूचितरूपसिद्धम् सूचीक्रमः समम् सत्यम् आदि
+                चरः आकृतिः ॱॱ अ६४ भवति सङ्केतन ॱ सूचिताकृतिः सूचीक्रमः ।
+                चरः आवरणम् ॱॱ अ६४ भवति सङ्केतन ॱ सूचितावरणम् सूचीक्रमः ।
+
+                यदि आरभ्य पदम् युक् आवरणम् समाप्तम् समम् आकृतिः आदि
+                    संख्यानम् भवति संख्यानम् योगः १ ।
+                इति
+            इति
+        इति
+
+        सूचीक्रमः भवति सूचीक्रमः योगः १ ।
+    इति
+
+    प्रत्यागमनम् संख्यानम् ।
+इति
+
+॰ take one 32-bit word apart — decode. THE ROUTINE संयोजन ॱ संस्कारः WAITS
+॰ ON, named in that file's stub note (b) as विश्लेषण ॱ decode.
+॰ शून्यम् when nothing matches — an undefined encoding, or a 16-bit
+॰ compressed form, which सङ्कुचितविश्लेषणम् reads instead.
+सार्वजनिक वृत्तिः विश्लेषणम् आदाय पदम् ॱॱ अ३२ ददाति सम्भाव्य विश्लिष्टम् आदि
+    चरः पङ्क्तिः ॱॱ अ६४ भवति सङ्केतपङ्क्तिः पदम् विस्तृतांशाः ।
+
+    यदि पङ्क्तिः समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति पङ्क्तिः वियोगः १ ।
+    चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+    प्रत्यागमनम् पङ्क्तिविश्लिष्टम् पाठ्यम् आरम्भः सीमा पदम् ।
+इति
+
+॰ take one 16-bit compressed instruction apart — decode16.
+॰ SEPARATE FROM विश्लेषणम् RATHER THAN FOLDED INTO IT because the two match
+॰ against different halves of the table, and a 16-bit pattern compared against
+॰ a 32-bit word would match on the high bits being zero — which is every
+॰ c.nop-shaped encoding claiming every word that happens to start with one.
+॰ The width is what सङ्केतपङ्क्तिः is given, and it is the whole difference.
+सार्वजनिक वृत्तिः सङ्कुचितविश्लेषणम् आदाय अर्धपदम् ॱॱ अ१६ ददाति सम्भाव्य विश्लिष्टम् आदि
+    चरः पङ्क्तिः ॱॱ अ६४ भवति सङ्केतपङ्क्तिः अर्धपदम् सङ्कुचितांशाः ।
+
+    यदि पङ्क्तिः समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति पङ्क्तिः वियोगः १ ।
+    चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+    प्रत्यागमनम् पङ्क्तिविश्लिष्टम् पाठ्यम् आरम्भः सीमा अर्धपदम् ।
+इति
+
+॰ decode the instruction at स्थानाङ्कः and say how wide it was — decode_at.
+॰ RUST ALSO RETURNS THE WIDTH and this does not, because आज्ञादैर्घ्यम् above
+॰ answers it from the same halfword and a caller walking a stream has to ask
+॰ it before it reads anything. That is the divergence, and it is the whole of
+॰ it: the SELECTION between the two widths is here.
+सार्वजनिक वृत्तिः स्थानविश्लेषणम् आदाय अष्टकाः ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ अ६४ ददाति सम्भाव्य विश्लिष्टम् आदि
+    चरः अर्धम् ॱॱ सम्भाव्य अ१६ भवति अर्धपदग्रहणम् अष्टकाः स्थानाङ्कः ।
+
+    यदि अर्धम् समम् शून्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    यदि आज्ञादैर्घ्यम् अर्धम् समम् सङ्कुचितदैर्घ्यम् आदि
+        प्रत्यागमनम् सङ्कुचितविश्लेषणम् अर्धम् ।
+    इति
+
+    चरः पदम् ॱॱ सम्भाव्य अ३२ भवति पदग्रहणम् अष्टकाः स्थानाङ्कः ।
+
+    यदि पदम् समम् शून्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    प्रत्यागमनम् विश्लेषणम् पदम् ।
+इति
+
+॰ put a decoded instruction back together — reassemble.
+॰ THE OTHER HALF OF THE FIXPOINT. If this does not reproduce the word it was
+॰ decoded from, the table is inconsistent with itself in a way the encoder
+॰ alone can never notice: the encoder starts from a pattern whose operand bits
+॰ are zero and ORs values in, so it never asks whether the mask is RIGHT, only
+॰ whether the bits it sets are free.
+॰ शून्यम् when the name is not in the table at this width, and when the row's
+॰ slot count is not the operand count — Rust's
+॰ `e.slots.len() != d.operands.len()`, and it matters: a विश्लिष्टम् built by
+॰ hand with too few operands would otherwise reassemble to a word with fields
+॰ left at zero and look like a success.
+सार्वजनिक वृत्तिः पुनःसंयोजनम् आदाय विश्लिष्टः ॱॱ विश्लिष्टम् ददाति सम्भाव्य अ३२ आदि
+    चरः पङ्क्तिः ॱॱ अ६४ भवति नामपङ्क्तिः विश्लिष्टः ॱ आज्ञा विस्तृतांशाः ।
+
+    यदि पङ्क्तिः समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
+    चरः आरम्भः ॱॱ अ६४ भवति पङ्क्तिः वियोगः १ ।
+    चरः सीमा ॱॱ अ६४ भवति सङ्केतन ॱ पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+
+    चरः संख्यानम् ॱॱ अ६४ भवति पङ्क्त्यवकाशसंख्या पाठ्यम् आरम्भः सीमा ।
+    चरः दत्तानि ॱॱ अ६४ भवति मूल्यसंख्या विश्लिष्टः ।
+
+    यदि दत्तानि असमम् संख्यानम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः आकृतिः ॱॱ सम्भाव्य अ६४ भवति क्षेत्रषोडशाङ्कः पाठ्यम् आरम्भः सीमा ३ ।
+
+    यदि आकृतिः समम् शून्यम् आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+
+    चरः पदम् ॱॱ अ३२ भवति आकृतिः ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
+        चरः अवकाशः ॱॱ अवकाश भवति पङ्क्त्यवकाशः पाठ्यम् आरम्भः सीमा सूचकाङ्क ।
+        चरः क्रिया ॱॱ क्रियामूल्यम् भवति विश्लिष्टः ॱ मूल्यानि अङ्कः सूचकाङ्क अन्तः ।
+        ॰ a mapless slot places nothing, and सङ्केतन ॱ स्थापनम् walks न्यास
+        ॰ from ० to ॱ दैर्घ्य without asking — see न्याससंख्या.
+        यदि न्याससंख्या अवकाशः अधिकम् ० आदि
+            पदम् भवति पदम् विकल्प आरभ्य सङ्केतन ॱ स्थापनम् अवकाशः क्रिया ॱ मूल्यम् समाप्तम् ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    प्रत्यागमनम् पदम् ।
+इति

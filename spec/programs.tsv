@@ -1,0 +1,99 @@
+# Every Sassembly program in this repository, classified — task `F-001d`,
+# ADR-0015, doc 07 §3 and §5.
+#
+# `F-001` promises "apps that run in the browser and outside it". This file was
+# the measurement behind ADR-0015's answer to the other half of that sentence —
+# **there is no application here** — and since `F-001e3` there is exactly one.
+# 47 of the 48 programs are OS proofs, and the `clause` column names the first
+# clause of ADR-0015 each one fails. `atithi.sas` fails none, so its clause is
+# `-`.
+#
+#   A1  entered by a loader, not by a machine reset
+#   A2  runs in U-mode and never leaves it
+#   A3  calls an application ABI, not SBI
+#   A4  writes to a surface it was handed, not to a device
+#   A5  its exit leaves the machine running
+#
+# Columns after `clause` are DERIVED FROM THE SOURCE, not typed:
+#
+#   privileged  names a family `spec/mnemonics-riscv64.src.tsv` marks S or Zicsr
+#               — csrrw, csrrs, csrrc, sfence.vma, sret. It is the supervisor.
+#   ecall       contains आज्ञापनम्. From S-mode that is an SBI call, and SBI is
+#               the machine's firmware interface (ADR-0015 A3).
+#   address     builds a constant with उपरिभारः from a hexadecimal literal. In
+#               this tree that is always a device address or a device's magic
+#               value — the UART at 0x10000000, the finisher at 0x100000.
+#   checks      the `tools/check-*.sh` that reference the file, or — for the
+#               application, which is loaded rather than booted and so has no
+#               QEMU check to be run under — `crates/yantra/tests/application.rs`.
+#               Every program has at least one: each exists to be asserted about.
+#
+# `crates/yantra/tests/application.rs` re-derives all four columns and the
+# clause, and fails if this table disagrees with the source.
+#
+# THE CLAUSE COLUMN IS SOURCE-DERIVED AND A3 IS NOT IN IT. A2 and A4 are refusals
+# a reader can make from the text; A3 is not, because the same `a7` means
+# `sbi_set_timer` from S-mode and `समापनम्` from U-mode
+# (`spec/application-abi.tsv`), and nothing in a source says which privilege will
+# execute it. So a boot proof's clause is derived from its text, and the
+# application's claim is carried by RUNNING it: the loader places it, the machine
+# reports `scause` 8, the supervisor answers both calls, the bytes land on the
+# granted surface, the UART stays empty, and the machine hosts a second program
+# afterwards. That is what the word `app` costs here, and it is why a row cannot
+# simply be typed.
+#
+# WHAT THE `checks` COLUMN MEANS, EXACTLY: asserted about by a `tools/check-*.sh`,
+# or by `crates/yantra/tests/application.rs`. The scanner in that file reads those
+# and nothing else, so a Rust test asserting about a program does not appear here
+# — `crates/sadhana/tests/trap_vector_alignment.rs` asserts a property of fourteen
+# programs and is in no row (`B-058b2b7`). An empty-looking column is a limit of
+# the scanner, not evidence that nothing checks the program.
+program	class	clause	privileged	ecall	address	checks
+arena.sas	boot-proof	A3	no	yes	no	check-arena.sh,check-milestone-k1.sh,check-sanskriti-programs.sh
+atithi.sas	app	-	no	yes	no	check-roundtrip.sh,check-sanskriti-programs.sh,crates/yantra/tests/application.rs
+bare-metal.sas	boot-proof	A4	no	no	yes	check-bare-metal.sh,check-roundtrip.sh,check-sassembly-identity.sh
+boot-sbi.sas	boot-proof	A3	no	yes	no	check-sbi-boot.sh
+bootloader.sas	boot-proof	A2	yes	yes	no	check-bootloader.sh
+buddy.sas	boot-proof	A3	no	yes	no	check-buddy.sh
+capability.sas	boot-proof	A3	no	yes	no	check-capability.sh
+context.sas	boot-proof	A3	no	yes	no	check-context.sh
+crossing.sas	boot-proof	A2	yes	yes	no	check-crossing.sh
+fdt-header.sas	boot-proof	A3	no	yes	no	check-fdt.sh
+freelist.sas	boot-proof	A3	no	yes	no	check-freelist.sh
+higher-half.sas	boot-proof	A2	yes	yes	no	check-higher-half.sh,check-kernel.sh,check-milestone-k1.sh
+irq.sas	boot-proof	A2	yes	yes	no	check-irq.sh,check-pager-handoff.sh
+jump-table.sas	boot-proof	A4	no	no	yes	check-jump-table.sh
+kernel.sas	boot-proof	A2	yes	yes	no	check-kernel.sh
+lib-mudraka.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-separate.sh
+mapping.sas	boot-proof	A3	no	yes	no	check-mapping.sh
+merge.sas	boot-proof	A3	no	yes	no	check-merge.sh
+milestone-k1.sas	boot-proof	A2	yes	yes	no	check-milestone-k1.sh
+milestone-k2.sas	boot-proof	A2	yes	yes	no	check-milestone-k2.sh
+namaste-main.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-separate.sh
+namaste.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-namaste.sh,check-roundtrip.sh
+notification.sas	boot-proof	A3	no	yes	no	check-notification.sh
+pager-handoff.sas	boot-proof	A2	yes	yes	no	check-pager-handoff.sh
+pager.sas	boot-proof	A2	yes	yes	no	check-pager.sh
+paging.sas	boot-proof	A2	yes	yes	no	check-paging.sh
+root-task.sas	boot-proof	A2	yes	yes	no	check-root-task.sh
+schedule.sas	boot-proof	A2	yes	yes	no	check-ipc-fastpath.sh,check-schedule.sh,check-trap-seam.sh
+second-space.sas	boot-proof	A2	yes	yes	no	check-second-space.sh
+split.sas	boot-proof	A3	no	yes	no	check-split.sh
+stress-ram.sas	boot-proof	A3	no	yes	no	check-ram-alloc.sh
+stress.sas	boot-proof	A3	no	yes	no	check-drain.sh,check-ram-alloc.sh,check-stress.sh
+timer.sas	boot-proof	A2	yes	yes	no	check-kernel.sh,check-milestone-k1.sh,check-timer.sh
+trap-seam.sas	boot-proof	A2	yes	yes	no	check-milestone-k2.sh,check-trap-seam.sh,check-user-mode.sh
+trap.sas	boot-proof	A2	yes	yes	no	check-trap.sh
+untyped.sas	boot-proof	A3	no	yes	no	check-untyped.sh
+user-mode.sas	boot-proof	A2	yes	yes	no	check-user-mode.sh
+virtio-blk.sas	boot-proof	A4	no	no	yes	check-virtio-blk.sh
+virtio-console.sas	boot-proof	A4	no	no	yes	check-virtio-console.sh
+virtio-net.sas	boot-proof	A4	no	no	yes	check-virtio-net.sh
+pty.sas	boot-proof	A3	no	yes	no	check-pty.sh
+boot-counter.sas	boot-proof	A4	no	yes	yes	check-boot-counter.sh
+virtio-gpu.sas	boot-proof	A4	no	yes	yes	check-virtio-gpu.sh
+journal.sas	boot-proof	A4	no	yes	yes	check-journal.sh
+virtio-sound.sas	boot-proof	A4	no	yes	yes	check-virtio-sound.sh
+powerbox.sas	boot-proof	A4	no	yes	yes	check-powerbox.sh
+network.sas	boot-proof	A4	no	yes	yes	check-network.sh
+compositor.sas	boot-proof	A2	yes	yes	yes	check-compositor.sh

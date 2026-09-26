@@ -1,0 +1,1620 @@
+मण्डलम् व्याकर ॥
+
+॰ व्याकर ॱ साधनस्य पठनसोपानम् ऽ स्वयंधारणमार्गस्य तृतीयम् अङ्गम् ।
+॰ पदविभागेन निर्मितं चिह्नकप्रवाहं पठति ऽ वास्तुमण्डलस्य
+॰ अभिव्यञ्जककोशं वाक्यकोशं च पूरयति ।
+॰ सर्वे सूचकाङ्काः वास्तुकोशेषु स्थानानि ऽ शून्यं तु अभावं सूचयति ।
+॰
+॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE.
+॰ All 75 of its 64-bit type positions read `अ६४` and now read `न६४` — 74 that
+॰ the ledger census can see, plus ONE it cannot: `कार्यक्रमपठनम्`'s
+॰ `ददाति दोषयुक्त न६४` at the foot of the file, where the token after `ददाति`
+॰ is the wrapper and not the type. Not one site moves the other way. This file
+॰ holds NO `इ६४` at all, and no signed quantity at any width.
+॰
+॰ THE RUST TWIN IS `crates/sadhana/src/t1/parse.rs`, IT IS COMPILED —
+॰ `crates/sadhana/src/t1/mod.rs` names it, which is the check `ast.t1` learned
+॰ to make of `passes.rs` — AND IT DECLARES NO SIGNED INTEGER ANYWHERE. It has
+॰ three numeric fields and all three are `usize`: `ParseError::line` at `:6`,
+॰ `ParseError::aksara` at `:7` and `Parser::pos` at `:13`. Those testify
+॰ directly to `व्याकरदोष ॱ पङ्क्ति`, `व्याकरदोष ॱ अक्षर` and `पठनस्थान`.
+॰
+॰ BUT THE TWIN RUNS OUT, AS IT DID FOR `ast.t1`. `parse.rs` builds a `Program`
+॰ of owned `Declaration`s and has no arena, no `घोषणा` and no error store, so
+॰ `घोषणाकोश`, `घोषणासूचकाङ्क`, `दोषकोश`, `दोषसूचकाङ्क` and every `*सूचकाङ्क`
+॰ parameter below have no field whose sign could be read off it.
+॰
+॰ WHAT REPLACES THE TWIN HERE IS NEITHER A NEIGHBOUR NOR A GUESS: IT IS A
+॰ DECLARATION IN ANOTHER MODULE THAT THIS FILE ALREADY DEPENDS ON. Every
+॰ `सूचकाङ्क` this file returns or stores is an index into a `वास्तु` arena, and
+॰ `वास्तु` is `ast.t1` — whose `अभिव्यञ्जकसूचकाङ्क` and `वाक्यसूचकाङ्क`
+॰ counters, and whose thirteen `*द्विकर्मभेद` and eight `*अभिव्यञ्जकभेद`
+॰ constants, were all respelled `न६४` by the cycle that took that file. So
+॰ BEFORE this change `अभिव्यञ्जकयोजनम्` incremented an `न६४` counter and handed
+॰ it back as `अ६४`, and `द्विकर्ममेलनम्` returned `ast.t1`'s `न६४` constants
+॰ through an `अ६४` result. THE TWO SPELLINGS DISAGREED ACROSS A MODULE
+॰ BOUNDARY — the same defect class `ir.t1`'s `अङ्कमूल्यम्` showed inside one
+॰ routine — and this repair is what reconciles them. It is a READING and not an
+॰ inference: the sign is taken from a declaration, only not from this file's.
+॰
+॰ AND THE INTERNAL CASE HOLDS TOO, BY THE TWO TESTS `lex.t1` ESTABLISHED.
+॰ (1) THE ONE SUBTRACTION IN THE FILE IS GUARDED. `वृत्तिपठनम्`'s
+॰ `पठनस्थान भवति पठनस्थान वियोगः १` stands inside a branch `मेलनम्` has just
+॰ taken, and `मेलनम्` answers सत्यम् only after doing
+॰ `पठनस्थान भवति पठनस्थान योगः १`, so `पठनस्थान` is at least १ wherever that
+॰ line runs and the difference cannot fall below ०. (2) THERE IS NO NEGATIVE
+॰ SENTINEL. The line above states this file's own convention —
+॰ `शून्यं तु अभावं सूचयति` — and every routine keeps it: `द्विकर्ममेलनम्`
+॰ answers ० for *not an operator*, `दोषयोजनम्` ० for *this parse failed*, and
+॰ `चरवाक्यम्`/`यदिवाक्यम्`/`यावत्वाक्यम्` ० for an absent initialiser and an
+॰ absent body. A port that had reached for -१ even once would have earned a
+॰ signed type here; it never does.
+॰
+॰ RECORDED, NOT REPAIRED, AND NO ROW FILED. `वृत्तिपठनम्`'s parameter loop
+॰ writes `पठनस्थान भवति पठनस्थान योगः ०` in BOTH arms of one
+॰ `यदि ... अन्यथा`, so the two arms are the same statement and the branch
+॰ decides nothing. It is a no-op on either path and cannot carry a sign, which
+॰ is why it is named here rather than touched under a remediation row.
+
+आयातः पदविभाग ।
+आयातः वास्तु ।
+आयातः अक्षरकोश ।
+
+॰ ॥ घोषणाभेदाः ॥
+
+॰ ADR-0030, D-002h, merged 2026-09-03: the four declaration-kind discriminants are
+॰ न६४ — a discriminant has no sign to read (the rail's rule for every भेद family;
+॰ `the_slot_kind_is_unsigned_because_a_discriminant_has_no_sign_to_read` pins the first).
+सार्वजनिक चरः वृत्तिघोषणाभेद ॱॱ न६४ भवति १ ।
+सार्वजनिक चरः प्रकारघोषणाभेद ॱॱ न६४ भवति २ ।
+सार्वजनिक चरः यन्त्रघोषणाभेद ॱॱ न६४ भवति ३ ।
+॰ A MODULE-LEVEL BINDING — `spec/grammar-t1.ebnf:768` makes `सार्वजनिक`
+॰ OPTIONAL on `binding` precisely so one may stand at module level. Added
+॰ 2026-09-01: `कार्यक्रमपठनम्` used to recognise only `वृत्तिः` and
+॰ `संरचना` and walk over everything else ONE TOKEN AT A TIME, so a module
+॰ variable never reached `घोषणाकोश` and `अर्थ` could not know it existed.
+सार्वजनिक चरः चरघोषणाभेद ॱॱ न६४ भवति ४ ।
+॰ AN IMPORT IS A DECLARATION TOO — added 2026-09-01. `अर्थ` resolves a
+॰ QUALIFIED name (`पदविभागॱचिह्नककोश`, one token) by asking whether the part
+॰ before the `ॱ` was imported. Accepting any name that merely CONTAINS a `ॱ`
+॰ would resolve a name from a module never imported, so the import has to be
+॰ recorded rather than skipped.
+सार्वजनिक चरः आयातघोषणाभेद ॱॱ न६४ भवति ५ ।
+॰ AN ENUM IS ITS OWN KIND — `W-215`. `गणनापठनम्` pushed an enum as
+॰ प्रकारघोषणाभेद, the same kind as a struct, and its variants after it as
+॰ चरघोषणाभेद with no type and no value; a reader could tell an enum from a
+॰ struct only by what followed. Now the enum's घोषणा says what it is, and
+॰ its प्राचलादि/प्राचलान्त hold the run of its VARIANT DECLARATIONS —
+॰ declaration indices for this kind, प्राचल indices for a routine's
+॰ parameters and (since `W-215`) a struct's fields.
+सार्वजनिक चरः गणनाघोषणाभेद ॱॱ न६४ भवति ६ ।
+
+सार्वजनिक संरचना घोषणा आरभ्य
+    भेद ॱॱ अ६४ ऽ
+    नामसूचकाङ्क ॱॱ अ६४ ऽ
+    प्रकारसूचकाङ्क ॱॱ अ६४ ऽ
+    शरीरसूचकाङ्क ॱॱ अ६४ ऽ
+    ॰ THE PARAMETER RANGE, INCLUSIVE — added 2026-09-01. ० ० means none.
+    ॰
+    ॰ THIS RECORD HAD NOWHERE TO PUT A PARAMETER, and `वृत्तिपठनम्` read each
+    ॰ one into a LOCAL and dropped it. The parser parsed parameters and threw
+    ॰ them away, so `अर्थॱकार्यक्रमनिर्णयः` opened a body scope, declared
+    ॰ NOTHING in it, and refused every use of a parameter — correctly, on what
+    ॰ it had. Measured: 4 of 15 sources resolved, and the four were the four
+    ॰ with almost no code in them.
+    ॰
+    ॰ A RANGE AND NOT A COUNT. A count cannot locate the parameters once a
+    ॰ second routine has pushed its own; the range is stable for the life of
+    ॰ the arena.
+    प्राचलादि ॱॱ अ६४ ऽ
+    प्राचलान्त ॱॱ अ६४ ऽ
+    सार्वजनिकत्व ॱॱ बूल
+समाप्तम् ।
+
+॰ ॥ प्राचल ॥ one parameter — its name token and its type.
+सार्वजनिक संरचना प्राचल आरभ्य
+    नामसूचकाङ्क ॱॱ अ६४ ऽ
+    प्रकारसूचकाङ्क ॱॱ अ६४
+समाप्तम् ।
+
+सार्वजनिक संरचना व्याकरदोष आरभ्य
+    पङ्क्ति ॱॱ न६४ ऽ ॰ READ OFF THE TWIN: `ParseError::line: usize`, parse.rs:6
+    अक्षर ॱॱ न६४ ऽ ॰ READ OFF THE TWIN: `ParseError::aksara: usize`, parse.rs:7
+    कारण ॱॱ अङ्कः अन्तः अ८
+समाप्तम् ।
+
+॰ ॥ पठनस्थितिः ॥
+॰ चिह्नकाः पदविभागस्य कोशे तिष्ठन्ति ऽ अत्र केवलं स्थानम् धार्यते ।
+
+सार्वजनिक चरः पठनस्थान ॱॱ अ६४ भवति ० ।
+
+॰ ॥ THE MATCH CACHE — ONE ENTRY, KEYED BY POSITION ॥
+॰ `मेलनम्` is tried repeatedly at the SAME `पठनस्थान` until one alternative
+॰ matches — 98 call sites, and the parser walks them in sequence. Each attempt
+॰ called `पदविभागॱचिह्नकपाठः`, which allocates a fresh run and copies the token's
+॰ octets ONE AT A TIME (`lex.t1`'s `चिह्नकपाठः`). So a token's text was rebuilt
+॰ once per attempt, and the cost was attempts x token length.
+॰
+॰ ONE remembered entry is enough precisely because the retries are at one
+॰ position: every attempt after the first hits.
+॰
+॰ `मेलनस्थानम्` holds the position PLUS ONE, so ० means EMPTY and not "position
+॰ zero" — positions are ०-based here.
+सार्वजनिक चरः मेलनस्थानम् ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः मेलनपाठः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः चिह्नकदैर्घ्य ॱॱ अ६४ भवति ० ।
+सार्वजनिक चरः प्राचलकोश ॱॱ अङ्कः अन्तः प्राचल भवति ० ।
+सार्वजनिक चरः प्राचलसूचकाङ्क ॱॱ अ६४ भवति ० ।
+
+सार्वजनिक चरः घोषणाकोश ॱॱ अङ्कः अन्तः घोषणा भवति ० ।
+सार्वजनिक चरः घोषणासूचकाङ्क ॱॱ न६४ भवति ० ।
+
+॰ THE MODULE'S OWN NAME — `W-215`. `मण्डलम् NAME ॥` fell to the program
+॰ reader's skip-a-token else, so no pass after the parser could say which
+॰ module a program declares, and a printer could not write its first line.
+॰ Kept as PARSER STATE and not as a घोषणा on purpose: `अर्थ` declares every
+॰ घोषणा's name as a symbol, and `lex.t1` declares `मण्डलम् पदविभाग` AND a
+॰ routine `पदविभाग` — a module declaration would refuse that file as a
+॰ duplicate, and the fix for that would be in the resolver, another lane's
+॰ file. Rust's `ast.rs` has `Declaration::Module`; the twin table says so.
+॰ The name's TOKEN index; ० when the program declared none. Reset per parse.
+सार्वजनिक चरः मण्डलनामसूचकाङ्क ॱॱ न६४ भवति ० ।
+
+॰ THE FIRST TOKEN OF THE STATEMENT ABOUT TO BE PUSHED — `W-240`. `वाक्ययोजनम्`
+॰ takes (भेद, वाम, दक्षिण) and every test pushes through that arity, so the
+॰ location travels beside it: `वाक्यपठनम्` and `समूहपठनम्` record where the
+॰ statement began and set this just before their push; the appender reads
+॰ it into `स्थानसूचकाङ्क` and clears it, so a push that no reader prepared —
+॰ a test's — stores ० and is blamed for no line.
+सार्वजनिक चरः वाक्यारम्भस्थान ॱॱ न६४ भवति ० ।
+
+॰ HOW MANY TOP-LEVEL TOKENS THE PROGRAM READER MET WITHOUT AN ARM — `W-215`
+॰ counted them (58 over the corpus, every one a संरचना/गणना's closing `।`);
+॰ `W-240` refuses at the first and pins the count at ० over the corpus. `कार्यक्रमपठनम्`'s last arm steps over a
+॰ token it has no arm for and says nothing; that is how the doc-02 `.सस`
+॰ files "parse" into a handful of declarations. The count is reset per
+॰ parse and printed by `measure_corpus_parse_print` per file, so the row
+॰ that decides whether a skipped token is refused (S3: a marker resolves or
+॰ is refused, never dropped) can cite what the refusal would cost the corpus.
+सार्वजनिक चरः उपेक्षितचिह्नकसंख्या ॱॱ न६४ भवति ० । ॰ next free index into घोषणाकोश. NO TWIN: parse.rs has no arena.
+सार्वजनिक चरः दोषकोश ॱॱ अङ्कः अन्तः व्याकरदोष भवति ० ।
+सार्वजनिक चरः दोषसूचकाङ्क ॱॱ न६४ भवति ० । ॰ next free index into दोषकोश. NO TWIN: parse.rs returns one error.
+
+॰ ॥ आधारभूताः क्रियाः ॥
+॰ दर्शनम् ॱ सरणदूरे स्थितं चिह्नकं पश्यति ऽ न तु अग्रे गच्छति ।
+
+सार्वजनिक वृत्तिः दर्शनम् आदाय सरणम् ॱॱ न६४ ददाति सम्भाव्य पदविभागॱचिह्नक आदि
+    चरः स्थानसूचक ॱॱ न६४ भवति पठनस्थान योगः सरणम् ।
+    यदि स्थानसूचक न्यूनम् चिह्नकदैर्घ्य आदि
+        प्रत्यागमनम् पदविभागॱचिह्नककोश अङ्कः स्थानसूचक अन्तः ।
+    इति
+    प्रत्यागमनम् शून्यम् ।
+इति
+
+॰ अग्रिमम् ॱ वर्तमानं चिह्नकं गृह्णाति ऽ स्थानं च वर्धयति ।
+
+सार्वजनिक वृत्तिः अग्रिमम् आदाय अवगणना ॱॱ न६४ ददाति सम्भाव्य पदविभागॱचिह्नक आदि
+    यदि पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        चरः वर्तमान ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पठनस्थान अन्तः ।
+        पठनस्थान भवति पठनस्थान योगः १ ।
+        प्रत्यागमनम् वर्तमान ।
+    इति
+    पठनस्थान भवति पठनस्थान योगः १ ।
+    प्रत्यागमनम् शून्यम् ।
+इति
+
+॰ मेलनम् ॱ यदि वर्तमानं चिह्नकं पदं वा कारकं वा भवति ऽ तस्य पाठः च
+॰ प्रदत्तेन समः ऽ तर्हि अग्रे गच्छति सत्यं च ददाति ।
+
+सार्वजनिक वृत्तिः मेलनम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    यदि पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        चरः वर्तमान ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पठनस्थान अन्तः ।
+        ॰ A WORD **OR A SIGN**. The header above this routine says "पदं वा कारकं
+        ॰ वा" and only the word half was ever checked, so every match on `।`, `ऽ`
+        ॰ and `ॱॱ` silently failed — `।` lexes as दण्डभेद (४), not पदभेद (१).
+        ॰ MEASURED on `वृत्तिः क ददाति अ८ आदि / प्रत्यागमनम् ० । / इति`: the `।`
+        ॰ was never consumed, so समूहपठनम् looped once more, वाक्यपठनम् fell
+        ॰ through every arm and built an अभिव्यञ्जकवाक्य with NO expression, and
+        ॰ अभिव्यञ्जकपठनम् recorded "अनपेक्षितं चिह्नकम्".
+        ॰
+        ॰ सङ्ख्या (२) and शब्द (३) STAY OUT: a numeral or a string whose text
+        ॰ happens to equal a keyword must not match it. Signs are ४ upwards.
+        चरः योग्यम् ॱॱ बूल भवति असत्यम् ।
+        यदि वर्तमान ॱ भेद समम् पदविभागॱपदभेद आदि
+            योग्यम् भवति सत्यम् ।
+        इति
+        यदि वर्तमान ॱ भेद अधिकम् पदविभागॱशब्दभेद आदि
+            योग्यम् भवति सत्यम् ।
+        इति
+        यदि योग्यम् समम् सत्यम् आदि
+            ॰ `वर्तमान ॱ पाठ` IS THE WHOLE SOURCE — the token's own text is the
+            ॰ slice `अष्टक`..`पाठसीमा`. Comparing the field directly never
+            ॰ matched a keyword, so this loop skipped every token and
+            ॰ `कार्यक्रमपठनम्` answered ० declarations with `दोषकोश` EMPTY.
+            चरः वर्तमानपाठ ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+            यदि मेलनस्थानम् समम् आरभ्य पठनस्थान योगः १ समाप्तम् आदि
+                वर्तमानपाठ भवति मेलनपाठः ।
+            इति अन्यथा आदि
+                वर्तमानपाठ भवति पदविभागॱचिह्नकपाठः वर्तमान ।
+                मेलनस्थानम् भवति आरभ्य पठनस्थान योगः १ समाप्तम् ।
+                मेलनपाठः भवति वर्तमानपाठ ।
+            इति
+            यदि वर्तमानपाठ समम् पाठ आदि
+                पठनस्थान भवति पठनस्थान योगः १ ।
+                प्रत्यागमनम् सत्यम् ।
+            इति
+        इति
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ॥ मण्डलचरपठनम् ॥ a module-level binding, already past its `चरः`.
+॰
+॰ `binding = [ "सार्वजनिक" ] , "चरः" , identifier , annotation , type ,
+॰ "भवति" , expression , danda` — grammar-t1.ebnf:768. The VALUE is parsed and
+॰ kept in `शरीरसूचकाङ्क` so nothing is silently dropped, but `कार्यक्रमनिर्णयः`
+॰ does not walk it: only a `वृत्ति` has statements, and a binding's initialiser
+॰ may name another binding declared later in the file, which pass one has
+॰ already put in scope by the time anything would read it.
+सार्वजनिक वृत्तिः मण्डलचरपठनम् आदाय सार्वजनिकत्व ॱॱ बूल ददाति अ६४ आदि
+    ॰ THE INDEX IS TAKEN BEFORE THE READ — `अग्रिमम्` reads at `पठनस्थान` and
+    ॰ THEN increments, the same rule as every other name in this file.
+    चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+    चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+
+    चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ॱॱ इति समाप्तम् ।
+    चरः प्रकारसूचक ॱॱ अ६४ भवति प्रकारपठनम् आरभ्य ० समाप्तम् ।
+
+    चरः मूल्य ॱॱ अ६४ भवति ० ।
+    यदि मेलनम् आरभ्य उक्तम् भवति इति समाप्तम् आदि
+        मूल्य भवति अभिव्यञ्जकपठनम् आरभ्य ० समाप्तम् ।
+    इति
+    चरः अवगणनद्वि ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+
+    चरः नव ॱॱ घोषणा भवति ० ।
+    नव ॱ भेद भवति चरघोषणाभेद ।
+    नव ॱ नामसूचकाङ्क भवति नामस्थान ।
+    नव ॱ प्रकारसूचकाङ्क भवति प्रकारसूचक ।
+    नव ॱ शरीरसूचकाङ्क भवति मूल्य ।
+    नव ॱ प्राचलादि भवति ० ।
+    नव ॱ प्राचलान्त भवति ० ।
+    नव ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+    घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+    घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् घोषणासूचकाङ्क ।
+इति
+
+॰ ॥ प्राचलयोजनम् ॥ push one parameter and answer its slot.
+॰ ADVANCE THEN WRITE, like every other appender in this corpus: slot ० stays
+॰ reserved and the returned index IS the slot.
+सार्वजनिक वृत्तिः प्राचलयोजनम् आदाय नामसूचकाङ्क ॱॱ अ६४ प्रकारसूचकाङ्क ॱॱ अ६४ ददाति अ६४ आदि
+    चरः नव ॱॱ प्राचल भवति ० ।
+    नव ॱ नामसूचकाङ्क भवति नामसूचकाङ्क ।
+    नव ॱ प्रकारसूचकाङ्क भवति प्रकारसूचकाङ्क ।
+    प्राचलसूचकाङ्क भवति प्राचलसूचकाङ्क योगः १ ।
+    प्राचलकोश अङ्कः प्राचलसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् प्राचलसूचकाङ्क ।
+इति
+
+॰ दोषयोजनम् ॱ दोषं कोशे स्थापयति ऽ शून्यं च ददाति ।
+
+सार्वजनिक वृत्तिः दोषयोजनम् आदाय कारण ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः नव ॱॱ व्याकरदोष भवति ० ।
+    नव ॱ कारण भवति कारण ।
+    नव ॱ पङ्क्ति भवति ० ।
+    नव ॱ अक्षर भवति ० ।
+    यदि पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        चरः वर्तमान ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पठनस्थान अन्तः ।
+        नव ॱ पङ्क्ति भवति वर्तमान ॱ पङ्क्ति ।
+        नव ॱ अक्षर भवति वर्तमान ॱ अक्षर ।
+    इति
+    दोषसूचकाङ्क भवति दोषसूचकाङ्क योगः १ ।
+    दोषकोश अङ्कः दोषसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ ॥ कोशयोजनम् ॥
+
+सार्वजनिक वृत्तिः अभिव्यञ्जकयोजनम् आदाय भेद ॱॱ न६४ ऽ मूल्य ॱॱ न६४ ऽ वाम ॱॱ न६४ ऽ दक्षिण ॱॱ न६४ ऽ द्विकर्म ॱॱ न६४ ददाति न६४ आदि
+    चरः नव ॱॱ वास्तुॱअभिव्यञ्जक भवति ० ।
+    नव ॱ भेद भवति भेद ।
+    नव ॱ मूल्यसूचकाङ्क भवति मूल्य ।
+    नव ॱ वामसूचकाङ्क भवति वाम ।
+    नव ॱ दक्षिणसूचकाङ्क भवति दक्षिण ।
+    नव ॱ द्विकर्म भवति द्विकर्म ।
+    वास्तुॱअभिव्यञ्जकसूचकाङ्क भवति वास्तुॱअभिव्यञ्जकसूचकाङ्क योगः १ ।
+    वास्तुॱअभिव्यञ्जककोश अङ्कः वास्तुॱअभिव्यञ्जकसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् वास्तुॱअभिव्यञ्जकसूचकाङ्क ।
+इति
+
+सार्वजनिक वृत्तिः वाक्ययोजनम् आदाय भेद ॱॱ न६४ ऽ वाम ॱॱ न६४ ऽ दक्षिण ॱॱ न६४ ददाति न६४ आदि
+    चरः नव ॱॱ वास्तुॱवाक्य भवति ० ।
+    नव ॱ भेद भवति भेद ।
+    नव ॱ वामसूचकाङ्क भवति वाम ।
+    नव ॱ दक्षिणसूचकाङ्क भवति दक्षिण ।
+    ॰ the statement's first token, prepared by the reader — `W-240`; cleared
+    ॰ here so it cannot leak into a push nobody prepared.
+    नव ॱ स्थानसूचकाङ्क भवति वाक्यारम्भस्थान ।
+    वाक्यारम्भस्थान भवति ० ।
+    ॰ the `अन्यथा` body is filled in by the `यदि` arm after the push — `W-198`.
+    नव ॱ अन्यसूचकाङ्क भवति ० ।
+
+    ॰ THE SUBTREE START — see `वास्तुॱवाक्य`'s own margin for why this and not
+    ॰ a next-sibling index. Children are already pushed, so their starts are
+    ॰ readable HERE; a next sibling does not exist yet.
+    ॰
+    ॰ IT MUST BRANCH ON भेद, AND THE FIRST VERSION DID NOT — that was a bug,
+    ॰ shipped in `a88b2040` and caught by the statement-resolver test. `वाम`
+    ॰ and `दक्षिण` are NOT statement indices for most kinds. Read off the
+    ॰ calls below: `समूह` puts STATEMENTS in both, `यदि` and `यावत्` put an
+    ॰ EXPRESSION in वाम and a STATEMENT in दक्षिण, and `चर`, `आयात`,
+    ॰ `प्रत्यागमन`, `सम` and `अभिव्यञ्जक` put a TOKEN or an EXPRESSION in वाम
+    ॰ with no statement child at all. Reading a token index as a statement
+    ॰ index is how the first version raised "entry 1 is outside an arena of 1".
+    ॰
+    ॰ `०` IS "NO CHILD" AND NOT A CHILD AT SLOT ०. Slot ० is the one every
+    ॰ arena reserves and never fills; reading it would take the start of a
+    ॰ शून्यम् and answer ०, making every statement claim the whole arena.
+    चरः आदिः ॱॱ अ६४ भवति वास्तुॱवाक्यसूचकाङ्क योगः १ ।
+
+    ॰ वाम is a STATEMENT only for समूह.
+    यदि भेद समम् वास्तुॱसमूहवाक्यभेद आदि
+        यदि वाम असमम् ० आदि
+            चरः वामवाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः वाम अन्तः ।
+            यदि वामवाक्यम् ॱ आदिसूचकाङ्क न्यूनम् आदिः आदि
+                आदिः भवति वामवाक्यम् ॱ आदिसूचकाङ्क ।
+            इति
+        इति
+    इति
+
+    ॰ दक्षिण is a STATEMENT for समूह, यदि and यावत् — the block's last
+    ॰ statement, and the body of a conditional or a loop.
+    चरः दक्षिणवाक्यवत् ॱॱ बूल भवति असत्यम् ।
+    यदि भेद समम् वास्तुॱसमूहवाक्यभेद आदि
+        दक्षिणवाक्यवत् भवति सत्यम् ।
+    इति
+    यदि भेद समम् वास्तुॱयदिवाक्यभेद आदि
+        दक्षिणवाक्यवत् भवति सत्यम् ।
+    इति
+    यदि भेद समम् वास्तुॱयावत्वाक्यभेद आदि
+        दक्षिणवाक्यवत् भवति सत्यम् ।
+    इति
+
+    यदि दक्षिणवाक्यवत् समम् सत्यम् आदि
+        यदि दक्षिण असमम् ० आदि
+            चरः दक्षिणवाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः दक्षिण अन्तः ।
+            यदि दक्षिणवाक्यम् ॱ आदिसूचकाङ्क न्यूनम् आदिः आदि
+                आदिः भवति दक्षिणवाक्यम् ॱ आदिसूचकाङ्क ।
+            इति
+        इति
+    इति
+
+    नव ॱ आदिसूचकाङ्क भवति आदिः ।
+    वास्तुॱवाक्यसूचकाङ्क भवति वास्तुॱवाक्यसूचकाङ्क योगः १ ।
+    वास्तुॱवाक्यकोश अङ्कः वास्तुॱवाक्यसूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् वास्तुॱवाक्यसूचकाङ्क ।
+इति
+
+॰ ॥ प्रकारपठनम् ॥
+॰ अङ्कः ॱ अन्तः खण्डम् ऽ स्थानम् सूचकम् ऽ सम्भाव्य विकल्पम् ऽ
+॰ दोषयुक्त दोषसंयोगम् ऽ अन्यत् सर्वं मूलप्रकारः ।
+
+सार्वजनिक वृत्तिः प्रकारपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    यदि मेलनम् आरभ्य उक्तम् अङ्कः इति समाप्तम् आदि
+        यदि मेलनम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+            चरः अन्तर ॱॱ न६४ भवति प्रकारपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+            प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱखण्डप्रकारभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+        इति
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् अन्तः अपेक्षितम् इति समाप्तम् ।
+    इति
+
+    यदि मेलनम् आरभ्य उक्तम् स्थानम् इति समाप्तम् आदि
+        चरः अन्तर ॱॱ न६४ भवति प्रकारपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱस्थानम्प्रकारभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    यदि मेलनम् आरभ्य उक्तम् सम्भाव्य इति समाप्तम् आदि
+        चरः अन्तर ॱॱ न६४ भवति प्रकारपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसम्भाव्यप्रकारभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    यदि मेलनम् आरभ्य उक्तम् दोषयुक्त इति समाप्तम् आदि
+        चरः अन्तर ॱॱ न६४ भवति प्रकारपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱदोषयुक्तप्रकारभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    ॰ Same rule as `वृत्तिपठनम्`: the index is taken BEFORE `अग्रिमम्` moves it.
+    चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+    चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+    प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱमूलप्रकारभेद ऽ नामस्थान ऽ ० ऽ ० ऽ ० समाप्तम् ।
+इति
+
+॰ ॥ द्विकर्ममेलनम् ॥
+॰ वर्तमानं चिह्नकं द्विकर्मचिह्नं चेत् ऽ तस्य भेदं ददाति ऽ अन्यथा शून्यम् ।
+॰
+॰ D-002h: four of these matched a spelling NO BODY IN THIS CORPUS WRITES —
+॰ वामसृतम् and दक्षिणसृतम् (zero uses each, against वामसृ and दक्षिणसृ), विषमः
+॰ (zero), and विकल्पः, which is T0's MNEMONIC for bitwise-or where T1 writes
+॰ विकल्प. So this table could not recognise the shift operators of the very
+॰ files it is meant to compile. Each is now the inflection the bodies use,
+॰ which is also the spelling spec/lexicon.tsv carries and the stem वास्तु
+॰ declares beside it. The counts are NOT written here, because a count in a
+॰ comment goes stale in silence; crates/sadhana/tests/t1_operators.rs
+॰ re-derives them from the corpus every run and asserts this table against
+॰ them.
+
+सार्वजनिक वृत्तिः द्विकर्ममेलनम् आदाय अवगणना ॱॱ न६४ ददाति न६४ आदि
+    यदि मेलनम् आरभ्य उक्तम् योगः इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱयोगद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् वियोगः इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱवियोगद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् गुणनम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱगुणनद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् विभाजनम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱविभाजनद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् समम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱसमद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् असमम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱअसमद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् न्यूनम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱन्यूनद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् अधिकम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱअधिकद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् युक् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱयुक्द्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् विकल्प इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱविकल्पद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् विषम इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱविषमद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् वामसृ इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱवामसृद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् दक्षिणसृ इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱदक्षिणसृद्विकर्मभेद । इति
+    ॰ ADR-0037, AND THE ORDER HERE IS AN INVARIANT, not a preference.
+    ॰ `parse_t1s_operator_table_names_the_spelling_the_corpus_writes` compares
+    ॰ these arms against `ast.t1`s kind constants IN ORDER, so a new operator
+    ॰ goes where its CONSTANT goes -- at the end -- and not beside its
+    ॰ precedence neighbours. Precedence is not decided here; this routine only
+    ॰ maps a word to a kind. Placing `शेषः` next to `विभाजनम्` read better and
+    ॰ broke that invariant, which is how this comment came to be written.
+    यदि मेलनम् आरभ्य उक्तम् शेषः इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱशेषद्विकर्मभेद । इति
+    यदि मेलनम् आरभ्य उक्तम् बृहत्समम् इति समाप्तम् आदि प्रत्यागमनम् वास्तुॱबृहत्समद्विकर्मभेद । इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ ॥ मूलाभिव्यञ्जकपठनम् ॥
+॰ आरभ्य ॱ समाप्तम् समूहः ऽ अङ्कः ॱ अन्तः सूचकाङ्कः ऽ
+॰ उक्तम् ॱ इति शब्दः ऽ सङ्ख्या अङ्कः ऽ पदं नाम ।
+
+सार्वजनिक वृत्तिः मूलाभिव्यञ्जकपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    यदि मेलनम् आरभ्य उक्तम् आरभ्य इति समाप्तम् आदि
+        चरः अन्तर ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+
+        ॰ ॥ THE JUXTAPOSED CALL ॥ `argument_list = ... | postfix_expr ,
+        ॰ { postfix_expr }` — `spec/grammar-t1.ebnf:705`'s SECOND alternative:
+        ॰ a callee followed by its arguments with nothing between them. It is
+        ॰ the corpus's ordinary call — `आरभ्य अक्षरगणना मूल पूर्वाष्टक पदारम्भः
+        ॰ समाप्तम्`, `आरभ्य सङ्ख्या शेषः १० समाप्तम्` — and every parse error
+        ॰ left in the corpus after the bracketed form landed was this shape.
+        ॰
+        ॰ IT IS READ ONLY HERE, INSIDE A GROUP, AND THAT NARROWING IS THE
+        ॰ POINT. Juxtaposition has no terminator of its own, so a parser that
+        ॰ took it anywhere would have to decide BY KEYWORD BLACKLIST where an
+        ॰ argument list stops — and every word that can follow an expression
+        ॰ (`भवति`, `आदि`, `इति`, `ऽ`, `अन्तः`, `ददाति`, `।`) would have to be on
+        ॰ it, correctly, forever. Inside `आरभ्य … समाप्तम्` the terminator is
+        ॰ EXPLICIT and no such table is needed. The corpus writes juxtaposition
+        ॰ inside a group in every case measured, so the narrow rule loses
+        ॰ nothing this file has to read.
+        ॰
+        ॰ ARGUMENTS CURRY, exactly as in the bracketed form above, so the two
+        ॰ spellings of a call build the SAME tree.
+        चरः जुक्तचालु ॱॱ बूल भवति सत्यम् ।
+        यावत् जुक्तचालु समम् सत्यम् आदि
+            ॰ W-229: `>=` is `बृहत्समम्` (ADR-0037); the chain `x न्यूनम् y समम् असत्यम्` the corpus wrote before it had the word is one the frozen grammar refuses, and read flat it is `x < (y == false)`, right only because बूल is one octet wide.
+            यदि पठनस्थान बृहत्समम् चिह्नकदैर्घ्य आदि
+                जुक्तचालु भवति असत्यम् ।
+            इति अन्यथा आदि
+                यदि मेलनम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+                    प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसमूहाभिव्यञ्जकभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+                इति अन्यथा आदि
+                    चरः जुक्ततर्कः ॱॱ अ६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                    यदि जुक्ततर्कः समम् ० आदि
+                        जुक्तचालु भवति असत्यम् ।
+                    इति अन्यथा आदि
+                        अन्तर भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱआह्वानाभिव्यञ्जकभेद ऽ ० ऽ अन्तर ऽ जुक्ततर्कः ऽ ० समाप्तम् ।
+                    इति
+                इति
+            इति
+        इति
+
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् समाप्तम् अपेक्षितम् इति समाप्तम् ।
+    इति
+
+    ॰ `सत्यम्` / `असत्यम्` are KEYWORDS (`spec/grammar-t1.ebnf:138`), not names.
+    ॰ Matched HERE, in the PRIMARY, before the name arm at the end of this
+    ॰ routine would swallow them and leave `अर्थ` refusing them as undeclared.
+    ॰ `मेलनम्` CONSUMES on a match, so the token index is `पठनस्थान` MINUS ONE.
+    यदि मेलनम् आरभ्य उक्तम् सत्यम् इति समाप्तम् आदि
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱबूलाभिव्यञ्जकभेद ऽ आरभ्य पठनस्थान वियोगः १ समाप्तम् ऽ ० ऽ ० ऽ ० समाप्तम् ।
+    इति
+    यदि मेलनम् आरभ्य उक्तम् असत्यम् इति समाप्तम् आदि
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱबूलाभिव्यञ्जकभेद ऽ आरभ्य पठनस्थान वियोगः १ समाप्तम् ऽ ० ऽ ० ऽ ० समाप्तम् ।
+    इति
+    ॰ `शून्यम्` is the same case — a KEYWORD at :137, not an identifier.
+    यदि मेलनम् आरभ्य उक्तम् शून्यम् इति समाप्तम् आदि
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱशून्याभिव्यञ्जकभेद ऽ आरभ्य पठनस्थान वियोगः १ समाप्तम् ऽ ० ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    ॰ ॥ EMBED ॥ `समावेशः आरभ्य <table> समाप्तम्` — grammar-t1.ebnf:341,
+    ॰ ADR-0019. Matched HERE, before the name arm, or `समावेशः` becomes a नाम
+    ॰ and `आरभ्य <table> समाप्तम्` becomes its ARGUMENT LIST: two undeclared
+    ॰ names where the source has one construct. It is the FIRST refusal of both
+    ॰ `samyojana.t1` and `sanskrit_text.t1`, which read a generated table this way.
+    ॰
+    ॰ THIS ARM WAS WRITTEN, REVERTED, AND RESTORED. Writing the literal
+    ॰ `उक्तम् समावेशः इति` used to make `t1_sources` refuse this whole file —
+    ॰ not because the literal is wrong, but because that test lexed T1 sources
+    ॰ with the T0 lexer, where `उक्तम् … इति` stays WORDS, and then ran the
+    ॰ embed pass over them. `anita.rs`'s guard (`!matches!(kind, Kind::Str)`)
+    ॰ was correct and was being fed a stream that could not satisfy it. The
+    ॰ test now uses `lex_t1`; see W-178.
+    यदि मेलनम् आरभ्य उक्तम् समावेशः इति समाप्तम् आदि
+        यदि मेलनम् आरभ्य उक्तम् आरभ्य इति समाप्तम् आदि
+            चरः कोशस्थान ॱॱ न६४ भवति पठनस्थान ।
+            चरः कोशनाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+            यदि मेलनम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+                प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसमावेशाभिव्यञ्जकभेद ऽ कोशस्थान ऽ ० ऽ ० ऽ ० समाप्तम् ।
+            इति
+            प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् समाप्तम् अपेक्षितम् इति समाप्तम् ।
+        इति
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् आरभ्य अपेक्षितम् इति समाप्तम् ।
+    इति
+
+    ॰ ॥ UNARY MINUS ॥ `unary_expr = { unary_op } , call_expr` — :659. SPACED:
+    ॰ `ऋण१` is one token and a negative numeral, `ऋण सीमा` is two and is this.
+    यदि मेलनम् आरभ्य उक्तम् ऋण इति समाप्तम् आदि
+        चरः ऋणाङ्गम् ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱऋणाभिव्यञ्जकभेद ऽ ० ऽ ऋणाङ्गम् ऽ ० ऽ ० समाप्तम् ।
+    इति
+
+    यदि मेलनम् आरभ्य उक्तम् अङ्कः इति समाप्तम् आदि
+        चरः अन्तर ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        यदि मेलनम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+            प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसूचकाङ्काभिव्यञ्जकभेद ऽ ० ऽ अन्तर ऽ ० ऽ ० समाप्तम् ।
+        इति
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् अन्तः अपेक्षितम् इति समाप्तम् ।
+    इति
+
+    ॰ शब्दः एकं चिह्नकं न भवति ऽ इति पर्यन्तं सर्वाणि पदानि सङ्गृह्यन्ते ।
+    यदि मेलनम् आरभ्य उक्तम् उक्तम् इति समाप्तम् आदि
+        चरः आरम्भ ॱॱ न६४ भवति पठनस्थान ।
+        यावत् पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+            ॰ ADR-0011 ॱ इति इति इति उक्तस्य अन्तः ऽ द्वयं तु स्वयं पदम् ।
+            ॰
+            ॰ THIS MARGIN STATED ADR-0011 ABOVE CODE THAT NEVER IMPLEMENTED IT.
+            ॰ The loop returned at the FIRST `इति`, so `उक्तम् इति इति इति` —
+            ॰ the literal `इति`, which this very file writes at :512 and :517 —
+            ॰ ended after one word and left `इति इति` loose. In a declaration
+            ॰ those leftovers act as harmless block-closers and the program
+            ॰ still resolves, which is why a test of that shape PASSED and read
+            ॰ as evidence the scanner was sound. Inside `आरभ्य … समाप्तम्` they
+            ॰ land in expression position and `अर्थ` refuses the first as an
+            ॰ undeclared name — `parse.t1`'s own resolve refusal.
+            ॰
+            ॰ `मेलनम्` ADVANCES ON MATCH, so two matches in a row ARE the
+            ॰ doubling test and no lookahead is needed. `दर्शनम्` would have
+            ॰ served but is defined and never used anywhere in this file, and
+            ॰ inventing an unwrap for its `सम्भाव्य` here would be a new idiom
+            ॰ where an established one already answers.
+            यदि मेलनम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
+                ॰ A SECOND `इति` MEANS THE PAIR IS THE LITERAL WORD. `मेलनम्`
+                ॰ consumes on match, so asking again both TESTS for the double
+                ॰ and consumes it: when it matches, the pair is swallowed and
+                ॰ the scan goes on; when it does not, this was a lone `इति` and
+                ॰ it closed the string.
+                ॰
+                ॰ THE SECOND MATCH IS THE CONDITION, so the doubled case needs
+                ॰ no branch of its own. Writing it the other way round wanted a
+                ॰ `चरः द्विगुणम् ॱॱ बूल` that nothing reads, purely to give the
+                ॰ block a body — and an unused binding is not free here: it
+                ॰ moved `grammar_t1`'s positional `बूल` census by one.
+                यदि मेलनम् आरभ्य उक्तम् इति इति इति समाप्तम् समम् असत्यम् आदि
+                    ॰ THE END IS KEPT — `W-215`: the lone `इति` that closed the
+                    ॰ string was consumed by the first `मेलनम्` above, so its
+                    ॰ token is one below `पठनस्थान`; it goes into दक्षिणसूचकाङ्क,
+                    ॰ which this kind never used, so a printer writes the
+                    ॰ content back without re-running this scan.
+                    प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱउक्ताभिव्यञ्जकभेद ऽ आरम्भ ऽ ० ऽ आरभ्य पठनस्थान वियोगः १ समाप्तम् ऽ ० समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                पठनस्थान भवति पठनस्थान योगः १ ।
+            इति
+        इति
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् इति इति अपेक्षितम् इति समाप्तम् ।
+    इति
+
+    यदि पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        चरः वर्तमान ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पठनस्थान अन्तः ।
+        चरः स्थानसूचक ॱॱ न६४ भवति पठनस्थान ।
+        पठनस्थान भवति पठनस्थान योगः १ ।
+        यदि वर्तमान ॱ भेद समम् पदविभागॱसङ्ख्याभेद आदि
+            प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱअङ्काभिव्यञ्जकभेद ऽ स्थानसूचक ऽ ० ऽ ० ऽ ० समाप्तम् ।
+        इति
+        ॰ ॥ A LONE `शब्दभेद` TOKEN IS A STRING LITERAL ॥ The SECOND way to reach
+        ॰ `उक्ताभिव्यञ्जक`, and the first consumer `शब्दभेद` has ever had.
+        ॰ `lex.t1:138` declares it as `Kind::Str` and NOTHING in the corpus
+        ॰ produced one — a declared row in a numbered table that no writer ever
+        ॰ filled. The driver that resolves `समावेशः` writes one, so the row now
+        ॰ has a writer and this is its reader.
+        ॰
+        ॰ THE KEYWORD SCAN IS UNTOUCHED. `उक्तम् … इति` parses exactly as it did;
+        ॰ this is an additional arm tested on its own, not a widened condition. A
+        ॰ `वा` would be the other shape and is UNATTESTED in the frozen grammar,
+        ॰ so two tests it is — the same choice `:205-212` makes in this file.
+        ॰
+        ॰ `दक्षिणसूचकाङ्क` IS ONE PAST THIS TOKEN, NOT THIS TOKEN. `ir.t1` rebuilds
+        ॰ a literal with `यावत् क्रमः न्यूनम् अन्तिमः`, so a span whose end equals
+        ॰ its start runs the loop ZERO times and yields an EMPTY string — which
+        ॰ would take cause १२ to zero while emitting nothing, the one failure an
+        ॰ embed lowering must not have. The keyword arm passes the CLOSING token's
+        ॰ index for the same reason.
+        यदि वर्तमान ॱ भेद समम् पदविभागॱशब्दभेद आदि
+            प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱउक्ताभिव्यञ्जकभेद ऽ स्थानसूचक ऽ ० ऽ आरभ्य स्थानसूचक योगः १ समाप्तम् ऽ ० समाप्तम् ।
+        इति
+        यदि वर्तमान ॱ भेद समम् पदविभागॱपदभेद आदि
+            ॰ A NUMERAL IS DECIDED BY TEXT, NOT BY `भेद`. The lexer never emits
+            ॰ सङ्ख्याभेद, and deliberately — `lex.t1` blocker (d) records that T0
+            ॰ वाक्यविभाग REQUIRES an operand to arrive as पदभेद and takes its role
+            ॰ from विभज. So `०` reached here as a NAME and the resolver refused it
+            ॰ as undeclared. MEASURED on `वृत्तिः ख ददाति अ६४ आदि / प्रत्यागमनम् ०
+            ॰ । / इति`: कार्यक्रमनिर्णयः answered असत्यम् for a program naming nothing.
+            ॰
+            ॰ ASKING अक्षरकोश KEEPS ONE DEFINITION OF NUMERAL SYNTAX. `lex.t1`
+            ॰ blocker (b) calls `अक्षरकोशॱसङ्ख्या` a stub. IT IS NOT — sanskrit_text
+            ॰ :21 reads the base, validates the digits and accumulates the value.
+            ॰ The fix belongs HERE and not in the lexer, because T1 may call `०` a
+            ॰ literal while T0 still calls it an operand, and one lexer serves both.
+            चरः पाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः वर्तमान ।
+            चरः अङ्कम् ॱॱ सम्भाव्य अ६४ भवति अक्षरकोशॱसङ्ख्या पाठम् ।
+            यदि अङ्कम् असमम् शून्यम् आदि
+                प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱअङ्काभिव्यञ्जकभेद ऽ स्थानसूचक ऽ ० ऽ ० ऽ ० समाप्तम् ।
+            इति
+            प्रत्यागमनम् अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱनामाभिव्यञ्जकभेद ऽ स्थानसूचक ऽ ० ऽ ० ऽ ० समाप्तम् ।
+        इति
+        प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् अनपेक्षितं चिह्नकम् इति समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् अभिव्यञ्जकम् अपेक्षितम् इति समाप्तम् ।
+इति
+
+॰ ॥ तर्कारम्भः ॥ अग्रे स्थितं चिह्नकं तर्कस्य आरम्भः किम् ऽ न तु अग्रे गच्छति ।
+॰
+॰ JUXTAPOSED APPLICATION — `f a b c` — was in the EBNF and NOT in this parser,
+॰ and it is 1407 sites across eleven of the fifteen sources. Only the subset
+॰ that strands a BLOCK was visible (127 `यदि`/`यावत्` errors, W-186); the rest
+॰ strand silently after `भवति` and `प्रत्यागमनम्`.
+॰
+॰ THE STOP SET IS MEASURED, NOT GUESSED (W-187, a scan of all 1407 runs):
+॰ `।` 1097, `आदि` 122, `समम्` 79, `समाप्तम्` 62, `अधिकम्` 16, `असमम्` 9,
+॰ `न्यूनम्` 8, `ऽ` 7, `बृहत्समम्` 2. ONLY THE FIVE COMPARISON OPERATORS EVER
+॰ TERMINATE A RUN — the ten arithmetic and bitwise ones appear ZERO times after
+॰ a juxtaposed argument. They are listed anyway, because a stop set that holds
+॰ only where the corpus happens to go is not a stop set.
+॰
+॰ SIGNS NEED NO LISTING. A `।`, `ऽ`, `ॱ` or `॥` is not पदभेद or सङ्ख्याभेद, so
+॰ the kind test below excludes every one of them structurally — and `ॱ` and
+॰ `अङ्कः … अन्तः` must NOT stop the run, because they bind to the LAST
+॰ ARGUMENT and are consumed by that argument's own postfix chain. 85 sites
+॰ depend on that reading and none contradict it.
+सार्वजनिक वृत्तिः तर्कारम्भः ददाति बूल आदि
+    यदि पठनस्थान बृहत्समम् चिह्नकदैर्घ्य आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः वर्तमान ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पठनस्थान अन्तः ।
+
+    ॰ a name, a keyword or a numeral. Everything else is punctuation.
+    चरः योग्यम् ॱॱ बूल भवति असत्यम् ।
+    यदि वर्तमान ॱ भेद समम् पदविभागॱपदभेद आदि
+        योग्यम् भवति सत्यम् ।
+    इति
+    यदि वर्तमान ॱ भेद समम् पदविभागॱसङ्ख्याभेद आदि
+        योग्यम् भवति सत्यम् ।
+    इति
+    यदि योग्यम् समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः पाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः वर्तमान ।
+
+    ॰ THE STOP SET MUST BE TESTED ON LEXED TOKENS, never on raw words: this
+    ॰ file itself writes `उक्तम् समाप्तम् इति` and `उक्तम् आरभ्य इति`, and
+    ॰ `utsarjana.t1` writes `उक्तम् योगः इति`. A word inside a literal is not a
+    ॰ terminator.
+    यदि पाठ समम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् अन्यथा इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् भवति इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् ददाति इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् आदाय इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् चरः इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् यदि इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् यावत् इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् प्रत्यागमनम् इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् सार्वजनिक इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् वृत्तिः इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् मण्डलम् इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् आयातः इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् संरचना इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् गणना इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् ऋण इति समाप्तम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    ॰ the operators. `द्विकर्ममेलनम्` cannot serve here: it CONSUMES.
+    यदि द्विकर्मपाठः पाठ समम् सत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ ॥ द्विकर्मपाठः ॥ पाठः द्विकर्मचिह्नम् किम् — a NON-CONSUMING test, which is
+॰ the whole reason it is separate from `द्विकर्ममेलनम्`.
+सार्वजनिक वृत्तिः द्विकर्मपाठः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    यदि पाठ समम् आरभ्य उक्तम् समम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् असमम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् न्यूनम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् अधिकम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् बृहत्समम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् योगः इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् वियोगः इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् गुणनम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् विभाजनम् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् शेषः इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् युक् इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् विकल्प इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् विषम इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् वामसृ इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पाठ समम् आरभ्य उक्तम् दक्षिणसृ इति समाप्तम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ॥ अभिव्यञ्जकपठनम् ॥
+॰ मूलम् पठित्वा ऽ द्विकर्मचिह्नं चेत् ऽ दक्षिणपक्षं च पठति ।
+
+॰ ॥ आयातितमण्डलम् ॥ W-228 (b), 2026-09-04. Whether the token names a module
+॰ this program IMPORTS — read off `घोषणाकोश`'s `आयातघोषणाभेद` entries parsed so
+॰ far. It is what lets the postfix chain fold `मण्डल ॱ नाम` into the ONE node
+॰ the unspaced `मण्डलॱनाम` already gets (`qualified_name` in the grammar,
+॰ ADR-0027's rule applied to the tree). The file's OWN module name is not in
+॰ the set on purpose: `निदान` is both `nidana.t1`'s module and one of its
+॰ parameters, and a self-qualified name is written nowhere in the corpus.
+॰ An import written AFTER a use is not seen by it (imports lead every file).
+सार्वजनिक वृत्तिः आयातितमण्डलम् आदाय चिह्नकसूचकाङ्क ॱॱ न६४ ददाति बूल आदि
+    यदि चिह्नकसूचकाङ्क न्यूनम् १ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः चिह्नकसूचकाङ्क अन्तः ।
+    चरः पाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः चिह्नकम् ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य घोषणासूचकाङ्क योगः १ समाप्तम् आदि
+        चरः घोषणा ॱॱ घोषणा भवति घोषणाकोश अङ्कः क्रमः अन्तः ।
+        यदि घोषणा ॱ भेद समम् आयातघोषणाभेद आदि
+            चरः आयातचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः घोषणा ॱ नामसूचकाङ्क अन्तः ।
+            चरः आयातपाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः आयातचिह्नकम् ।
+            यदि आयातपाठ समम् पाठ आदि
+                प्रत्यागमनम् सत्यम् ।
+            इति
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ॥ खण्डसीमापठनम् ॥ W-228 (a). The LIMIT of a slice: `slice = index ,
+॰ postfix_expr` — a primary and its own member/index chain, and NOT a full
+॰ expression, so that an operator after the limit binds the whole slice.
+॰ The same chain the argument reader keeps, written once more here because
+॰ the two readers above hold theirs inline; the nested-slice case (a limit
+॰ that is itself a slice) is not written in the corpus and not read here.
+सार्वजनिक वृत्तिः खण्डसीमापठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    चरः सीमा ॱॱ न६४ भवति मूलाभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+    चरः सीमाचालु ॱॱ बूल भवति सत्यम् ।
+    यावत् सीमाचालु समम् सत्यम् आदि
+        यदि मेलनम् आरभ्य उक्तम् ॱ इति समाप्तम् आदि
+            चरः सीमासदस्यः ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+            सीमा भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱक्षेत्राभिव्यञ्जकभेद ऽ पठनस्थान ऽ सीमा ऽ ० ऽ ० समाप्तम् ।
+        इति अन्यथा आदि
+            यदि मेलनम् आरभ्य उक्तम् अङ्कः इति समाप्तम् आदि
+                चरः सीमान्तर ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                यदि मेलनम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+                    सीमा भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसूचकाङ्काभिव्यञ्जकभेद ऽ ० ऽ सीमा ऽ सीमान्तर ऽ ० समाप्तम् ।
+                इति अन्यथा आदि
+                    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् सीमायाः अन्तः अपेक्षितम् इति समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                सीमाचालु भवति असत्यम् ।
+            इति
+        इति
+    इति
+    प्रत्यागमनम् सीमा ।
+इति
+
+॰ THE OPERAND (2026-09-13): a primary with its postfix chain — member, index, slice, call.
+॰ Binary operators are joined by द्विकर्मश्रेणिपठनम् below, by level.
+सार्वजनिक वृत्तिः पदाभिव्यञ्जकपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    चरः वाम ॱॱ न६४ भवति मूलाभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+
+    ॰ ॥ THE POSTFIX CHAIN ॥ `postfix_expr = primary , { member_mark ,
+    ॰ identifier | index }` — `spec/grammar-t1.ebnf:665`. Member access was
+    ॰ here; THE INDEX WAS NOT, and that is what this loop gains.
+    ॰
+    ॰ MEASURED BEFORE IT WAS WRITTEN. The self-hosted parser over its own 15
+    ॰ sources gave 213 parse errors and ALL 213 sit on a line containing
+    ॰ `अङ्कः` — every one, including all 102 in `vakyavibhaga.t1`. The four
+    ॰ files that did parse are the four that barely index.
+    ॰
+    ॰ IT WAS NOT ABSENT, IT WAS IN THE WRONG PLACE. `मूलाभिव्यञ्जकपठनम्` reads
+    ॰ `अङ्कः … अन्तः` as a PRIMARY — a bracketed expression standing alone — so
+    ॰ `कोश अङ्कः १ अन्तः` parsed as TWO unrelated things: the name `कोश`, then
+    ॰ an index with nothing indexed. It even built a
+    ॰ `सूचकाङ्काभिव्यञ्जकभेद` node, so a test that counted those nodes passed
+    ॰ on that wrong parse. The base is what makes it an index.
+    ॰
+    ॰ AND THE ASSIGNMENT TARGET COMES FREE: `place` (:776) is the same chain,
+    ॰ and `वाक्यपठनम्` already parses an assignment's left side through this
+    ॰ routine — so `कोश अङ्कः लेखः अन्तः भवति नव`, THE APPENDER IDIOM this
+    ॰ corpus is built out of, parses as a consequence and not as a second case.
+    चरः चालु ॱॱ बूल भवति सत्यम् ।
+    यावत् चालु समम् सत्यम् आदि
+        यदि मेलनम् आरभ्य उक्तम् ॱ इति समाप्तम् आदि
+            ॰ W-228 (b): THE MEMBER'S INDEX IS TAKEN BEFORE `अग्रिमम्` MOVES IT,
+            ॰ for the qualified fold below; the क्षेत्र arm keeps the convention
+            ॰ it always had (`पठनस्थान` after the read, one past the member —
+            ॰ `t1_paradigm_calls.rs`'s `member_tok` compensates).
+            चरः सदस्यस्थानम् ॱॱ न६४ भवति पठनस्थान ।
+            चरः सदस्य ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+            ॰ `qualified_name`: a head that names an IMPORTED module folds into
+            ॰ the head's own नाम node — `दक्षिणसूचकाङ्क` names the member token —
+            ॰ so `मण्डल ॱ नाम` and `मण्डलॱनाम` are ONE tree (grammar, W-228).
+            ॰ Mutated in place: the node is shared with the arena, and no
+            ॰ orphan slot is left behind.
+            चरः मूलम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः वाम अन्तः ।
+            चरः मण्डलमस्ति ॱॱ बूल भवति असत्यम् ।
+            यदि मूलम् ॱ भेद समम् वास्तुॱनामाभिव्यञ्जकभेद आदि
+                यदि मूलम् ॱ दक्षिणसूचकाङ्क समम् ० आदि
+                    मण्डलमस्ति भवति आयातितमण्डलम् मूलम् ॱ मूल्यसूचकाङ्क ।
+                इति
+            इति
+            यदि मण्डलमस्ति समम् सत्यम् आदि
+                मूलम् ॱ दक्षिणसूचकाङ्क भवति सदस्यस्थानम् ।
+                वास्तुॱअभिव्यञ्जककोश अङ्कः वाम अन्तः भवति मूलम् ।
+            इति अन्यथा आदि
+                वाम भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱक्षेत्राभिव्यञ्जकभेद ऽ पठनस्थान ऽ वाम ऽ ० ऽ ० समाप्तम् ।
+            इति
+        इति अन्यथा आदि
+            यदि मेलनम् आरभ्य उक्तम् अङ्कः इति समाप्तम् आदि
+                चरः अन्तर ॱॱ अ६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                यदि मेलनम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+                    वाम भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसूचकाङ्काभिव्यञ्जकभेद ऽ ० ऽ वाम ऽ अन्तर ऽ ० समाप्तम् ।
+                    ॰ W-228 (a): `slice = index , postfix_expr`. An index
+                    ॰ followed by anything that can begin an argument is a
+                    ॰ slice and never a further argument — the interpreter's
+                    ॰ rule, `तर्कारम्भः` being its `opens_atom`.
+                    यदि तर्कारम्भः समम् सत्यम् आदि
+                        चरः खण्डसीमा ॱॱ न६४ भवति खण्डसीमापठनम् आरभ्य गभीरता समाप्तम् ।
+                        वाम भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱखण्डाभिव्यञ्जकभेद ऽ ० ऽ वाम ऽ खण्डसीमा ऽ ० समाप्तम् ।
+                    इति
+                इति अन्यथा आदि
+                    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् अन्तः अपेक्षितम् इति समाप्तम् ।
+                इति
+            इति अन्यथा आदि
+                चालु भवति असत्यम् ।
+            इति
+        इति
+    इति
+
+    ॰ ॥ THE ARGUMENT LIST ॥ `call_expr = postfix_expr , [ argument_list ]` —
+    ॰ `spec/grammar-t1.ebnf:703`, with `:705` giving the BRACKETED form to
+    ॰ `n >= 2`. That margin settles the ambiguity rather than guessing at it:
+    ॰ `घ आरभ्य क समाप्तम्` is ALREADY a juxtaposed call over a `group` and "the
+    ॰ two readings AGREE", so the bracket is only needed where a `ऽ` appears —
+    ॰ "200 sites write it; all 200 carry at least one `ऽ`".
+    ॰
+    ॰ SO AN `आरभ्य` AFTER A POSTFIX EXPRESSION IS ALWAYS AN ARGUMENT LIST, one
+    ॰ argument or many, and the same code reads both.
+    ॰
+    ॰ THE ARGUMENTS CURRY, because `अभिव्यञ्जक` has exactly TWO child slots and
+    ॰ an argument list has n. `f आरभ्य a ऽ b समाप्तम्` is `(f a) b`: each node
+    ॰ holds the callee-so-far in वाम and ONE argument in दक्षिण. That is the
+    ॰ reading the EBNF's juxtaposed alternative already has, so the bracketed
+    ॰ and juxtaposed forms build the SAME tree instead of two shapes for one
+    ॰ meaning. `आह्वानाभिव्यञ्जकभेद` was declared in `ast.t1` and built nowhere.
+    यदि मेलनम् आरभ्य उक्तम् आरभ्य इति समाप्तम् आदि
+        चरः तर्कचालु ॱॱ बूल भवति सत्यम् ।
+        यावत् तर्कचालु समम् सत्यम् आदि
+            यदि पठनस्थान बृहत्समम् चिह्नकदैर्घ्य आदि
+                तर्कचालु भवति असत्यम् ।
+            इति अन्यथा आदि
+                यदि मेलनम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+                    तर्कचालु भवति असत्यम् ।
+                इति अन्यथा आदि
+                    चरः तर्कः ॱॱ अ६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                    वाम भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱआह्वानाभिव्यञ्जकभेद ऽ ० ऽ वाम ऽ तर्कः ऽ ० समाप्तम् ।
+                    चरः अवगणनतर्क ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ऽ इति समाप्तम् ।
+                इति
+            इति
+        इति
+    इति
+
+    ॰ ॥ JUXTAPOSED APPLICATION ॥ `f a b c` — the EBNF's own alternative, and
+    ॰ the one this parser never had. 1407 sites (W-187).
+    ॰
+    ॰ THE ARGUMENTS CURRY, exactly as the bracketed form above does: each node
+    ॰ holds the callee-so-far in वाम and ONE argument in दक्षिण, so `f a b` is
+    ॰ `(f a) b` and the two forms build the SAME tree.
+    ॰
+    ॰ EACH ARGUMENT IS A PRIMARY PLUS ITS OWN POSTFIX CHAIN — not a full
+    ॰ expression, or `समम्` would be swallowed and the comparison lost; and not
+    ॰ itself juxtaposed, or `f a b` would read `f(a(b))`. The postfix chain
+    ॰ belongs to the ARGUMENT and not to the call: `संज्ञावाहकार्थः वामः ॱ भेद`
+    ॰ is `संज्ञावाहकार्थः(वामः.भेद)`, one argument, and 85 sites read that way
+    ॰ with none against.
+    ॰
+    ॰ AFTER THE BRACKETED ARM ON PURPOSE. `f आरभ्य x समाप्तम्` is the callee's
+    ॰ own argument list and is taken above; a group reached HERE is a later
+    ॰ argument, which is the reading 11 of the corpus's 13 group-in-run sites
+    ॰ need. The 12th, `utsarjana.t1:899`, needs the other one — and no parser
+    ॰ can tell them apart, since the token sequences are identical and only
+    ॰ ARITY separates them. See W-187.
+    चरः जुक्तचालु ॱॱ बूल भवति सत्यम् ।
+    यावत् जुक्तचालु समम् सत्यम् आदि
+        यदि तर्कारम्भः समम् असत्यम् आदि
+            जुक्तचालु भवति असत्यम् ।
+        इति अन्यथा आदि
+            चरः तर्कः ॱॱ न६४ भवति मूलाभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+
+            ॰ the ARGUMENT's postfix chain, not the call's.
+            चरः तर्कपश्चात् ॱॱ बूल भवति सत्यम् ।
+            यावत् तर्कपश्चात् समम् सत्यम् आदि
+                यदि मेलनम् आरभ्य उक्तम् ॱ इति समाप्तम् आदि
+                    चरः तर्कसदस्यस्थानम् ॱॱ न६४ भवति पठनस्थान ।
+                    चरः सदस्यः ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+                    ॰ W-228 (b): the same qualified fold as the call's own chain.
+                    चरः तर्कमूलम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः तर्कः अन्तः ।
+                    चरः तर्कमण्डलमस्ति ॱॱ बूल भवति असत्यम् ।
+                    यदि तर्कमूलम् ॱ भेद समम् वास्तुॱनामाभिव्यञ्जकभेद आदि
+                        यदि तर्कमूलम् ॱ दक्षिणसूचकाङ्क समम् ० आदि
+                            तर्कमण्डलमस्ति भवति आयातितमण्डलम् तर्कमूलम् ॱ मूल्यसूचकाङ्क ।
+                        इति
+                    इति
+                    यदि तर्कमण्डलमस्ति समम् सत्यम् आदि
+                        तर्कमूलम् ॱ दक्षिणसूचकाङ्क भवति तर्कसदस्यस्थानम् ।
+                        वास्तुॱअभिव्यञ्जककोश अङ्कः तर्कः अन्तः भवति तर्कमूलम् ।
+                    इति अन्यथा आदि
+                        तर्कः भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱक्षेत्राभिव्यञ्जकभेद ऽ पठनस्थान ऽ तर्कः ऽ ० ऽ ० समाप्तम् ।
+                    इति
+                इति अन्यथा आदि
+                    यदि मेलनम् आरभ्य उक्तम् अङ्कः इति समाप्तम् आदि
+                        चरः तर्कान्तर ॱॱ अ६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                        यदि मेलनम् आरभ्य उक्तम् अन्तः इति समाप्तम् आदि
+                            तर्कः भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱसूचकाङ्काभिव्यञ्जकभेद ऽ ० ऽ तर्कः ऽ तर्कान्तर ऽ ० समाप्तम् ।
+                            ॰ W-228 (a): a slice as an ARGUMENT, by the same rule.
+                            यदि तर्कारम्भः समम् सत्यम् आदि
+                                चरः तर्कखण्डसीमा ॱॱ न६४ भवति खण्डसीमापठनम् आरभ्य गभीरता समाप्तम् ।
+                                तर्कः भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱखण्डाभिव्यञ्जकभेद ऽ ० ऽ तर्कः ऽ तर्कखण्डसीमा ऽ ० समाप्तम् ।
+                            इति
+                        इति अन्यथा आदि
+                            प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् तर्कस्य अन्तः अपेक्षितम् इति समाप्तम् ।
+                        इति
+                    इति अन्यथा आदि
+                        तर्कपश्चात् भवति असत्यम् ।
+                    इति
+                इति
+            इति
+
+            वाम भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱआह्वानाभिव्यञ्जकभेद ऽ ० ऽ वाम ऽ तर्कः ऽ ० समाप्तम् ।
+        इति
+    इति
+
+    प्रत्यागमनम् वाम ।
+इति
+
+॰ ══════════ BINARY OPERATORS BY LEVEL (2026-09-13) ══════════
+॰ The chain was `वाम कर्म अभिव्यञ्जकपठनम्(…)` — right-recursive, no levels — so
+॰ `सरणम् योगः ३ न्यूनम् सीमा` parsed as `सरणम् योगः (३ न्यूनम् सीमा)` and every such loop
+॰ in the compiled compiler spun (the lexer's प्रकारउपसर्गः first). The interpreter's
+॰ parser (nirvahana.rs: comparison < विकल्प < युक् < shifts < योगः/वियोगः <
+॰ गुणनम्/विभाजनम्/शेषः, each left-associative) is the reference the corpus was
+॰ written against; this is that bracketing. Higher level binds tighter.
+सार्वजनिक वृत्तिः द्विकर्मस्तरः आदाय कर्म ॱॱ न६४ ददाति न६४ आदि
+    यदि कर्म समम् वास्तुॱगुणनद्विकर्मभेद आदि प्रत्यागमनम् ६ । इति
+    यदि कर्म समम् वास्तुॱविभाजनद्विकर्मभेद आदि प्रत्यागमनम् ६ । इति
+    यदि कर्म समम् वास्तुॱशेषद्विकर्मभेद आदि प्रत्यागमनम् ६ । इति
+    यदि कर्म समम् वास्तुॱयोगद्विकर्मभेद आदि प्रत्यागमनम् ५ । इति
+    यदि कर्म समम् वास्तुॱवियोगद्विकर्मभेद आदि प्रत्यागमनम् ५ । इति
+    यदि कर्म समम् वास्तुॱवामसृद्विकर्मभेद आदि प्रत्यागमनम् ४ । इति
+    यदि कर्म समम् वास्तुॱदक्षिणसृद्विकर्मभेद आदि प्रत्यागमनम् ४ । इति
+    यदि कर्म समम् वास्तुॱयुक्द्विकर्मभेद आदि प्रत्यागमनम् ३ । इति
+    यदि कर्म समम् वास्तुॱविकल्पद्विकर्मभेद आदि प्रत्यागमनम् २ । इति
+    यदि कर्म समम् वास्तुॱविषमद्विकर्मभेद आदि प्रत्यागमनम् २ । इति
+    प्रत्यागमनम् १ ।
+इति
+सार्वजनिक वृत्तिः अभिव्यञ्जकपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    चरः वाम ॱॱ न६४ भवति पदाभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+    प्रत्यागमनम् द्विकर्मश्रेणिपठनम् आरभ्य गभीरता ऽ वाम ऽ १ समाप्तम् ।
+इति
+॰ Precedence climbing: joins operators of level ≥ न्यूनस्तरः to `वाम`; an operator of a
+॰ lower level is left unread (पठनस्थान restored) for the caller. A peek is मेलनम् and a
+॰ restore, since मेलनम् only advances पठनस्थान.
+सार्वजनिक वृत्तिः द्विकर्मश्रेणिपठनम् आदाय गभीरता ॱॱ न६४ ऽ वाम ॱॱ न६४ ऽ न्यूनस्तरः ॱॱ न६४ ददाति न६४ आदि
+    चरः फलम् ॱॱ न६४ भवति वाम ।
+    चरः चालु ॱॱ बूल भवति सत्यम् ।
+    यावत् चालु समम् सत्यम् आदि
+        चरः स्थानम् ॱॱ न६४ भवति पठनस्थान ।
+        चरः कर्म ॱॱ न६४ भवति द्विकर्ममेलनम् आरभ्य ० समाप्तम् ।
+        यदि कर्म समम् ० आदि
+            चालु भवति असत्यम् ।
+        इति अन्यथा आदि
+            चरः स्तरः ॱॱ न६४ भवति द्विकर्मस्तरः कर्म ।
+            यदि स्तरः न्यूनम् न्यूनस्तरः आदि
+                पठनस्थान भवति स्थानम् ।
+                चालु भवति असत्यम् ।
+            इति अन्यथा आदि
+                चरः दक्षिण ॱॱ न६४ भवति पदाभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+                चरः अग्रचालु ॱॱ बूल भवति सत्यम् ।
+                यावत् अग्रचालु समम् सत्यम् आदि
+                    चरः अग्रस्थानम् ॱॱ न६४ भवति पठनस्थान ।
+                    चरः अग्रकर्म ॱॱ न६४ भवति द्विकर्ममेलनम् आरभ्य ० समाप्तम् ।
+                    पठनस्थान भवति अग्रस्थानम् ।
+                    यदि अग्रकर्म समम् ० आदि
+                        अग्रचालु भवति असत्यम् ।
+                    इति अन्यथा आदि
+                        यदि द्विकर्मस्तरः अग्रकर्म अधिकम् स्तरः आदि
+                            दक्षिण भवति द्विकर्मश्रेणिपठनम् आरभ्य गभीरता योगः १ ऽ दक्षिण ऽ स्तरः योगः १ समाप्तम् ।
+                        इति अन्यथा आदि
+                            अग्रचालु भवति असत्यम् ।
+                        इति
+                    इति
+                इति
+                फलम् भवति अभिव्यञ्जकयोजनम् आरभ्य वास्तुॱद्विकर्माभिव्यञ्जकभेद ऽ ० ऽ फलम् ऽ दक्षिण ऽ कर्म समाप्तम् ।
+            इति
+        इति
+    इति
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ ॥ समूहपठनम् ॥
+॰ आदि इत्यनन्तरं वाक्यानि ऽ इति पर्यन्तम् ।
+
+सार्वजनिक वृत्तिः समूहपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    ॰ the `आदि` this block opened with — consumed by the caller's `मेलनम्`,
+    ॰ so one below `पठनस्थान` here. `W-240`.
+    चरः आरम्भस्थानम् ॱॱ न६४ भवति आरभ्य पठनस्थान वियोगः १ समाप्तम् ।
+    चरः प्रथम ॱॱ न६४ भवति ० ।
+    चरः अन्तिम ॱॱ न६४ भवति ० ।
+
+    यावत् पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        ॰ ADR-0011 ॱ इति इति इति उक्तस्य अन्तः ऽ द्वयं तु स्वयं पदम् ।
+        यदि मेलनम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
+            वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+            प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱसमूहवाक्यभेद ऽ प्रथम ऽ अन्तिम समाप्तम् ।
+        इति
+        चरः वाक्यम् ॱॱ न६४ भवति वाक्यपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        यदि प्रथम समम् ० आदि
+            प्रथम भवति वाक्यम् ।
+        इति
+        अन्तिम भवति वाक्यम् ।
+    इति
+
+    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् इति इति अपेक्षितम् इति समाप्तम् ।
+इति
+
+॰ ॥ वाक्यपठनम् ॥
+
+सार्वजनिक वृत्तिः वाक्यपठनम् आदाय गभीरता ॱॱ न६४ ददाति न६४ आदि
+    ॰ where this statement begins — every push below hands it to the
+    ॰ appender through `वाक्यारम्भस्थान`. `W-240`.
+    चरः आरम्भस्थानम् ॱॱ न६४ भवति पठनस्थान ।
+    ॰ समूहवाक्यम् ।
+    यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+        प्रत्यागमनम् समूहपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+    इति
+
+    ॰ प्रत्यागमनवाक्यम् ।
+    यदि मेलनम् आरभ्य उक्तम् प्रत्यागमनम् इति समाप्तम् आदि
+        चरः मूल्य ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱप्रत्यागमनवाक्यभेद ऽ मूल्य ऽ ० समाप्तम् ।
+    इति
+
+    ॰ आयातवाक्यम् ।
+    यदि मेलनम् आरभ्य उक्तम् आयातः इति समाप्तम् आदि
+        चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+        चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱआयातवाक्यभेद ऽ पठनस्थान ऽ ० समाप्तम् ।
+    इति
+
+    ॰ चरवाक्यम् ॱ चरः नाम ॱॱ प्रकारः भवति अभिव्यञ्जकम् ।
+    यदि मेलनम् आरभ्य उक्तम् चरः इति समाप्तम् आदि
+        चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+        चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+        चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ॱॱ इति समाप्तम् ।
+        चरः प्रकारसूचक ॱॱ न६४ भवति प्रकारपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        चरः मूल्य ॱॱ न६४ भवति ० ।
+        यदि मेलनम् आरभ्य उक्तम् भवति इति समाप्तम् आदि
+            मूल्य भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        इति
+        चरः अवगणनद्वि ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+        ॰ W-183: keep the declared type on the statement. `वाक्ययोजनम्` writes ० for it;
+        ॰ copy-modify-write, the arena idiom (no in-place field write exists).
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        चरः चरसूचकः ॱॱ न६४ भवति वाक्ययोजनम् आरभ्य वास्तुॱचरवाक्यभेद ऽ नामस्थान ऽ मूल्य समाप्तम् ।
+        चरः चरवाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः चरसूचकः अन्तः ।
+        चरवाक्यम् ॱ प्रकारसूचकाङ्क भवति प्रकारसूचक ।
+        वास्तुॱवाक्यकोश अङ्कः चरसूचकः अन्तः भवति चरवाक्यम् ।
+        प्रत्यागमनम् चरसूचकः ।
+    इति
+
+    ॰ यदिवाक्यम् ॱ अन्यथाशाखा वैकल्पिकी ।
+    यदि मेलनम् आरभ्य उक्तम् यदि इति समाप्तम् आदि
+        चरः शर्त ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        चरः शरीर ॱॱ न६४ भवति ० ।
+        ॰ A `यदि` WITHOUT `आदि` IS AN ERROR AND WAS SILENCE. If the condition
+        ॰ did not end where a body should open, this arm simply left `शरीर` at
+        ॰ ० and returned a `यदि` node with NO BODY, recording nothing. The
+        ॰ tokens meant for the body then fell to the statement loop, and the
+        ॰ first one that could not start a statement — an `अन्यथा`, an `इति` —
+        ॰ became a NAME. That is how `sanskrit_text.t1:813` reaches `अर्थ` as an
+        ॰ undeclared `अन्यथा`, and why `W-186` measured ZERO parse errors on a
+        ॰ corpus the parser was mis-reading: this path could not report.
+        यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+            शरीर भवति समूहपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+            प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् यदेः शर्तानन्तरम् आदि अपेक्षितम् इति समाप्तम् ।
+        इति
+        चरः अन्यशरीर ॱॱ न६४ भवति ० ।
+        यदि मेलनम् आरभ्य उक्तम् अन्यथा इति समाप्तम् आदि
+            यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+                अन्यशरीर भवति समूहपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+            इति
+        इति
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        चरः यदिस्थान ॱॱ न६४ भवति वाक्ययोजनम् आरभ्य वास्तुॱयदिवाक्यभेद ऽ शर्त ऽ शरीर समाप्तम् ।
+        ॰ THE ELSE BODY WAS PARSED AND DROPPED HERE. `अन्यशरीर` was a local of
+        ॰ the nested block above and nothing read it: `वास्तुॱवाक्य` had two
+        ॰ child slots and `यदि` spends them on the condition and the then-body.
+        ॰ So every `अन्यथा` in the corpus reached no stage after this one, and
+        ॰ `मध्यरूप` could not have lowered it (`W-198`). Filled after the push
+        ॰ so `वाक्ययोजनम्` keeps its arity — copy the node, set the slot, write
+        ॰ it back, which is how this file writes an arena element.
+        यदि अन्यशरीर अधिकम् ० आदि
+            चरः यदिवाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः यदिस्थान अन्तः ।
+            यदिवाक्यम् ॱ अन्यसूचकाङ्क भवति अन्यशरीर ।
+            वास्तुॱवाक्यकोश अङ्कः यदिस्थान अन्तः भवति यदिवाक्यम् ।
+        इति
+        प्रत्यागमनम् यदिस्थान ।
+    इति
+
+    ॰ यावत्वाक्यम् ।
+    यदि मेलनम् आरभ्य उक्तम् यावत् इति समाप्तम् आदि
+        चरः शर्त ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        चरः शरीर ॱॱ न६४ भवति ० ।
+        ॰ THE SAME SILENCE AS THE `यदि` ARM ABOVE, and for the same reason.
+        यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+            शरीर भवति समूहपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        इति अन्यथा आदि
+            प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् यावतः शर्तानन्तरम् आदि अपेक्षितम् इति समाप्तम् ।
+        इति
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱयावत्वाक्यभेद ऽ शर्त ऽ शरीर समाप्तम् ।
+    इति
+
+    ॰ अन्यथा अभिव्यञ्जकवाक्यम् ऽ अथवा नियोजनवाक्यम् ।
+    चरः वाम ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+    यदि मेलनम् आरभ्य उक्तम् भवति इति समाप्तम् आदि
+        चरः दक्षिण ॱॱ न६४ भवति अभिव्यञ्जकपठनम् आरभ्य गभीरता योगः १ समाप्तम् ।
+        चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+        वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+        प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱसमवाक्यभेद ऽ वाम ऽ दक्षिण समाप्तम् ।
+    इति
+    चरः अवगणनत्रि ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+    वाक्यारम्भस्थान भवति आरम्भस्थानम् ।
+    प्रत्यागमनम् वाक्ययोजनम् आरभ्य वास्तुॱअभिव्यञ्जकवाक्यभेद ऽ वाम ऽ ० समाप्तम् ।
+इति
+
+॰ ॥ घोषणापठनम् ॥
+॰ वृत्तिः नाम आदाय प्राचलानि ददाति प्रकारः आदि शरीरम् इति ।
+
+सार्वजनिक वृत्तिः वृत्तिपठनम् आदाय सार्वजनिकत्व ॱॱ बूल ददाति न६४ आदि
+    ॰ THE INDEX IS TAKEN BEFORE THE READ. `अग्रिमम्` reads AT `पठनस्थान` and THEN
+    ॰ increments (:56-57), so capturing it afterwards named the token AFTER the
+    ॰ name — measured as `नामसूचकाङ्क=3` for `वृत्तिः क ददाति`, which is `ददाति`.
+    चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+    चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+
+    ॰ ० ० means NO PARAMETERS, and slot ० is the reserved one, so ० can carry
+    ॰ that meaning without colliding with a real parameter.
+    चरः प्राचलादि ॱॱ अ६४ भवति ० ।
+    चरः प्राचलान्त ॱॱ अ६४ भवति ० ।
+
+    ॰ प्राचलानि ऽ ऽ चिह्नेन विभक्तानि ।
+    ॰
+    ॰ THIS LOOP HAD NO EXIT — fixed 2026-09-01, and it is why nothing in this
+    ॰ corpus could parse itself. It was bounded ONLY by the end of the token
+    ॰ stream. On seeing `ददाति` it stepped back one and CARRIED ON, so the next
+    ॰ turn read `ददाति` as another parameter NAME, `प्रकारपठनम्` ate the return
+    ॰ type, and the loop went on through `आदि` and the entire body. (The two
+    ॰ `योगः ०` arms it used to have were a no-op in both branches.)
+    ॰
+    ॰ IT WAS SILENT, WHICH IS WHY IT LASTED. A runaway that swallows the body
+    ॰ leaves nothing to complain about, so `कार्यक्रमपठनम्` still answers ONE
+    ॰ declaration with `दोषसूचकाङ्क` ०. A check on those two numbers passes on a
+    ॰ parse that read no statements at all — measured: `वाक्यकोश` held ० of the
+    ॰ body's three statements while the parse reported success.
+    ॰
+    ॰ FOUND BY BISECTING `lex.t1`. Of five variants of one real routine, the
+    ॰ ONLY one that parsed was the one with its parameter removed. The 213
+    ॰ corpus parse errors all sat on lines containing `अङ्कः`, which read like
+    ॰ a missing index production; the index was a red herring, and those lines
+    ॰ are simply where a runaway that started in the signature finally tripped.
+    ॰
+    ॰ `ददाति` IS PUT BACK, NOT CONSUMED: the return type below matches it.
+    यदि मेलनम् आरभ्य उक्तम् आदाय इति समाप्तम् आदि
+        चरः प्राचलचालु ॱॱ बूल भवति सत्यम् ।
+        यावत् प्राचलचालु समम् सत्यम् आदि
+            यदि पठनस्थान बृहत्समम् चिह्नकदैर्घ्य आदि
+                प्राचलचालु भवति असत्यम् ।
+            इति अन्यथा आदि
+                यदि मेलनम् आरभ्य उक्तम् ददाति इति समाप्तम् आदि
+                    पठनस्थान भवति पठनस्थान वियोगः १ ।
+                    प्राचलचालु भवति असत्यम् ।
+                इति अन्यथा आदि
+                ॰ W-226 (2026-09-04): THE BODY OPENER ENDS THE LIST TOO. Without
+                ॰ this arm a header with parameters and no `ददाति` read `आदि`
+                ॰ and the whole body as parameter names — the runaway the note
+                ॰ above describes, still reachable from one missing word. Put
+                ॰ back, like `ददाति`, for `समूहपठनम्` below; the missing
+                ॰ `ददाति` is then refused after the loop, at the routine's name.
+                यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+                    पठनस्थान भवति पठनस्थान वियोगः १ ।
+                    प्राचलचालु भवति असत्यम् ।
+                इति अन्यथा आदि
+                    ॰ THE NAME'S INDEX IS TAKEN BEFORE `अग्रिमम्` MOVES IT — the
+                    ॰ same rule as the routine's own name above.
+                    चरः प्राचलनामस्थान ॱॱ अ६४ भवति पठनस्थान ।
+                    चरः प्राचलनाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+                    चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ॱॱ इति समाप्तम् ।
+                    चरः प्राचलप्रकार ॱॱ अ६४ भवति प्रकारपठनम् आरभ्य ० समाप्तम् ।
+
+                    ॰ RECORDED, NOT DROPPED. This is what the resolver needs to
+                    ॰ put a parameter in its body's scope.
+                    चरः प्राचलस्थान ॱॱ अ६४ भवति प्राचलयोजनम् प्राचलनामस्थान प्राचलप्रकार ।
+                    यदि प्राचलादि समम् ० आदि
+                        प्राचलादि भवति प्राचलस्थान ।
+                    इति
+                    प्राचलान्त भवति प्राचलस्थान ।
+
+                    चरः अवगणनद्वि ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ऽ इति समाप्तम् ।
+                इति
+                इति
+            इति
+        इति
+    इति
+
+    ॰ W-226: `ददाति type` IS MANDATORY — `routine` in the grammar says so, from
+    ॰ 463 of 463 headers — and its absence is REFUSED HERE, AT THE NAME: the
+    ॰ error record takes the name token's line and column, so the reader is
+    ॰ told which routine, and the reason is one phrase. The parse then reads
+    ॰ on with no return type (the body still parses) so that one missing word
+    ॰ is one error and not a cascade; `कार्यक्रमपठनम्` answers ० all the same.
+    चरः प्रतिफल ॱॱ न६४ भवति ० ।
+    यदि मेलनम् आरभ्य उक्तम् ददाति इति समाप्तम् आदि
+        प्रतिफल भवति प्रकारपठनम् आरभ्य ० समाप्तम् ।
+    इति अन्यथा आदि
+        चरः पूर्वस्थानम् ॱॱ न६४ भवति पठनस्थान ।
+        पठनस्थान भवति नामस्थान ।
+        चरः अवगणनदोष ॱॱ न६४ भवति दोषयोजनम् आरभ्य उक्तम् वृत्तेः ददाति अपेक्षितम् इति समाप्तम् ।
+        पठनस्थान भवति पूर्वस्थानम् ।
+    इति
+
+    चरः शरीर ॱॱ न६४ भवति ० ।
+    यदि मेलनम् आरभ्य उक्तम् आदि इति समाप्तम् आदि
+        शरीर भवति समूहपठनम् आरभ्य ० समाप्तम् ।
+    इति
+
+    चरः नव ॱॱ घोषणा भवति ० ।
+    नव ॱ भेद भवति वृत्तिघोषणाभेद ।
+    नव ॱ नामसूचकाङ्क भवति नामस्थान ।
+    नव ॱ प्रकारसूचकाङ्क भवति प्रतिफल ।
+    नव ॱ शरीरसूचकाङ्क भवति शरीर ।
+    नव ॱ प्राचलादि भवति प्राचलादि ।
+    नव ॱ प्राचलान्त भवति प्राचलान्त ।
+    नव ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+    घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+    घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नव ।
+    प्रत्यागमनम् घोषणासूचकाङ्क ।
+इति
+
+॰ संरचनाघोषणा ऽ क्षेत्राणि ऽ चिह्नेन विभक्तानि ऽ समाप्तम् इत्यन्तम् ।
+
+सार्वजनिक वृत्तिः संरचनापठनम् आदाय सार्वजनिकत्व ॱॱ बूल ददाति न६४ आदि
+    चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+    चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+    चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् आरभ्य इति समाप्तम् ।
+
+    ॰ THE FIELDS ARE KEPT — `W-215`. This loop read one token per turn and
+    ॰ dropped it, so a struct's घोषणा knew its name and nothing else, and no
+    ॰ pass after the parser could see a field. A field is a name and a type,
+    ॰ exactly what a प्राचल is, so fields go through `प्राचलयोजनम्` and the
+    ॰ struct's घोषणा records their run as `वृत्तिपठनम्` records parameters.
+    चरः क्षेत्रादि ॱॱ न६४ भवति ० ।
+    चरः क्षेत्रान्त ॱॱ न६४ भवति ० ।
+    यावत् पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        यदि मेलनम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+            चरः नव ॱॱ घोषणा भवति ० ।
+            नव ॱ भेद भवति प्रकारघोषणाभेद ।
+            नव ॱ नामसूचकाङ्क भवति नामस्थान ।
+            नव ॱ प्रकारसूचकाङ्क भवति ० ।
+            नव ॱ शरीरसूचकाङ्क भवति ० ।
+            नव ॱ प्राचलादि भवति क्षेत्रादि ।
+            नव ॱ प्राचलान्त भवति क्षेत्रान्त ।
+            नव ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+            घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+            घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नव ।
+            ॰ the closing `।` is this reader's, not the program loop's — `W-240`.
+            चरः अवगणनदण्ड ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+            प्रत्यागमनम् घोषणासूचकाङ्क ।
+        इति
+        चरः क्षेत्रनामस्थान ॱॱ न६४ भवति पठनस्थान ।
+        चरः क्षेत्रनाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+        चरः अवगणनचिह्न ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ॱॱ इति समाप्तम् ।
+        चरः क्षेत्रप्रकार ॱॱ न६४ भवति प्रकारपठनम् आरभ्य ० समाप्तम् ।
+        चरः क्षेत्रस्थान ॱॱ न६४ भवति प्राचलयोजनम् क्षेत्रनामस्थान क्षेत्रप्रकार ।
+        यदि क्षेत्रादि समम् ० आदि
+            क्षेत्रादि भवति क्षेत्रस्थान ।
+        इति
+        क्षेत्रान्त भवति क्षेत्रस्थान ।
+        चरः अवगणनविभाग ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ऽ इति समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् समाप्तम् अपेक्षितम् इति समाप्तम् ।
+इति
+
+॰ ॥ गणनापठनम् ॥ गणनाघोषणा ऽ तस्याः भेदाः च मण्डलपरिसरे नामानि ।
+॰
+॰ `गणना` HAD NO ARM AT ALL. `कार्यक्रमपठनम्` matched `वृत्तिः`, `संरचना`,
+॰ `आयातः` and `चरः`, and everything else fell to the skip at the bottom of that
+॰ loop — "अपरिचितं चिह्नकम् अतिक्रम्यते". So a whole
+॰ `सार्वजनिक गणना लक्ष्य आरभ्य … समाप्तम्` was consumed token by token, declared
+॰ nothing, and recorded NO ERROR. `encode.t1:3843`'s margin says
+॰ "`असङ्कुचितम्` is a name in scope"; it was not, and the resolver said so.
+॰
+॰ A VARIANT IS A NAME AT MODULE SCOPE, which is how the corpus writes it:
+॰ `encode.t1:3845` passes bare `असङ्कुचितम्`, not `लक्ष्यॱअसङ्कुचितम्`. So each
+॰ variant is pushed as its own declaration and `अर्थ` needs no change.
+॰
+॰ A STRUCT'S FIELDS ARE NOT, and that is why this is a separate routine rather
+॰ than a flag on `संरचनापठनम्`: `संरचना` keeps dropping its field names,
+॰ correctly — a field is reached through a value, never named on its own.
+सार्वजनिक वृत्तिः गणनापठनम् आदाय सार्वजनिकत्व ॱॱ बूल ददाति न६४ आदि
+    चरः नामस्थान ॱॱ न६४ भवति पठनस्थान ।
+    चरः नाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+    चरः अवगणना ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् आरभ्य इति समाप्तम् ।
+
+    ॰ the enum's own name, as a type declaration.
+    चरः नव ॱॱ घोषणा भवति ० ।
+    नव ॱ भेद भवति गणनाघोषणाभेद ।
+    नव ॱ नामसूचकाङ्क भवति नामस्थान ।
+    नव ॱ प्रकारसूचकाङ्क भवति ० ।
+    नव ॱ शरीरसूचकाङ्क भवति ० ।
+    नव ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+    घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+    घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नव ।
+    चरः गणनास्थान ॱॱ न६४ भवति घोषणासूचकाङ्क ।
+    ॰ the run of variant declarations, written onto the enum's घोषणा at
+    ॰ `समाप्तम्` by copy-modify-write — `W-215`; see गणनाघोषणाभेद.
+    चरः भेदादि ॱॱ न६४ भवति ० ।
+    चरः भेदान्त ॱॱ न६४ भवति ० ।
+
+    यावत् पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        यदि मेलनम् आरभ्य उक्तम् समाप्तम् इति समाप्तम् आदि
+            चरः गणनाघोषणा ॱॱ घोषणा भवति घोषणाकोश अङ्कः गणनास्थान अन्तः ।
+            गणनाघोषणा ॱ प्राचलादि भवति भेदादि ।
+            गणनाघोषणा ॱ प्राचलान्त भवति भेदान्त ।
+            घोषणाकोश अङ्कः गणनास्थान अन्तः भवति गणनाघोषणा ।
+            ॰ the closing `।` is this reader's, not the program loop's — `W-240`.
+            चरः अवगणनदण्ड ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+            प्रत्यागमनम् गणनास्थान ।
+        इति
+
+        चरः भेदनामस्थान ॱॱ न६४ भवति पठनस्थान ।
+        चरः भेदनाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+
+        चरः नवभेद ॱॱ घोषणा भवति ० ।
+        नवभेद ॱ भेद भवति चरघोषणाभेद ।
+        नवभेद ॱ नामसूचकाङ्क भवति भेदनामस्थान ।
+        नवभेद ॱ प्रकारसूचकाङ्क भवति ० ।
+        नवभेद ॱ शरीरसूचकाङ्क भवति ० ।
+        नवभेद ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+        घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+        घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नवभेद ।
+        यदि भेदादि समम् ० आदि
+            भेदादि भवति घोषणासूचकाङ्क ।
+        इति
+        भेदान्त भवति घोषणासूचकाङ्क ।
+
+        ॰ `ऽ` separates variants and the last one carries none.
+        चरः अवगणनविभाग ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ऽ इति समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् गणनायाः समाप्तम् अपेक्षितम् इति समाप्तम् ।
+इति
+
+॰ ॥ कार्यक्रमपठनम् ॥
+॰ प्रवेशद्वारम् ऽ सर्वाः घोषणाः पठति ऽ घोषणासङ्ख्यां ददाति ।
+
+सार्वजनिक वृत्तिः कार्यक्रमपठनम् आदाय दैर्घ्य ॱॱ न६४ ददाति दोषयुक्त न६४ आदि
+    ॰ ONE-BASED, W-164. This read from ० and the first token is at १.
+    ॰
+    ॰ `पदविभाग` resets `चिह्नकसूचकाङ्क` to ० and every `चिह्नकयोजनम्`
+    ॰ ADVANCES BEFORE WRITING — the appender idiom every arena in this corpus
+    ॰ uses — so tokens occupy १..N and slot ० is never written, holding the
+    ॰ reserved `शून्यम्`. Reading from ० took that शून्यम् and raised
+    ॰ "`ॱ भेद` read from Nil"; the loop also stopped one token SHORT at the far
+    ॰ end. The T1 parser could not read the T1 lexer's output at all.
+    ॰
+    ॰ NOTHING CAUGHT IT BECAUSE NOTHING RAN THE PAIR: the lexer and the parser
+    ॰ are tested separately, and every parser test builds its input by calling
+    ॰ the appenders directly rather than by lexing source. Both halves passed
+    ॰ while the seam was broken. The end-to-end test in t1_execution.rs is what
+    ॰ found it, and exists so the pair cannot come apart again silently.
+    ॰
+    ॰ THE PARSER IS THE SIDE THAT MOVED, and deliberately: the lexer follows the
+    ॰ corpus-wide idiom, so it is the reader that was out of step. W-163 records
+    ॰ the same class of mismatch one layer up, in the opposite direction — the
+    ॰ real defect is that the convention is nowhere stated normatively.
+    पठनस्थान भवति १ ।
+    ॰ ॥ AND THE MATCH CACHE IS EMPTIED HERE ॥ Position 5 is a DIFFERENT token in
+    ॰ the next program, so a cache that survives between programs makes the second
+    ॰ one read the first one's text. That is the same class as the empty-literal
+    ॰ defect this corpus just paid for — a value that outlives the program it was
+    ॰ taken from, passing only because of what ran before it.
+    मेलनस्थानम् भवति ० ।
+    चिह्नकदैर्घ्य भवति आरभ्य दैर्घ्य योगः १ समाप्तम् ।
+    घोषणासूचकाङ्क भवति ० ।
+    दोषसूचकाङ्क भवति ० ।
+    मण्डलनामसूचकाङ्क भवति ० ।
+    उपेक्षितचिह्नकसंख्या भवति ० ।
+
+    ॰ W-230 (2026-09-04): THIS LOOP'S STEP IS INSIDE ITS CALLS. The condition
+    ॰ reads `पठनस्थान` and no statement of the body assigns it: every arm
+    ॰ advances the cursor through `मेलनम्` (the keyword test, which consumes
+    ॰ on a match) or `अग्रिमम्` (the skip, which reads and advances), directly
+    ॰ or inside `वृत्तिपठनम्`/`संरचनापठनम्`/`गणनापठनम्`/`मण्डलचरपठनम्`. Of the
+    ॰ corpus's 237 loops it is the one that steps neither in its own body nor
+    ॰ by return (W-207), and the loop census now follows ONE CALL LEVEL —
+    ॰ `मेलनम्` and `अग्रिमम्` both assign `पठनस्थान` in their own bodies — so
+    ॰ the step is seen where it is. In the paradigm the step is the न letter
+    ॰ inside the loop's run; here the run is the parser's, and the letter sits
+    ॰ one call deep.
+    यावत् पठनस्थान न्यूनम् चिह्नकदैर्घ्य आदि
+        चरः सार्वजनिकत्व ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् सार्वजनिक इति समाप्तम् ।
+
+        ॰ `मण्डलम् NAME ॥` — the name's token is kept, see मण्डलनामसूचकाङ्क;
+        ॰ the `॥` is consumed as `।` is after an import. `W-215`.
+        यदि मेलनम् आरभ्य उक्तम् मण्डलम् इति समाप्तम् आदि
+            मण्डलनामसूचकाङ्क भवति पठनस्थान ।
+            चरः अवगणनमण्डल ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+            चरः अवगणनयुग्मदण्ड ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् ॥ इति समाप्तम् ।
+        इति अन्यथा आदि
+        यदि मेलनम् आरभ्य उक्तम् वृत्तिः इति समाप्तम् आदि
+            चरः अवगणना ॱॱ न६४ भवति वृत्तिपठनम् आरभ्य सार्वजनिकत्व समाप्तम् ।
+        इति अन्यथा आदि
+            यदि मेलनम् आरभ्य उक्तम् संरचना इति समाप्तम् आदि
+                चरः अवगणनद्वि ॱॱ न६४ भवति संरचनापठनम् आरभ्य सार्वजनिकत्व समाप्तम् ।
+            इति अन्यथा आदि
+            यदि मेलनम् आरभ्य उक्तम् गणना इति समाप्तम् आदि
+                चरः अवगणनषट् ॱॱ न६४ भवति गणनापठनम् आरभ्य सार्वजनिकत्व समाप्तम् ।
+            इति अन्यथा आदि
+                यदि मेलनम् आरभ्य उक्तम् आयातः इति समाप्तम् आदि
+                    ॰ `import = "आयातः" , identifier , danda` — :405.
+                    चरः आयातनामस्थान ॱॱ न६४ भवति पठनस्थान ।
+                    चरः आयातनाम ॱॱ सम्भाव्य पदविभागॱचिह्नक भवति अग्रिमम् आरभ्य ० समाप्तम् ।
+                    चरः अवगणनपञ्च ॱॱ बूल भवति मेलनम् आरभ्य उक्तम् । इति समाप्तम् ।
+                    चरः नवायात ॱॱ घोषणा भवति ० ।
+                    नवायात ॱ भेद भवति आयातघोषणाभेद ।
+                    नवायात ॱ नामसूचकाङ्क भवति आयातनामस्थान ।
+                    नवायात ॱ प्रकारसूचकाङ्क भवति ० ।
+                    नवायात ॱ शरीरसूचकाङ्क भवति ० ।
+                    नवायात ॱ प्राचलादि भवति ० ।
+                    नवायात ॱ प्राचलान्त भवति ० ।
+                    नवायात ॱ सार्वजनिकत्व भवति सार्वजनिकत्व ।
+                    घोषणासूचकाङ्क भवति घोषणासूचकाङ्क योगः १ ।
+                    घोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः भवति नवायात ।
+                इति अन्यथा आदि
+                यदि मेलनम् आरभ्य उक्तम् चरः इति समाप्तम् आदि
+                    चरः अवगणनचतुर् ॱॱ अ६४ भवति मण्डलचरपठनम् आरभ्य सार्वजनिकत्व समाप्तम् ।
+                इति अन्यथा आदि
+                    ॰ अपरिचितं चिह्नकम् अतिक्रम्यते ऽ मूलसंस्करणवत् ।
+                    ॰ A TOKEN NO ARM READS IS REFUSED, NOT STEPPED OVER — `W-240`.
+                    ॰ This arm consumed the token and said nothing, which is how a
+                    ॰ doc-02 `.सस` file "parsed" into a remnant of its declarations
+                    ॰ and how 58 closing dandas of the corpus's own संरचना/गणना
+                    ॰ declarations went unread (W-215 counted them; the two readers
+                    ॰ consume their `।` now). research/22 §3.1: a marker resolves or
+                    ॰ is refused, never dropped. The count is still kept, so the
+                    ॰ census can pin it at ० over the corpus; then the refusal.
+                    उपेक्षितचिह्नकसंख्या भवति उपेक्षितचिह्नकसंख्या योगः १ ।
+                    प्रत्यागमनम् दोषयोजनम् आरभ्य उक्तम् घोषणा अपेक्षितम् इति समाप्तम् ।
+                इति
+                इति
+            इति
+            इति
+        इति
+        इति
+    इति
+
+    यदि दोषसूचकाङ्क अधिकम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    प्रत्यागमनम् घोषणासूचकाङ्क ।
+इति

@@ -1,0 +1,34 @@
+मण्डलम् द्विगुणम् ॥   ॰ double a number — the smallest step past नमस्कारः
+
+॰ THE ANSWER IS ४२. द्विगुणम् २१ = ४२.
+॰ MEASURED 2026-09-04, by the chain in `crates/yantra/tests/paradigm_encode.rs`
+॰ run over this directory: lex, parse, resolve, typecheck, IR, emit, assemble,
+॰ link, load, run — every stage passes, and both emitter twins write the same
+॰ octets. IT RETURNS 42.
+॰
+॰ RE-MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file:
+॰ 2 routines, 4 blocks, SEVEN IR instructions, 1 constant (non-zero), and the machine halts with status 42.
+॰ UNTIL 2026-09-05 THIS LINE READ "It reaches the machine and returns ०", and it
+॰ was true when measured. Three changes made it false, in order: `W-257` opened
+॰ `ir.t1:454`, a numeral guard testing a token kind `lex.t1` never emits by
+॰ design; 47bad575 taught `अक्षरकोशॱसङ्ख्या` to accumulate its digits rather than
+॰ answer the radix; and `W-245` gave `ir.t1` the statement kinds and instruction
+॰ forms it lacked, so `चरः`, `यदि` and `यावत्` lower rather than vanishing.
+॰
+॰ WHY THE ANSWER IS ० AND NOT THE ONE ABOVE: a numeral literal lowers to a ZERO
+॰ constant. `प्रत्यागमनम् ७ ।` alone builds one IR instruction and that
+॰ instruction is the constant ०. So no program here can return a number a
+॰ person chose, and that is upstream of arithmetic, loops and calls alike.
+॰
+॰ `नमस्कारः` reaches the machine today with a constant and a call that takes no
+॰ argument. This program adds EXACTLY TWO THINGS to it: one argument, and one
+॰ `योगः`. If `नमस्कारः` runs and this one stops, the stage it stops at names the
+॰ cheapest thing that would move the demonstration forward.
+
+सार्वजनिक वृत्तिः द्विगुणम् ददाति न६४ आदि
+    प्रत्यागमनम् द्विगुणय २१ ।
+इति
+
+सार्वजनिक वृत्तिः द्विगुणय आदाय संख्या ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् संख्या योगः संख्या ।
+इति

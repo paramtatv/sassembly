@@ -1,0 +1,57 @@
+# The Sassembly application call table — ADR-0015 clause A3, task `F-001e1`,
+# doc 07 §3.
+#
+# ADR-0015: an application's "only call outward is `ecall`, which from U-mode is
+# exception 8 delivered to the supervisor's `stvec`. **It is not SBI.**"
+#
+# THE CALL NUMBER IS IN `a7`, WHICH IS WHERE SBI PUTS ITS EXTENSION ID, AND THAT
+# IS ON PURPOSE. The number space is not what separates this ABI from SBI — the
+# PRIVILEGE is. The same `ecall`, the same `a7`, the same number means two
+# different things depending on which mode executed it, because from S-mode it
+# raises `scause` 9 and this machine answers it as firmware, and from U-mode it
+# raises 8 and goes to `stvec`, which is the supervisor. Call 0 here is
+# `sbi_set_timer` there; SBI's `sbi_shutdown` is 8, and an application that puts
+# 8 in `a7` does not stop the machine — it makes an unsupported call and is told
+# so. `crates/yantra/tests/application_abi.rs` executes both and asserts it.
+#
+# Choosing a disjoint number space instead would have bought nothing and implied
+# something false: that the two interfaces share a namespace and merely avoid
+# each other. They do not share one.
+#
+# ARGUMENTS are `a0`..`a5`, six at most, because that is what the register file
+# gives. RETURNS are `a0` — an error code from the `errors` column — and `a1`,
+# the value, when the call has one. `a0` and `a1` are the ONLY registers the
+# environment may clobber; everything else is preserved across the call, which is
+# SBI's own rule and the one a caller can actually rely on.
+#
+# TWO CALLS, AND THAT IS THE WHOLE ABI. ADR-0015 names five clauses; exactly two
+# of them need a call. A5 needs an exit (call 0) and A4 needs a write to a
+# granted surface (call 1). A1 is a register contract, not a call
+# (`spec/application-entry.tsv`); A2 and A3 are properties of the machine. A
+# `read`, a `time`, an `open` and a handle-introspection call are all obvious and
+# all speculative: no program in this tree needs one, and ADR-0015 rejects by
+# name the habit of writing the interface before the thing that uses it.
+#
+# RESERVED. Numbers 2..=63 are this file's to assign. 64 and above are refused
+# with असमर्थितम् and are reserved for a per-module call space that doc 07 §3's
+# module declaration would name; nothing implements that yet and this file does
+# not promise it.
+#
+# ERROR CODES. `a0` is 0 on success and negative on failure. Four of the five
+# names below were already in `spec/lexicon.tsv` carrying exactly this sense,
+# which is the evidence that the ABI is made of this system's own vocabulary
+# rather than of errno:
+#
+#    0  सिद्धम्         the call succeeded
+#   -1  असमर्थितम्      unsupported — no such call number
+#   -2  अधिकाराभावः     capability denied — the handle does not permit this
+#   -3  रिक्तप्रवेशः     null access — the buffer is not readable by this program
+#   -4  सीमातिक्रमः     index out of bounds — no such handle
+#
+# `does-not-return` is `yes` for a call the program never resumes from. Call 0 is
+# the only one, and it is not a halt: the environment survives it (A5).
+#
+# Columns: number, devanagari, name, arity, args, returns, errors, does-not-return
+number	devanagari	name	arity	args	returns	errors	does-not-return
+0	समापनम्	exit	1	a0=status	-	-	yes
+1	आलेखनम्	write	3	a0=handle,a1=buffer,a2=length	a1=bytes written	असमर्थितम्,अधिकाराभावः,रिक्तप्रवेशः,सीमातिक्रमः	no
