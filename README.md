@@ -9,7 +9,7 @@ targeting bare-metal RISC-V.**
 
 <https://github.com/paramtatv/sassembly> · docs and playground:
 <https://paramtatv.github.io/sassembly/> · study group:
-[Discord](https://discord.gg/TFmdNsUV7)
+[Discord](https://discord.gg/XvYvXR8HAh)
 
 Sassembly is an instruction set architecture and a systems language whose
 keywords are Sanskrit words and whose operand roles are marked by **kāraka
@@ -212,7 +212,7 @@ stage 2 is an error, not a shortcut.
 ## The study group
 
 There is a Discord for reading this compiler together —
-**<https://discord.gg/TFmdNsUV7>**.
+**<https://discord.gg/XvYvXR8HAh>**.
 
 It is for people who want to work through the sources rather than watch from
 outside: how a `यदि` arm becomes a block, why `अष्टकॱमुद्रणम्` is a store and
