@@ -8,7 +8,8 @@
 targeting bare-metal RISC-V.**
 
 <https://github.com/paramtatv/sassembly> · docs and playground:
-<https://paramtatv.github.io/sassembly/>
+<https://paramtatv.github.io/sassembly/> · study group:
+[Discord](https://discord.gg/TFmdNsUV7)
 
 Sassembly is an instruction set architecture and a systems language whose
 keywords are Sanskrit words and whose operand roles are marked by **kāraka
@@ -207,6 +208,21 @@ around it are scaffolding for reaching it.
 The compiler is two stages —
 `src --मण्डलसङ्कलनम्--> asm --पाठवस्तुरचना--> object` — and feeding source to
 stage 2 is an error, not a shortcut.
+
+## The study group
+
+There is a Discord for reading this compiler together —
+**<https://discord.gg/TFmdNsUV7>**.
+
+It is for people who want to work through the sources rather than watch from
+outside: how a `यदि` arm becomes a block, why `अष्टकॱमुद्रणम्` is a store and
+not a call, what a kāraka sigil buys over positional operands, and how the
+fixpoint is actually measured. The 21 `.t1` files are the whole compiler and
+they are readable — but they are readable in Sanskrit, and reading them in
+company is faster than reading them alone.
+
+Bring a question about a specific line. That works better here than a general
+one.
 
 ## Licence
 
