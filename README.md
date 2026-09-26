@@ -37,7 +37,20 @@ Stage 1   the compiler's 21 sources, compiled by the interpreted compiler
 Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 ```
 
-**Measured 2026-09-24, `tools/fixpoint.sh`:**
+**Measured 2026-09-25, `tools/fixpoint.sh`, in a fresh clone of THIS
+repository** — not inherited from the tree it was extracted from:
+
+```
+fixpoint: packing the corpus from crates/sadhana-t1/src
+packed 21 source(s), 4312336 octets
+fixpoint: Stage 1  1393602 octets
+fixpoint: Stage 2  1393602 octets
+FIXPOINT HOLDS: 1393602 octets, byte-identical
+```
+
+Stage 1 took ~47 min and Stage 2 ~69 min on a 2019 Intel Mac, with a high
+water of 1,587,571,536 octets of the 2,684,354,560 the run is given. The
+figures below are that run.
 
 | quantity | value |
 |---|---|
