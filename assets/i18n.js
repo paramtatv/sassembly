@@ -27,6 +27,11 @@
 
     /* ── संस्कृतम् ──────────────────────────────────────────────────────── */
     sa: {
+      'foot.discord': 'अध्ययनसङ्घः',
+      'comm.h': 'सङ्कलकं सह पठामः',
+      'comm.b': 'संस्कृतयन्त्रस्य विकासकानाम् अध्ययनसङ्घः Discord इत्यत्र — सङ्कलकः सह पठ्यते, प्रश्नाः पृच्छ्यन्ते, कार्यं च विभज्यते। आगन्तुं सर्वे स्वागताः।',
+      'comm.cta': 'सङ्घे सम्मिल',
+      'comm.note': 'यः सङ्कलकः स्वयं पठनीयः, सः सह पठनीयः अपि।',
       'lang.label': 'भाषा',
       'nav.learn': 'अध्ययनम्',
       'nav.reference': 'सन्दर्भः',
@@ -213,6 +218,11 @@
 
     /* ── English ────────────────────────────────────────────────────────── */
     en: {
+      'foot.discord': 'Discord',
+      'comm.h': 'Read the compiler together',
+      'comm.b': 'A study group for Sassembly developers on Discord — reading the compiler, asking questions, dividing the work. Everyone is welcome.',
+      'comm.cta': 'Join the study group',
+      'comm.note': 'a compiler meant to be read is a compiler meant to be read together',
       'lang.label': 'Language',
       'nav.learn': 'Learn', 'nav.reference': 'Reference', 'nav.playground': 'Playground',
       'nav.downloads': 'Downloads', 'nav.cta': 'Get the toolchain', 'nav.verify': 'Verify a build',
@@ -370,6 +380,11 @@
 
     /* ── हिन्दी ─────────────────────────────────────────────────────────── */
     hi: {
+      'foot.discord': 'डिस्कॉर्ड',
+      'comm.h': 'कंपाइलर साथ मिलकर पढ़ें',
+      'comm.b': 'Sassembly डेवलपर्स का अध्ययन समूह Discord पर — कंपाइलर पढ़ना, प्रश्न पूछना, काम बाँटना। सब सादर आमंत्रित हैं।',
+      'comm.cta': 'समूह में शामिल हों',
+      'comm.note': 'जो कंपाइलर पढ़े जाने के लिए बना है, वह साथ पढ़े जाने के लिए भी बना है',
       'lang.label': 'भाषा',
       'nav.learn': 'सीखें', 'nav.reference': 'संदर्भ', 'nav.playground': 'प्रयोगशाला',
       'nav.downloads': 'डाउनलोड', 'nav.cta': 'टूलचेन प्राप्त करें', 'nav.verify': 'बिल्ड जाँचें',
