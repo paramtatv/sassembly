@@ -239,13 +239,28 @@ td.mono, th.mono { font-family: var(--mono); font-size: 13px; font-variant-numer
 
 /* ── docs layout ──────────────────────────────────────────────────────────── */
 .docs { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 60px; padding-block: 60px; align-items: start; }
-@media (max-width: 940px) { .docs { grid-template-columns: minmax(0, 1fr); gap: 30px; } .sidenav { position: static; } }
 .sidenav { position: sticky; top: 94px; display: flex; flex-direction: column; gap: 24px; font-size: 15px; }
 .sidenav__group { display: flex; flex-direction: column; gap: 8px; }
 .sidenav__title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); }
 .sidenav a { color: var(--ink-2); padding-left: 11px; border-left: 2px solid var(--rule); }
 .sidenav a:hover { color: var(--ink); border-left-color: var(--rule-2); }
 .sidenav a[aria-current="page"] { color: var(--madder); font-weight: 600; border-left-color: var(--madder); }
+
+/* NARROW: the two-column docs layout collapses to one, and the sidebar must stop
+   sticking — a sticky element in a single-column flow rides over the content as
+   you scroll, which is exactly what it did on a phone.
+
+   THIS QUERY MUST STAY BELOW THE `.sidenav` RULES ABOVE. It sat above them until
+   2026-09-26 and silently did nothing: a media query adds NO specificity, so a
+   later `.sidenav { position: sticky }` of equal weight simply won. `.docs` was
+   unaffected only because its base rule happened to come first. */
+@media (max-width: 940px) {
+  .docs { grid-template-columns: minmax(0, 1fr); gap: 30px; padding-block: 36px; }
+  .sidenav {
+    position: static; top: auto;
+    padding-bottom: 24px; border-bottom: 1px solid var(--rule);
+  }
+}
 .prose { display: flex; flex-direction: column; gap: 24px; max-width: 42em; }
 .prose p, .prose li { color: var(--ink-2); }
 .prose h2 { margin-top: 20px; }
