@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>प्रयोगक्षेत्रम् — संस्कृतयन्त्रम्</title>
-<meta name="description" content="विचारके संस्कृतयन्त्रं लिख, पदविभागात् सङ्केतनं यावत् पञ्चावस्थासु तस्य गतिं पश्य।">
+<meta name="description" content="विचारके एव संस्कृतयन्त्रं लिख, सङ्केतय, चालय — साधनं यन्त्रं च wasm-रूपेण, सेवकं विना।">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -53,76 +53,40 @@
     <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
       <div class="stages" role="list" aria-label="अवस्थानि">
         <span class="stage stage--done" role="listitem">पदविभागः</span>
-        <span class="stage stage--done" role="listitem">व्याकरः</span>
-        <span class="stage stage--done" role="listitem">निर्णयः</span>
-        <span class="stage stage--done" role="listitem">प्रकारपरीक्षा</span>
         <span class="stage stage--done" role="listitem">सङ्केतनम्</span>
+        <span class="stage stage--done" role="listitem">संयोजनम्</span>
+        <span class="stage stage--done" role="listitem">चालनम्</span>
       </div>
-      <span style="font-size: 13px; color: var(--ink-3);" data-i18n="pg.halt">२८ अष्टकानि · १० इति विरमति</span>
+      <span style="font-size: 13px; color: var(--ink-3);" id="status" data-i18n="pg.loading">यन्त्रं भ्रियते…</span>
       <span class="foot__spacer"></span>
       <label for="sample" style="font-size: 14px; color: var(--ink-3);" data-i18n="pg.sample">उदाहरणम्</label>
-      <select class="langpick" id="sample">
-        <option data-i18n="pg.s1">गणनावर्तः</option>
-        <option data-i18n="pg.s2">अष्टकमाला, खण्डश्च</option>
-        <option data-i18n="pg.s3">सक्षेत्रोऽभिलेखः</option>
-        <option data-i18n="pg.s4">नग्नयन्त्रप्रवेशः</option>
-      </select>
-      <button class="btn btn--solid btn--sm" id="run" type="button" data-i18n="pg.run">चालय ▸</button>
+      <select class="langpick" id="sample"></select>
+      <button class="btn btn--solid btn--sm" id="run" type="button" disabled data-i18n="pg.run">चालय ▸</button>
     </div>
   </section>
 
   <section class="pg" aria-label="सम्पादकः निर्गमश्च">
 
     <div class="pane" style="display: flex; flex-direction: column;">
-      <div class="pane__bar"><span class="deva">क्षेत्रम्.t1</span><span data-i18n="pg.editable">सम्पाद्यम्</span></div>
+      <div class="pane__bar"><span class="deva" id="fname">namaste.sas</span><span data-i18n="pg.editable">सम्पाद्यम्</span></div>
       <label class="sr-only" for="src">संस्कृतयन्त्रमूलम्</label>
-      <textarea class="pg__editor" id="src" spellcheck="false">मण्डलम् क्षेत्रम् ॥
-
-सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
-    चरः गणना ॱॱ न६४ भवति ० ।
-    यावत् गणना न्यूनम् १० आदि
-        गणना भवति गणना योगः १ ।
-    इति
-    प्रत्यागमनम् गणना ।
-इति</textarea>
+      <textarea class="pg__editor" id="src" spellcheck="false"></textarea>
     </div>
 
     <div style="display: flex; flex-direction: column;">
       <div class="tabs" role="tablist" aria-label="निर्गमः">
-        <button class="tab" role="tab" id="tab-asm" aria-selected="true" aria-controls="p-asm" type="button" data-i18n="pg.tab1">संयोजनम्</button>
+        <button class="tab" role="tab" id="tab-run" aria-selected="true" aria-controls="p-run" type="button" data-i18n="pg.tab3">चालनम्</button>
         <button class="tab" role="tab" id="tab-oct" aria-selected="false" aria-controls="p-oct" type="button" data-i18n="pg.tab2">अष्टकानि</button>
-        <button class="tab" role="tab" id="tab-run" aria-selected="false" aria-controls="p-run" type="button" data-i18n="pg.tab3">चालनम्</button>
+        <button class="tab" role="tab" id="tab-asm" aria-selected="false" aria-controls="p-asm" type="button" data-i18n="pg.tab1">विवरणम्</button>
       </div>
-      <div class="panel" id="p-asm" role="tabpanel" aria-labelledby="tab-asm">
-<pre class="code-mono" style="background: transparent;">  ॥ खण्डः पाठ्यम् ॥
-  ॥ संरेखणम् ४ ॥
-
-मुख्यम्:
-  addi    a0, zero, 0
-.L1:
-  addi    a0, a0, 1
-  addi    t0, zero, 10
-  blt     a0, t0, .L1
-  ret
-
-  ॥ आकारः मुख्यम् ॥</pre>
+      <div class="panel" id="p-run" role="tabpanel" aria-labelledby="tab-run">
+<pre class="code-mono" style="background: transparent;" id="o-run"></pre>
       </div>
       <div class="panel" id="p-oct" role="tabpanel" aria-labelledby="tab-oct" hidden>
-<pre class="code-mono" style="background: transparent;">0000  13 05 00 00  05 05 10 00  93 02 a0 00  63 4c a5 fe
-0010  67 80 00 00
-
-॥ अष्टकाः २० ॥
-॥ अष्टाष्टकाः ० ॥
-॥ अष्टाष्टकाः २० ॥</pre>
+<pre class="code-mono" style="background: transparent;" id="o-oct"></pre>
       </div>
-      <div class="panel" id="p-run" role="tabpanel" aria-labelledby="tab-run" hidden>
-<pre class="code-mono" style="background: transparent;">यन्त्रम् — RV64 · 20 MiB
-
-  entry     0x80000000
-  cycles    43
-  halt      Finisher { value: 10, status: 0 }
-
-मुख्यम् → १०</pre>
+      <div class="panel" id="p-asm" role="tabpanel" aria-labelledby="tab-asm" hidden>
+<pre class="code-mono" style="background: transparent;" id="o-asm"></pre>
       </div>
     </div>
 
@@ -147,22 +111,124 @@
 
 </main>
 
-<script>
-(function () {
-  var tabs = [
-    { t: document.getElementById('tab-asm'), p: document.getElementById('p-asm') },
-    { t: document.getElementById('tab-oct'), p: document.getElementById('p-oct') },
-    { t: document.getElementById('tab-run'), p: document.getElementById('p-run') }
-  ];
-  function show(i) {
-    tabs.forEach(function (x, j) {
-      x.t.setAttribute('aria-selected', j === i ? 'true' : 'false');
-      x.p.hidden = j !== i;
-    });
+<script type="module">
+// The page assembles what you typed and executes it. Two wasm modules, both built
+// from the crates in this repository: `sadhana` turns Devanagari assembly into an
+// ELF, `yantra` is an RV64 machine that runs it. Neither imports anything from the
+// host — `WebAssembly.instantiate(bytes, {})` takes an EMPTY import object, which
+// is the claim rather than an omission: no syscalls, no clock, no network.
+import { load as loadSadhana, Sadhana } from './assets/sadhana.mjs';
+import { load as loadYantra }  from './assets/yantra.mjs';
+import { SAMPLES }             from './assets/samples.mjs';
+
+const $ = (id) => document.getElementById(id);
+const tabs = [['tab-run', 'p-run'], ['tab-oct', 'p-oct'], ['tab-asm', 'p-asm']]
+  .map(([t, p]) => ({ t: $(t), p: $(p) }));
+const show = (i) => tabs.forEach((x, j) => {
+  x.t.setAttribute('aria-selected', j === i ? 'true' : 'false');
+  x.p.hidden = j !== i;
+});
+tabs.forEach((x, i) => x.t.addEventListener('click', () => show(i)));
+
+// The sample list is generated from spec/*.sas, so the dropdown cannot name a
+// program the page does not actually hold.
+SAMPLES.forEach((s, i) => {
+  const o = document.createElement('option');
+  o.value = String(i);
+  o.textContent = s.deva;
+  $('sample').append(o);
+});
+const pick = (i) => {
+  $('src').value = SAMPLES[i].source;
+  $('fname').textContent = SAMPLES[i].file;
+};
+pick(0);
+$('sample').addEventListener('change', (e) => pick(Number(e.target.value)));
+
+// Sixteen octets a row, addressed, the way a debugger prints them. Capped because a
+// 6 KB application would otherwise push everything else off the panel.
+function hex(bytes, limit = 512) {
+  const rows = [];
+  const n = Math.min(bytes.length, limit);
+  for (let i = 0; i < n; i += 16) {
+    const cells = [];
+    for (let j = i; j < Math.min(i + 16, n); j++) {
+      cells.push(bytes[j].toString(16).padStart(2, '0'));
+    }
+    rows.push(i.toString(16).padStart(4, '0') + '  ' + cells.join(' '));
   }
-  tabs.forEach(function (x, i) { x.t.addEventListener('click', function () { show(i); }); });
-  document.getElementById('run').addEventListener('click', function () { show(2); });
-})();
+  if (bytes.length > limit) rows.push('…  ' + (bytes.length - limit) + ' more octets');
+  return rows.join('\n');
+}
+
+let sadhana, yantra;
+try {
+  [sadhana, yantra] = await Promise.all([
+    fetch('assets/sadhana_wasm.wasm').then((r) => r.arrayBuffer()).then(loadSadhana),
+    fetch('assets/yantra_wasm.wasm').then((r) => r.arrayBuffer()).then(loadYantra),
+  ]);
+  $('status').textContent = 'यन्त्रं सज्जम्';
+  $('run').disabled = false;
+} catch (e) {
+  // Say which half failed and why. A page that silently leaves the button dead
+  // teaches the reader that the demo is decoration.
+  $('status').textContent = 'यन्त्रं न भ्रियते — ' + e;
+  $('o-run').textContent = 'The wasm modules did not load:\n\n' + e + '\n\n'
+    + 'They are served from assets/ beside this page; a file:// open will not fetch them.';
+}
+
+function go() {
+  const sample = SAMPLES[Number($('sample').value)];
+  const hosted = sample.mode === 'host';
+  const started = performance.now();
+  // An application is linked at 0x2000_0000 and a bare-metal proof at the reset
+  // vector. Assembling an application at the proof's address produces an ELF that
+  // assembles cleanly and that the LOADER then refuses, one stage later, with a
+  // message about superpages — which reads as a bug in the program rather than in
+  // how it was linked. Choosing here is what keeps that refusal from ever arriving.
+  const a = sadhana.assemble($('src').value, hosted ? Sadhana.APP_LOAD : Sadhana.BARE_METAL);
+
+  if (!a.ok) {
+    // The assembler's own diagnostics, unchanged, each naming a line and a byte.
+    // This is the refusal the language is built around and it is the most useful
+    // thing the page can show; a generic "failed" would throw the lesson away.
+    $('status').textContent = 'सङ्केतनं निषिद्धम्';
+    $('o-run').textContent = a.error.trimEnd();
+    $('o-oct').textContent = '—';
+    $('o-asm').textContent = 'The assembler refused, so there are no octets to show.';
+    show(0);
+    return;
+  }
+
+  // A proof runs on bare metal and its UART is `out`; an application is placed by a
+  // loader, never leaves U-mode, and writes to the SURFACE it was handed — its UART
+  // stays empty because an application cannot address a device. Merging the two
+  // fields would report the opposite of what the ABI guarantees, so they are read
+  // separately and the one that belongs to this mode is shown.
+  const r = hosted ? yantra.host(a.elf) : yantra.run(a.elf);
+  const ms = (performance.now() - started).toFixed(0);
+  const wrote = hosted ? r.surface : r.out;
+
+  $('status').textContent = a.elf.length + ' अष्टकानि · ' + ms + ' ms';
+  $('o-run').textContent =
+    'यन्त्रम् — RV64 · ' + (hosted ? 'अतिथिः (U-mode)' : 'धातुमात्रम् (S-mode)') + '\n\n'
+    + '  ' + r.halt + '\n'
+    + '  code      ' + r.code + '\n\n'
+    + (wrote ? wrote : '(this program wrote nothing)');
+  $('o-oct').textContent = hex(a.elf);
+  $('o-asm').textContent =
+    'assembled  ' + a.elf.length + ' octets at 0x'
+    + (hosted ? Sadhana.APP_LOAD : Sadhana.BARE_METAL).toString(16) + '\n'
+    + 'elf magic  ' + [...a.elf.slice(0, 4)].map((b) => b.toString(16).padStart(2, '0')).join(' ') + '\n'
+    + 'mode       ' + (hosted ? 'hosted application — yantra.host()' : 'bare metal — yantra.run()') + '\n'
+    + 'took       ' + ms + ' ms, in this tab\n\n'
+    + 'The editor holds ' + sample.file + ' from spec/ in the Sassembly repository.\n'
+    + 'This page assembles Sassembly ASSEMBLY. The .t1 systems language that the\n'
+    + 'compiler itself is written in is not compiled here — see learn.html.';
+  show(0);
+}
+
+$('run').addEventListener('click', go);
 </script>
 
 <footer class="foot">
