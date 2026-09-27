@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf-8"><title>Sassembly in a browser</title>
+<style>
+ body{font:16px/1.6 ui-monospace,Menlo,monospace;max-width:52rem;margin:3rem auto;padding:0 1rem;
+       background:#faf8f5;color:#1a1a1a}
+ h1{font-size:1.3rem;font-weight:600} .sub{color:#666;font-size:.85rem;margin-bottom:2rem}
+ button{font:inherit;padding:.4rem .9rem;margin-right:.5rem;cursor:pointer;
+        border:1px solid #8a7a5a;background:#fff;border-radius:3px}
+ .pane{white-space:pre-wrap;font-size:1.6rem;padding:1.2rem;border:1px solid #ddd;
+        background:#fff;min-height:3rem;margin:.3rem 0 1rem}
+ .lbl{color:#777;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;
+       margin-top:1rem}
+ .empty{color:#999;font-size:.9rem;font-style:italic}
+ #halt{color:#555;font-size:.85rem} .ok{color:#1a7a3a} .bad{color:#a33}
+ .note{color:#777;font-size:.8rem;margin-top:2rem;border-top:1px solid #e5e0d8;padding-top:1rem}
+</style>
+<h1>The same ELF, in a browser</h1>
+<div class="sub">Assembled by <code>sadhana</code> from Devanagari source, executed here by a
+RISC-V interpreter compiled to wasm. No third-party crate; no server. A store to
+<code>0x10000000</code> is a UART write on bare metal and a character on this page.</div>
+<div id="buttons"></div>
+<div class="lbl">the surface it was granted</div>
+<div id="surface" class="pane"></div>
+<div class="lbl">the machine&rsquo;s own UART</div>
+<div id="uart" class="pane"></div>
+<div id="halt"></div>
+<p class="note">Two of these are OS <em>proofs</em>: a machine boots at its reset vector in
+S-mode and writes to a device. <code>atithi.sas</code> is an <em>application</em> — a
+loader places it, a supervisor answers its two calls, and it never leaves U-mode. It
+cannot address a device at all, so its characters arrive on a surface it was handed and
+the machine&rsquo;s UART stays empty. <strong>The two panes above are two different
+buffers</strong>, and which one fills is the whole difference between the two kinds of
+program.</p>
+<script type="module">
+const WASM_B64 = "@@WASM@@";
+const PROGRAMS = {@@PROGRAMS@@};
+const un = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+@@GLUE@@
+const y = await load(un(WASM_B64));
+const surface = document.getElementById('surface'), uart = document.getElementById('uart');
+const halt = document.getElementById('halt');
+// A pane says WHY it is empty rather than sitting blank: for a boot proof nothing granted
+// a surface, and for an application an empty UART is the guarantee, not a missing result.
+const show = (el, text, why) => {
+  el.textContent = text || why;
+  el.className = text ? 'pane' : 'pane empty';
+};
+for (const [name, p] of Object.entries(PROGRAMS)) {
+  const b = document.createElement('button');
+  b.textContent = name + '.sas';
+  b.onclick = () => {
+    const app = p.kind === 'app';
+    const r = app ? y.host(un(p.elf)) : y.run(un(p.elf));
+    show(surface, r.surface, app
+      ? '(the application wrote nothing to its surface)'
+      : '(a boot proof is granted no surface — it is the machine, not a guest of one)');
+    show(uart, r.out, app
+      ? '(empty, and that is the point — an application cannot address a device)'
+      : '(this program writes no characters — it computes and exits)');
+    halt.textContent = r.halt;
+    halt.className = r.code === 0 ? 'ok' : 'bad';
+  };
+  document.getElementById('buttons').append(b);
+}
+[...document.querySelectorAll('button')].find(b => b.textContent.startsWith('namaste')).click();
+globalThis.__result = () =>
+  ({surface: surface.textContent, uart: uart.textContent, halt: halt.textContent});
+</script>

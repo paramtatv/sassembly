@@ -1,0 +1,24 @@
+[package]
+name = "yantra-wasm"
+version = "0.0.1"
+# Spelled out rather than inherited with `.workspace = true`. This package is in the
+# workspace root's `exclude` list — see the note there — and an excluded package cannot
+# inherit from the workspace it is excluded from. Kept identical to `[workspace.package]`
+# by hand; if those move, this must move with them.
+edition = "2024"
+rust-version = "1.94"
+repository = "https://github.com/paramtatv/sassembly"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+yantra = { path = "../yantra" }
+
+# Also spelled out, for the same reason. Matches `[workspace.lints.rust]` except for
+# `unsafe_code`, which is `allow` here and nowhere else: this crate carries a handful of
+# `#[unsafe(no_mangle)]` export attributes and NO `unsafe` block. See its module doc.
+[lints.rust]
+unsafe_code = "allow"
+missing_docs = "warn"

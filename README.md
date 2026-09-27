@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v0.2.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v0.2.0"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v0.3.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v0.3.0"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-A63A21?style=flat-square&labelColor=2B2521" alt="licence MIT"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -46,22 +46,24 @@ itself.
 | **Stage 2 == Stage 1** | byte-identical, `1,393,602` octets |
 | **the compiler** | 21 `.t1` sources, 39,775 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
+| **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — 476 KB of wasm, no server |
 | **measured** | 2026-09-25, in a fresh clone of this repository |
-| **status** | v0.2.0 — nothing is stable |
+| **status** | v0.3.0 — nothing is stable |
 
 ### Contents
 
 1. [The claim, and how to check it](#the-claim-and-how-to-check-it)
 2. [What this cannot do](#what-this-cannot-do)
 3. [What a program can do today](#what-a-program-can-do-today)
-4. [A first look at the language](#a-first-look-at-the-language)
-5. [The heap already exists](#the-heap-already-exists)
-6. [Verification](#verification)
-7. [Reading the source](#reading-the-source)
-8. [Two things a reader will notice](#two-things-a-reader-will-notice)
-9. [Status and stability](#status-and-stability)
-10. [The study group](#the-study-group)
-11. [Licence](#licence)
+4. [It runs in a browser](#it-runs-in-a-browser)
+5. [A first look at the language](#a-first-look-at-the-language)
+6. [The heap already exists](#the-heap-already-exists)
+7. [Verification](#verification)
+8. [Reading the source](#reading-the-source)
+9. [Two things a reader will notice](#two-things-a-reader-will-notice)
+10. [Status and stability](#status-and-stability)
+11. [The study group](#the-study-group)
+12. [Licence](#licence)
 
 ---
 
@@ -190,6 +192,60 @@ Two footnotes that will otherwise cost you an afternoon:
 
 ---
 
+## It runs in a browser
+
+New in v0.3.0, and the shortest way to see the thing work:
+
+**<https://paramtatv.github.io/sassembly/playground.html>** — type Devanagari
+assembly, press चालय, and the page assembles it and executes it in your tab.
+
+Two crates compiled to wasm do the whole of it:
+
+| | | |
+|---|---|---|
+| `crates/sadhana-wasm` | **401 KB** | Devanagari assembly → ELF |
+| `crates/yantra-wasm` | **75 KB** | an RV64 machine that runs the ELF |
+
+Both are instantiated with an **empty import object**. That is the claim rather
+than an omission: the page grants them no syscalls, no clock and no network,
+because there is nothing for them to ask for.
+
+Build the standalone page yourself — one self-contained file, no server:
+
+```sh
+rustup target add wasm32-unknown-unknown
+tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
+```
+
+**Measured 2026-09-27, in a fresh clone of this repository**, 54 s from cold:
+
+```
+  namaste      proof 848 bytes  sha256 bf2bca26637bc84d
+  bare-metal   proof 856 bytes  sha256 d92d476f3ede6e90
+  atithi       app   720 bytes  sha256 68655059ec1ab5ba
+  wasm         75314 bytes
+wrote sassembly.html (109576 bytes) — open it directly, no server needed
+```
+
+Those three hashes are the same bytes the upstream tree produces.
+
+> [!NOTE]
+> **The browser assembles `.sas`, not `.t1`.** This is Sassembly *assembly* —
+> the layer with kāraka sigils on operands. The `.t1` systems language the
+> compiler itself is written in is **not** compiled in the browser; that needs
+> `t1_image` and the `spec/` tables. The page says so rather than leaving you to
+> discover it from a refusal.
+
+One detail worth knowing before you write your own: a bare-metal **proof** is
+linked at the reset vector and a hosted **application** at `0x2000_0000`
+(`spec/application-load.tsv`), because the reset vector sits inside the
+supervisor's own gigabyte. Assemble an application at the wrong one and the
+refusal arrives from the *loader*, a stage later, talking about superpages.
+`Sadhana.BARE_METAL` and `Sadhana.APP_LOAD` in `web/sadhana.mjs` are those two
+addresses.
+
+---
+
 ## A first look at the language
 
 A whole routine from the compiler itself — [`ashtaka.t1`](crates/sadhana-t1/src/ashtaka.t1),
@@ -278,7 +334,10 @@ crates/sadhana/          the toolchain: t1_image and the drivers
 crates/yantra/           the RISC-V emulator, and the guard tests
 crates/sanskrit-text/    the text kernel: segmentation, normalisation, identifiers
 spec/                    the tables the host fills — encodings, grammar, lexicon
-tools/                   fixpoint.sh, pack-corpus.py
+crates/sadhana-wasm/     the assembler as wasm, for the browser
+crates/yantra-wasm/      the machine as wasm
+web/                     the hand-written glue: no wasm-bindgen, no generated bindings
+tools/                   fixpoint.sh, pack-corpus.py, build-sassembly-web.sh
 ```
 
 Two conventions are worth knowing before opening a file, because both are easy
@@ -328,7 +387,7 @@ the 21 Sassembly sources that are the compiler.
 
 ## Status and stability
 
-This is version **v0.2.0**. Nothing here is stable: not the surface syntax, not
+This is version **v0.3.0**. Nothing here is stable: not the surface syntax, not
 the object format, not the tool names. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 

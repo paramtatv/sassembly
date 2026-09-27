@@ -10,8 +10,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "sadhana-t1"
-version = "0.3.0"
+name = "sadhana-wasm"
+version = "0.0.1"
 dependencies = [
  "sadhana",
 ]
@@ -19,10 +19,3 @@ dependencies = [
 [[package]]
 name = "sanskrit-text"
 version = "0.3.0"
-
-[[package]]
-name = "yantra"
-version = "0.0.1"
-dependencies = [
- "sadhana",
-]

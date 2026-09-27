@@ -1,0 +1,29 @@
+[package]
+name = "sadhana-wasm"
+version = "0.0.1"
+# Spelled out rather than inherited with `.workspace = true`, for the reason
+# `yantra-wasm` already records: this package is in the workspace root's
+# `exclude` list and an excluded package cannot inherit from the workspace it is
+# excluded from. It was added to that list carrying `version.workspace = true`,
+# and from that commit it did not build AT ALL — `cargo build` inside the crate
+# answers "failed to find a workspace root" and `-p sadhana-wasm` from the root
+# answers "did not match any packages", so neither spelling reached it and the
+# breakage stayed invisible. Kept identical to `[workspace.package]` by hand; if
+# those move, this must move with them.
+edition = "2024"
+rust-version = "1.94"
+repository = "https://github.com/paramtatv/sassembly"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+sadhana = { path = "../sadhana" }
+
+# Also spelled out, for the same reason. Matches `[workspace.lints.rust]` except
+# for `unsafe_code`, which is `allow` here and nowhere else: this crate carries
+# `#[unsafe(no_mangle)]` export attributes and NO `unsafe` block.
+[lints.rust]
+unsafe_code = "allow"
+missing_docs = "warn"

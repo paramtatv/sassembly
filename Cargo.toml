@@ -7,6 +7,20 @@ members = [
     "crates/yantra",
 ]
 
+# `yantra-wasm` and `sadhana-wasm` are built ONLY for wasm32 and are deliberately
+# outside the workspace. They are `cdylib`s, so a host build emits a Mach-O dylib
+# whose `install_name` carries the absolute output path; two builds in two target
+# dirs then differ from identical code, and a reproducibility check reports
+# irreproducibility that is not in any program.
+#
+#     tools/build-sassembly-web.sh
+#
+# `exclude` takes precedence over a `members` path, so the crates stay where a
+# reader expects them. They are NOT covered by a workspace-wide fmt, clippy or
+# test run — `sadhana` and `yantra` are, and that is where the logic lives; these
+# two are a handful of export attributes over them.
+exclude = ["crates/yantra-wasm", "crates/sadhana-wasm"]
+
 # These four crates are the dependency closure of the Sassembly compiler. The
 # upstream workspace has 32 members; the other 28 are an operating system, a
 # browser engine, a code generator family and their harnesses, and none of them
@@ -19,7 +33,7 @@ members = [
 # manifest records the cut where the edge used to be.
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.94"
 repository = "https://github.com/paramtatv/sassembly"

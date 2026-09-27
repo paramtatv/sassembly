@@ -1,3 +1,11 @@
 /target
+# Each wasm crate is excluded from the workspace (see Cargo.toml), so cargo gives
+# it its OWN target dir. The root `/target` rule is anchored and does not reach
+# them.
+/crates/yantra-wasm/target
+/crates/sadhana-wasm/target
+# tools/build-sassembly-web.sh writes OUTSIDE the tree by default; this rule only
+# matters if someone passes an in-tree path anyway.
+/web/sassembly.html
 **/*.rs.bk
 .DS_Store
