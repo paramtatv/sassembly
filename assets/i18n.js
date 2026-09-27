@@ -46,6 +46,8 @@
       'home.lede': 'संस्कृतयन्त्रं तन्त्रभाषा यस्याः रचना संस्कृतम्, अर्थश्च निर्देशसमुच्चयः। प्रत्येकस्य शिल्पनिर्देशस्य नाम अस्ति — अनामसङ्केतनाय मार्गो नास्ति। सङ्कलकः स्वयं संस्कृतयन्त्रेण लिखितः, स्वमेव सङ्कलयति, स्वकीयं बिम्बं च यथावत् पुनः रचयति।',
       'home.cta1': 'पठनम् आरभस्व',
       'home.cta2': 'प्रयोगक्षेत्रम् उद्घाटय',
+      'home.browser': '<strong>संयोजय, चालय — विचारके एव</strong> — साधनं यन्त्रं च wasm-रूपेण, ४७६ KB, सेवकं स्थापनं च विना। (.sas स्तरः; .t1 सङ्कलनं तु साधनशृङ्खलया)',
+      'home.fact4': 'स्थापनं विना',
       'home.fact1': 'RV64 लक्ष्यम्',
       'home.fact2': '१२ MiB साधनम्',
       'home.fact3': 'LLVM रहितम्',
@@ -231,6 +233,8 @@
       'home.h1': 'An instruction set with a grammar.',
       'home.lede': 'Sassembly is a systems language whose syntax is Sanskrit and whose semantics are an ISA. Every architectural instruction has a name — there is no escape hatch to a raw encoding. The compiler is written in Sassembly, compiles itself, and reproduces its own binary exactly.',
       'home.cta1': 'Start reading', 'home.cta2': 'Open the playground',
+      'home.browser': '<strong>Assemble it and run it, in your browser</strong> — the assembler and the machine as wasm, 476 KB, no server and nothing to install. (the .sas layer; .t1 still needs the toolchain)',
+      'home.fact4': 'nothing to install',
       'home.fact1': 'RV64 target', 'home.fact2': '12 MiB toolchain', 'home.fact3': 'No LLVM',
       'home.pane.src': 'source', 'home.pane.emit': 'emitted',
 
@@ -392,6 +396,8 @@
       'home.h1': 'एक निर्देश-समुच्चय, अपने व्याकरण के साथ।',
       'home.lede': 'Sassembly एक सिस्टम भाषा है जिसका वाक्य-विन्यास संस्कृत है और जिसका अर्थ एक ISA है। हर आर्किटेक्चरल निर्देश का एक नाम है — किसी कच्चे एन्कोडिंग तक पहुँचने का कोई रास्ता नहीं। कंपाइलर स्वयं Sassembly में लिखा है, स्वयं को कंपाइल करता है, और अपनी ही बाइनरी को बिलकुल वैसा ही दोबारा बनाता है।',
       'home.cta1': 'पढ़ना शुरू करें', 'home.cta2': 'प्रयोगशाला खोलें',
+      'home.browser': '<strong>असेंबल करें और चलाएँ — ब्राउज़र में ही</strong> — असेंबलर और मशीन wasm में, ४७६ KB, न सर्वर न कुछ इंस्टॉल करना। (.sas परत; .t1 के लिए टूलचेन चाहिए)',
+      'home.fact4': 'कुछ इंस्टॉल नहीं',
       'home.fact1': 'RV64 लक्ष्य', 'home.fact2': '12 MiB टूलचेन', 'home.fact3': 'LLVM नहीं',
       'home.pane.src': 'स्रोत', 'home.pane.emit': 'निर्गत',
 
