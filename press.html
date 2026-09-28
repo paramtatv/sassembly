@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="sa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>वार्ताविभागः — संस्कृतयन्त्रम्</title>
+<meta name="description" content="संस्कृतयन्त्रस्य प्रकाशनवार्ताः — प्रत्येकं प्रकाशनं, तस्य मापितानि परिमाणानि, तेषां च परीक्षणोपायः।">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/i18n.js"></script>
+</head>
+<body data-i18n-title="pr.title">
+<header class="masthead">
+  <div class="wrap masthead__in">
+    <a class="brand" href="index.html">
+      <span class="brand__deva">संस्कृतयन्त्रम्</span>
+      <span class="brand__latin">Sassembly</span>
+    </a>
+    <span class="mark" aria-hidden="true">॥</span>
+    <nav class="nav" aria-label="मुख्यम्">
+      <a href="learn.html" data-i18n="nav.learn">अध्ययनम्</a>
+      <a href="reference.html" data-i18n="nav.reference">सन्दर्भः</a>
+      <a href="playground.html" data-i18n="nav.playground">प्रयोगक्षेत्रम्</a>
+      <a href="press.html" aria-current="page" data-i18n="nav.press">वार्ताविभागः</a>
+      <a href="downloads.html" data-i18n="nav.downloads">अवतरणम्</a>
+    </nav>
+    <label class="sr-only" for="lang" data-i18n="lang.label">भाषा</label>
+    <select class="langpick" id="lang">
+      <option value="sa">संस्कृतम्</option>
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+    </select>
+    <button class="themetoggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <a class="btn btn--sm" href="https://github.com/paramtatv/sassembly/releases" rel="noopener" data-i18n="nav.allrel">सर्वाणि प्रकाशनानि</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="section--tight" style="display: flex; flex-direction: column; gap: 18px; padding-top: 48px;">
+    <p class="eyebrow" data-i18n="pr.eyebrow">वार्ताविभागः</p>
+    <div class="section__head" style="margin-bottom: 0;">
+      <h1 style="font-size: clamp(28px, 3.6vw, 42px);" data-i18n="pr.h1">प्रकाशनवार्ताः</h1>
+      <span class="mark" aria-hidden="true">॥</span>
+    </div>
+    <p class="lede press__lead" data-i18n="pr.lead">प्रत्येकं प्रकाशनम् अत्र लिख्यते — यत् परिवर्तितं, यानि परिमाणानि मापितानि, येन च उपायेन त्वं स्वयं तानि परीक्षितुं शक्नोषि। अत्र न किमपि परिमाणं वर्तते यस्य पुनरुत्पादनोपायः न कथितः।</p>
+  </section>
+
+  <section class="section--tight" style="padding-bottom: 8px;">
+
+    <!-- ══ v0.3.0 ══ -->
+    <article class="release" id="v0-3-0">
+      <div class="release__meta">
+        <span class="release__ver">v0.3.0</span>
+        <time class="release__date" datetime="2026-09-27">२०२६-०९-२७</time>
+        <span class="release__tag release__tag--now" data-i18n="pr.tag.latest">नवीनतमम्</span>
+      </div>
+      <div class="release__body">
+        <h2 data-i18n="pr.r030.h">संस्कृतयन्त्रं विचारके एव चलति</h2>
+        <p class="release__dek" data-i18n="pr.r030.dek">संयोजकः यन्त्रं च wasm-रूपेण सङ्कलितौ। देवनागर्या लिख, चालय — न स्थापनम्, न सेवकः, न प्रवेशः।</p>
+
+        <p data-i18n="pr.r030.b1">अद्य प्रकाशिते संस्कृतयन्त्रे ०.३.० इत्यस्मिन् द्वे मण्डले wasm-रूपेण सङ्कलिते — <b>साधनम्</b> (४०१ KB), यत् देवनागरीसंयोजनं ELF-रूपं करोति, तथा <b>यन्त्रम्</b> (७५ KB), यत् RV64-प्रतिमानं तत् चालयति। द्वे अपि रिक्तेन आयातपात्रेण एव आरभ्येते — एतत् दावः, न तु विस्मरणम्: तयोः न कोऽपि प्रणालीसङ्केतः, न कालमापकः, न जालद्वारम्, यतः याचनीयं किमपि नास्ति।</p>
+
+        <div class="release__figs">
+          <span class="release__fig"><b>४७६ KB</b><span data-i18n="pr.f.wasm">wasm, उभयं मिलित्वा</span></span>
+          <span class="release__fig"><b>५४ s</b><span data-i18n="pr.f.cold">शीतलरचनायाः कालः</span></span>
+          <span class="release__fig"><b>१०९,५७६</b><span data-i18n="pr.f.page">अष्टकानि, एकं पृष्ठम्</span></span>
+          <span class="release__fig"><b>०</b><span data-i18n="pr.f.install">स्थापनीयानि</span></span>
+        </div>
+
+        <p data-i18n="pr.r030.b2">नूतनक्लोने मापितम्, २०२६-०९-२७: त्रयः कार्यक्रमाः संयोजिताः चालिताश्च — <code>namaste</code> ८४८ अष्टकानि, <code>bare-metal</code> ८५६, <code>atithi</code> ७२० — प्रत्येकं तेनैव sha256-मूल्येन यत् मूलवृक्षः उत्पादयति। संयोजनं चालनं च विचारके एव सम्पद्येते।</p>
+
+        <p data-i18n="pr.r030.b3"><b>यत् एतत् न अस्ति:</b> विचारकः <code>.sas</code> स्तरं संयोजयति, न <code>.t1</code> इति तन्त्रभाषाम्। सङ्कलकः स्वयं यया लिखितः सा भाषा <code>t1_image</code> तथा <code>spec/</code> सारणीः अपेक्षते, अतः सा विचारके न सङ्कल्यते। पृष्ठं स्वयम् एतत् वदति।</p>
+
+        <p class="release__links">
+          <a href="https://github.com/paramtatv/sassembly/releases/tag/v0.3.0" rel="noopener" data-i18n="pr.l.notes">प्रकाशनलेखः</a>
+          <a href="playground.html" data-i18n="pr.l.try">स्वयं प्रयतस्व</a>
+        </p>
+      </div>
+    </article>
+
+    <!-- ══ v0.2.0 ══ -->
+    <article class="release" id="v0-2-0">
+      <div class="release__meta">
+        <span class="release__ver">v0.2.0</span>
+        <time class="release__date" datetime="2026-09-26">२०२६-०९-२६</time>
+      </div>
+      <div class="release__body">
+        <h2 data-i18n="pr.r020.h">सङ्कलकः स्वयं सङ्कलयति, अष्टकं प्रति अष्टकम्</h2>
+        <p class="release__dek" data-i18n="pr.r020.dek">प्रथमं सार्वजनिकं प्रकाशनम्: संस्कृतेन लिखितः सङ्कलकः स्वेनैव सङ्कलितः स्वस्य यथावत् प्रतिरूपं जनयति।</p>
+
+        <p data-i18n="pr.r020.b1">स्वसङ्कलकस्य मुख्यः गुणः स्थिरबिन्दुः — यदि सङ्कलकं स्वेनैव सङ्कलयसि तर्हि स एव सङ्कलकः पुनः आगन्तव्यः। न तुल्यः, अपि तु <i>तान्येव अष्टकानि</i>। एकविंशतिः <code>.t1</code> मूलकोशाः, ३९,७७५ पङ्क्तयः — द्वितीयः स्तरः प्रथमेन सह अष्टकं प्रति अष्टकं समानः।</p>
+
+        <div class="release__figs">
+          <span class="release__fig"><b>१,३९३,६०२</b><span data-i18n="pr.f.octets">अष्टकानि, समानानि</span></span>
+          <span class="release__fig"><b>२१</b><span data-i18n="pr.f.src">मूलकोशाः</span></span>
+          <span class="release__fig"><b>३९,७७५</b><span data-i18n="pr.f.lines">पङ्क्तयः</span></span>
+          <span class="release__fig"><b>१२ MiB</b><span data-i18n="pr.f.tool">साधनशृङ्खला</span></span>
+        </div>
+
+        <p data-i18n="pr.r020.b2">LLVM नास्ति, बाह्यसाधनशृङ्खला नास्ति। लक्ष्यं धातुमात्रं RISC-V RV64। मापनं <code>tools/fixpoint.sh</code> इत्यनेन नूतनक्लोने पुनरुत्पाद्यम् — यत् प्रकाशितं तत् एव मापितम्।</p>
+
+        <p data-i18n="pr.r020.b3"><b>यत् एतत् न अस्ति:</b> इदं शोधकृतिः, न सर्वकार्यसाधनशृङ्खला। प्रकाशनसमये कार्यक्रमः कोशं नामयितुं न शक्नोति स्म, न आदेशपङ्क्तिचराः, न कालमापकः, न जालम्। प्रत्येकं न-इति उत्तरं लेखे नामतः लिखितम्।</p>
+
+        <p class="release__links">
+          <a href="https://github.com/paramtatv/sassembly/releases/tag/v0.2.0" rel="noopener" data-i18n="pr.l.notes">प्रकाशनलेखः</a>
+          <a href="downloads.html" data-i18n="pr.l.get">साधनं प्राप्नुहि</a>
+        </p>
+      </div>
+    </article>
+
+  </section>
+
+  <section class="wrap boiler" style="padding-bottom: 72px;">
+    <div>
+      <h3 data-i18n="pr.about.h">संस्कृतयन्त्रम् इति किम्</h3>
+      <p data-i18n="pr.about.b">संस्कृतयन्त्रं शुल्कमुक्तं निर्देशसमुच्चयशिल्पं तन्त्रभाषा च, यस्याः कूटशब्दाः संस्कृतपदानि, यस्याश्च कारकचिह्नैः — न स्थानेन, न विरामचिह्नैः — क्रियापदानां भूमिकाः अङ्क्यन्ते। तस्याः सङ्कलकः तयैव भाषया लिखितः।</p>
+    </div>
+    <div>
+      <h3 data-i18n="pr.verify.h">परीक्षणम्</h3>
+      <p data-i18n="pr.verify.b">अत्र प्रत्येकं परिमाणं पुनरुत्पाद्यम्। स्थिरबिन्दुः <code>tools/fixpoint.sh</code> इत्यनेन, विचारकपृष्ठं <code>tools/build-sassembly-web.sh</code> इत्यनेन, परीक्षाः <code>cargo test</code> इत्यनेन। यत् न मापितं तत् अत्र न लिख्यते।</p>
+    </div>
+    <div>
+      <h3 data-i18n="pr.contact.h">सम्पर्कः</h3>
+      <p data-i18n="pr.contact.b">प्रश्नाः, चित्राणि, साक्षात्काराः — <a href="https://discord.gg/XvYvXR8HAh" rel="noopener">अध्ययनसङ्घे</a> पृच्छ, अथवा <a href="https://github.com/paramtatv/sassembly/issues" rel="noopener">GitHub</a> इत्यत्र। विशिष्टपङ्क्तिविषयकः प्रश्नः सामान्यात् प्रश्नात् अत्र श्रेयान्।</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <span class="foot__deva">संस्कृतयन्त्रम्</span>
+    <span class="foot__spacer" data-i18n="pr.foot">प्रत्येकं प्रकाशनं तस्य मापनैः सह प्रकाश्यते।</span>
+    <a href="https://discord.gg/XvYvXR8HAh" rel="noopener" data-i18n="foot.discord">अध्ययनसङ्घः</a>
+    <a href="index.html" data-i18n="foot.home">गृहम्</a>
+    <a href="downloads.html" data-i18n="nav.downloads">अवतरणम्</a>
+  </div>
+</footer>
+
+</body>
+</html>
