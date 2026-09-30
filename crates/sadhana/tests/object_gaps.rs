@@ -108,7 +108,18 @@ fn every_flag_an_object_takes_does_what_it_says() {
     // So each is checked by its EFFECT. `--संक्षिप्त` must shrink a program
     // that has something to shrink; a test that only asserts exit 0 would pass
     // on the flag being dropped again.
-    let dir = std::env::temp_dir().join("sansos-flags");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-flags-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("mkdir");
     let src = dir.join("क.sas");
     std::fs::write(

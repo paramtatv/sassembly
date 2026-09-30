@@ -260,10 +260,10 @@ devanagari	english	category	source	notes
 भागः	divide	mnemonic	dhatu	T0 only. T1 spells division `विभाजनम्` (ADR-0026), which is the word its corpus writes; doc 15's proposed `भाग` is retired. The two tiers differ here and ADR-0028 says so rather than respelling a frozen T0 mnemonic.
 भाण्डारम्	file browser	name	doc17	
 भारः	payload	network	doc06	
-भिन्न	float register	register	derived	
+प्लव	float register	register	derived	
 भीडनियन्त्रणम्	congestion control	network	doc06	
-भ३२	f32	type	derived	
-भ६४	f64	type	derived	
+प३२	f32	type	derived	
+प६४	f64	type	derived	
 मण्डपः	compositor	name	doc17	
 मण्डलम्	module	keyword	attested	
 मात्रा	quantity	concept	attested	
@@ -299,7 +299,7 @@ devanagari	english	category	source	notes
 लेखनी	lexer	terminal	doc04	
 लेखय	write	terminal	doc04	
 वर्ग	square, class	concept	attested	
-वर्गमूलम्	square root	mnemonic	dhatu	
+प्लववर्गमूलम्	square root	mnemonic	dhatu	
 वर्णः	text shaper	name	doc17	
 वर्णपटलम्	palette	graphics	doc05	
 वर्तिका	brush	graphics	doc05	
@@ -417,14 +417,14 @@ devanagari	english	category	source	notes
 ॱॱ	type or label annotation	sign	ADR-0003	
 उपरिभारः	load upper immediate	mnemonic	derived	उपरि (upper) + भारः (load); the immediate lands in the high bits
 उपरिगुणनम्	high multiplication	mnemonic	derived	उपरि (upper) + गुणनम्; the high half of a product, as उपरिभारः is the high half of an immediate
-भिन्नसमम्	float equal	mnemonic	derived	भिन्न + समम् (doc 15's equality operator)
-भिन्नन्यूनम्	float less than	mnemonic	derived	भिन्न + न्यूनम् (doc 15's less-than)
-भिन्नानधिकम्	float not greater than	mnemonic	derived	भिन्न + अ (privative) + अधिकम् (doc 15's greater-than); not-greater is <=, the negation ADR-0008 uses for branches. The अ+अ join is savarṇa-dīrgha (6.1.101)
-भिन्नगुणवियोगः	float multiply then subtract	mnemonic	derived	भिन्न + गुण + वियोगः, beside भिन्नगुणयोगः
-ऋणभिन्नगुणयोगः	negated float multiply then add	mnemonic	derived	ऋण (ADR-0009's negative) + भिन्नगुणयोगः
-ऋणभिन्नगुणवियोगः	negated float multiply then subtract	mnemonic	derived	ऋण + भिन्नगुणवियोगः
-व्यत्ययचिह्नारोपणम्	copy the inverted sign	mnemonic	derived	व्यत्यय (the T0 name for bitwise not) + चिह्नारोपणम्
-वैषम्यचिह्नारोपणम्	copy the signs xored	mnemonic	derived	वैषम्यम् (the T0 name for xor) + चिह्नारोपणम्
+प्लवसमम्	float equal	mnemonic	derived	प्लव + समम् (doc 15's equality operator)
+प्लवन्यूनम्	float less than	mnemonic	derived	प्लव + न्यूनम् (doc 15's less-than)
+प्लवानधिकम्	float not greater than	mnemonic	derived	प्लव + अ (privative) + अधिकम् (doc 15's greater-than); not-greater is <=, the negation ADR-0008 uses for branches. The अ+अ join is savarṇa-dīrgha (6.1.101)
+प्लवगुणवियोगः	float multiply then subtract	mnemonic	derived	प्लव + गुण + वियोगः, beside प्लवगुणयोगः
+ऋणप्लवगुणयोगः	negated float multiply then add	mnemonic	derived	ऋण (ADR-0009's negative) + प्लवगुणयोगः
+ऋणप्लवगुणवियोगः	negated float multiply then subtract	mnemonic	derived	ऋण + प्लवगुणवियोगः
+व्यत्ययप्लवचिह्नारोपणम्	copy the inverted sign	mnemonic	derived	व्यत्यय (the T0 name for bitwise not) + प्लवचिह्नारोपणम्
+वैषम्यप्लवचिह्नारोपणम्	copy the signs xored	mnemonic	derived	वैषम्यम् (the T0 name for xor) + प्लवचिह्नारोपणम्
 नियन्त्रकविनिमयः	control register exchange	mnemonic	derived	नियन्त्रक + विनिमयः (exchange), as in परमाणुविनिमयः
 नियन्त्रकविकल्पः	control register set	mnemonic	derived	नियन्त्रक + विकल्पः (the T0 name for or); setting a bit is or-ing it
 नियन्त्रकापसारणम्	control register clear	mnemonic	derived	नियन्त्रक + अप+√सृ (to remove) + अनम्; clearing is removal. The अ+अ join is savarṇa-dīrgha
@@ -453,20 +453,20 @@ devanagari	english	category	source	notes
 परमाणुवैषम्यम्	atomic xor	mnemonic	derived	परमाणु + वैषम्यम्
 परमाणुपरमम्	atomic maximum	mnemonic	derived	परमाणु + परमम् (highest)
 परमाणुन्यूनतमम्	atomic minimum	mnemonic	derived	परमाणु + न्यूनतमम् (least)
-भिन्नाहारः	float load	mnemonic	derived	भिन्न (float register) + आहारः
-भिन्ननिधानम्	float store	mnemonic	derived	भिन्न + निधानम्
-भिन्नयोगः	float add	mnemonic	derived	भिन्न + योगः
-भिन्नवियोगः	float subtract	mnemonic	derived	भिन्न + वियोगः
-भिन्नगुणनम्	float multiply	mnemonic	derived	भिन्न + गुणनम्
-भिन्नभागः	float divide	mnemonic	derived	भिन्न + भागः
-भिन्नगुणयोगः	fused multiply-add	mnemonic	derived	भिन्न + गुणनम् + योगः; multiply and add as one rounding
-भिन्नपरमम्	float maximum	mnemonic	derived	भिन्न + परमम्
-भिन्नन्यूनतमम्	float minimum	mnemonic	derived	भिन्न + न्यूनतमम्
-भिन्नरूपान्तरम्	float convert	mnemonic	derived	भिन्न + रूपान्तरम् (change of form)
-चिह्नारोपणम्	sign injection	mnemonic	derived	चिह्न (sign) + आरोपणम् (placing upon)
-भिन्नतुलना	float compare	mnemonic	derived	भिन्न + तुलना
-भिन्नवर्गः	classify float	mnemonic	derived	भिन्न + वर्गः (class); वर्ग is already `square, class`
-भिन्नसंचारः	float move	mnemonic	derived	भिन्न + संचारः
+प्लवाहारः	float load	mnemonic	derived	प्लव (float register) + आहारः
+प्लवनिधानम्	float store	mnemonic	derived	प्लव + निधानम्
+प्लवयोगः	float add	mnemonic	derived	प्लव + योगः
+प्लववियोगः	float subtract	mnemonic	derived	प्लव + वियोगः
+प्लवगुणनम्	float multiply	mnemonic	derived	प्लव + गुणनम्
+प्लवभागः	float divide	mnemonic	derived	प्लव + भागः
+प्लवगुणयोगः	fused multiply-add	mnemonic	derived	प्लव + गुणनम् + योगः; multiply and add as one rounding
+प्लवपरमम्	float maximum	mnemonic	derived	प्लव + परमम्
+प्लवन्यूनतमम्	float minimum	mnemonic	derived	प्लव + न्यूनतमम्
+प्लवरूपान्तरम्	float convert	mnemonic	derived	प्लव + रूपान्तरम् (change of form)
+प्लवचिह्नारोपणम्	sign injection	mnemonic	derived	चिह्न (sign) + आरोपणम् (placing upon)
+प्लवतुलना	float compare	mnemonic	derived	प्लव + तुलना
+प्लववर्गः	classify float	mnemonic	derived	प्लव + वर्गः (class); वर्ग is already `square, class`
+प्लवसंचारः	float move	mnemonic	derived	प्लव + संचारः
 नियन्त्रककोष्ठः	control and status register	mnemonic	derived	नियन्त्रक (controlling) + कोष्ठ (register)
 आदेशबन्धः	instruction fence	mnemonic	derived	आदेश (instruction) + बन्धः (binding); orders instruction fetch, not data
 स्मृतिक्षेत्रबन्धः	address-translation fence	mnemonic	derived	स्मृतिक्षेत्रम् (address space, doc 11) + बन्धः, the third of the pair स्मृतिबन्धः and आदेशबन्धः; orders updates to the page tables, which is neither data nor fetch

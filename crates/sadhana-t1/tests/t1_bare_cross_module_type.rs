@@ -70,6 +70,10 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Unique scratch roots, shared with every other binary that needs one —
+/// because five copies of `(pid, counter)` was five copies of one defect.
+mod spec_fixture;
+
 const CENSUS: &str = "tools/bare-type-census.py";
 const SRC: &str = "crates/sadhana-t1/src";
 
@@ -124,7 +128,7 @@ fn census(srcdir: &Path) -> (usize, String) {
 /// matching and the ० in the test below means nothing.
 #[test]
 fn the_census_finds_a_bare_declaration_when_one_is_planted() {
-    let scratch = std::env::temp_dir().join(format!("w279-control-{}", std::process::id()));
+    let scratch = spec_fixture::unique_root("w279-control");
     let copy = scratch.join("src");
     let _ = std::fs::remove_dir_all(&scratch);
     std::fs::create_dir_all(&copy).expect("a temp dir");
@@ -213,7 +217,7 @@ fn no_ambiguous_bare_cross_module_record_declaration() {
 /// module `विश्लेषण` — neither — so a bare `वाक्य` there is a genuine tie.
 #[test]
 fn the_census_finds_an_ambiguous_declaration_when_one_is_planted() {
-    let scratch = std::env::temp_dir().join(format!("w279-tie-control-{}", std::process::id()));
+    let scratch = spec_fixture::unique_root("w279-tie-control");
     let copy = scratch.join("src");
     let _ = std::fs::remove_dir_all(&scratch);
     std::fs::create_dir_all(&copy).expect("a temp dir");

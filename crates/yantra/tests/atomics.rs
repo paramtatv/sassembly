@@ -37,7 +37,14 @@ const BASE: u64 = 0x8000_0000;
 /// `x11` holding the second operand.
 fn machine(word: u32, target: u64, width: usize, src: u64) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: vec![0; 1 << 16],
@@ -227,52 +234,33 @@ fn every_fence_in_the_encoding_table_executes_as_a_no_op() {
     assert_eq!(n, 2, "fence and fence.i");
 }
 
-#[test]
-fn the_families_this_machine_does_not_have_still_stop() {
-    // The other half of the oracle. Every one of these is a word the table says is a real
-    // RV64GC instruction and this interpreter cannot execute; each must halt NAMED. A
-    // catch-all arm added while extending the decoder passes the tests above and fails
-    // this one.
-    //
-    // `csrrw`, `csrrs`, `ecall` and `ebreak` stood in this list until `F-001c1`, which
-    // gave each of them a halt of its OWN — `Halt::Csr`, `Halt::Sbi`, `Halt::Breakpoint`.
-    // They are still named and still stop; they are asserted in `tests/system.rs` now,
-    // and removing them from here is the list catching up with the machine rather than
-    // being relaxed. `sret` and `sfence.vma` replaced them so the family stayed
-    // represented — and `F-001c2b1` executed the last of them, so SYSTEM is no longer
-    // represented here AT ALL. That is not the list being weakened: every one of the ten
-    // 32-bit SYSTEM rows is now asserted in `tests/system.rs` to do what its name says,
-    // which is a stronger claim than "it stops". What remains here are the families
-    // this machine genuinely has not got.
-    //
-    // 2026-09-05: `mul`, `div` and `rem` LEAVE this list, because the machine implements
-    // the M extension now — two demonstration programs needed to multiply and to take a
-    // remainder, and the frozen grammar promises both. This is the same catching-up the
-    // paragraph above describes for SYSTEM, and it is subject to the same requirement:
-    // the claim is not weakened by their removal, because all eight M forms are now
-    // asserted to compute the right answers in `tests/interpreter.rs` — including the
-    // zero divisor and the single overflow case, which RISC-V answers by value and a
-    // host language's own `/` would panic on. That is stronger than "it stops".
-    //
-    // D remains, and is now the only family here. If it ever lands, this list becomes
-    // empty and the test should be retired rather than given a word it does not mean.
-    let absent = ["fadd.d"];
-    let rows = table();
-    for name in absent {
-        let row = rows
-            .iter()
-            .find(|r| r.insn == name)
-            .unwrap_or_else(|| panic!("`{name}` is not in the encoding table"));
-        let word = row.pattern | 1 << 7 | 10 << 15 | 11 << 20;
-        let mut m = machine(word, 0, 8, 3);
-        let mut out = Vec::new();
-        assert!(
-            matches!(m.step(&mut out), Some(Halt::Unimplemented { .. })),
-            "`{name}` ({:#010x}) must stop and say so",
-            row.pattern
-        );
-    }
-}
+// ── `the_families_this_machine_does_not_have_still_stop` IS RETIRED ─────────────────
+//
+// **RETIRED 2026-09-28 ON ITS OWN INSTRUCTION, and the instruction is quoted here so the
+// retirement can be checked rather than trusted:**
+//
+// > "D remains, and is now the only family here. If it ever lands, this list becomes empty
+// > and the test should be retired rather than given a word it does not mean."
+//
+// Row `V-001` landed D. The `absent` list held exactly `["fadd.d"]`, so it is now empty,
+// and a loop over an empty list is a test that passes by having no subject — which is the
+// shape this file elsewhere calls out by name.
+//
+// **THE CLAIM IS NOT WEAKENED BY THE RETIREMENT, for precisely the reason this test gave
+// when `mul`/`div`/`rem` left it on 2026-09-05:** all of D is now asserted to compute the
+// RIGHT ANSWERS in `tests/fp_extension.rs` — 27 tests covering both widths, the RISC-V
+// min/max NaN rule, the mandated float-to-integer saturation, NaN-boxing, `fflags`
+// accrual, and the rounding modes this machine refuses rather than approximates. That is
+// stronger than "it stops", which is the argument that retired the M forms and it applies
+// unchanged.
+//
+// **WHAT NOW HAS NO TEST IN THIS FILE and where it went instead:** the V family is the
+// only major family the machine still lacks, and it cannot be expressed here — `table()`
+// is the RV64GC encoding table (`rv64gc_instructions_named` = 195) and RV64GC does not
+// include V, so there is no row to look up. `tests/interpreter.rs`'s
+// `an_unknown_instruction_stops_and_names_itself` carries the "an absent family stops and
+// names itself" claim instead, and it moved to opcode `0x57` (OP-V) for exactly this
+// reason. When row `V-007` implements V, that test moves again — and it says so.
 
 // ---------------------------------------------------------------------------------------
 // The parts no single-instruction table row can express.

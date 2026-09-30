@@ -43,7 +43,6 @@ pub mod build;
 /// thing that drove the chain.
 pub mod chain;
 pub mod comptime;
-pub mod device;
 /// `W-237`, 2026-09-04 — `emit.rs` was DELETED from this directory, and the line
 /// that declared it is this note. It called itself "T0 emission for riscv64"
 /// (doc 03 §8 phase 3.4.8) and its text was not T0: `main`, `x5`, `a0` are

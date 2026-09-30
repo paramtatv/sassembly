@@ -1,8 +1,8 @@
 //! What a type class asserts, and whether anything checks it — task `B-097`.
 //!
-//! Doc 02 §2.5 fixed three classes: `ॱअ` signed, `ॱन` unsigned, `ॱभ` float.
+//! Doc 02 §2.5 fixed three classes: `ॱअ` signed, `ॱन` unsigned, `ॱप` float.
 //! `B-075` made all three *writable* and only the width was read, so a class
-//! letter was validated and thrown away. `B-077` closed that for `ॱभ` by
+//! letter was validated and thrown away. `B-077` closed that for `ॱप` by
 //! deriving what an encoding operates on from its `freg` slot; this closes it
 //! for `ॱन`.
 //!
@@ -91,8 +91,8 @@ fn a_conversion_is_exempt_because_its_classes_name_what_it_moves_between() {
     // and nothing else in the instruction says which. Thirty-two conformance
     // rows depend on it, and a rule that did not exempt them would have failed
     // the corpus rather than this test — but the corpus cannot say WHY.
-    let unsigned = first("भिन्नरूपान्तरम्ॱभ६४ॱन६४ भिन्न०म् स्तूपसूचकःन ।\n").expect("fcvt.d.lu");
-    let signed = first("भिन्नरूपान्तरम्ॱभ६४ॱअ६४ भिन्न०म् स्तूपसूचकःन ।\n").expect("fcvt.d.l");
+    let unsigned = first("प्लवरूपान्तरम्ॱप६४ॱन६४ प्लव०म् स्तूपसूचकःन ।\n").expect("fcvt.d.lu");
+    let signed = first("प्लवरूपान्तरम्ॱप६४ॱअ६४ प्लव०म् स्तूपसूचकःन ।\n").expect("fcvt.d.l");
     assert_ne!(
         unsigned, signed,
         "the class letter chooses the conversion; if these agree it does not"

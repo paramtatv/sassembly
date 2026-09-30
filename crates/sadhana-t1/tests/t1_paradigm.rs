@@ -56,6 +56,10 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
+/// Unique scratch roots, shared with every other binary that needs one —
+/// because five copies of `(pid, counter)` was five copies of one defect.
+mod spec_fixture;
+
 // ─────────────────────────────────────────────────────────────────────────
 // The letter table — research/22 §7, every row, with its place on the model.
 // ─────────────────────────────────────────────────────────────────────────
@@ -2836,7 +2840,7 @@ fn the_instruments_see_a_chain_an_unpaired_span_and_a_stray_sign() {
 /// lines write the same bytes, and the bytes carry the numbers.
 #[test]
 fn the_report_generator_is_byte_stable() {
-    let dir = std::env::temp_dir().join(format!("w206-report-{}", std::process::id()));
+    let dir = spec_fixture::unique_root("w206-report");
     std::fs::create_dir_all(&dir).expect("a temp dir");
     let input = dir.join("census.txt");
     std::fs::write(

@@ -54,7 +54,7 @@
 //! [`measure_corpus_encode`], run with `--ignored --nocapture`.
 
 use sadhana::encode::Target;
-use sadhana::kosha::write_debuggable_at;
+use sadhana::kosha::{SymSection, write_debuggable_at};
 use sadhana::nidana::Language;
 use sadhana::samyojana::link_at;
 use sadhana::t1::ast::SymbolId;
@@ -394,6 +394,93 @@ fn arena_int(a: &Rc<RefCell<Vec<Value>>>, i: usize) -> i128 {
     a.borrow().get(i).and_then(Value::as_int).unwrap_or(0)
 }
 
+/// **WHAT ONE SHAPE'S COUNTER READS, AND IT HAS FOUR ANSWERS WHERE
+/// [`arena_int`] HAS ONE.**
+///
+/// `arena_int` answers `0` for a slot that is PAST THE END of the arena, for a
+/// slot holding something that is not an integer, and for a slot holding a
+/// genuine zero. `read_module` then wrote the count only `if n > 0`, so an
+/// absent MAP key folded those three together with a fourth thing — a shape
+/// declared in [`LOWERED_SHAPES`] whose count was never asked for at all.
+///
+/// **THAT COLLAPSE IS NOT A STYLE COMPLAINT; IT COST SIX READINGS.** `W-306`
+/// recorded `assign_index` as "absent or zero" and was then diagnosed, in
+/// order, as a lowering regression, a stale pin, an arm dead by achievement, a
+/// live-but-unexercised failure path, a read of the wrong table, and a name
+/// collision merging two shapes in one map. Every one of those is a different
+/// state of this counter, and the instrument printed the same thing for all of
+/// them. The assertion's own margin says it out loud — *"an ABSENT key and a
+/// MEASURED ZERO are one output here"* — and then leaves the reader to
+/// discriminate by hand from the rest of the log.
+///
+/// So the read is named. The two states that matter are kept APART by
+/// construction:
+///
+/// * [`ShapeRead::OutsideArena`] is the LOUD cause. `ir.t1:755-762` sizes
+///   `रचितगणनाकोश` by walking `१..=रचितशेषसीमा`, so a shape above the bound
+///   faults on the WRITE and takes the source's IR build down with it. It is
+///   the one to fix first, and it must never be reported as a zero.
+/// * [`ShapeRead::Zero`] is the QUIET cause: the slot EXISTS, the arm is
+///   written, and this corpus never reaches it.
+///
+/// Measured while naming these, and it is why the distinction is not
+/// hypothetical here: `रचितशेषसीमा` is `३५` (`ir.t1:791`) and `assign_index` is
+/// shape `३२`, so slot 32 is INSIDE the arena and `assign_index` is
+/// [`ShapeRead::Zero`] — not the bound case at all.
+///
+/// **THE NUMBER AND THE LINE BOTH MOVED, AND THE CLAIM DID NOT.** This
+/// margin read `३४` at `:784` until `W-306` added shape
+/// `३५ assign_index_grown` and raised the bound in the same edit. Slot 32
+/// was inside an arena of 34 and is inside an arena of 35, so the reading
+/// this paragraph justifies is unchanged. Restated rather than deleted
+/// because a bound quoted BY NUMBER is a dated claim, and this one was
+/// already stale on the commit that raised it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ShapeRead {
+    /// The shape's code is past the end of `रचितगणनाकोश`. Carries the arena's
+    /// length so the bound and the code can be compared in the message rather
+    /// than looked up. The LOUD cause; never folded into [`ShapeRead::Zero`].
+    OutsideArena { slots: usize },
+    /// A slot that exists and does not hold an integer. Cannot happen while
+    /// `ir.t1` writes only counts here, which is exactly why it is named: if it
+    /// ever does happen, `arena_int`'s `unwrap_or(0)` would have reported it as
+    /// a zero and the arm would read unreachable.
+    NotAnInteger,
+    /// The slot exists and holds zero — or a negative, which a count cannot be
+    /// and which `usize::try_from` used to turn into a zero as well. The arm is
+    /// written and this corpus does not reach it.
+    Zero { raw: i128 },
+    /// The arm fired. The only one of the four that is coverage.
+    Raised(usize),
+}
+
+impl ShapeRead {
+    /// The count in the currency [`stub_report`] totals — zero for the three
+    /// arms that are not coverage, so a report cannot accidentally add a
+    /// diagnostic state to a census figure.
+    fn count(&self) -> usize {
+        match self {
+            ShapeRead::Raised(n) => *n,
+            ShapeRead::OutsideArena { .. } | ShapeRead::NotAnInteger | ShapeRead::Zero { .. } => 0,
+        }
+    }
+}
+
+/// One shape's counter in one module, with the three non-answers kept apart.
+fn read_shape(a: &Rc<RefCell<Vec<Value>>>, code: usize) -> ShapeRead {
+    let a = a.borrow();
+    match a.get(code) {
+        None => ShapeRead::OutsideArena { slots: a.len() },
+        Some(v) => match v.as_int() {
+            None => ShapeRead::NotAnInteger,
+            Some(raw) => match usize::try_from(raw) {
+                Ok(n) if n > 0 => ShapeRead::Raised(n),
+                _ => ShapeRead::Zero { raw },
+            },
+        },
+    }
+}
+
 /// The module name a `.t1` source declares: `मण्डलम् NAME ॥`.
 fn module_name(src: &str) -> String {
     src.lines()
@@ -466,6 +553,22 @@ impl Stage {
     }
 }
 
+/// **THE POPULATION THE TWO EMITTERS WERE COMPARED OVER: every source whose IR
+/// BUILT**, which is every source that REACHED the emit stage.
+///
+/// Reaching `Emit` is not a proxy for being compared, it is the condition:
+/// `chain_source` calls `riscv64::emit_module` and then runs the T1 twin
+/// unconditionally, and every stop before that returns without either emitter.
+/// A row that stops AT `Emit` was still compared — both halves refused it, and
+/// the census records their agreement on the refusal KIND as `twin AGREE 0
+/// octets`.
+///
+/// It is deliberately NOT read off `Row::twin`, the field it is compared
+/// against; see [`the_population_is_not_read_off_the_twin_field`].
+fn built_ir(row: &Row) -> bool {
+    row.encode_stop >= Stage::Emit
+}
+
 /// The variant of a [`Halt`], as a word: `finisher`, `bad-access`, `step-limit`, …
 fn halt_kind(h: &Halt) -> String {
     let dbg = format!("{h:?}");
@@ -499,10 +602,17 @@ struct Row {
     calls: usize,
     zero_arg_calls: usize,
     cross_module_calls: usize,
+    /// See [`Read::growth_routines`].
+    growth_routines: usize,
     zero_constants: usize,
     stub_constants: usize,
     stubs_by_cause: BTreeMap<&'static str, usize>,
     lowered_by_shape: BTreeMap<&'static str, usize>,
+    /// EVERY row of [`LOWERED_SHAPES`], including the ones that read nothing —
+    /// which is the point. [`Row::lowered_by_shape`] holds only the positive
+    /// counts, so it cannot tell an unreached arm from a short arena; this holds
+    /// the named read. See [`ShapeRead`].
+    lowered_shape_reads: BTreeMap<&'static str, ShapeRead>,
     args_in_registers: usize,
     args_on_stack_sites: usize,
     /// `Some(Ok(octets))`: the twins agree; `Some(Err(where))`: they diverge.
@@ -534,6 +644,15 @@ struct Row {
     words: usize,
     words_back: usize,
     halt: Option<Halt>,
+    /// `W-306`: HOW MANY STEPS THE RUN ACTUALLY TOOK, out of [`BUDGET`]. The
+    /// machine has counted this all along — `Machine::time` ticks once per
+    /// instruction the hart begins — and `Machine::run` threw it away, so
+    /// `ran()` was a BOOLEAN over a quantity. That is the two-state instrument
+    /// this cycle was sent to fix: a source that halts at the finisher having
+    /// spent 999,000 of a million steps and one that spends 9,000 are the same
+    /// `true`, and re-taking a pin on the first is re-taking it on a coin toss.
+    /// See [`Row::step_margin`].
+    steps: u64,
     status: Option<u32>,
     /// Where the emitter's side stopped, and why.
     encode_stop: Stage,
@@ -541,6 +660,13 @@ struct Row {
     /// The T0 text the machine ran (the T1 twin's when it agreed), for a reader
     /// of a wrong status (`W-245`).
     text: String,
+    /// `W-306`: whether the STEP PROFILER actually ran for this source.
+    ///
+    /// Recorded rather than re-derived, because the thing being reported is
+    /// precisely that a request can name a source the run never profiles, and a
+    /// reading that inferred it from `T1_STEP_PROFILE` and `encode_stop` would
+    /// be asserting the very fact it is supposed to be checking.
+    profiled: bool,
 }
 
 impl Row {
@@ -570,6 +696,70 @@ impl Row {
             (s, _) => s.name().to_string(),
         }
     }
+    /// `W-306`: WHERE THIS SOURCE SITS AGAINST THE STEP BUDGET — four answers
+    /// where [`Row::ran`] has two.
+    ///
+    /// The instrument this replaces could not tell a source that finishes with
+    /// room to spare from one that finishes on its last thousand steps, and
+    /// `T1_ON_YANTRA` is a pin over exactly that boolean. So the cycle that
+    /// moves the pin because a source "now runs" cannot know whether it moved
+    /// because the compiler got shorter or because the budget happened to be
+    /// enough this once — and the next unrelated instruction pushes it back.
+    fn step_margin(&self) -> StepMargin {
+        if !self.assembled() || self.encode_stop != Stage::Run {
+            return StepMargin::NotReached;
+        }
+        match &self.halt {
+            Some(Halt::Finisher { .. }) => {
+                // The budget is the denominator on purpose: the question is not
+                // "how long did it take" but "how much of what it was given did
+                // it need", and only the second one predicts a flip.
+                if self.steps * TIGHT_HEADROOM >= BUDGET {
+                    StepMargin::Tight
+                } else {
+                    StepMargin::Spare
+                }
+            }
+            Some(Halt::StepLimit { .. }) => StepMargin::Exhausted,
+            _ => StepMargin::NotReached,
+        }
+    }
+}
+
+/// `W-306`: HOW MUCH ROOM TO GROW A RUN MUST HAVE TO COUNT AS `Spare` — it must
+/// survive its own work multiplying by this and still halt.
+///
+/// FOUR, AND THE CORPUS PICKED IT, NOT A PREFERENCE. Measured over the 19-source
+/// walk of this tree: eighteen sources finish under 2% of the budget and
+/// `shrinkhala.t1` finishes at **487,371 of 1,000,000 — 48%**. There is nothing
+/// in between, so the only question a threshold answers here is which side of
+/// that gap `shrinkhala` falls on. A doubling test (`*2`) puts it at `Spare` by
+/// 2.5% of the budget, which is the instrument calling the one source that can
+/// be pushed over the limit by a single change SAFE — the exact blindness this
+/// reading exists to remove. Four is the smallest headroom factor that reads the
+/// measured corpus honestly, and it is a factor rather than a fitted percentage
+/// because `DEFAULT_STEPS`'s own margin says the budget is "likely too small by
+/// about an order of magnitude": the constant under it is the thing expected to
+/// move.
+const TIGHT_HEADROOM: u64 = 4;
+
+/// `W-306`: the four states a source can be in against the step budget. THE
+/// POINT OF THE FOURTH: `Tight` is the one the old boolean could not say, and it
+/// is the state in which a pin re-take is NOT justified — the source ran, so
+/// `ran()` is `true` and `T1_ASSEMBLED_NOT_ON_YANTRA` empties, but it ran on a
+/// margin thin enough that the emptying says more about `DEFAULT_STEPS` than
+/// about the compiler. An instrument with two states where the truth has four
+/// hides its own breakage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StepMargin {
+    /// Halted at the finisher having used less than half its budget.
+    Spare,
+    /// Halted at the finisher, but needed half the budget or more.
+    Tight,
+    /// Did not halt: the budget ran out first.
+    Exhausted,
+    /// Never got as far as the machine, so the budget never applied.
+    NotReached,
 }
 
 // --- reading the IR into a named module ------------------------------------------------
@@ -587,12 +777,21 @@ struct ReadModule {
     calls: usize,
     zero_arg_calls: usize,
     cross_module: usize,
+    /// How many routine slots carried the ZERO name token — the module's
+    /// synthesised growth routine, and nothing else on a sound read. This is the
+    /// only witness in the object that the index-assignment arm took its GROWTH
+    /// branch: `ir.t1:4675` emits the call and sets the flag, `ir.t1:5077` emits
+    /// the routine, and the `anyatha` branch at `ir.t1:4730` emits neither.
+    /// See [`GrowthBranch`].
+    growth_routines: usize,
     zero_constants: usize,
     /// `W-245`: of the `ConstInt(0)`s, how many are the builder's STUB for a shape it
     /// does not lower (the rest are a written `०`), and the stub count per cause.
     stub_constants: usize,
     stubs_by_cause: BTreeMap<&'static str, usize>,
     lowered_by_shape: BTreeMap<&'static str, usize>,
+    /// See [`Row::lowered_shape_reads`].
+    lowered_shape_reads: BTreeMap<&'static str, ShapeRead>,
     args_in_registers: usize,
     args_on_stack_sites: usize,
 }
@@ -804,6 +1003,46 @@ const STUB_CAUSES: &[(i128, &str)] = &[
     // 44, not 28: the literal raises in `crates/sadhana-t1/src/*.t1` run to 43,
     // and 28/29 are taken below by the field-qualified family.
     (44, "name_global_declsite_zero"),
+    // `W-283`, 2026-09-27: CAUSE 32 WAS 92% ONE THING AND ITS NAME SAID ANOTHER.
+    //
+    // `field_qualified_type_not_struct` reads as a CORPUS FACT — the source asks
+    // for a field of something that is not a record — and that is how cause 25's
+    // margin above justifies the whole family: "no edit to `ir.t1` recovers
+    // these". For almost all of 32 that reading is WRONG. The base's recorded type
+    // is `अर्थ`'s POISON (`Ty::Error`), which is not a type the corpus wrote: it is
+    // the checker declining to type the declaration at all.
+    //
+    // MEASURED BEFORE IT WAS BELIEVED, `T1_CORPUS=ir,encode` through this census,
+    // by a throwaway probe that routed each of the eleven possible base kinds onto
+    // a cause measured ZERO on that set — so the split is read off the counter and
+    // not off anybody's reading of the corpus:
+    //
+    //                                        HEAD   probe   this tree
+    //     32  field_qualified_type_not_struct   399      41      41
+    //     45  field_qualified_type_is_poison      —     369     359
+    //         paradigm_ir_stubs                 671     682     673
+    //
+    // THE PROBE'S 369 IS NOT THE POPULATION — ELEVEN OF THEM WERE THE PROBE.
+    // `ir.t1` is itself one of the two sources being compiled, so the probe's own
+    // eleven `वस्तुप्रकारः ॱ भेद` reads were compiled and counted, and all eleven
+    // landed in the SAME population: 41 + 369 = 399 + 11. The standing population
+    // is 358 and the landed guard line makes it 359.
+    //
+    // 359 AND 41 WERE PREDICTED BEFORE THE RUN AND BOTH ANSWERED EXACTLY. The total
+    // did not: predicted 672, measured 673, and the extra one is the same
+    // self-measurement in a second place — the guard names `अर्थॱदोषार्थभेद`, a
+    // module-qualified read `ir.t1` lowers as cause 1, which went 132 -> 133.
+    //
+    // THE 41 IS WHAT MUST STILL REFUSE AS 32, and it is a measurement rather than
+    // a hope: a base with a real non-record type — an integer, a run asked for a
+    // field that is not `दैर्घ्य`, an enum — still answers 32. A split that had
+    // emptied 32 would have proved only that the new guard swallowed the arm.
+    //
+    // WHERE THE NEXT UNIT IS: not here. `अर्थॱनामप्रकारार्थः` already RECORDS why it
+    // refused a spelling — `अज्ञातप्रकारपाठकोश` beside `अज्ञातप्रकारकारणकोश`, five
+    // named reasons at `artha.t1:219-225` — and `t1_execution.rs` already prints
+    // them. No new instrument is needed to ask which reason carries the 369.
+    (45, "field_qualified_type_is_poison"),
     (28, "field_qualified_base_symbol_zero"),
     (29, "field_qualified_type_absent"),
     (30, "field_qualified_type_bounds"),
@@ -930,6 +1169,27 @@ const LOWERED_SHAPES: &[(i128, &str)] = &[
     // exactly like a stub that vanished, which is the one reading this census
     // exists to make impossible.
     (34, "run_length"),
+    // `W-306`: the GROWTH branch of the index-assignment arm (`ir.t1:4714`),
+    // which built its `सूचीस्थानाज्ञाभेद` inline and raised nothing at all.
+    //
+    // A NEW NUMBER AND NOT `assign_index` ३२, and the reason is the one this
+    // table gives for every split it has made: ३२ names the branch at
+    // `ir.t1:3332`, which forms the address from a base the growth routine
+    // never touched, and folding the grown store into it would move ३२ from a
+    // truthful zero to a count of the OTHER branch — unseparable afterwards.
+    //
+    // THIS ROW IS WHY `assign_index` READ ZERO. `W-306` spent six readings on
+    // that zero before `GrowthBranch` measured it: every module of this corpus
+    // takes the growth branch, so ३२'s well-formed zero was CONSISTENT and the
+    // lowering it was supposed to witness was happening one branch over,
+    // counted by nothing. `assign_index` therefore stays `Quiet`, and THAT IS
+    // THE MEASUREMENT AND NOT A DEFECT — so it moved OUT of
+    // `REQUIRED_LOWERED_SHAPES`, whose claim is "this corpus lowers it", and
+    // INTO [`DECLARED_AND_UNREACHED_SHAPES`], whose claim is "this corpus is
+    // WITNESSED not to". Deleting the row is still the failure the five-state
+    // read was built to prevent; the move is not a deletion, and this row is
+    // the witness it is covered BY.
+    (35, "assign_index_grown"),
 ];
 
 /// Shapes this corpus MUST lower — checked present-and-positive by
@@ -961,10 +1221,341 @@ const REQUIRED_LOWERED_SHAPES: &[&str] = &[
     // address zero and no other figure in this census would say so.
     "record_alloc",
     "assign_field",
-    "assign_index",
+    // `assign_index` IS NOT HERE, AND ITS ROW WAS NOT DELETED — it moved to
+    // [`DECLARED_AND_UNREACHED_SHAPES`], which is still a check. See that
+    // table's own margin for why membership here was the defect and the zero
+    // was not.
     // `W-287` claims every run-typed local allocates, so this is owed the check.
     "run_alloc",
+    // `W-306` claims this one fires on EVERY module of this corpus — that is
+    // exactly what `GrowthOnly` over nine modules measured — so it is owed the
+    // check the moment it is declared. Added HERE and in `LOWERED_SHAPES` in
+    // one commit: a row declared above and not listed here lowers uncounted
+    // and reads exactly like a stub that vanished, which is the `run_length`
+    // ३४ lesson recorded in that table's own margin.
+    //
+    // IF THIS EVER READS `Quiet` WHILE `assign_index` STILL DOES, the corpus
+    // has stopped lowering indexed writes on BOTH branches and no other figure
+    // in this census would say so.
+    "assign_index_grown",
 ];
+
+/// **A SHAPE THIS CORPUS IS WITNESSED NOT TO REACH — AND WHY THAT IS A CHECK
+/// AND NOT A DELETION.**
+///
+/// `REQUIRED_LOWERED_SHAPES` says "this corpus MUST lower it". For
+/// `assign_index` that claim was simply FALSE, and it had been false since it
+/// was written: `ir.t1`'s index-assignment arm has two branches, every module
+/// of this corpus takes the GROWTH one, and only the OTHER one raises
+/// `रचितगणनम् ३२`. So the red it produced was the table being wrong about the
+/// corpus, not the corpus being wrong about the lowering — and six readings
+/// went into the zero before [`GrowthBranch`] measured the branch.
+///
+/// **THE REPAIR IS NOT `- "assign_index",`.** An arm declared in
+/// `LOWERED_SHAPES` and named in no assertion anywhere reads exactly like a
+/// stub that vanished — that is the `run_length` ३४ lesson recorded in that
+/// table's own margin, in reverse. A row that stops being checked must start
+/// being checked for something ELSE, and what this table checks is the
+/// narrower, TRUE claim: the shape is inside the arena, well-formed, zero —
+/// and the work it was supposed to witness is witnessed somewhere.
+///
+/// **`covered_by` IS WHAT MAKES THE MOVE SAFE.** Silence on its own is not a
+/// measurement; silence NEXT TO a named raise is. `assign_index` is covered by
+/// `assign_index_grown`, which is itself in `REQUIRED_LOWERED_SHAPES`, so the
+/// pair cannot both go quiet without a red: that is the state where the corpus
+/// has stopped lowering indexed writes on BOTH branches, and no other figure in
+/// this census would say so. [`GrowthBranch`] reads the same fact off a second,
+/// independent witness — the growth ROUTINES in the object rather than the
+/// shape counts in the arena — and prints it as a `METRIC` above the loop.
+const DECLARED_AND_UNREACHED_SHAPES: &[DeclaredUnreached] = &[DeclaredUnreached {
+    shape: "assign_index",
+    covered_by: "assign_index_grown",
+    witness: "`GrowthBranch::GrowthOnly` — every lowered module of this corpus emits a growth \
+              routine and none raises `रचितगणनम् ३२`, so the indexed writes are lowered by the \
+              GROWTH branch (`ir.t1:4675-4729`) and counted under shape ३५",
+}];
+
+/// One row of [`DECLARED_AND_UNREACHED_SHAPES`].
+struct DeclaredUnreached {
+    /// The shape declared in `LOWERED_SHAPES` and unreached on this corpus.
+    shape: &'static str,
+    /// The shape whose raise is what makes `shape`'s silence a measurement.
+    /// It must be in `REQUIRED_LOWERED_SHAPES` too, or this row's safety rests
+    /// on a check nobody runs.
+    covered_by: &'static str,
+    /// The sentence naming what measured the unreachedness. Quoted into every
+    /// complaint, so a reader who hits one is never asked to go find it.
+    witness: &'static str,
+}
+
+/// **WHETHER A DECLARED-AND-UNREACHED ROW STILL HOLDS — FOUR ANSWERS, AND THE
+/// ARM ORDER IS AGAIN THE REFUSAL.**
+///
+/// 1. `OutsideArena` and `Malformed` on the shape itself are decided FIRST and
+///    delegated to [`ShapeCoverage::complaint`] unchanged. Moving a row here
+///    does NOT buy it out of the loud causes: a bound left behind still faults
+///    the IR build, and a slot holding a non-count is still a broken write.
+///    Reading either as "well, it's unreached anyway" is exactly the inference
+///    this whole file exists to refuse.
+/// 2. [`ShapeCoverage::Raised`] is decided SECOND and IS A RED. The row's claim
+///    is "unreached"; a raise falsifies it. The fix is one line — move it back
+///    to `REQUIRED_LOWERED_SHAPES` — but it must be MADE, because a list of
+///    stale exemptions is how a required check quietly stops being one.
+/// 3. `Quiet` with the cover shape NOT raised is a RED, and it is the state
+///    this table exists to catch: both branches silent means the corpus lowers
+///    no indexed write at all.
+/// 4. `Quiet` with the cover shape raised is the declared state. Not a defect.
+///
+/// `NoModules` on either side is nothing to ask, as everywhere else here.
+fn declared_unreached_complaint(
+    row: &DeclaredUnreached,
+    coverage: &ShapeCoverage,
+    cover: &ShapeCoverage,
+) -> Option<String> {
+    let DeclaredUnreached {
+        shape,
+        covered_by,
+        witness,
+    } = row;
+    match coverage {
+        ShapeCoverage::NoModules => None,
+        ShapeCoverage::OutsideArena { .. } | ShapeCoverage::Malformed { .. } => {
+            coverage.complaint(shape)
+        }
+        ShapeCoverage::Raised { total, modules } => Some(format!(
+            "`{shape}` is listed DECLARED-AND-UNREACHED and it RAISED {total} time(s) across \
+             {modules} module(s). The exemption is STALE, not the corpus: the witness that put \
+             it here was {witness}. Move `{shape}` back into `REQUIRED_LOWERED_SHAPES` and \
+             delete this row — a list of exemptions nobody re-takes is how a required check \
+             stops being one."
+        )),
+        ShapeCoverage::Quiet { modules } => match cover {
+            ShapeCoverage::Raised { .. } | ShapeCoverage::NoModules => None,
+            _ => Some(format!(
+                "`{shape}` reads a present, well-formed zero in all {modules} module(s) AND its \
+                 cover `{covered_by}` reads {cover:?}. THIS IS THE RED THIS TABLE EXISTS FOR. \
+                 `{shape}`'s silence is only a measurement while `{covered_by}` is raised — the \
+                 witness is {witness}. Both quiet means the corpus lowers the construct on \
+                 NEITHER branch, and no other figure in this census would say so. Do not clear \
+                 this by deleting a row."
+            )),
+        },
+    }
+}
+
+/// **WHETHER ONE REQUIRED SHAPE IS COVERED BY THE CORPUS — ONE DECISION, AND IT
+/// HAS FIVE ANSWERS WHERE THE ASSERTION ASKED `n > 0`.**
+///
+/// A shape lives in each module's own arena, so the question is about a LIST of
+/// [`ShapeRead`]s and not about one. The old code summed the positive ones and
+/// compared to zero, which is right about coverage and says nothing about cause.
+///
+/// **THE ARM ORDER IS THE REFUSAL, and it is the whole of the design here:**
+///
+/// 1. [`ShapeCoverage::Raised`] is decided FIRST. A shape that fires in ONE
+///    module is covered, however many others read it zero — a presence claim
+///    over the corpus is met by any witness, and a module that simply contains
+///    no indexed write must not be evidence against one that does.
+/// 2. [`ShapeCoverage::OutsideArena`] is decided SECOND, ahead of the zero. It
+///    is the LOUD cause — `रचितशेषसीमा` left behind a shape — and a run that has
+///    it has nothing to learn from the quiet reading. ONE module short of the
+///    slot is enough to name it: the bound is a property of `ir.t1`, so if any
+///    module's arena cannot hold the code, the bound is the defect.
+/// 3. [`ShapeCoverage::Malformed`] third, for the same reason: a slot holding a
+///    non-count is a broken write, not an unreached arm.
+/// 4. [`ShapeCoverage::Quiet`] LAST, and only when every module agreed the slot
+///    exists, holds a count, and that count is zero. This is the arm that means
+///    what `W-306` spent six readings establishing by hand: the code is there
+///    and this corpus does not reach it.
+/// 5. [`ShapeCoverage::NoModules`] for an empty list, which is nothing to ask
+///    rather than a defect — a census that read no module is not a census, and
+///    reporting it as an unreachable arm would blame `ir.t1` for an empty run.
+///
+/// Extracted so the claim can be handed a LIST rather than computed inside the
+/// assertion's loop, where only the corpus could reach it and the corpus has
+/// only ever produced two of the five answers. Made to fire on all five in
+/// [`the_lowered_shape_coverage_reading_names_five_states_and_keeps_the_loud_cause_first`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ShapeCoverage {
+    /// No module was read at all. Counted, never a defect.
+    NoModules,
+    /// At least one module raised the shape. Carries the corpus total and how
+    /// many modules contributed, so a shape covered by a single witness is
+    /// visible as such rather than reading like a corpus-wide property.
+    Raised { total: usize, modules: usize },
+    /// Some module's `रचितगणनाकोश` is too short to hold the code. The loud one.
+    OutsideArena { modules: usize, slots: usize },
+    /// Some module's slot holds something that is not a count.
+    Malformed { modules: usize },
+    /// Every module read a present, well-formed zero. The arm exists and is
+    /// unreached.
+    Quiet { modules: usize },
+}
+
+impl ShapeCoverage {
+    /// The decision. See the arm order above — it is load-bearing.
+    fn of(reads: &[ShapeRead]) -> ShapeCoverage {
+        if reads.is_empty() {
+            return ShapeCoverage::NoModules;
+        }
+        let total: usize = reads.iter().map(ShapeRead::count).sum();
+        if total > 0 {
+            return ShapeCoverage::Raised {
+                total,
+                modules: reads.iter().filter(|r| r.count() > 0).count(),
+            };
+        }
+        let short: Vec<usize> = reads
+            .iter()
+            .filter_map(|r| match r {
+                ShapeRead::OutsideArena { slots } => Some(*slots),
+                _ => None,
+            })
+            .collect();
+        if let Some(slots) = short.iter().copied().min() {
+            return ShapeCoverage::OutsideArena {
+                modules: short.len(),
+                slots,
+            };
+        }
+        let malformed = reads
+            .iter()
+            .filter(|r| matches!(r, ShapeRead::NotAnInteger))
+            .count();
+        if malformed > 0 {
+            return ShapeCoverage::Malformed { modules: malformed };
+        }
+        ShapeCoverage::Quiet {
+            modules: reads.len(),
+        }
+    }
+
+    /// The sentence the assertion reports, or `None` for the two arms that are
+    /// not a defect. Each names its OWN cause, so the reader is not asked to
+    /// discriminate from the rest of the log — which is what `W-306` had to do
+    /// six times.
+    fn complaint(&self, shape: &str) -> Option<String> {
+        match self {
+            ShapeCoverage::NoModules | ShapeCoverage::Raised { .. } => None,
+            ShapeCoverage::OutsideArena { modules, slots } => Some(format!(
+                "`{shape}` reads OUTSIDE THE ARENA in {modules} module(s) — the shortest                  `रचितगणनाकोश` holds {slots} slot(s). THIS IS THE LOUD CAUSE and it is not a                  missing arm: `ir.t1` sizes that arena by walking `१..=रचितशेषसीमा`, so a                  shape above the bound faults on the WRITE and takes the source's IR build                  down with it. Raise `रचितशेषसीमा` in the same edit as the shape. Do NOT                  read this as an unreachable arm."
+            )),
+            ShapeCoverage::Malformed { modules } => Some(format!(
+                "`{shape}`'s slot holds something that is NOT A COUNT in {modules} module(s).                  The arm may well fire; the WRITE is broken. `arena_int` would have reported                  this as a zero and it would have read as an unreachable arm."
+            )),
+            ShapeCoverage::Quiet { modules } => Some(format!(
+                "`{shape}` reads a PRESENT, WELL-FORMED ZERO in all {modules} module(s). \
+                 This is the QUIET cause and the reading is now definite, not inferred \
+                 from the rest of the log: the slot exists, so the shape is INSIDE \
+                 `रचितशेषसीमा` and the bound is NOT the problem. Either nothing raises \
+                 this shape on this corpus — the arm is written and unreached — or the \
+                 raise is guarded by a condition the corpus never meets. Read the \
+                 `रचितगणनम्` call for this shape in `ir.t1` and the guard directly above \
+                 it; do not infer a lowering regression from this number, because a \
+                 lowering that is merely counted under a DIFFERENT shape also reads \
+                 exactly like this."
+            )),
+        }
+    }
+}
+
+/// **WHICH BRANCH OF `ir.t1`'s INDEX-ASSIGNMENT ARM THE CORPUS TAKES — FIVE
+/// ANSWERS, AND THE TWO-STATE VERSION OF THIS QUESTION IS WHY `W-306` READ IT
+/// WRONG.**
+///
+/// `ir.t1:4622` is the arm for `x अङ्कः i अन्तः भवति v`. Inside it, `:4675`
+/// splits on `वृद्धिविस्तार अधिकम् ०` — the element width, set at `:4661-4665`
+/// only when the base's type resolves to a `खण्डार्थभेद` with a known element:
+///
+/// * the GROWTH branch (`:4675-4729`) calls the module's growth routine, sets
+///   `वृद्धिवृत्तिप्रयुक्तम्`, and builds `सूचीस्थानाज्ञाभेद` INLINE at `:4714`.
+///   It raises NO `रचितगणनम्` at all.
+/// * the `अन्यथा` branch (`:4731-4734`) sets `स्थानमात्रम्` and re-enters the
+///   expression builder, where `:3332` raises `रचितगणनम् ३२` — `assign_index`.
+///
+/// So `assign_index` counts ONE branch and the other leaves no shape behind it.
+/// A zero there is NOT "the arm is unreachable"; it is consistent with every
+/// site in the corpus taking the branch that never raises. The witness for that
+/// branch is the growth ROUTINE: emitted once per module at `:5077` iff some
+/// site set the flag, and visible in the object as a routine slot whose name
+/// token is `०` ([`Read::growth_routines`]).
+///
+/// **THE DECISION ORDER IS THE REFUSAL.** [`GrowthBranch::AmbiguousMarker`] is
+/// decided FIRST, ahead of every product reading, for the reason
+/// [`ShapeCoverage::OutsideArena`] is: a broken instrument must never be folded
+/// into an answer about the corpus. [`GrowthBranch::Both`] is decided SECOND,
+/// because it is the one state in which a raise added to the growth branch would
+/// DOUBLE-COUNT a site that also passes `:3332` — the case the fix must refuse.
+/// Only then are the single-branch readings, and [`GrowthBranch::Unreached`]
+/// last, since "no sites at all" is nothing to explain.
+#[derive(Debug, PartialEq, Eq)]
+enum GrowthBranch {
+    /// Some module carried MORE THAN ONE zero name token, so the marker is not
+    /// unique to the growth routine and NEITHER single-branch reading below is
+    /// sound. `most` is the largest count seen in one module.
+    AmbiguousMarker { modules: usize, most: usize },
+    /// Both witnesses fire: `sites` raises of `assign_index` AND a growth
+    /// routine in `modules` module(s). The corpus reaches both branches, so a
+    /// `रचितगणनम् ३२` added to the growth branch would count some sites twice.
+    Both { modules: usize, sites: usize },
+    /// A growth routine in `modules` module(s) and `assign_index` quiet
+    /// everywhere: EVERY corpus index-assignment site takes the growth branch,
+    /// and `ir.t1:3332` is live code this corpus does not reach.
+    GrowthOnly { modules: usize },
+    /// `assign_index` raised `sites` times and no module emitted a growth
+    /// routine: every site takes the `अन्यथा` branch, and the growth branch is
+    /// the unreached one.
+    PlaceOnly { sites: usize },
+    /// Neither witness fires. The arm is not entered at all on this corpus and
+    /// the branch question does not arise.
+    Unreached,
+}
+
+impl GrowthBranch {
+    /// `growth_per_module` is one entry per measured module — NOT the positive
+    /// ones only, because a module that emitted no growth routine is what makes
+    /// [`GrowthBranch::GrowthOnly`] a claim about the corpus rather than about
+    /// one source.
+    fn of(growth_per_module: &[usize], sites: usize) -> GrowthBranch {
+        let most = growth_per_module.iter().copied().max().unwrap_or(0);
+        if most > 1 {
+            return GrowthBranch::AmbiguousMarker {
+                modules: growth_per_module.iter().filter(|n| **n > 1).count(),
+                most,
+            };
+        }
+        let modules = growth_per_module.iter().filter(|n| **n == 1).count();
+        match (modules, sites) {
+            (0, 0) => GrowthBranch::Unreached,
+            (0, sites) => GrowthBranch::PlaceOnly { sites },
+            (modules, 0) => GrowthBranch::GrowthOnly { modules },
+            (modules, sites) => GrowthBranch::Both { modules, sites },
+        }
+    }
+
+    /// The one state that is a DEFECT rather than a reading. A broken marker is
+    /// this instrument's own breakage; every other state is a fact about the
+    /// corpus and belongs on a `METRIC` line under the owner ruling of
+    /// 2026-09-13, not in a pin.
+    fn complaint(&self) -> Option<String> {
+        match self {
+            GrowthBranch::AmbiguousMarker { modules, most } => Some(format!(
+                "THE GROWTH-ROUTINE MARKER IS NOT UNIQUE: {modules} module(s) carry more than \
+                 one routine slot with name token ०, the largest holding {most}. `ir.t1:5077` \
+                 emits that routine ONCE per module, so either a second routine is reaching \
+                 the object unnamed or `वृत्तिनामचिह्नककोश` is being written twice. Until this \
+                 reads 0-or-1 per module, `growth_routines` is NOT a witness for the growth \
+                 branch and the census row above it says nothing about `ir.t1:4675`. Note the \
+                 driver's own symbol insert collides on the second one: both slots become \
+                 `SymbolId(10_000_005)`."
+            )),
+            GrowthBranch::Both { .. }
+            | GrowthBranch::GrowthOnly { .. }
+            | GrowthBranch::PlaceOnly { .. }
+            | GrowthBranch::Unreached => None,
+        }
+    }
+}
 
 /// The T1 instruction kind's Rust twin, for the eleven binary kinds and `Cmp` — the
 /// numbering `ir.t1` declares (`W-245`).
@@ -1097,10 +1688,19 @@ fn read_module(it: &mut Interpreter, module: &str, resolver: &Value) -> Result<R
     // routine name → its symbol, for a call that names this module's own routine.
     let mut routine_symbol: HashMap<String, SymbolId> = HashMap::new();
     let mut routine_syms: Vec<SymbolId> = Vec::new();
+    // `W-306` — HOW MANY SLOTS CARRY THE ZERO TOKEN, not whether one does. The
+    // growth routine is emitted ONCE per module (`ir.t1:5077` guards it on
+    // `vriddhivrittiprayuktam`), so this is 0 or 1 on a sound read and anything
+    // above 1 says the marker is not unique to it — see
+    // [`GrowthBranch::AmbiguousMarker`]. The loop below branches on the FIRST
+    // zero it meets and inserts one fixed symbol, so a second would have
+    // overwritten the same entry in silence.
+    let mut growth_routines = 0usize;
     for i in 1..=count {
         // Token ० marks the module's synthesised growth routine (ir.t1's
         // वृद्धिवृत्तिसंज्ञा, १००००००५), which the driver names (module, "खण्डवृद्धिः").
         if arena_int(&routine_names, i) == 0 {
+            growth_routines += 1;
             let sym = SymbolId(10_000_005);
             names.insert(sym, (module.to_string(), "खण्डवृद्धिः".to_string()));
             routine_symbol.insert("खण्डवृद्धिः".to_string(), sym);
@@ -1233,10 +1833,12 @@ fn read_module(it: &mut Interpreter, module: &str, resolver: &Value) -> Result<R
         calls: 0,
         zero_arg_calls: 0,
         cross_module: 0,
+        growth_routines,
         zero_constants: 0,
         stub_constants: 0,
         stubs_by_cause: BTreeMap::new(),
         lowered_by_shape: BTreeMap::new(),
+        lowered_shape_reads: BTreeMap::new(),
         args_in_registers: 0,
         args_on_stack_sites: 0,
     };
@@ -1247,10 +1849,18 @@ fn read_module(it: &mut Interpreter, module: &str, resolver: &Value) -> Result<R
         }
     }
     for (code, name) in LOWERED_SHAPES {
-        let n = usize::try_from(arena_int(&lowered_counts, *code as usize)).unwrap_or(0);
+        // NAMED FIRST, THEN REDUCED. `lowered_by_shape` keeps exactly the
+        // entries it always held — the positive ones — so every existing report
+        // and pin reads the same number; the four-state read is recorded BESIDE
+        // it rather than in place of it. `ShapeRead::count` is the only bridge,
+        // and it answers zero for all three non-answers, so a diagnostic state
+        // cannot leak into a census figure.
+        let read = read_shape(&lowered_counts, *code as usize);
+        let n = read.count();
         if n > 0 {
             out.lowered_by_shape.insert(name, n);
         }
+        out.lowered_shape_reads.insert(name, read);
     }
     for i in 1..=count {
         let f = functions.borrow()[i].clone();
@@ -1974,7 +2584,136 @@ fn link_and_run(
         Err(e) => return (Stage::Load, e),
     };
     let mut out = Vec::new();
-    let halt = m.run(BUDGET, &mut out);
+    // `W-306`: WHERE THE STEPS WENT, not just how many — off by default.
+    //
+    // `T1_STEP_PROFILE=<name|all>` swaps `Machine::run` for
+    // `yantra::profile::run_profiled`, which keeps the same halts and the same
+    // budget and records the program counter each step began at. It is opt-in
+    // because a `BTreeMap` write per instruction is real, and because the
+    // question it answers is asked of ONE source at a time: the census's
+    // `METRIC t1_run_steps` says `shrinkhala.t1` finishes on 48% of the budget
+    // and cannot say whether that is a long program or one hot loop, and
+    // `DEFAULT_STEPS`'s margin forbids sizing the constant off the total.
+    //
+    // `ashtaka` NAMES THE SAME SOURCE AS `ashtaka.t1`, because `T1_CORPUS` takes
+    // the bare stem and this took the file name — measured 2026-09-28:
+    // `T1_CORPUS=ashtaka T1_STEP_PROFILE=ashtaka` printed the census and not one
+    // profile line, and a switch that silently does nothing reads exactly like a
+    // source with no hot span.
+    // ONE MATCHING RULE, AND IT LIVES IN `profile`. `armed` reports what this
+    // switch reached, so a second spelling of "matched" here would let the
+    // report and the switch disagree — which is the same silence by another
+    // route.
+    let profiling = std::env::var("T1_STEP_PROFILE")
+        .is_ok_and(|v| yantra::profile::names_source(&v, &row.name));
+    row.profiled = profiling;
+    let halt = if profiling {
+        let (halt, p) = yantra::profile::run_profiled(&mut m, BUDGET, &mut out);
+        // The window is reported against the TEXT, because "half the steps in
+        // 0.2% of the text" and "half the steps in half the text" are the two
+        // answers the total hides and the ratio is what separates them.
+        let text = image.text.len() as u64;
+        // `W-306`: THE SPAN'S NAME. An offset is not somewhere anyone can go
+        // read. The image's symbol table is right here, so lay its TEXT names
+        // out as extents and ask which routine each window falls in — and let
+        // it answer with two when the window genuinely straddles a boundary,
+        // because a reading that always named one routine would name one
+        // whether or not that were true.
+        let text_syms: Vec<(String, u64)> = image
+            .table
+            .iter()
+            .filter(|s| s.section == SymSection::Text)
+            .map(|s| (s.name.clone(), s.value))
+            .collect();
+        let routines = yantra::profile::routines(&text_syms, LOAD, LOAD + text.saturating_sub(1));
+        // TWO SHARES, NOT ONE. Half the steps in a narrow window says "there is a
+        // loop"; NINE TENTHS in a window still narrow says the loop is the whole
+        // run and there is nothing else to look at. One share cannot tell those
+        // apart, and they call for different next work.
+        for (numer, denom, what) in [(1u64, 2u64, "half"), (9, 10, "9/10")] {
+            if let Some(span) = p.hot_span(numer, denom) {
+                println!(
+                    "METRIC t1_step_hotspan {} {} steps; {what} in {} octets ({} per mille \
+                     of {} text) at +{:#x}, {} sites of {}",
+                    row.name,
+                    p.steps(),
+                    span.width(),
+                    span.width() * 1000 / text.max(1),
+                    text,
+                    span.lo - LOAD,
+                    span.sites,
+                    p.sites()
+                );
+                // Each owner with its own share, so "one hot loop" names the
+                // routine or admits it spans more than one. `?` for a stretch
+                // the symbol table does not cover: not the nearest name.
+                let owners: Vec<String> = p
+                    .owners(&span, &routines)
+                    .iter()
+                    .map(|o| {
+                        format!(
+                            "{}@+{:#x}:{}",
+                            o.name.as_deref().unwrap_or("?"),
+                            o.lo - LOAD,
+                            o.steps
+                        )
+                    })
+                    .collect();
+                println!(
+                    "METRIC t1_step_hotspan_owners {} {what} {} routine(s) of {}: {}",
+                    row.name,
+                    owners.len(),
+                    routines.len(),
+                    owners.join(" ")
+                );
+            }
+        }
+        // `W-306`: HOW MANY TIMES, beside how long. A routine holding half the
+        // run reads the same whether it span once or was called ten thousand
+        // times, and those call for opposite next work — `visit`'s entry count
+        // is what separates them. `?` for a ratio there is no entry count for:
+        // a routine whose `lo` the run never reached, which is how an extent
+        // inferred up to the next NAME shows it annexed an unnamed neighbour.
+        let busiest: Vec<String> = p
+            .busiest(&routines, 6)
+            .iter()
+            .map(|v| {
+                // `entries x per-entry = steps`, so the row states its own
+                // arithmetic and a reader can see which factor is the large one.
+                format!(
+                    "{}:{}x{}={}/{}sites",
+                    v.name,
+                    v.entries,
+                    v.steps_per_entry()
+                        .map_or_else(|| "?".to_string(), |r| r.to_string()),
+                    v.steps,
+                    v.sites
+                )
+            })
+            .collect();
+        println!(
+            "METRIC t1_step_busiest_routines {} {} of {}: {}",
+            row.name,
+            busiest.len(),
+            routines.len(),
+            busiest.join(" ")
+        );
+        let hottest: Vec<String> = p
+            .hottest(5)
+            .iter()
+            .map(|(pc, n)| format!("+{:#x}={n}", pc - LOAD))
+            .collect();
+        println!("METRIC t1_step_hottest {} {}", row.name, hottest.join(" "));
+        halt
+    } else {
+        m.run(BUDGET, &mut out)
+    };
+    // `W-306`: the steps the run took. `Machine::time` is one tick per
+    // instruction the hart BEGINS and starts at zero, so after `run` returns it
+    // is the step count — read here rather than threaded out of `run`, whose
+    // signature eight other callers share. It is the clock either way: the
+    // profiler counts the same event, and `step_profile.rs` pins them equal.
+    row.steps = m.time;
     if let Halt::Finisher { status, .. } = &halt {
         row.status = *status;
     }
@@ -1992,6 +2731,40 @@ fn link_and_run(
     };
     row.halt = Some(halt);
     (Stage::Run, why)
+}
+
+/// `W-306`: WHAT `T1_STEP_PROFILE` ACTUALLY REACHED, printed whenever the switch
+/// is set.
+///
+/// A profile that prints nothing has three causes and the output spelled only
+/// one: it fired, it named a source this test never RUNS, or it named nothing at
+/// all. Measured 2026-09-29 — `T1_FULL_CENSUS=1 T1_STEP_PROFILE=shrinkhala` on
+/// `measure_corpus_encode` ran 209 s, PASSED and printed no profile line,
+/// because `shrinkhala.t1` stops at LINK there. Measured again 2026-09-29 under
+/// `T1_CORPUS=shrinkhala`: the stop is 33 UNRESOLVED cross-module labels, since
+/// a narrowed run links a row only against the other rows of the same run. The
+/// count travels in the line now. See [`yantra::profile::armed`].
+///
+/// Printed and not asserted: a census reports, and the request is the reader's.
+fn armed_report(rows: &[Row]) -> Option<String> {
+    let request = std::env::var("T1_STEP_PROFILE").ok()?;
+    let reached: Vec<yantra::profile::Reached<'_>> = rows
+        .iter()
+        .map(|r| yantra::profile::Reached {
+            source: &r.name,
+            stage: r.encode_stop.name(),
+            // `W-306`: the labels THIS run's corpus could not supply. `@link`
+            // with a count is "widen T1_CORPUS"; `@link` with zero is "the stop
+            // is not about the corpus", and the last cycle read the first as
+            // the second.
+            unresolved: r.unresolved.len(),
+            profiled: r.profiled,
+        })
+        .collect();
+    Some(format!(
+        "METRIC t1_step_profile_armed {}",
+        yantra::profile::armed(&request, &reached).report(&request)
+    ))
 }
 
 /// `W-245`: every stub the builder still writes, by cause and by name, and every
@@ -2294,10 +3067,12 @@ fn chain_source(it: &mut Interpreter, name: &str, src: &str, with_t1_twin: bool)
     row.calls = read.calls;
     row.zero_arg_calls = read.zero_arg_calls;
     row.cross_module_calls = read.cross_module;
+    row.growth_routines = read.growth_routines;
     row.zero_constants = read.zero_constants;
     row.stub_constants = read.stub_constants;
     row.stubs_by_cause = read.stubs_by_cause;
     row.lowered_by_shape = read.lowered_by_shape;
+    row.lowered_shape_reads = read.lowered_shape_reads;
     row.args_in_registers = read.args_in_registers;
     row.args_on_stack_sites = read.args_on_stack_sites;
 
@@ -2488,6 +3263,9 @@ fn measure_corpus_encode() {
     link_images(&mut rows);
     for row in &rows {
         println!("{}", run_line(row));
+    }
+    if let Some(line) = armed_report(&rows) {
+        println!("{line}");
     }
     let mut report = String::new();
     let count = |f: &dyn Fn(&Row) -> bool| rows.iter().filter(|r| f(r)).count();
@@ -2937,6 +3715,9 @@ fn the_assembled_count_is_pinned_and_every_stopped_source_is_named() {
         })
     };
     link_images(&mut rows);
+    if let Some(line) = armed_report(&rows) {
+        println!("{line}");
+    }
     // ══ `W-288` — THE TABLE PRINTS HERE, BEFORE EVERY GUARD IN THIS TEST ══
     //
     // It used to print at the END, after five assertions. **A DIAGNOSTIC'S
@@ -2997,10 +3778,46 @@ fn the_assembled_count_is_pinned_and_every_stopped_source_is_named() {
     // BUILT NOW MEANS PRODUCED AN OBJECT, which is what the comparison is over.
     // `routines > 0` was a proxy that held only while every object had code in
     // it, and this row is what ends that.
-    let built = rows
+    //
+    // **AND IT IS NOW WRONG THE OTHER WAY: A MODULE BOTH EMITTERS REFUSE IS
+    // COMPARED AND HAS NO OBJECT.** Measured 2026-09-29 on the twenty-source
+    // narrowed census (`T1_CORPUS` = every `.t1` but `lib`): `ir.t1` builds
+    // 8,836 IR instructions, BOTH emitters refuse it, and they agree on the
+    // refusal — `twin AGREE 0 octets`, which is the agreement-on-a-REFUSAL-KIND
+    // this guard exists to witness and the strongest comparison it can see —
+    // and `check_branch_ranges` then leaves the row with no object at all. So
+    // `compared` read 20, `built` read 19, and the guard fired on a healthy
+    // state. Its definition of the population had gone stale a second time, in
+    // the opposite direction from the first.
+    //
+    // BUILT NOW MEANS REACHED THE EMIT STAGE, and that is the condition itself
+    // rather than another proxy for it: `chain_source` calls
+    // `riscv64::emit_module` and then runs the T1 twin unconditionally, and
+    // every earlier stop returns before either emitter. `object.is_some()` held
+    // only while every compared module also ASSEMBLED, and a module the
+    // emitters refuse never reaches the assembler.
+    //
+    // `!ir_partial` is SUBSUMED, not dropped: a partial IR sets
+    // `encode_stop = Stage::Ir` and returns, which is below `Emit`.
+    let built = rows.iter().filter(|r| built_ir(r)).count();
+    // AND THE THIRD STATE IS NAMED RATHER THAN COUNTED AWAY. A reader of
+    // `compared == built` cannot see the difference between "every compared
+    // module assembled" and "one of them was refused by both emitters"; that
+    // difference is the whole of this row, so the rows in the second state are
+    // printed with the refusal that put them there.
+    let refused_by_both: Vec<String> = rows
         .iter()
-        .filter(|r| r.object.is_some() && !r.ir_partial)
-        .count();
+        .filter(|r| built_ir(r) && r.object.is_none())
+        .map(|r| format!("{} ({}): {}", r.name, r.stop_word(), r.encode_why))
+        .collect();
+    if !refused_by_both.is_empty() {
+        eprintln!(
+            "NOTE {} of {built} source(s) that built IR were compared and produced NO \
+             object — both emitters refused them:\n  {}",
+            refused_by_both.len(),
+            refused_by_both.join("\n  ")
+        );
+    }
     assert_eq!(
         compared, built,
         "the T1 twin was run on {compared} of the {built} sources that built IR; \
@@ -3071,6 +3888,43 @@ fn the_assembled_count_is_pinned_and_every_stopped_source_is_named() {
     println!("METRIC paradigm_encode_t1_assembled {assembled}");
     println!("METRIC paradigm_boundary_t1_runnable_on_yantra {on_yantra}");
     println!("METRIC paradigm_encode_t1_chain_on_yantra {chain_on_yantra}");
+    // `W-306` — THE STEP MARGIN BEHIND THE RUNNABLE COUNT. Printed in a NARROWED
+    // run too (it is above the early return), because the whole reason this
+    // exists is to answer "did this source get under the limit, or did it get
+    // under it by a hair" in seconds rather than in a corpus walk.
+    let mut tight: Vec<(&str, u64)> = Vec::new();
+    for r in rows.iter() {
+        let margin = r.step_margin();
+        if margin == StepMargin::NotReached {
+            continue;
+        }
+        println!(
+            "METRIC t1_run_steps {} {} {} of {BUDGET} ({}%)",
+            r.name,
+            match margin {
+                StepMargin::Spare => "spare",
+                StepMargin::Tight => "tight",
+                StepMargin::Exhausted => "exhausted",
+                StepMargin::NotReached => unreachable!(),
+            },
+            r.steps,
+            r.steps * 100 / BUDGET
+        );
+        if margin == StepMargin::Tight {
+            tight.push((r.name.as_str(), r.steps));
+        }
+    }
+    // NOT A RED, AND DELIBERATELY. A tight source is not a fault in the source;
+    // it is a fact about `DEFAULT_STEPS`, whose own margin says it is "likely too
+    // small by about an order of magnitude" and asks to be measured. What this
+    // line buys is that a cycle which empties `T1_ASSEMBLED_NOT_ON_YANTRA`
+    // cannot claim the source "runs" without this sentence appearing beside it.
+    if !tight.is_empty() {
+        println!(
+            "!! {} source(s) reach the finisher on HALF THE BUDGET OR MORE: {tight:?} — a pin              re-take that counts these as running is pinned to DEFAULT_STEPS, not to the              compiler. Name the margin in the commit.",
+            tight.len()
+        );
+    }
     println!(
         "METRIC paradigm_encode_zero_constants {} # of {} IR instructions; {} are the builder's stubs",
         rows.iter().map(|r| r.zero_constants).sum::<usize>(),
@@ -3124,6 +3978,38 @@ fn the_assembled_count_is_pinned_and_every_stopped_source_is_named() {
     // output, and narrowing adds a THIRD cause for the same output. A count of
     // how many stood down would hide which.
     let narrowed = std::env::var("T1_CORPUS").is_ok();
+    // `W-306` — WHICH BRANCH OF THE INDEX-ASSIGNMENT ARM THIS CORPUS TAKES.
+    // `assign_index` reads a present, well-formed zero in the loop below; that is
+    // the QUIET cause and it does NOT say the arm is unreachable, because only
+    // one of the arm's two branches raises a shape at all. This reads the OTHER
+    // branch off its own witness — the growth routine in the object — so the pair
+    // is a measurement and not an inference from a name to a kind. See
+    // [`GrowthBranch`]. METRIC, not a pin: the ratio is a corpus property and
+    // will move with the sources. The ONE red is a broken marker.
+    //
+    // PRINTED BEFORE THAT LOOP, AND THE ORDER IS THE POINT: the loop PANICS on
+    // the first complaining shape, and `assign_index` is a complaining shape
+    // today. A reading placed after it would be invisible on exactly the run
+    // whose red it explains.
+    let growth_per_module: Vec<usize> = rows
+        .iter()
+        .filter(|r| r.insts > 0)
+        .map(|r| r.growth_routines)
+        .collect();
+    let index_writes: usize = rows
+        .iter()
+        .filter_map(|r| r.lowered_shape_reads.get("assign_index"))
+        .map(ShapeRead::count)
+        .sum();
+    let branch = GrowthBranch::of(&growth_per_module, index_writes);
+    eprintln!(
+        "METRIC index_assign_branch {branch:?} over {} lowered module(s)",
+        growth_per_module.len()
+    );
+    if let Some(complaint) = branch.complaint() {
+        panic!("{complaint}");
+    }
+
     for shape in REQUIRED_LOWERED_SHAPES {
         if narrowed {
             let n: usize = rows
@@ -3135,23 +4021,60 @@ fn the_assembled_count_is_pinned_and_every_stopped_source_is_named() {
             }
             continue;
         }
-        // Summed across rows exactly as `stub_report` sums them — a shape lives
+        // Decided across rows exactly as `stub_report` sums them — a shape lives
         // in each module's own map, so asking one row would answer about one
         // source and read as absence for every other.
-        let n: usize = rows
+        //
+        // **THIS USED TO BE `n > 0` OVER `lowered_by_shape` AND ITS MESSAGE
+        // ASKED THE READER TO DISCRIMINATE.** It said "an ABSENT key and a
+        // MEASURED ZERO are one output here", named the loud signature to grep
+        // for, and left the rest to inference. `W-306` did that inference six
+        // times and was wrong six times. The read is now NAMED at the arena
+        // (see [`ShapeRead`]) and the corpus-wide decision is
+        // [`ShapeCoverage`], so the failure states which of the five it is
+        // instead of describing how to tell.
+        let reads: Vec<ShapeRead> = rows
             .iter()
-            .filter_map(|r| r.lowered_by_shape.get(shape))
-            .sum();
-        assert!(
-            n > 0,
-            "`{shape}` is absent or zero in the lowered-shape table. An ABSENT key and a \
-             MEASURED ZERO are one output here, but the two causes look nothing alike \
-             elsewhere in this log. If the shape's code is above `ir.t1`'s `रचितशेषसीमा` \
-             you will ALSO see `outside an arena of N` and a collapsed corpus — that \
-             failure is loud, so check for it first and raise the bound in the same edit \
-             as the shape. If the rest of the run looks NORMAL, the cause is the quiet \
-             one: nothing raises this shape and the arm is unreachable."
+            .filter_map(|r| r.lowered_shape_reads.get(*shape).cloned())
+            .collect();
+        let coverage = ShapeCoverage::of(&reads);
+        if let Some(complaint) = coverage.complaint(shape) {
+            panic!("{complaint}");
+        }
+    }
+
+    // `W-306` — THE ROWS THAT ARE DECLARED AND UNREACHED. Same five-state read,
+    // a DIFFERENT claim, and a red on three of the four answers. Placed AFTER
+    // the required loop on purpose: `covered_by` names a shape the loop above
+    // has already required, so if the cover itself is broken the reader gets
+    // the required-shape complaint about the cover rather than a derived one
+    // about its dependent.
+    let shape_coverage = |shape: &str| {
+        ShapeCoverage::of(
+            &rows
+                .iter()
+                .filter_map(|r| r.lowered_shape_reads.get(shape).cloned())
+                .collect::<Vec<ShapeRead>>(),
+        )
+    };
+    for row in DECLARED_AND_UNREACHED_SHAPES {
+        let coverage = shape_coverage(row.shape);
+        let cover = shape_coverage(row.covered_by);
+        eprintln!(
+            "METRIC declared_unreached {} {coverage:?} covered_by {} {cover:?}",
+            row.shape, row.covered_by
         );
+        if narrowed {
+            eprintln!(
+                "!! `{}` DECLARED-AND-UNREACHED unchecked — narrowed corpus cannot witness \
+                 a cover",
+                row.shape
+            );
+            continue;
+        }
+        if let Some(complaint) = declared_unreached_complaint(row, &coverage, &cover) {
+            panic!("{complaint}");
+        }
     }
 
     // THE LAST CORPUS-WIDE PIN, AND THE ONE MOST WORTH NOT LOSING QUIETLY: it
@@ -3492,4 +4415,601 @@ fn twin_one_source() {
         Some(Err(d)) => println!("TWIN DIVERGE {n}: {d}"),
         None => println!("TWIN ABSENT {n} — the chain did not reach the emitter"),
     }
+}
+
+/// **THE FIVE STATES, FIRED ON AN OBJECT — AND THE FOUR THINGS THAT MUST STILL
+/// BE REFUSED.**
+///
+/// The corpus has only ever produced two of [`ShapeCoverage`]'s five answers
+/// (`Raised` for every shape but one, `Quiet` for `assign_index`), so a control
+/// that ran only over the corpus would leave three arms unexercised — which is
+/// the same defect this cycle is fixing, one altitude up. [`read_shape`] and
+/// [`ShapeCoverage::of`] were extracted to take an arena and a LIST, so both are
+/// reachable from here without a census.
+///
+/// **THE REFUSALS, each of which is a way this could be wrong and green:**
+///
+/// 1. **A single witness covers the corpus.** A shape raised in ONE module and a
+///    present zero in every other is `Raised`, never `Quiet`. Getting this wrong
+///    reds `ir.t1` for a module that simply contains no indexed write — and 4 of
+///    the 21 sources contain none.
+/// 2. **The loud cause outranks the quiet one.** With no raise anywhere, a short
+///    arena must report `OutsideArena` and NOT `Quiet`. Getting this wrong sends
+///    the reader to hunt an unreachable arm when the bound is what moved.
+/// 3. **A raise outranks a short arena too.** Coverage is the question; the
+///    faulting module's collapse is loud on its own and reported elsewhere.
+/// 4. **A non-count is not a zero.** `arena_int` answered `0` for it, which is
+///    exactly how this whole family of misreadings became possible — so the test
+///    asserts BOTH that `read_shape` separates it AND that `arena_int` does not,
+///    because a claim that the new reading is better is empty without the old
+///    one's answer beside it.
+#[test]
+fn the_lowered_shape_coverage_reading_names_five_states_and_keeps_the_loud_cause_first() {
+    // `0` is never a shape code — `LOWERED_SHAPES` starts at 1 and `ir.t1`
+    // clears `१..=रचितशेषसीमा` — so slot 0 stands for the unused head the way
+    // every other arena in this file treats it.
+    let arena = |slots: Vec<Value>| Rc::new(RefCell::new(slots));
+    let head = Value::Int(0);
+
+    // ── read_shape: the four answers at ONE slot ────────────────────────────
+    let a = arena(vec![head.clone(), Value::Int(7)]);
+    assert_eq!(read_shape(&a, 1), ShapeRead::Raised(7));
+    // PAST THE END. Two slots exist, so code 2 has none.
+    assert_eq!(read_shape(&a, 2), ShapeRead::OutsideArena { slots: 2 });
+    assert_eq!(read_shape(&a, 99), ShapeRead::OutsideArena { slots: 2 });
+
+    let z = arena(vec![head.clone(), Value::Int(0)]);
+    assert_eq!(read_shape(&z, 1), ShapeRead::Zero { raw: 0 });
+
+    // REFUSAL 4 — a slot that is not a count. The new read separates it; the
+    // old one answered zero. Both halves asserted, because the second is the
+    // evidence that the first was worth building.
+    let m = arena(vec![head.clone(), Value::Bool(true)]);
+    assert_eq!(read_shape(&m, 1), ShapeRead::NotAnInteger);
+    assert_eq!(
+        arena_int(&m, 1),
+        0,
+        "`arena_int` must still answer 0 here — that is the collapse this reading \
+         replaces, and if it ever stops doing so this control's premise is stale"
+    );
+    // And a NEGATIVE count, which `usize::try_from` used to turn into a zero
+    // with the sign thrown away. It is a zero for coverage and the raw value is
+    // kept, so a negative can be SEEN rather than inferred.
+    let n = arena(vec![head.clone(), Value::Int(-4)]);
+    assert_eq!(read_shape(&n, 1), ShapeRead::Zero { raw: -4 });
+    assert_eq!(read_shape(&n, 1).count(), 0);
+
+    // REFUSAL 4's other half: a diagnostic state cannot inflate a census.
+    for r in [
+        ShapeRead::OutsideArena { slots: 2 },
+        ShapeRead::NotAnInteger,
+        ShapeRead::Zero { raw: 0 },
+    ] {
+        assert_eq!(r.count(), 0, "{r:?} must contribute nothing to a total");
+    }
+    assert_eq!(ShapeRead::Raised(7).count(), 7);
+
+    // ── ShapeCoverage: the five answers over a LIST ─────────────────────────
+    assert_eq!(ShapeCoverage::of(&[]), ShapeCoverage::NoModules);
+    assert_eq!(
+        ShapeCoverage::of(&[ShapeRead::Raised(3), ShapeRead::Raised(4)]),
+        ShapeCoverage::Raised {
+            total: 7,
+            modules: 2
+        }
+    );
+    assert_eq!(
+        ShapeCoverage::of(&[
+            ShapeRead::Zero { raw: 0 },
+            ShapeRead::Zero { raw: 0 },
+            ShapeRead::Zero { raw: 0 },
+        ]),
+        ShapeCoverage::Quiet { modules: 3 }
+    );
+    assert_eq!(
+        ShapeCoverage::of(&[ShapeRead::NotAnInteger, ShapeRead::Zero { raw: 0 }]),
+        ShapeCoverage::Malformed { modules: 1 }
+    );
+    // The SHORTEST arena is the one named, since that is the bound to clear.
+    assert_eq!(
+        ShapeCoverage::of(&[
+            ShapeRead::OutsideArena { slots: 29 },
+            ShapeRead::OutsideArena { slots: 22 },
+        ]),
+        ShapeCoverage::OutsideArena {
+            modules: 2,
+            slots: 22
+        }
+    );
+
+    // REFUSAL 1 — ONE witness covers the corpus, however many modules read a
+    // present zero. This is the arm that keeps `ir.t1` out of the dock for a
+    // source that contains none of the shape.
+    assert_eq!(
+        ShapeCoverage::of(&[
+            ShapeRead::Zero { raw: 0 },
+            ShapeRead::Raised(1),
+            ShapeRead::Zero { raw: 0 },
+        ]),
+        ShapeCoverage::Raised {
+            total: 1,
+            modules: 1
+        }
+    );
+
+    // REFUSAL 2 — with NO raise anywhere, the short arena outranks the zero.
+    let loud = ShapeCoverage::of(&[
+        ShapeRead::Zero { raw: 0 },
+        ShapeRead::OutsideArena { slots: 28 },
+    ]);
+    assert_eq!(
+        loud,
+        ShapeCoverage::OutsideArena {
+            modules: 1,
+            slots: 28
+        },
+        "a module short of the slot must not be reported as an unreached arm"
+    );
+    let said = loud.complaint("x").expect("the loud cause is a defect");
+    assert!(
+        said.contains("OUTSIDE THE ARENA") && said.contains("रचितशेषसीमा"),
+        "the loud complaint must name the bound: {said}"
+    );
+    assert!(
+        !said.contains("unreached arm"),
+        "the loud complaint must not offer the quiet reading: {said}"
+    );
+
+    // REFUSAL 3 — a raise outranks a short arena as well.
+    assert_eq!(
+        ShapeCoverage::of(&[ShapeRead::OutsideArena { slots: 28 }, ShapeRead::Raised(5),]),
+        ShapeCoverage::Raised {
+            total: 5,
+            modules: 1
+        }
+    );
+
+    // ── complaint(): a defect exactly on the three defect arms ──────────────
+    assert!(ShapeCoverage::NoModules.complaint("x").is_none());
+    assert!(
+        ShapeCoverage::Raised {
+            total: 1,
+            modules: 1
+        }
+        .complaint("x")
+        .is_none()
+    );
+    let quiet = ShapeCoverage::Quiet { modules: 19 }
+        .complaint("assign_index")
+        .expect("the quiet cause is a defect");
+    assert!(
+        quiet.contains("PRESENT, WELL-FORMED ZERO") && quiet.contains("assign_index"),
+        "the quiet complaint must name the shape and the state: {quiet}"
+    );
+    assert!(
+        quiet.contains("bound is NOT the problem"),
+        "the quiet complaint must RULE OUT the bound rather than describe how to \
+         check for it — that inference is the one `W-306` got wrong: {quiet}"
+    );
+    assert!(
+        ShapeCoverage::Malformed { modules: 1 }
+            .complaint("x")
+            .is_some_and(|c| c.contains("NOT A COUNT"))
+    );
+}
+
+/// `W-306` — THE DECLARED-AND-UNREACHED READING, AND THE THREE IT MUST REFUSE.
+///
+/// The corpus can only ever produce the one answer this row was written for, so
+/// this is the only place the other three are reachable. Each refusal is a way
+/// the move of `assign_index` out of `REQUIRED_LOWERED_SHAPES` could turn into
+/// the deletion it is not allowed to be:
+///
+/// 1. **A short arena must not be bought out by the exemption.** `OutsideArena`
+///    faults the IR build; "it's unreached anyway" is the inference that would
+///    hide it, and the complaint must still be the LOUD one, word for word.
+/// 2. **A raise must be a red.** The row claims "unreached". If the shape ever
+///    fires, the exemption is stale and the table is now lying about the
+///    corpus — which is the exact defect the move was made to remove.
+/// 3. **Quiet with a quiet cover must be a red.** This is the state where the
+///    corpus lowers indexed writes on NEITHER branch. It is the whole reason
+///    the row carries a `covered_by` instead of just a sentence.
+#[test]
+fn the_declared_and_unreached_reading_refuses_a_stale_exemption_and_a_silent_pair() {
+    let row = &DECLARED_AND_UNREACHED_SHAPES[0];
+    assert_eq!(
+        row.shape, "assign_index",
+        "this test reads row 0 by name so a reordering cannot silently retarget it"
+    );
+    assert!(
+        REQUIRED_LOWERED_SHAPES.contains(&row.covered_by),
+        "`{}`'s cover `{}` must itself be a REQUIRED shape, or this row's safety rests on a \
+         check nobody runs",
+        row.shape,
+        row.covered_by
+    );
+    assert!(
+        !REQUIRED_LOWERED_SHAPES.contains(&row.shape),
+        "`{}` must not be in BOTH tables — the two claims contradict and the required loop \
+         runs first, so the exemption would be unreachable",
+        row.shape
+    );
+    assert!(
+        LOWERED_SHAPES.iter().any(|(_, name)| *name == row.shape),
+        "a declared-and-unreached row must still be DECLARED in `LOWERED_SHAPES`; otherwise \
+         this table is the deletion it exists to prevent"
+    );
+
+    let raised = ShapeCoverage::Raised {
+        total: 4,
+        modules: 2,
+    };
+    let quiet = ShapeCoverage::Quiet { modules: 9 };
+
+    // THE DECLARED STATE — quiet, and the cover raised. The only answer today.
+    assert_eq!(
+        declared_unreached_complaint(row, &quiet, &raised),
+        None,
+        "silence next to a named raise is the measurement this row records"
+    );
+
+    // REFUSAL 1 — the loud cause outranks the exemption, and keeps its words.
+    let loud = declared_unreached_complaint(
+        row,
+        &ShapeCoverage::OutsideArena {
+            modules: 1,
+            slots: 28,
+        },
+        &raised,
+    )
+    .expect("a short arena is a defect even for an unreached row");
+    assert!(
+        loud.contains("OUTSIDE THE ARENA") && loud.contains("रचितशेषसीमा"),
+        "the loud complaint must survive the move verbatim: {loud}"
+    );
+    assert!(
+        declared_unreached_complaint(row, &ShapeCoverage::Malformed { modules: 1 }, &raised)
+            .is_some_and(|c| c.contains("NOT A COUNT")),
+        "a slot holding a non-count is a broken write, not an unreached arm"
+    );
+
+    // REFUSAL 2 — a raise means the exemption went stale.
+    let stale = declared_unreached_complaint(row, &raised, &raised)
+        .expect("a raise falsifies the row's own claim");
+    assert!(
+        stale.contains("STALE") && stale.contains("REQUIRED_LOWERED_SHAPES"),
+        "the stale complaint must name the one-line repair: {stale}"
+    );
+    assert!(
+        stale.contains("GrowthOnly"),
+        "every complaint quotes the witness, so nobody has to go find it: {stale}"
+    );
+
+    // REFUSAL 3 — both branches silent. The red this table exists for.
+    let both = declared_unreached_complaint(row, &quiet, &quiet)
+        .expect("a quiet shape with a quiet cover is unwitnessed silence");
+    assert!(
+        both.contains("NEITHER branch") && both.contains("assign_index_grown"),
+        "the silent-pair complaint must name the cover and the reading: {both}"
+    );
+    assert!(
+        !both.contains("STALE"),
+        "the silent pair must not be reported as a stale exemption: {both}"
+    );
+    // ...and a cover that is short or malformed is silence just the same.
+    assert!(
+        declared_unreached_complaint(
+            row,
+            &quiet,
+            &ShapeCoverage::OutsideArena {
+                modules: 1,
+                slots: 28
+            }
+        )
+        .is_some(),
+        "a cover that never got written is not a witness"
+    );
+
+    // NOT DEFECTS — an empty census blames nobody, on either side.
+    assert_eq!(
+        declared_unreached_complaint(row, &ShapeCoverage::NoModules, &quiet),
+        None
+    );
+    assert_eq!(
+        declared_unreached_complaint(row, &quiet, &ShapeCoverage::NoModules),
+        None,
+        "a census that read no module for the cover is nothing to ask, not a red"
+    );
+}
+
+/// `W-306` — THE INDEX-ASSIGNMENT BRANCH READING, ALL FIVE STATES AND THE THREE
+/// IT MUST REFUSE.
+///
+/// The corpus reading it feeds is a `METRIC` line, so this is the only place the
+/// decision itself is falsified. What must be refused, and why each one is the
+/// mistake this reading exists to prevent:
+///
+/// 1. **A broken marker must not answer a product question.** Two zero tokens in
+///    one module and the answer is [`GrowthBranch::AmbiguousMarker`], NOT
+///    `GrowthOnly` — even though `most > 1` also means "at least one growth
+///    routine". The old driver would have called that a growth routine twice and
+///    inserted `SymbolId(10_000_005)` twice.
+/// 2. **`Both` must not be reported as `GrowthOnly`.** `Both` is the state in
+///    which adding `रचितगणनम्` to the growth branch double-counts, so a reading
+///    that lets one raised `assign_index` hide behind a growth routine would
+///    green-light exactly the edit the `Next:` line forbids.
+/// 3. **`Unreached` must not be reported as `GrowthOnly`.** Zero modules with a
+///    growth routine and zero raises is "no index assignment anywhere", which is
+///    a different cause from "all of them grew" and points at a different file.
+#[test]
+fn the_step_margin_reading_names_four_states_and_refuses_a_tight_run() {
+    // The row a margin is read off: everything else defaulted, because
+    // `step_margin` must depend on the stop, the halt and the count and on
+    // nothing else.
+    let row = |encode_stop: Stage, halt: Option<Halt>, steps: u64| Row {
+        encode_stop,
+        halt,
+        steps,
+        ..Default::default()
+    };
+    let finisher = || {
+        Some(Halt::Finisher {
+            value: 0x5555,
+            status: Some(0),
+        })
+    };
+
+    // 1. SPARE — halted with room to multiply its work by `TIGHT_HEADROOM`.
+    assert_eq!(
+        row(Stage::Run, finisher(), 80).step_margin(),
+        StepMargin::Spare,
+        "`sanskrit_text.t1`'s measured 80 steps is the clearest Spare in the corpus"
+    );
+
+    // 2. TIGHT — halted, but cannot absorb that multiplication. THIS IS THE CASE
+    //    THAT MUST STILL BE REFUSED, and it is the whole reason this reading
+    //    replaced a boolean: `ran()` answers `true` here, identically to the
+    //    line above, so a pin re-take that consults only `ran()` counts a source
+    //    one change from the limit as settled.
+    let tight = row(Stage::Run, finisher(), 487_371);
+    assert!(
+        tight.ran(),
+        "the old instrument cannot tell this from Spare"
+    );
+    assert_eq!(
+        tight.step_margin(),
+        StepMargin::Tight,
+        "`shrinkhala.t1`'s measured 487,371 steps is 48% of the budget: it halts, \
+         and a fourfold growth would not. An instrument that calls this Spare is \
+         the two-state instrument this reading replaced."
+    );
+
+    // 3. The boundary, from both sides, so the comparison cannot silently invert.
+    assert_eq!(
+        row(Stage::Run, finisher(), BUDGET / TIGHT_HEADROOM).step_margin(),
+        StepMargin::Tight,
+        "exactly one quarter of the budget has no headroom left, so it is Tight"
+    );
+    assert_eq!(
+        row(Stage::Run, finisher(), BUDGET / TIGHT_HEADROOM - 1).step_margin(),
+        StepMargin::Spare
+    );
+
+    // 4. EXHAUSTED — the budget ran out. Distinct from Tight: this one did not
+    //    halt at all, and it is what a Tight source becomes when it grows.
+    assert_eq!(
+        row(Stage::Run, Some(Halt::StepLimit { pc: LOAD }), BUDGET).step_margin(),
+        StepMargin::Exhausted,
+        "the state `sanskrit_text.t1` was pinned in before this cycle measured it"
+    );
+
+    // 5. NOT REACHED — the budget never applied, and this must NOT be folded
+    //    into Exhausted. A source that stops at `link` has no step count to
+    //    report, and reporting it as though it ran out of steps would send the
+    //    next reader to `DEFAULT_STEPS` for a fault that is in the linker.
+    assert_eq!(
+        row(Stage::Link, None, 0).step_margin(),
+        StepMargin::NotReached
+    );
+    assert_eq!(
+        row(Stage::Assemble, None, 0).step_margin(),
+        StepMargin::NotReached,
+        "not assembled at all: `assembled()` is false and the machine never saw it"
+    );
+    // A halt that is neither the finisher nor the step limit is a fault of its
+    // own kind — `bad-access`, `unimplemented` — and `stop_word` already names
+    // it. It is NotReached here because the step budget is not what stopped it.
+    assert_eq!(
+        row(
+            Stage::Run,
+            Some(Halt::BadAccess {
+                pc: LOAD,
+                addr: 0xdead_beef
+            }),
+            12
+        )
+        .step_margin(),
+        StepMargin::NotReached,
+        "a bad access is not a verdict about the step budget"
+    );
+}
+
+#[test]
+fn the_index_assignment_branch_reading_names_five_states_and_refuses_a_broken_marker() {
+    // ── the two single-branch readings ──────────────────────────────────────
+    assert_eq!(
+        GrowthBranch::of(&[1, 0, 1, 0, 0], 0),
+        GrowthBranch::GrowthOnly { modules: 2 },
+        "growth routines and a quiet `assign_index` is the growth branch, corpus-wide"
+    );
+    assert_eq!(
+        GrowthBranch::of(&[0, 0, 0], 19),
+        GrowthBranch::PlaceOnly { sites: 19 },
+        "raises with no growth routine anywhere is the `anyatha` branch"
+    );
+
+    // ── REFUSAL 1: a broken marker is decided FIRST, ahead of every product
+    // reading, even though it also carries a growth routine. ───────────────
+    assert_eq!(
+        GrowthBranch::of(&[1, 2, 0], 0),
+        GrowthBranch::AmbiguousMarker {
+            modules: 1,
+            most: 2
+        },
+        "two zero tokens in one module is the instrument's breakage, not `GrowthOnly`"
+    );
+    // And it outranks `Both` too — a raise beside a broken marker changes nothing
+    // about the marker.
+    assert_eq!(
+        GrowthBranch::of(&[3, 1], 5),
+        GrowthBranch::AmbiguousMarker {
+            modules: 1,
+            most: 3
+        }
+    );
+    assert!(
+        GrowthBranch::of(&[1, 2, 0], 0).complaint().is_some(),
+        "the broken marker is the ONE red; every other state is a METRIC"
+    );
+
+    // ── REFUSAL 2: `Both` is its own state and never collapses into either
+    // single-branch reading. ───────────────────────────────────────────────
+    assert_eq!(
+        GrowthBranch::of(&[1, 0, 1], 4),
+        GrowthBranch::Both {
+            modules: 2,
+            sites: 4
+        },
+        "one raise beside a growth routine must NOT read as `GrowthOnly` — that is \
+         the state in which a raise on the growth branch double-counts"
+    );
+
+    // ── REFUSAL 3: no witness at all is `Unreached`, not `GrowthOnly`. ──────
+    assert_eq!(GrowthBranch::of(&[0, 0, 0], 0), GrowthBranch::Unreached);
+    assert_eq!(
+        GrowthBranch::of(&[], 0),
+        GrowthBranch::Unreached,
+        "no modules measured is nothing to explain, not a claim about a branch"
+    );
+
+    // ── every non-broken state is report-only, per the owner ruling of
+    // 2026-09-13: the ratio is a corpus property and moves with the sources. ─
+    for b in [
+        GrowthBranch::of(&[1, 0], 0),
+        GrowthBranch::of(&[0, 0], 7),
+        GrowthBranch::of(&[1, 0], 7),
+        GrowthBranch::of(&[0], 0),
+    ] {
+        assert!(b.complaint().is_none(), "{b:?} must not red a landing");
+    }
+}
+
+// --- the population the emitter comparison is over (`built_ir`) --------------------------
+//
+// THREE CHEAP TESTS, NO LOADER AND NO INTERPRETER. [`built_ir`] is a reading over
+// one field of a [`Row`], and a machine in these would only be a second thing
+// that could be wrong about it. They are NOT `#[ignore]`d: the guard they pin
+// fired on the twenty-source census (2026-09-29) against a tree nobody had
+// touched, and the two definitions it has already worn out were each discovered
+// by a census run costing minutes. This costs microseconds.
+
+#[test]
+fn a_module_both_emitters_refused_is_still_one_the_comparison_ran_on() {
+    // `ir.t1`'s MEASURED shape, 2026-09-29, twenty-source narrowed census: the
+    // IR built (8,836 instructions), both emitters refused it the same way, and
+    // `check_branch_ranges` left no object. This is the row that retired
+    // `object.is_some()` as the population rule.
+    let row = Row {
+        name: "ir.t1".to_string(),
+        module: "मध्यरूप".to_string(),
+        encode_stop: Stage::Emit,
+        encode_why: "मध्यरूपकार्यक्रमरचना: the conditional in BlockId(1401) is 4436 \
+                     bytes from BlockId(1572), past ±4 KiB"
+            .to_string(),
+        twin: Some(Ok(0)),
+        object: None,
+        ..Row::default()
+    };
+    assert!(
+        built_ir(&row),
+        "both emitters ran on it and agreed on the refusal; that IS the comparison"
+    );
+    // The RETIRED rule, spelled out here rather than only in a commit message,
+    // because the difference between the two is the whole of this row: it
+    // excluded exactly this shape and made the guard read `20 of the 19`.
+    let by_object = |r: &Row| r.object.is_some() && !r.ir_partial;
+    assert!(
+        !by_object(&row),
+        "the object rule excluded exactly this row, which is why it was retired"
+    );
+}
+
+#[test]
+fn every_stage_at_or_past_emit_was_compared_and_every_earlier_one_was_not() {
+    for stage in [
+        Stage::Lex,
+        Stage::Parse,
+        Stage::Resolve,
+        Stage::Typecheck,
+        Stage::Ir,
+    ] {
+        let row = Row {
+            encode_stop: stage,
+            ..Row::default()
+        };
+        assert!(
+            !built_ir(&row),
+            "`{}` returns before `riscv64::emit_module`, so NEITHER emitter ran",
+            stage.name()
+        );
+    }
+    for stage in [
+        Stage::Emit,
+        Stage::Assemble,
+        Stage::Link,
+        Stage::Load,
+        Stage::Run,
+    ] {
+        let row = Row {
+            encode_stop: stage,
+            ..Row::default()
+        };
+        assert!(
+            built_ir(&row),
+            "`{}` is at or past emit, so BOTH emitters ran",
+            stage.name()
+        );
+    }
+    // `Stage::default()` is `Lex`, so a row nothing touched is not in the
+    // population — which is what keeps `built > 0` a real assertion.
+    assert!(!built_ir(&Row::default()));
+}
+
+#[test]
+fn the_population_is_not_read_off_the_twin_field() {
+    // **THE CASE THAT MUST STILL BE REFUSED.** `compared == built` has to remain
+    // able to FAIL. Define the population as `twin.is_some()` — the shortest fix
+    // for the `20 of the 19` red, and the one that makes it never come back —
+    // and the assertion becomes `n == n`: the vacuity it was written to catch
+    // becomes the one thing it can no longer see. A row that reached the run
+    // stage with NO twin recorded is exactly that fault, and it must count as
+    // built so the guard reds on it.
+    let row = Row {
+        name: "untwinned.t1".to_string(),
+        encode_stop: Stage::Run,
+        twin: None,
+        object: Some(vec![0u8; 4]),
+        ..Row::default()
+    };
+    assert!(
+        built_ir(&row),
+        "it reached emit, so it belongs to the population whether or not a twin \
+         verdict was recorded — that gap is the fault, not an exemption from it"
+    );
+    let compared = usize::from(row.twin.is_some());
+    let built = usize::from(built_ir(&row));
+    assert_ne!(
+        compared, built,
+        "and the guard must therefore RED on it: 0 compared of 1 built"
+    );
 }

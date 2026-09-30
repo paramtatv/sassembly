@@ -1339,7 +1339,7 @@
 ॰ ══════════════════ terminators (§2.5, §2.7) ══════════════════
 ॰ the addresses a conditional's reach is measured over — see यन्त्रशाखादूरपरीक्षा.
 सार्वजनिक चरः यन्त्रपर्वस्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ by block id: instruction lines before its label; ऋण१ = no label written
-सार्वजनिक चरः यन्त्रशाखास्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ by target block id: instruction lines before the FIRST विषमलङ्घनम् to it; ऋण१ = none
+सार्वजनिक चरः यन्त्रशाखास्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।    ॰ by BRANCHING block id (W-306, not by its target): instruction lines before its conditional; ऋण१ = none
 सार्वजनिक चरः यन्त्रलक्षितकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।       ॰ by block id: १ when some terminator targets it — the `targeted` set
 
 ॰ whether value `c` is READ by any instruction of the routine, or by the
@@ -1419,13 +1419,13 @@
 ॰ synthesized `विषमलङ्घनम् R(c)न शून्यःत्`; then a jump to `else` unless it
 ॰ falls through. Until `W-245` the IR had no तुलना and the second form was
 ॰ the whole of this routine.
-सार्वजनिक वृत्तिः यन्त्रशाखावतरणम् आदाय शर्तम् ॱॱ न६४ ऽ तदा ॱॱ न६४ ऽ अन्यत् ॱॱ न६४ ऽ अग्रिमम् ॱॱ न६४ ऽ संयोज्यम् ॱॱ न६४ ददाति न६४ आदि
+सार्वजनिक वृत्तिः यन्त्रशाखावतरणम् आदाय शाखापर्वम् ॱॱ न६४ ऽ शर्तम् ॱॱ न६४ ऽ तदा ॱॱ न६४ ऽ अन्यत् ॱॱ न६४ ऽ अग्रिमम् ॱॱ न६४ ऽ संयोज्यम् ॱॱ न६४ ददाति न६४ आदि
     यदि संयोज्यम् अधिकम् ० आदि
         चरः तुलना ॱॱ मध्यरूपॱआज्ञा भवति मध्यरूपॱआज्ञाकोश अङ्कः संयोज्यम् अन्तः ।
         चरः विषयकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य तुलना ॱ वाम ॱ क्रमाङ्क ऽ ० ऽ ० समाप्तम् ।
         चरः मानकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य तुलना ॱ दक्षिण ॱ क्रमाङ्क ऽ १ ऽ ० समाप्तम् ।
-        यदि यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः समम् ऋण१ आदि
-            यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः भवति यन्त्राज्ञागणना ।
+        यदि यन्त्रशाखास्थानकोश अङ्कः शाखापर्वम् अन्तः समम् ऋण१ आदि
+            यन्त्रशाखास्थानकोश अङ्कः शाखापर्वम् अन्तः भवति यन्त्राज्ञागणना ।
         इति
         उत्सर्जनॱपाठयोजनम् आरभ्य यन्त्रशाखापदम् तुलना ॱ उपभेद समाप्तम् ।
         यन्त्रकरणपदम् विषयकोष्ठम् ।
@@ -1436,8 +1436,8 @@
         यन्त्राज्ञान्तः ।
     इति अन्यथा आदि
         चरः शर्तकोष्ठम् ॱॱ न६४ भवति यन्त्रपठनम् आरभ्य शर्तम् ऽ ० ऽ ० समाप्तम् ।
-        यदि यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः समम् ऋण१ आदि
-            यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः भवति यन्त्राज्ञागणना ।
+        यदि यन्त्रशाखास्थानकोश अङ्कः शाखापर्वम् अन्तः समम् ऋण१ आदि
+            यन्त्रशाखास्थानकोश अङ्कः शाखापर्वम् अन्तः भवति यन्त्राज्ञागणना ।
         इति
         उत्सर्जनॱपाठयोजनम् उक्तम् विषमलङ्घनम् इति ।
         यन्त्रकरणपदम् शर्तकोष्ठम् ।
@@ -1499,7 +1499,7 @@
         इति
     इति
     यदि भेदः समम् मध्यरूपॱशाखावसानभेद आदि
-        यन्त्रशाखावतरणम् आरभ्य पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ अन्यलक्ष्यम् ॱ क्रमाङ्क ऽ अग्रिमम् ऽ संयोज्यम् समाप्तम् ।
+        यन्त्रशाखावतरणम् आरभ्य पर्वाङ्कः ऽ पर्वम् ॱ अवसानम् ॱ मूल्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ऽ पर्वम् ॱ अवसानम् ॱ अन्यलक्ष्यम् ॱ क्रमाङ्क ऽ अग्रिमम् ऽ संयोज्यम् समाप्तम् ।
     इति
     प्रत्यागमनम् उत्सर्जनॱनिर्गमसूचकाङ्क ।
 इति
@@ -1585,10 +1585,18 @@
 ॰ routine whose text puts a CondBranch further than that from its target is
 ॰ refused rather than trusted to be short (§2.5). Rust measures on the
 ॰ emitted LINES, four bytes per instruction line: the address of the target's
-॰ label line and of the FIRST विषमलङ्घनम् line naming that target. Here the
-॰ same two addresses were recorded as the lines were written —
-॰ यन्त्रपर्वस्थानकोश when a block's label went out, यन्त्रशाखास्थानकोश when the
-॰ first conditional to it did — so the check is over numbers, not a re-read.
+॰ label line and of the conditional line THIS block wrote. Here the same two
+॰ addresses were recorded as the lines were written — यन्त्रपर्वस्थानकोश when a
+॰ block's label went out, यन्त्रशाखास्थानकोश when its conditional did — so the
+॰ check is over numbers, not a re-read.
+॰ W-306 — यन्त्रशाखास्थानकोश IS KEYED BY THE BRANCHING BLOCK AND WAS KEYED BY
+॰ ITS TARGET, which is the same defect Rust's `position` over the whole text
+॰ had: two blocks branching conditionally to ONE join both read the FIRST
+॰ one's address, so a near branch at the top of a routine certified every
+॰ later branch to that join as near. यदि inside यावत् is exactly that shape,
+॰ so the guard was blind on the commonest control flow the language has, and
+॰ blind in the unsafe direction. The twins agree on the address a refusal is
+॰ measured FROM now, and not merely on its kind.
 सार्वजनिक वृत्तिः यन्त्रशाखादूरपरीक्षा आदाय वृत्तिसूचकाङ्क ॱॱ न६४ ददाति बूल आदि
     चरः कार्यम् ॱॱ मध्यरूपॱवृत्ति भवति मध्यरूपॱवृत्तिकोश अङ्कः वृत्तिसूचकाङ्क अन्तः ।
     चरः पर्वाङ्कः ॱॱ न६४ भवति कार्यम् ॱ पर्वारम्भ ।
@@ -1598,7 +1606,7 @@
         यदि पर्वम् ॱ अवसानम् ॱ भेद समम् मध्यरूपॱशाखावसानभेद आदि
             चरः तदा ॱॱ न६४ भवति पर्वम् ॱ अवसानम् ॱ लक्ष्यम् ॱ क्रमाङ्क ।
             चरः चिह्नस्थानम् ॱॱ अ६४ भवति यन्त्रपर्वस्थानकोश अङ्कः तदा अन्तः ।
-            चरः शाखास्थानम् ॱॱ अ६४ भवति यन्त्रशाखास्थानकोश अङ्कः तदा अन्तः ।
+            चरः शाखास्थानम् ॱॱ अ६४ भवति यन्त्रशाखास्थानकोश अङ्कः पर्वाङ्कः अन्तः ।
             यदि चिह्नस्थानम् अधिकम् ऋण१ आदि
                 यदि शाखास्थानम् अधिकम् ऋण१ आदि
                     चरः दूरम् ॱॱ अ६४ भवति ४ गुणनम् आरभ्य चिह्नस्थानम् वियोगः शाखास्थानम् समाप्तम् ।

@@ -1214,6 +1214,27 @@ pub fn emit_function(
 /// A conditional reaches ±4 KiB; the emitter refuses a routine whose text puts
 /// a `CondBranch` further than that from its target rather than trusting the
 /// routine to be short (§2.5). Measured on the emitted lines, four bytes each.
+///
+/// **EACH BRANCH IS MEASURED AT ITS OWN ADDRESS, AND `W-306` IS WHY IT WAS NOT.**
+/// The line was found by `lines.iter().position(|l| is_conditional(l) && l.ends_with(&operand))`
+/// — the FIRST conditional in the WHOLE routine naming that target — while the
+/// refusal it raised named `from: id`. So when TWO blocks branch conditionally to
+/// one target, the second was measured at the first's address: a near branch at
+/// the top of a routine made every later branch to the same join read as near,
+/// and a far one passed the guard to be refused by the assembler (or, worse, to
+/// encode a wrapped B-type immediate). Two blocks branching to one join is the
+/// ordinary shape of `यदि` inside `यावत्`, not a corner: the guard was blind
+/// on the most common control flow the language has.
+///
+/// The branch line is now attributed to the block that WROTE it, by walking the
+/// text once and tracking which block each line belongs to — a label line opens
+/// its block, and the conditional seen while that block is current is the one its
+/// `CondBranch` emitted. Exactly one conditional line per block can exist:
+/// [`lower_cond_branch`] writes one, and a `तुलना` read as a VALUE lowers to
+/// `न्यूनम्`/`अविषमम्`-class lines that are not branch words. The `.t1` twin
+/// records the same two addresses as it writes them — `यन्त्रशाखास्थानकोश` now
+/// keyed by the BRANCHING block and no longer by its target — so the twins agree
+/// on which address a refusal is measured from and not merely on its kind.
 fn check_branch_ranges(func: &Function, label: &str, text: &str) -> Result<(), Refusal> {
     let lines: Vec<&str> = text.lines().collect();
     let address_of = |line: usize| -> i64 {
@@ -1224,41 +1245,53 @@ fn check_branch_ranges(func: &Function, label: &str, text: &str) -> Result<(), R
             .filter(|l| !l.ends_with("ॱॱ") && !l.starts_with('॥'))
             .count() as i64
     };
+    // Any of the six conditions, or the synthesized `विषमलङ्घनम्` (W-245).
+    let is_conditional = |l: &str| {
+        l.starts_with("विषमलङ्घनम् ")
+            || [CmpOp::Eq, CmpOp::Lt, CmpOp::Ge, CmpOp::Ltu, CmpOp::Geu]
+                .iter()
+                .any(|op| l.starts_with(&format!("{} ", branch_word(*op))))
+    };
     let mut ids: Vec<BlockId> = func.blocks.keys().copied().collect();
     ids.sort_by_key(|b| b.0);
+    // The label line each block opens with, matched as WHOLE text and never as a
+    // substring: `…पर्व१` is a prefix of `…पर्व१०`, and a `contains` would open the
+    // wrong block in a routine with ten labelled blocks (found by the T1 twin,
+    // `W-236`, which records the address as it writes the line).
+    let label_of: HashMap<String, BlockId> = ids
+        .iter()
+        .map(|b| (format!("{}ॱॱ", block_label(label, *b)), *b))
+        .collect();
+    let mut block_at: HashMap<BlockId, usize> = HashMap::new();
+    let mut branch_at: HashMap<BlockId, usize> = HashMap::new();
+    // The entry block carries no label of its own unless a back-edge targets it,
+    // so the prologue's lines already belong to it (§2.2).
+    let mut current = Some(func.entry_block);
+    for (n, l) in lines.iter().enumerate() {
+        if let Some(b) = label_of.get(*l) {
+            block_at.insert(*b, n);
+            current = Some(*b);
+        } else if is_conditional(l)
+            && let Some(b) = current
+        {
+            branch_at.entry(b).or_insert(n);
+        }
+    }
     for id in ids {
         let Some(Terminator::CondBranch(_, t, _)) = func.blocks[&id].terminator else {
             continue;
         };
-        let target = format!("{}ॱॱ", block_label(label, t));
-        let Some(target_line) = lines.iter().position(|l| **l == target) else {
+        let (Some(&from_line), Some(&target_line)) = (branch_at.get(&id), block_at.get(&t)) else {
             continue;
         };
-        // The WHOLE target operand, not a substring: `…पर्व१` is a prefix of
-        // `…पर्व१०`, and a `contains` would measure the wrong branch in a routine
-        // with ten labelled blocks (found by the T1 twin, `W-236`, which records
-        // the first conditional to each target as it writes it).
-        let operand = format!(" {}य् ।", block_label(label, t));
-        // Any of the six conditions, or the synthesized `विषमलङ्घनम्` (W-245).
-        let is_conditional = |l: &str| {
-            l.starts_with("विषमलङ्घनम् ")
-                || [CmpOp::Eq, CmpOp::Lt, CmpOp::Ge, CmpOp::Ltu, CmpOp::Geu]
-                    .iter()
-                    .any(|op| l.starts_with(&format!("{} ", branch_word(*op))))
-        };
-        let branch_line = lines
-            .iter()
-            .position(|l| is_conditional(l) && l.ends_with(&operand));
-        if let Some(b) = branch_line {
-            let bytes = address_of(target_line) - address_of(b);
-            if !(-4096..4096).contains(&bytes) {
-                return Err(Refusal::BranchOutOfRange {
-                    function: label.to_string(),
-                    from: id,
-                    target: t,
-                    bytes,
-                });
-            }
+        let bytes = address_of(target_line) - address_of(from_line);
+        if !(-4096..4096).contains(&bytes) {
+            return Err(Refusal::BranchOutOfRange {
+                function: label.to_string(),
+                from: id,
+                target: t,
+                bytes,
+            });
         }
     }
     Ok(())

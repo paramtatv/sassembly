@@ -41,7 +41,7 @@ L02	अज्ञातनाम	`{0}` वैश्विकम् इति उ�
 E01	असमर्थितम्	`{0}` का कोई ३२-बिट रूप नहीं	`{0}` has no 32-bit encoding
 E02	अनपेक्षितचिह्नम्	`{0}` न संज्ञकः न संख्या	`{0}` is not a register or a numeral
 E03	प्रकारभेदः	`{0}` पूर्णाङ्केषु चलति, अतः तस्य प्रकारः `ॱअ…`, न तु `ॱ{1}…`	`{0}` operates on integers, so its type is `ॱअ…`, not `ॱ{1}…`
-E09	प्रकारभेदः	`{0}` भिन्नाङ्केषु चलति, अतः तस्य प्रकारः `ॱभ…`, न तु `ॱ{1}…`	`{0}` operates on floats, so its type is `ॱभ…`, not `ॱ{1}…`
+E09	प्रकारभेदः	`{0}` प्लवाङ्केषु चलति, अतः तस्य प्रकारः `ॱप…`, न तु `ॱ{1}…`	`{0}` operates on floats, so its type is `ॱप…`, not `ॱ{1}…`
 E04	विरुद्धम्	`{0}` इति रूपं {1} संज्ञकैः {2} संख्याभिः च न सङ्गच्छते	`{0}` has no encoding taking {1} register(s) and {2} immediate(s)
 E05	अज्ञातनाम	`{0}` अस्मिन् कार्यक्रमे परिभाषितः संज्ञकः नास्ति	`{0}` is not a label defined in this program
 E06	अतिप्रवाहः	`{0}` तस्मिन् क्षेत्रे न माति यत् `{1}` ददाति	`{0}` does not fit the field `{1}` gives it
@@ -76,7 +76,7 @@ P19	अवैधरूपम्	`{0}` संख्या नास्ति	`{0}
 P20	निषिद्धम्	`{0}` मूल्यानि लिखति, ॱरिक्त तु अष्टकान् न धारयति — केवलं स्थानम्	`{0}` writes values, and ॱरिक्त holds no bytes — only स्थानम्
 P21	भग्नम्	`{0}` जीवितः किन्तु अप्रबन्धितः — दोषोऽयम्	`{0}` is live but unhandled — a bug
 P22	अपूर्णवाक्यम्	उक्तम् पाठम् आरभते इति च समापयति; तं शब्दमेव लेखितुम् इति इति लिख्यताम्	उक्तम् opens a string and इति closes it; write इति इति for the word itself
-P23	प्रकारभेदः	`{0}` प्रकारः नास्ति — व्याप्तिः ॱअ८, ॱअ१६, ॱअ३२ ॱअ६४ वा, ॱन ॱभ च अचिह्नभिन्नजातीः नामयतः	`{0}` is not a type — a व्याप्ति is ॱअ८, ॱअ१६, ॱअ३२ or ॱअ६४, and ॱन and ॱभ name the unsigned and float kinds
+P23	प्रकारभेदः	`{0}` प्रकारः नास्ति — व्याप्तिः ॱअ८, ॱअ१६, ॱअ३२ ॱअ६४ वा, ॱन ॱप च अचिह्नप्लवजातीः नामयतः	`{0}` is not a type — a व्याप्ति is ॱअ८, ॱअ१६, ॱअ३२ or ॱअ६४, and ॱन and ॱप name the unsigned and float kinds
 P24	अवैधरूपम्	`{0}` ॥-कारेण समाप्यते किन्तु तत् किमपि न उद्घाटयति — आदेशः ॥ … ॥ इति लिख्यते (ADR-0012)	`{0}` ends with ॥ but nothing opened it — a directive is written ॥ … ॥ (ADR-0012)
 P25	अपूर्णवाक्यम्	॥ आदेशम् उद्घाटयति यत् कदापि न पिहितम् — द्वितीयं ॥ आवश्यकम्	॥ opens a directive that is never closed — a second ॥ is needed
 P26	रिक्तम्	॥ ॥ किमपि न नामयति — आदेशः एकं नाम वहति	॥ ॥ names nothing — a directive carries one name

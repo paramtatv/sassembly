@@ -228,7 +228,7 @@ type_name      = integer_type | float_type | "बूल" | "अक्षरम�
 (* ADR-0030 CONSIDERED WIDENING THIS AND REFUSED. The corpus writes `इ६४` 56
    times in type position — at that ONE width, never `इ८`/`इ१६`/`इ३२`/`इ१२८` —
    and this production cannot produce it. It is NOT admitted. `इ` is the Latin
-   `i` of `i64` written in Devanagari, where `अंश`, `निर्ऋण` and `भिन्न` are
+   `i` of `i64` written in Devanagari, where `अंश`, `निर्ऋण` and `प्लव` are
    chosen words with derivations printed in doc 02 §2.5; the corpus annotates
    its own `इ६४` sites with Rust type names in English (`ir.t1:118` reads
    `॰ ConstInt's i64`), which is what a mechanical port leaves behind and not
@@ -269,7 +269,7 @@ integer_type   = ( "अ" | "न" ) , type_width ;   (* अंश signed, नि�
    follows the caller, with the guard that proves it in the file: `nidana.t1`'s
    पदार्थलेखनम् behind `यदि अङ्कम् अधिकम् ऋण१`, `utsarjana.t1`'s अङ्कचिह्नम्
    behind a remainder modulo `१०`. *)
-float_type     = "भ" , ( "३२" | "६४" ) ;        (* भिन्न *)
+float_type     = "प" , ( "३२" | "६४" ) ;        (* प्लव *)
 type_width     = "८" | "१६" | "३२" | "६४" | "१२८" ;
 
 (* `ᳵᳶ T` slice, `स्थानम् T` pointer, `सम्भाव्य T` optional and
@@ -1562,7 +1562,7 @@ parameter      = identifier , annotation , type ;
    ... recorded here and NOT silently amended". ADR-0029 amended it on
    2026-08-31, after re-measuring by POSITION: 27 to 9, the other 148 being
    identifiers. `type_name` now spells `पाठ` and the lexicon follows.
-   `अक्षरम्`, `भ३२` and `भ६४` are still frozen in `type_name` and written ZERO
+   `अक्षरम्`, `प३२` and `प६४` are still frozen in `type_name` and written ZERO
    times; that is an unused spelling and not a divergence, so it is left
    alone — ADR-0027's reason, unchanged. *)
 

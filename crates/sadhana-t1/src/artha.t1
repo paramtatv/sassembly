@@ -174,7 +174,7 @@
 सार्वजनिक चरः प्रकारपाठविवराष्टकम् ॱॱ अ६४ भवति विवरम् अङ्कः ० अन्तः ।
 
 सार्वजनिक चरः पूर्णाङ्कार्थभेद ॱॱ न६४ भवति १ ।     ॰ Ty::Int { width, signed }
-सार्वजनिक चरः भिन्नार्थभेद ॱॱ न६४ भवति २ ।       ॰ Ty::Float { width }
+सार्वजनिक चरः प्लवार्थभेद ॱॱ न६४ भवति २ ।       ॰ Ty::Float { width }
 सार्वजनिक चरः स्थानार्थभेद ॱॱ न६४ भवति ३ ।       ॰ Ty::Pointer
 सार्वजनिक चरः खण्डार्थभेद ॱॱ न६४ भवति ४ ।        ॰ Ty::Slice
 सार्वजनिक चरः सम्भाव्यार्थभेद ॱॱ न६४ भवति ५ ।     ॰ Ty::Optional
@@ -484,7 +484,7 @@
         प्रत्यागमनम् सत्यम् ।
     इति
 
-    यदि वामः ॱ भेद समम् भिन्नार्थभेद आदि
+    यदि वामः ॱ भेद समम् प्लवार्थभेद आदि
         यदि वामः ॱ विस्तार असमम् दक्षिणः ॱ विस्तार आदि
             प्रत्यागमनम् असत्यम् ।
         इति
@@ -575,7 +575,7 @@
     ॰ `spec/grammar-t1.ebnf:206-208` freezes it, and the signedness is the
     ॰ grammar's own margin — `( "अ" | "न" ) , type_width  (* अंश signed,
     ॰ निर्ऱण unsigned *)` — NOT inferred here. Widths are ८ १६ ३२ ६४ १२८, and
-    ॰ `float_type = "भ" , ( "३२" | "६४" )`.
+    ॰ `float_type = "प" , ( "३२" | "६४" )`.
     यदि नाम समम् आरभ्य उक्तम् अ८ इति समाप्तम् आदि
         फलम् ॱ भेद भवति पूर्णाङ्कार्थभेद ।
         फलम् ॱ विस्तार भवति ८ ।
@@ -636,13 +636,13 @@
         फलम् ॱ चिह्नितम् भवति असत्यम् ।
         प्रत्यागमनम् फलम् ।
     इति
-    यदि नाम समम् आरभ्य उक्तम् भ३२ इति समाप्तम् आदि
-        फलम् ॱ भेद भवति भिन्नार्थभेद ।
+    यदि नाम समम् आरभ्य उक्तम् प३२ इति समाप्तम् आदि
+        फलम् ॱ भेद भवति प्लवार्थभेद ।
         फलम् ॱ विस्तार भवति ३२ ।
         प्रत्यागमनम् फलम् ।
     इति
-    यदि नाम समम् आरभ्य उक्तम् भ६४ इति समाप्तम् आदि
-        फलम् ॱ भेद भवति भिन्नार्थभेद ।
+    यदि नाम समम् आरभ्य उक्तम् प६४ इति समाप्तम् आदि
+        फलम् ॱ भेद भवति प्लवार्थभेद ।
         फलम् ॱ विस्तार भवति ६४ ।
         प्रत्यागमनम् फलम् ।
     इति
@@ -3335,7 +3335,34 @@
 ॰   १ a `यदि`/`यावत्` condition that types to a REAL non-बूल type
 ॰   २ a `यदि` whose two branches do not meet
 ॰   ३ a `यावत्` whose body poisoned
+॰   ४ an INDEXED WRITE whose base is a REAL type that is not a run
 सार्वजनिक चरः दुष्टकारण ॱॱ न६४ भवति ० ।
+
+॰ ॥ असूचीलक्ष्यसंख्या ॥ INDEXED WRITES REFUSED BECAUSE THE BASE IS NOT A RUN.
+॰
+॰ THE HOLE THIS COUNTS WAS OPEN UNTIL 2026-09-28 AND IT WAS A WRITE PRIMITIVE.
+॰ `अभिव्यञ्जकप्रकारः` has typed an index EXPRESSION correctly since W-202 — a
+॰ non-run base answers दोषार्थः at `:1207`-`:1216` — and the assignment arm
+॰ computed its target's type into `लक्ष्यार्थः` AND NEVER READ IT. So
+॰ `पिटकम् ॱ शब्दः अङ्कः ० अन्तः भवति ६५ ।` on a plain `अ६४` compiled, and
+॰ `ir.t1` lowered it to `निधानम्` at `[the word's VALUE + ०]`: the declared
+॰ integer was taken as an ADDRESS, with no bound and no type behind it. A
+॰ program could store any octet at any address by naming a number.
+॰
+॰ THE READ RULE DID NOT COVER THE WRITE and I concluded twice that it did —
+॰ `e959aab5`, retracted by `3a07d492`. A rule that types a READ says nothing
+॰ about a WRITE target; they are different paths in this same routine.
+सार्वजनिक चरः असूचीलक्ष्यसंख्या ॱॱ न६४ भवति ० ।
+
+॰ ॥ अप्रकार्यलक्ष्यसंख्या ॥ THE BLIND SPOT BESIDE IT, AND WHY IT IS SEPARATE.
+॰
+॰ A base that types to दोषार्थः has made NO judgement — this pass has no arm
+॰ for its shape — so refusing on it would refuse every indexed write through a
+॰ call or any other untyped base, and break the corpus. That is exactly the
+॰ distinction `अप्रकार्यशर्तसंख्या` draws for conditions: poison is COUNTED,
+॰ a real wrong type is REFUSED. This number is the acceptance figure for
+॰ closing the remaining arms; it is not a defect count.
+सार्वजनिक चरः अप्रकार्यलक्ष्यसंख्या ॱॱ न६४ भवति ० ।
 
 ॰ ॥ IS THIS STATEMENT'S VALUE READ? ॥ W-231's tail-position refinement.
 ॰
@@ -3867,6 +3894,74 @@
         ॰ as one on the right.
         यदि वाक्यम् ॱ वामसूचकाङ्क अधिकम् ० आदि
             चरः लक्ष्यार्थः ॱॱ अर्थप्रकार भवति अभिव्यञ्जकप्रकारः वास्तुॱअभिव्यञ्जककोश वाक्यम् ॱ वामसूचकाङ्क ।
+
+            ॰ AN INDEXED WRITE NEEDS A RUN UNDER IT, and `लक्ष्यार्थः` above
+            ॰ cannot say so: it is दोषार्थः for a bad index AND for every shape
+            ॰ this pass has no arm for, so it cannot tell a violation from a
+            ॰ blind spot. The KIND of the target can. `:1207` mirrors this test
+            ॰ for an index being READ; this is the same test on one being
+            ॰ WRITTEN, which is the path that was never checked.
+            यदि वाक्यम् ॱ वामसूचकाङ्क न्यूनम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि
+                चरः लक्ष्यम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः वाक्यम् ॱ वामसूचकाङ्क अन्तः ।
+                यदि लक्ष्यम् ॱ भेद समम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि
+                    चरः आधारप्रकारः ॱॱ अर्थप्रकार भवति अभिव्यञ्जकप्रकारः वास्तुॱअभिव्यञ्जककोश लक्ष्यम् ॱ वामसूचकाङ्क ।
+                    ॰ REFUSE ONLY WHAT IS POSITIVELY WRONG — an INTEGER base.
+                    ॰
+                    ॰ THIS ARM FIRST READ `असमम् खण्डार्थभेद` — refuse anything
+                    ॰ that is not a run — AND THAT BROKE THE CORPUS. It reads
+                    ॰ as the same rule and is not: the kinds are १ Int, २ Float,
+                    ॰ ३ Pointer, ४ Slice, ५ Optional … १२ poison, so "not ४"
+                    ॰ silently included Pointer, Struct, Optional and Void.
+                    ॰ `parse.t1`'s `अभिव्यञ्जकयोजनम्` writes
+                    ॰ `वास्तुॱअभिव्यञ्जककोश अङ्कः … अन्तः भवति नव` — a write into
+                    ॰ the expression ARENA, which is a run and is correct — and
+                    ॰ the refusal poisoned the routine, so the whole module
+                    ॰ stopped emitting. `t1_corpus_conditionals.rs` reported it
+                    ॰ as १५ modules where its own commit says १६.
+                    ॰
+                    ॰ AND A PER-SOURCE CENSUS THROUGH `t1_boot` SAID 0 STOPPED,
+                    ॰ because that driver's loader resolves the cross-module
+                    ॰ arena's type where `Front`'s `FRONT_END` does not. A
+                    ॰ census answers about the driver that took it.
+                    ॰
+                    ॰ So the rule is inverted: name the kind that CANNOT be
+                    ॰ indexed rather than the one that can. That is the hole the
+                    ॰ ruling names — `word अङ्कः i अन्तः भवति v` — and nothing
+                    ॰ wider. `प्लवार्थभेद` (Float) belongs here too the day a
+                    ॰ float type exists; it does not yet, so adding it now would
+                    ॰ be a guard with no subject.
+                    ॰ COUNTED, NOT REFUSED — AND THE REASON IS A PRIOR DEFECT,
+                    ॰ not caution. Refusing here is what the ruling asked for
+                    ॰ and it CANNOT BE DONE AT THIS LEVEL TODAY:
+                    ॰
+                    ॰   सार्वजनिक चरः अभिव्यञ्जककोश ॱॱ अङ्कः अन्तः अभिव्यञ्जक भवति ० ।
+                    ॰
+                    ॰ every arena in this corpus is DECLARED a run and
+                    ॰ INITIALISED ०, and a global declared ० is typed as a WORD
+                    ॰ whatever its declared type — locals get a real empty run,
+                    ॰ globals do not. So `अभिव्यञ्जकप्रकारः` answers
+                    ॰ पूर्णाङ्कार्थभेद for the arena base in `parse.t1`'s
+                    ॰ `अभिव्यञ्जकयोजनम्`, which is a CORRECT write into a run.
+                    ॰ Refusing on Int therefore refuses the corpus's own arena
+                    ॰ idiom: measured, it poisoned that routine and `parse.t1`
+                    ॰ stopped emitting entirely.
+                    ॰
+                    ॰ SO THE HOLE BECOMES A NUMBER UNTIL ITS PRECONDITION IS
+                    ॰ FIXED. `असूचीलक्ष्यसंख्या` counts every indexed write whose
+                    ॰ base types as an integer — the security hole AND the arena
+                    ॰ idiom together, because at this level they are the same
+                    ॰ shape. It cannot become a refusal until a global carries
+                    ॰ its declared type; then this count falls to the real
+                    ॰ violations and the `प्रत्यागमनम् दोषार्थः` goes back in.
+                    यदि आधारप्रकारः ॱ भेद समम् पूर्णाङ्कार्थभेद आदि
+                        असूचीलक्ष्यसंख्या भवति आरभ्य असूचीलक्ष्यसंख्या योगः १ समाप्तम् ।
+                    इति
+                    यदि आधारप्रकारः ॱ भेद समम् दोषार्थभेद आदि
+                        ॰ NO JUDGEMENT — counted, never refused.
+                        अप्रकार्यलक्ष्यसंख्या भवति आरभ्य अप्रकार्यलक्ष्यसंख्या योगः १ समाप्तम् ।
+                    इति
+                इति
+            इति
         इति
         यदि वाक्यम् ॱ दक्षिणसूचकाङ्क अधिकम् ० आदि
             चरः सममूल्यार्थः ॱॱ अर्थप्रकार भवति अभिव्यञ्जकप्रकारः वास्तुॱअभिव्यञ्जककोश वाक्यम् ॱ दक्षिणसूचकाङ्क ।

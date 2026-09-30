@@ -290,3 +290,71 @@ fn global_int_of(name: &str) -> i128 {
     let it = load_emitter(None);
     global_int(&it, name)
 }
+
+/// **`W-331` — `refusal_site` READS THE EMITTER'S RECORD NOW, AND THE RECORD WAS
+/// ALWAYS THERE.**
+///
+/// The five globals every test above asserts about were filled by `यन्त्रनिषेधः`
+/// and read by NOTHING outside this file. `chain::refusal_site` asked only
+/// `निर्णयविरामभेद`, the DECIDE stage's verdict, so a source that resolved and
+/// typechecked and was then refused by the EMITTER answered `०` —
+/// `निर्णयसिद्धभेद`, "resolved AND typechecked" — and `t1_image` printed
+/// `no site recorded` after spending 347,659,457 extra steps looking for one.
+/// Measured 2026-09-29 while chasing `W-330`.
+///
+/// This drives a REAL refusal through the emitter rather than setting the globals
+/// by hand: an arm tested against values a test wrote is a test of the test.
+#[test]
+fn the_refusal_site_names_the_emitters_own_record() {
+    let mut it = load_emitter(None);
+    // Site १, the same one `the_unnamed_symbol_record_names_which_of_the_five_sites_raised_it`
+    // drives: a label asked for symbol ०, which no name entry holds.
+    let answer = it
+        .call(LABEL.0, vec![Value::Int(0)], 200_000_000)
+        .unwrap_or_else(|e| panic!("`{}` runs: {e}", LABEL.0));
+    assert_eq!(
+        answer.as_int(),
+        Some(0),
+        "the site answers ० after recording"
+    );
+
+    let site = sadhana::t1::chain::refusal_site(&it)
+        .expect("the emitter refused, so a site must be named");
+
+    // THE VARIANT BY NAME, NOT BY NUMBER. `UnnamedSymbol` is kind ४
+    // (`yantrotsarjana.t1:108`), and the pairing with Rust's `Refusal::UnnamedSymbol`
+    // is asserted by `t1_sources.rs`, so this reads the name the reader prints.
+    assert!(
+        site.starts_with("emit: UnnamedSymbol (4) in "),
+        "the site must name the STAGE and the VARIANT, and got: {site}"
+    );
+    // AND THE SITE CODE, WHICH IS THIS VARIANT'S DISCRIMINATOR — NOT THE ROUTINE.
+    //
+    // I ASSERTED THE ROUTINE HERE FIRST AND IT WAS THE WRONG FIELD. All five
+    // `UnnamedSymbol` sites pass `रिक्तम्` for the routine on purpose
+    // (`yantrotsarjana.t1:489`, `:585`, `:1282`, `:1940`, `:2597`) because no
+    // routine is known at any of them; what separates them is the SITE CODE, which
+    // is exactly what the first test in this file is about. So the reader must
+    // print `site 1` and not `target 1`, and this asserts the field that carries
+    // the information rather than the one that happens to be adjacent.
+    assert!(
+        site.contains(&format!("site {}", LABEL.1)),
+        "the site code is this variant's discriminator and must be named: {site}"
+    );
+    println!("METRIC t1_emit_refusal_site_example {site}");
+}
+
+/// **AND IT MUST NOT INVENT ONE.** A fresh interpreter has refused nothing:
+/// `यन्त्रनिषेधमस्ति` is `असत्यम्` and `निर्णयविरामभेद` is ३ (never entered), so
+/// the honest answer is `None`. An arm keyed on the KIND rather than on the guard
+/// would answer here, because `:168` initialises the variant to `०` while the
+/// numbered kinds start at `१` — `०` is not "no refusal", it is "no variant".
+#[test]
+fn a_tree_that_refused_nothing_names_no_site() {
+    let it = load_emitter(None);
+    assert_eq!(
+        sadhana::t1::chain::refusal_site(&it),
+        None,
+        "nothing has been compiled, so there is no site to name"
+    );
+}

@@ -164,7 +164,7 @@ fn the_type_names_are_the_ones_t0_already_writes() {
     // ADR-0010 made `ॱअ३२` a type name in an instruction. A declaration must
     // spell the same type the same way, or the two tiers are two languages.
     let ts = terminals();
-    for part in ["अ", "न", "भ", "८", "१६", "३२", "६४", "१२८"] {
+    for part in ["अ", "न", "प", "८", "१६", "३२", "६४", "१२८"] {
         assert!(
             ts.iter().any(|t| t == part),
             "`{part}` is part of T0's type vocabulary and T1's grammar does not name it"
@@ -800,7 +800,7 @@ fn the_string_type_is_written_patha_and_the_count_is_positional() {
     // `ir.t1`, and the count that replaces this assertion is in
     // `the_integer_prefixes_are_the_ones_doc_02_derives` below, beside the two
     // it is draining.
-    for unused in ["अक्षरम्", "अक्षर", "भ३२", "भ६४"] {
+    for unused in ["अक्षरम्", "अक्षर", "प३२", "प६४"] {
         pin_report!(
             (annot.get(unused), dadati.get(unused)),
             (None, None),
@@ -845,7 +845,7 @@ fn the_string_type_is_written_patha_and_the_count_is_positional() {
 
 /// Every `ॱ`-marked type suffix written in `spec/*.sas`, counted by prefix.
 ///
-/// `grammar-t0.ebnf:97` is `type_suffix = member_mark , [ "अ" | "न" | "भ" ] ,
+/// `grammar-t0.ebnf:97` is `type_suffix = member_mark , [ "अ" | "न" | "प" ] ,
 /// decimal`, so the member mark is what tells a type suffix from the same two
 /// signs standing for something else. Counted bare the answer is the same, and
 /// counted over `drafts/` it is not — `drafts/segmenter.sas` writes `०षोड्इ६४१न`,
@@ -860,7 +860,7 @@ fn t0_type_suffix_counts() -> std::collections::BTreeMap<char, usize> {
     files.sort();
     for f in files {
         let text = std::fs::read_to_string(&f).expect("read a `.sas` source");
-        for prefix in ['अ', 'न', 'भ'] {
+        for prefix in ['अ', 'न', 'प'] {
             for width in ["८", "१६", "३२", "६४", "१२८"] {
                 let needle = format!("ॱ{prefix}{width}");
                 *out.entry(prefix).or_default() += text.matches(&needle).count();
@@ -5333,7 +5333,7 @@ fn the_compression_relation_is_unsigned_and_its_zero_is_a_reserved_value() {
     //    breaks the reading and not only the count.
     for (name, value, gloss) in [
         ("असम्बन्धः", "०", "a relation this reader does not model"),
-        ("अभिन्नसम्बन्धः", "१", "none"),
+        ("अप्लवसम्बन्धः", "१", "none"),
         ("प्रथमानुवृत्तिसम्बन्धः", "२", "arg1=arg0"),
         ("द्वितीयशून्यसम्बन्धः", "३", "arg1=zero"),
         ("तृतीयशून्यसम्बन्धः", "४", "arg2=zero"),

@@ -547,6 +547,10 @@
 ॰      reported: an element width this arm does not emit a load for is MY
 ॰      implementation declining, where a base whose type the arenas cannot
 ॰      reach is the corpus, and only the first is a scope decision.
+॰   ४५ क्षेत्र whose base's RECORDED TYPE IS THE CHECKER'S POISON — not a
+॰      corpus fact and not a shape this file declines, but `अर्थ` never having
+॰      typed the declaration. 359 where cause ३२ read 399 on `ir,encode`, and
+॰      ३२'s residue is the ४१ that must still refuse; see the table at the raise.
 सार्वजनिक चरः अपूर्णहेतुकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 सार्वजनिक चरः अपूर्णगणनाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 ॰ EXCLUSIVE, AND ४५ BECAUSE OF IT (2026-09-18). `सीमा` is read both ways in
@@ -569,7 +573,13 @@
 ॰ The earlier repair made the SUM match the RESET by adding `योगः १` to it —
 ॰ arithmetically right, idiomatically wrong: it fitted the loop to a
 ॰ non-conforming constant instead of fixing the constant.
-सार्वजनिक चरः अपूर्णहेतुसीमा ॱॱ न६४ भवति ४५ ।
+॰
+॰ ४५ -> ४६ ON 2026-09-27 (`W-283`), AND THE CONVENTION IS UNTOUCHED: cause ४५
+॰ (`field_qualified_type_is_poison`) is live, so the first value NOT a cause is
+॰ ४६ and both loops stay plain `न्यूनम् सीमा`, clearing and summing १..४५. The
+॰ paragraph above is kept as written because it is the reasoning that made the
+॰ constant state its own convention; only the number moved.
+सार्वजनिक चरः अपूर्णहेतुसीमा ॱॱ न६४ भवति ४६ ।
 
 
 ॰ WHICH OF CAUSE २७'S FIFTEEN SITES DECLINED — `W-301`, 2026-09-18.
@@ -590,6 +600,15 @@
 ॰ has just re-founded as EXCLUSIVE — renumber a space
 ॰ that `tools/sassembly-model.py`'s `STUB_CAUSES` and `corpus-shapes.py` both pin,
 ॰ and still not say which site fired for the other thirty raises. A site channel does.
+॰
+॰ AND CAUSE ३२'S SPLIT ON 2026-09-27 DID MOVE THE BOUND, WHICH IS NOT THIS RULING
+॰ BEING OVERTURNED. This channel is keyed by `स्थलाङ्कः` ALONE — `अपूर्णध्रुवस्थाने`
+॰ writes `अपूर्णस्थानगणनाकोश अङ्कः स्थलाङ्कः`, with no cause in the key — so it belongs
+॰ to cause २७ by construction and `t1_cause27_sites.rs` reads it as cause २७'s. A
+॰ second population in it would not be a second channel; it would corrupt the first.
+॰ The other half of the ruling stands and was followed: ONE cause was added, not
+॰ eleven, because one kind carried 92% of the population and the rest are the residue
+॰ the unsplit number is still honest about.
 सार्वजनिक चरः अपूर्णस्थानगणनाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 ॰ EXCLUSIVE, per the ruling above: १६ is the first value NOT a site, and the
 ॰ sites are १..१५. This constant states its own convention so no loop has to.
@@ -762,7 +781,14 @@
 ॰ `each_arena_bound_equals_the_highest_entry_of_the_table_it_bounds` catches it
 ॰ AT THE TABLE, but only once the table entry exists. ADD THE TABLE ENTRY AND
 ॰ RAISE THE BOUND IN ONE EDIT, and let the guard check the pair.
-सार्वजनिक चरः रचितशेषसीमा ॱॱ न६४ भवति ३४ ।     ॰ the highest shape number
+॰ `W-306`: ३४ -> ३५ WITH shape ३५ `assign_index_grown`, in the same edit that
+॰ adds it at `:4729` — the growth branch of the index-assignment arm, which
+॰ lowered an address and counted nothing. THE PAIR IS THE POINT: the entry loop
+॰ clears `१..=रचितशेषसीमा` and that loop is the only thing sizing `रचितगणनाकोश`,
+॰ so ३५ raised against a bound of ३४ does not read as an unreached arm — it
+॰ indexes one past the end and the IR build DIES with `entry 35 is outside an
+॰ arena of 34`. Headroom is ० again after this line, as it was before it.
+सार्वजनिक चरः रचितशेषसीमा ॱॱ न६४ भवति ३५ ।     ॰ the highest shape number
 ॰ ३३ -> ३४ WITH shape ३४, in the same edit that adds it — `W-len`'s run-length
 ॰ load. THIS IS A RESET BOUND AS WELL AS A CEILING: the entry loop clears
 ॰ `१..=रचितशेषसीमा` and that loop is the only thing sizing `रचितगणनाकोश`, so a
@@ -1741,25 +1767,108 @@
     चरः अवगणननिधानस्थापन ॱॱ न६४ भवति पर्वस्थापनम् निधानपर्व ।
     प्रत्यागमनम् ० ।
 इति
-॰ A one-octet store at an address, from the kinds in hand: the aligned word is
-॰ read, its lane cleared, the octet shifted in, the word written (little-endian).
-सार्वजनिक वृत्तिः अष्टकनिधानरचना आदाय स्थानम् ॱॱ मूल्याङ्क ऽ मूल्यम् ॱॱ मूल्याङ्क ददाति न६४ आदि
+॰ A NARROW STORE AT AN ADDRESS — ONE, TWO OR FOUR OCTETS — from the kinds in
+॰ hand: the aligned word is read, the element's lane cleared, the value shifted
+॰ in, the word written (little-endian).
+॰
+॰ IT WAS ONE OCTET AND ONLY ONE, AND THAT IS WHAT THE WIDTH PARAMETER CLOSES.
+॰ The index-store arm at `:4519` sent `विस्तार १` here and sent EVERY OTHER WIDTH
+॰ to the plain `स्थाननिधान`, which writes a FULL WORD — so a store into an `अ३२`
+॰ element wrote EIGHT octets at a stride of FOUR and ate its neighbour, and a
+॰ store into the LAST element wrote four octets past the run's storage. `अ३२` is
+॰ 20 corpus slice sites (`:3098`), not a corner.
+॰
+॰ THE READ SIDE ALREADY HELD ALL THREE NARROW WIDTHS — `:3113`'s table and
+॰ `आहारःॱअ८`/`ॱअ१६`/`ॱअ३२` — so this was `W-284`'s rule broken in exactly the
+॰ words that margin uses: A READ AND ITS WRITE MUST REFUSE THE SAME SET. The
+॰ read accepted ८/१६/३२/६४; the write was right at ८ and ६४ and silently wrong
+॰ at १६ and ३२, which is the worst of the four possible arrangements.
+॰
+॰ AND THE FIXTURE THAT EXISTED FOR `अ३२` COULD NOT SEE IT.
+॰ `a_thirty_two_bit_slice_element_round_trips` writes element ० then element १
+॰ and sums them: the word-wide store to element ० eats element १, and then the
+॰ next statement writes element १, repairing the damage before anything reads
+॰ it. ASCENDING ORDER HIDES A WIDE STORE COMPLETELY. Its twin —
+॰ `a_thirty_two_bit_element_write_does_not_clobber_the_next_element`, the same
+॰ two writes in the other order — answered ५ where the sum is ११, and that is
+॰ the measurement this routine answers.
+॰
+॰ THE MASK IS THE ONLY THING THE WIDTH CHANGES, and it is a LADDER WITH A
+॰ REFUSAL rather than a computed `(१ << ८×विस्तार) − १`: that shift is not
+॰ expressible here without minting instructions, and an unnamed width must
+॰ answer ० and emit NOTHING rather than fall through to a guess — the same
+॰ discipline as the ० sentinel on the load side's width table. The caller runs
+॰ the SAME three-way ladder before it calls, so this guard is belt and braces
+॰ and not the decision; a width reaching here that the caller admits and this
+॰ ladder does not would DROP the store, which is why the two ladders are
+॰ written the same way and sit one screen apart.
+॰
+॰ WIDTH ८ IS NOT IN THE LADDER, ON PURPOSE. A whole word needs no
+॰ read-modify-write and the caller sends it to `स्थाननिधानरचना` unchanged; and
+॰ `(१ << ६४) − १` does not fit the `न६४` this ladder holds.
+॰
+॰ A CHEAPER SHAPE EXISTS AND IS NOT TAKEN HERE, NAMED SO IT IS NOT REDISCOVERED.
+॰ `t1/ir.rs:242` argues the load's case exactly: the T0 store family is ALREADY
+॰ width-selected — `निधानम्ॱअ८` / `ॱअ१६` / `ॱअ३२` / `ॱअ६४` all sit in
+॰ `spec/conformance-t0.tsv` — so a narrow store is a WIDTH ON `स्थाननिधान` and a
+॰ suffix at the emitter, one instruction where this is thirteen. That is the
+॰ right end state and it is a different unit: a third operand on kind २३ moves
+॰ `t1/ir.rs`, both emitters, all four decode tables and
+॰ `every_copy_of_a_kind_table_decodes_what_ir_t1_defines`, which refuses a
+॰ partial landing by name. This routine changes what the compiler COMPUTES; that
+॰ one changes what it COSTS, and the octet store has already been paying this
+॰ price at 609 sites since 2026-09-13.
+सार्वजनिक वृत्तिः सङ्कीर्णनिधानरचना आदाय स्थानम् ॱॱ मूल्याङ्क ऽ मूल्यम् ॱॱ मूल्याङ्क ऽ विस्तार ॱॱ न६४ ददाति न६४ आदि
+    चरः अवरावरणम् ॱॱ न६४ भवति ० ।
+    यदि विस्तार समम् १ आदि अवरावरणम् भवति २५५ । इति
+    यदि विस्तार समम् २ आदि अवरावरणम् भवति ६५५३५ । इति
+    यदि विस्तार समम् ४ आदि अवरावरणम् भवति ४२९४९६७२९५ । इति
+    यदि अवरावरणम् समम् ० आदि प्रत्यागमनम् ० । इति
     चरः ऋणाष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना आरभ्य ० वियोगः ८ समाप्तम् ।
     चरः सप्त ॱॱ मूल्याङ्क भवति ध्रुवरचना ७ ।
     चरः त्रीणि ॱॱ मूल्याङ्क भवति ध्रुवरचना ३ ।
-    चरः पञ्चपञ्चाशद्द्विशतम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २५५ ।
+    चरः अवरणमूल्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना अवरावरणम् ।
     चरः ऋणैकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना आरभ्य ० वियोगः १ समाप्तम् ।
     चरः पदस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ स्थानम् ऽ ऋणाष्टकम् समाप्तम् ।
     चरः वीथी ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ स्थानम् ऽ सप्त समाप्तम् ।
     चरः सरणम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वामसरणाज्ञाभेद ऽ वीथी ऽ त्रीणि समाप्तम् ।
     चरः पुराणपदम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना पदस्थानम् ।
-    चरः आवरणम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वामसरणाज्ञाभेद ऽ पञ्चपञ्चाशद्द्विशतम् ऽ सरणम् समाप्तम् ।
+    चरः आवरणम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वामसरणाज्ञाभेद ऽ अवरणमूल्यम् ऽ सरणम् समाप्तम् ।
     चरः विपरीतावरणम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वैषम्याज्ञाभेद ऽ आवरणम् ऽ ऋणैकम् समाप्तम् ।
     चरः शुद्धपदम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ पुराणपदम् ऽ विपरीतावरणम् समाप्तम् ।
-    चरः अष्टकमात्रम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ मूल्यम् ऽ पञ्चपञ्चाशद्द्विशतम् समाप्तम् ।
+    चरः अष्टकमात्रम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ मूल्यम् ऽ अवरणमूल्यम् समाप्तम् ।
     चरः सरितमष्टकम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वामसरणाज्ञाभेद ऽ अष्टकमात्रम् ऽ सरणम् समाप्तम् ।
     चरः नवपदम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य विकल्पाज्ञाभेद ऽ शुद्धपदम् ऽ सरितमष्टकम् समाप्तम् ।
     प्रत्यागमनम् स्थाननिधानरचना आरभ्य पदस्थानम् ऽ नवपदम् समाप्तम् ।
+इति
+॰ THE ONE-OCTET CASE, KEPT AS A NAME AND NOT AS A SECOND IMPLEMENTATION. Two
+॰ callers spell it and one of them — `खण्डवृद्धिप्रतिलेखनम्`'s copy loop at
+॰ `:1719` — is an octet-by-octet copy where a width argument would read as a
+॰ choice it does not have. Delegating keeps ONE masked read-modify-write in the
+॰ tree, which is the same argument `W-284`'s margin makes for one type test:
+॰ two copies of this arithmetic would drift.
+॰
+॰ THE WIDTH-१ TEXT IS UNCHANGED, and that is a property of the order rather
+॰ than a hope: the five constants are minted in the same sequence and the mask
+॰ literal is still २५५ at the same position, so every value id and every emitted
+॰ line for an `अ८` element is what it was.
+॰
+॰ AND IT WAS MEASURED RATHER THAN ARGUED, because the order argument above is
+॰ exactly the kind that is right until it is not. One fixture source — two
+॰ descending element writes and their sum — emitted through
+॰ `यन्त्रोत्सर्जन`'s Rust twin at `HEAD` and on this tree, the element type the
+॰ only variable, FNV-1a over the whole emitted text:
+॰
+॰     अ८    22050 octets  246 lines  ffcaf8be39762df0  →  IDENTICAL
+॰     अ१६   18864 → 22012  210 → 246 lines             →  moved (+36 lines)
+॰     अ३२   18864 → 22287  210 → 248 lines             →  moved (+38 lines)
+॰     अ६४   18840 octets  210 lines  b9a2579dab8714cb  →  IDENTICAL
+॰
+॰ The two widths that were WRONG moved and the two that were RIGHT did not move
+॰ one octet. `अ३२` costs two lines more than `अ१६` because its mask
+॰ `४२९४९६७२९५` does not fit an immediate and the constant is materialised.
+सार्वजनिक वृत्तिः अष्टकनिधानरचना आदाय स्थानम् ॱॱ मूल्याङ्क ऽ मूल्यम् ॱॱ मूल्याङ्क ददाति न६४ आदि
+    प्रत्यागमनम् सङ्कीर्णनिधानरचना आरभ्य स्थानम् ऽ मूल्यम् ऽ १ समाप्तम् ।
 इति
 सार्वजनिक वृत्तिः अपूर्णध्रुवम् आदाय हेतुः ॱॱ न६४ ददाति मूल्याङ्क आदि
     अपूर्णगणनाकोश अङ्कः हेतुः अन्तः भवति अपूर्णगणनाकोश अङ्कः हेतुः अन्तः योगः १ ।
@@ -2331,6 +2440,13 @@
         ॰ STORE to the UART at ०x१०००००००, and this flag is set where the callee's
         ॰ dotted name is in scope and read where the Call would be emitted.
         चरः मुद्रणमिदम् ॱॱ बूल भवति असत्यम् ।
+        ॰ ADR-0041's file window. A second flag rather than a kind: the two
+        ॰ intrinsics differ only in WHICH address the store names, and one
+        ॰ boolean each keeps that difference where a reader can see it.
+        चरः पत्रमिदम् ॱॱ बूल भवति असत्यम् ।
+        ॰ The WRITE. Its own flag for the same reason it has its own address:
+        ॰ the two differ only in which direction the octets move.
+        चरः पत्रलेखनमिदम् ॱॱ बूल भवति असत्यम् ।
         चरः आह्वेयाङ्क ॱॱ न६४ भवति अभि ॱ वामसूचकाङ्क ।
         चरः आह्वेयः ॱॱ वास्तुॱअभिव्यञ्जक भवति अभि ।
         चरः अन्वेषणचालु ॱॱ बूल भवति सत्यम् ।
@@ -2394,6 +2510,16 @@
                         चरः आह्वेयचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आह्वेयचिह्नकाङ्क अन्तः ।
                         यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱमुद्रणम् इति आदि
                             मुद्रणमिदम् भवति सत्यम् ।
+                        इति
+                        ॰ Matched on the QUALIFIED name for the same reason the line
+                        ॰ above is: an unqualified `पत्रम्` inside `अष्टक` itself stays
+                        ॰ an ordinary call and reaches the body, which is what keeps
+                        ॰ the body reachable and therefore testable.
+                        यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱपत्रम् इति आदि
+                            पत्रमिदम् भवति सत्यम् ।
+                        इति
+                        यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱपत्रलेखनम् इति आदि
+                            पत्रलेखनमिदम् भवति सत्यम् ।
                         इति
                     इति
                 इति
@@ -2581,6 +2707,51 @@
             चरः यन्त्रस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४३५४५६ ।
             चरः अष्टकमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः १ समाप्तम् अन्तः ।
             चरः अवगणनयन्त्रनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य यन्त्रस्थानम् ऽ अष्टकमूल्यम् समाप्तम् ।
+            आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+            प्रत्यागमनम् ध्रुवरचना ० ।
+        इति
+        ॰ ॥ THE FILE WINDOW, THE SAME SHAPE AT A DIFFERENT ADDRESS ॥ २६८४४३६४८ is
+        ॰ ०x१००० २०००, and the value stored is the caller's SIX-WORD REQUEST RUN —
+        ॰ a run's runtime value IS its pointer, which is why this intrinsic takes
+        ॰ one: `.t1` has no address-of, so an `न६४` parameter would have been
+        ॰ uncallable. The host reads the request
+        ॰ out of RAM and writes its status back into RAM before this store returns,
+        ॰ so nothing here has to represent "not yet"; ADR-0040's question does not
+        ॰ arise, and this channel is correspondingly no use for a socket.
+        ॰ Answers ० exactly as the print arm does; `अष्टकॱपत्रम्`'s body answers
+        ॰ २६८४४३६४८ if this lowering is ever removed.
+        यदि पत्रमिदम् समम् सत्यम् आदि
+            ॰ THREE STORES, AND THE ORDER IS THE PROTOCOL. The path and the
+            ॰ buffer are only REMEMBERED by the host; the third store is the one
+            ॰ that reads the file, so a half-built request never reaches a
+            ॰ filesystem. Each value is a RUN's pointer, which is what makes this
+            ॰ callable from a program at all: `.t1` has no address-of, and a run
+            ॰ already carries its pointer.
+            चरः मार्गस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६४८ ।
+            चरः मार्गमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः १ समाप्तम् अन्तः ।
+            चरः अवगणनमार्गनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य मार्गस्थानम् ऽ मार्गमूल्यम् समाप्तम् ।
+            चरः पात्रस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६५६ ।
+            चरः पात्रमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः २ समाप्तम् अन्तः ।
+            चरः अवगणनपात्रनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य पात्रस्थानम् ऽ पात्रमूल्यम् समाप्तम् ।
+            चरः स्थितिस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६६४ ।
+            चरः स्थितिमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः ३ समाप्तम् अन्तः ।
+            चरः अवगणनस्थितिनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य स्थितिस्थानम् ऽ स्थितिमूल्यम् समाप्तम् ।
+            आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+            प्रत्यागमनम् ध्रुवरचना ० ।
+        इति
+        ॰ THE WRITE — identical but for the third address. २६८४४३६७२ is
+        ॰ ०x१००० २०१८; the path and the buffer are remembered by the same two
+        ॰ stores, and only the go differs.
+        यदि पत्रलेखनमिदम् समम् सत्यम् आदि
+            चरः लेमार्गस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६४८ ।
+            चरः लेमार्गमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः १ समाप्तम् अन्तः ।
+            चरः अवगणनलेमार्ग ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य लेमार्गस्थानम् ऽ लेमार्गमूल्यम् समाप्तम् ।
+            चरः लेपात्रस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६५६ ।
+            चरः लेपात्रमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः २ समाप्तम् अन्तः ।
+            चरः अवगणनलेपात्र ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य लेपात्रस्थानम् ऽ लेपात्रमूल्यम् समाप्तम् ।
+            चरः लेस्थितिस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २६८४४३६७२ ।
+            चरः लेस्थितिमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः ३ समाप्तम् अन्तः ।
+            चरः अवगणनलेस्थिति ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य लेस्थितिस्थानम् ऽ लेस्थितिमूल्यम् समाप्तम् ।
             आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
             प्रत्यागमनम् ध्रुवरचना ० ।
         इति
@@ -3387,6 +3558,54 @@
                 इति
             इति
         इति
+        ॰ ॥ CAUSE ३२ WAS 92% ONE THING AND ITS NAME SAID ANOTHER ॥ `W-283`, 2026-09-27.
+        ॰
+        ॰ `field_qualified_type_not_struct` reads as a CORPUS FACT — the source asks
+        ॰ for a field of something that is not a record — and cause २५'s margin above
+        ॰ says exactly that: "no edit to `ir.t1` recovers these". MEASURED, and the
+        ॰ reading is wrong for almost all of it. The base's recorded type is the
+        ॰ CHECKER'S POISON (`अर्थॱदोषार्थः`, `Ty::Error`), which is not a type the
+        ॰ corpus wrote: it is `अर्थ` declining to type the declaration at all.
+        ॰
+        ॰ MEASURED BEFORE IT WAS BELIEVED, `T1_CORPUS=ir,encode` through the census,
+        ॰ by a throwaway probe that routed each of the eleven possible kinds onto a
+        ॰ cause measured zero on that set — so the split is read off the counter and
+        ॰ not off a reading of the corpus:
+        ॰
+        ॰                                    HEAD    probe   this tree
+        ॰     ३२ field_qualified_type_not_struct   399      41      41
+        ॰     ४५ field_qualified_type_is_poison      —     369     359
+        ॰        paradigm_ir_stubs                 671     682     673
+        ॰
+        ॰ AND THE PROBE'S ३६९ IS NOT THE POPULATION — ELEVEN OF THEM WERE THE PROBE.
+        ॰ `ir.t1` is itself one of the two sources being compiled, so the probe's own
+        ॰ eleven `वस्तुप्रकारः ॱ भेद` reads were compiled and counted, and every one of
+        ॰ them landed in the SAME population: ४१ + ३६९ = ३९९ + ११, so the standing
+        ॰ population is ३५८ and this landing's single guard line makes it ३५९.
+        ॰
+        ॰ THAT ३५९ AND THAT ४१ WERE PREDICTED BEFORE THE RUN AND BOTH ANSWERED EXACTLY.
+        ॰ The total did not: predicted ६७२, measured ६७३, and the extra one is the same
+        ॰ self-measurement in a second place — the guard names `अर्थॱदोषार्थभेद`, a
+        ॰ module-qualified read this file lowers as cause १, which went १३२ -> १३३. A
+        ॰ prediction that gets the two split numbers right and the sum wrong by one is
+        ॰ worth more than a round one: it says the split is exact and the instrument
+        ॰ still sees its own edits.
+        ॰
+        ॰ WHICH MAKES THIS AN `अर्थ` GAP AND NOT A LOWERING ONE, and the counter now
+        ॰ says so. A local declared `ॱॱ <मण्डल>ॱ<संरचना>` — the dominant shape in both
+        ॰ files — takes `अर्थॱप्रकारार्थः` -> `मूलप्रकारार्थः` (no primitive spelling) ->
+        ॰ `नामप्रकारार्थः`, which either resolves the qualified name through the store or
+        ॰ REFUSES BY NAME with one of five reasons it already records
+        ॰ (`अज्ञातप्रकारपाठकोश` beside `अज्ञातप्रकारकारणकोश`, artha.t1:219-225). No arm
+        ॰ here can recover a type that was never computed; reading the refusal record is
+        ॰ the next unit, and it needs no new instrument.
+        ॰
+        ॰ THE CASE THAT MUST STILL BE REFUSED AS ३२ IS THE ४१, and it is a MEASUREMENT
+        ॰ and not a hope: a base whose type is real and is not a record — an integer, a
+        ॰ run with a field that is not `दैर्घ्य`, an enum — still answers ३२ here, and a
+        ॰ split that had emptied ३२ would have proved only that the new guard swallowed
+        ॰ the arm. Both populations are non-zero on the same run.
+        यदि वस्तुप्रकारः ॱ भेद समम् अर्थॱदोषार्थभेद आदि प्रत्यागमनम् अपूर्णध्रुवम् ४५ । इति
         यदि वस्तुप्रकारः ॱ भेद असमम् अर्थॱसंरचनार्थभेद आदि प्रत्यागमनम् अपूर्णध्रुवम् ३२ । इति
         चरः रचनासंज्ञा ॱॱ न६४ भवति वस्तुप्रकारः ॱ संज्ञा ।
         यदि रचनासंज्ञा समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवम् ३३ । इति
@@ -4493,6 +4712,21 @@
                 चरः सूचीविस्तारमूल्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना वृद्धिविस्तार ।
                 चरः सूच्यन्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ वृद्धिसूचकः ऽ सूचीविस्तारमूल्यम् समाप्तम् ।
                 चरः अवगणनसूचीस्थान ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य सूचीस्थानाज्ञाभेद ऽ सूचीस्थानफलम् ऽ ० ऽ ० ऽ पुनराधारः ऽ सूच्यन्तरम् ऽ ० समाप्तम् ।
+                ॰ `W-306` — ३५ AND NOT ३२, AND THE MEASUREMENT IS WHY. This branch
+                ॰ builds `सूचीस्थानाज्ञाभेद` INLINE and used to count NOTHING, so the
+                ॰ whole corpus lowered its indexed writes here and `रचितगणनम् ३२` at
+                ॰ `:3332` read a truthful, well-formed ZERO — which six readings took
+                ॰ for a lowering regression. `GrowthOnly` over nine modules settled it:
+                ॰ every module takes THIS branch and none reaches `:3332`.
+                ॰ A SHARED NUMBER WAS REFUSED for the reason २७ and २८ give against
+                ॰ sharing: the two addresses are not the same lowering. `:3332` forms
+                ॰ the address from `आधारफलम्` scaled by the element width, on a base
+                ॰ the growth routine never touched; here the base has just been
+                ॰ REALLOCATED and the address is formed from the reloaded pointer.
+                ॰ Counting both under ३२ would put a growth count under a name that
+                ॰ means the other branch, and the census could never separate them
+                ॰ again — the one reading this table exists to make impossible.
+                रचितगणनम् ३५ ।
             इति अन्यथा आदि
                 स्थानमात्रम् भवति सत्यम् ।
                 सूचीस्थानफलम् भवति अभिव्यञ्जकरचना वाक्यम् ॱ वामसूचकाङ्क ।
@@ -4516,9 +4750,30 @@
             ॰ header is bumped on the same path: a header write and an element
             ॰ write sit together here and both are in-place.
             यदि सूचीस्थानफलम् ॱ क्रमाङ्क अधिकम् ० आदि
-                यदि वृद्धिविस्तार समम् १ आदि
-                    ॰ an octet store (2026-09-13): a word store here clobbered seven neighbours.
-                    चरः अवगणनअष्टकनिधान ॱॱ न६४ भवति अष्टकनिधानरचना आरभ्य सूचीस्थानफलम् ऽ सममूल्यम् समाप्तम् ।
+                ॰ A NARROW STORE, AND ITS WIDTH IS READ AND NEVER ASSUMED. The
+                ॰ one-octet case landed 2026-09-13 because a word store here
+                ॰ clobbered seven neighbours; `अ१६` and `अ३२` clobbered SIX and
+                ॰ THREE and were left on the word store for another two weeks,
+                ॰ because the `अ३२` fixture wrote its two elements in ASCENDING
+                ॰ order and the second write repaired what the first ate.
+                ॰
+                ॰ THIS LADDER IS THE SAME THREE-WAY LADDER `सङ्कीर्णनिधानरचना`
+                ॰ RUNS, deliberately: that routine answers ० and emits NOTHING
+                ॰ for a width it does not name, so a width admitted here and
+                ॰ refused there would DROP the store rather than widen it. They
+                ॰ are written the same way so that a fourth width added to one
+                ॰ is visibly absent from the other.
+                ॰
+                ॰ WIDTH ८ FALLS THROUGH, and that is the whole word store below,
+                ॰ unchanged. WIDTH ० CANNOT REACH HERE — this block is inside
+                ॰ `वृद्धिविस्तार अधिकम् ०` at `:4491`'s sibling — but the ladder
+                ॰ refuses it anyway rather than resting on that.
+                चरः सङ्कीर्णलेख्यम् ॱॱ बूल भवति असत्यम् ।
+                यदि वृद्धिविस्तार समम् १ आदि सङ्कीर्णलेख्यम् भवति सत्यम् । इति
+                यदि वृद्धिविस्तार समम् २ आदि सङ्कीर्णलेख्यम् भवति सत्यम् । इति
+                यदि वृद्धिविस्तार समम् ४ आदि सङ्कीर्णलेख्यम् भवति सत्यम् । इति
+                यदि सङ्कीर्णलेख्यम् समम् सत्यम् आदि
+                    चरः अवगणनसङ्कीर्णनिधान ॱॱ न६४ भवति सङ्कीर्णनिधानरचना आरभ्य सूचीस्थानफलम् ऽ सममूल्यम् ऽ वृद्धिविस्तार समाप्तम् ।
                     प्रत्यागमनम् मूल्याङ्कनम् ० ।
                 इति
                 चरः सूचीनिधानफलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।

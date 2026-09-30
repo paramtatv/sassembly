@@ -90,7 +90,12 @@ pub struct Hosted {
 /// executed yet.
 pub fn host(image: &[u8], ram: usize, budget: u64) -> Result<Hosted, String> {
     let mut m = Machine {
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: 0,
         base: BASE,
         mem: vec![0; ram],

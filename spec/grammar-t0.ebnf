@@ -94,7 +94,7 @@ mnemonic       = aksara_word , [ type_suffix ] , [ type_suffix ] ;
    takes one: `fcvt` writes one type and reads another, and no operand can say
    which — both fcvt.w.s and fcvt.w.d write an integer register from a float
    one. See ADR-0010 (`B-075`). *)
-type_suffix    = member_mark , [ "अ" | "न" | "भ" ] , decimal ;
+type_suffix    = member_mark , [ "अ" | "न" | "प" ] , decimal ;
 
 register       = aksara_word ;
 identifier     = aksara_word ;

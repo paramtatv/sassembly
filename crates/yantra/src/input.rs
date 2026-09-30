@@ -72,6 +72,21 @@ pub const INPUT_TAG: u64 = 0x5455_504e_4953_4153;
 pub const NAME_TAG: u64 = 0x454d_414e_4953_4153;
 /// The tag in front of the TRACE word: `"SASTRACE"`.
 pub const TRACE_TAG: u64 = 0x4543_4152_5453_4153;
+/// The tag in front of the ARGUMENT run's pointer word: `"SASARGV\0"`.
+///
+/// **ARGUMENTS NEED NO DEVICE, AND THAT IS THE WHOLE DESIGN.** A file name must
+/// be asked for WHILE RUNNING, which is why it cost an MMIO window and two
+/// intrinsics (ADR-0041). Arguments are known before `pc` moves, so they fit the
+/// channel that already exists: a tag, a global, and octets written into RAM
+/// before the program starts. No compiler change, no `.t1` change, and
+/// therefore no fixpoint round — the cheapest of the three capabilities by a
+/// wide margin, and cheap for a reason rather than by luck.
+///
+/// Below 2⁶³ like the other three: a word above that is negative to a signed
+/// lowering, and the `.t1` literal that declares it goes through that lowering.
+pub const ARGV_TAG: u64 = 0x0056_4752_4153_4153;
+/// The tag in front of the ARGUMENT COUNT word: `"SASARGC\0"`.
+pub const ARGC_TAG: u64 = 0x0043_4752_4153_4153;
 
 /// Where an injection put things, for the run's own report.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -323,4 +338,83 @@ mod tests {
         assert_eq!(word(&m, 0x525), r.name_ptr);
         assert_eq!(word(&m, 0x935), 1);
     }
+}
+
+/// Where an argument injection put things.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Arguments {
+    /// Offsets of the two tags in RAM — the run, then the count.
+    pub tags_at: [usize; 2],
+    /// Guest address now held in the argument run's pointer word.
+    pub argv_ptr: u64,
+    /// How many arguments were handed over.
+    pub argc: u64,
+}
+
+/// Hand the program its command-line arguments.
+///
+/// **THE ARGUMENTS ARE ONE RUN, JOINED BY A ZERO OCTET.** Not a run of runs:
+/// `.t1` has no surface form that puts a run's pointer inside a run — the same
+/// constraint that forced ADR-0041's file window to take three arguments rather
+/// than one request block. A program walks the octets and splits on ०, which it
+/// can already do with what it has.
+///
+/// **A ZERO SEPARATOR AND NOT A SPACE**, because an argument may contain a
+/// space and cannot contain a zero — the shape every execve-family interface
+/// settled on, for the same reason.
+///
+/// The COUNT is handed over separately rather than left to be derived. Counting
+/// separators answers `n − 1` for `n` arguments and `0` for none, which cannot
+/// be told from one empty argument. A program that must distinguish "no
+/// arguments" from "one empty argument" can, and that is not a hypothetical:
+/// `prog ""` is a thing a shell does.
+///
+/// Refuses rather than guesses, exactly as [`inject`] does: a missing tag means
+/// the image was built without the argument globals, and a tag found twice
+/// means the scan cannot tell which slot the program reads.
+pub fn inject_arguments(mem: &mut Vec<u8>, base: u64, args: &[&[u8]]) -> Result<Arguments, String> {
+    let mut tags_at = [0usize; 2];
+    let old_top = mem.len();
+    for (k, (tag, what)) in [(ARGV_TAG, "SASARGV"), (ARGC_TAG, "SASARGC")]
+        .into_iter()
+        .enumerate()
+    {
+        let word = tag.to_le_bytes();
+        let hits: Vec<usize> = (0..old_top.saturating_sub(7))
+            .filter(|&o| mem[o..o + 8] == word)
+            .collect();
+        tags_at[k] = match hits.as_slice() {
+            [] => {
+                return Err(format!(
+                    "no argument interface in this image: the {what} tag ({tag:#x}) appears at \
+                     no word. It was built without the argument globals — declare them, or do \
+                     not pass arguments"
+                ));
+            }
+            [one] => *one,
+            many => {
+                return Err(format!(
+                    "the {what} tag appears {} times ({many:?}); the scan cannot tell which \
+                     slot the program reads",
+                    many.len()
+                ));
+            }
+        };
+    }
+
+    let mut joined: Vec<u8> = Vec::new();
+    for (i, a) in args.iter().enumerate() {
+        if i > 0 {
+            joined.push(0);
+        }
+        joined.extend_from_slice(a);
+    }
+    let argv_ptr = append_run(mem, base, &joined);
+    put_word(mem, tags_at[0] + 8, argv_ptr);
+    put_word(mem, tags_at[1] + 8, args.len() as u64);
+    Ok(Arguments {
+        tags_at,
+        argv_ptr,
+        argc: args.len() as u64,
+    })
 }

@@ -82,7 +82,14 @@ const CSRR_SSTATUS: u32 = 0x73 | 5 << 7 | 0x2 << 12 | 0x100 << 20;
 /// A machine holding `words` at the entry point and nothing else.
 fn machine(words: &[u32]) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: vec![0; RAM],

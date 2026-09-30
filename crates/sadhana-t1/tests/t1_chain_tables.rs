@@ -39,6 +39,10 @@ use sadhana::t1::chain::CHAIN;
 use sadhana::t1::nirvahana::{Interpreter, Value};
 use std::path::{Path, PathBuf};
 
+/// Unique scratch roots, shared with every other binary that needs one —
+/// because five copies of `(pid, counter)` was five copies of one defect.
+mod spec_fixture;
+
 /// Enough for the fill plus the two table reads `सङ्कलनारम्भः` performs after
 /// it. A bound on steps, not a timeout.
 const FUEL: u64 = 40_000_000_000;
@@ -58,13 +62,11 @@ fn spec_root() -> PathBuf {
 /// `t1_exec_aksara.rs` gives: two tests that share a temp root can remove it
 /// under each other.
 fn empty_spec_root() -> PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let dir = std::env::temp_dir().join(format!(
-        "chain-tables-nospec-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
+    // `unique_root` and not a local (pid, counter): that pair is unique inside
+    // ONE PROCESS and not on disk, because pids are reused and these roots are
+    // never removed. This family had accumulated its own pile of directories
+    // under $TMPDIR (W-301).
+    let dir = spec_fixture::unique_root("chain-tables-nospec");
     std::fs::create_dir_all(&dir).expect("temp spec root");
     dir
 }

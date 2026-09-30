@@ -94,6 +94,34 @@ if ! grep -q "halt: Finisher" "$OUT/stage2.log"; then
 fi
 grep -E "halt:|ram:" "$OUT/stage2.log" | sed 's/^/  /'
 
+# ── Stage 2's halt status, read against the rung's OWN table ────────────────
+#
+# `shrinkhala.t1:3528` states it: **`१२०० built · १२०१ built an EMPTY image ·
+# १२०२ no input arrived`**. So `1200` is the outcome this round wants, and the
+# status is a named result, not a Unix exit code — `0x3333 | (n<<16)` encodes it,
+# which is the FAILURE word of the halt protocol whatever `n` says.
+#
+# AND STAGE 1'S OWN `predict:` LINE MUST NOT BE READ AS THE EXPECTED VALUE. It
+# prints `interpreted … -> 1202; the image's exit status must equal it`, and that
+# sentence cannot hold on this path: `t1_image` runs the prediction with NO
+# corpus on the input channel, `शृङ्खला:3537-3540` returns `१२०२` the moment
+# `निवेशपाठः ॱ दैर्घ्य` is `०`, and Stage 2 is handed `YANTRA_INPUT` and so
+# reaches `१२००`. Predicted 1202 / native 1200 was measured on BOTH the
+# 2026-09-28 round (1,399,578 octets) and the 2026-09-29 ADR-0042 round
+# (1,398,802) — identical halt word `78656307` — and it is not a divergence
+# between the engines. It is one engine asked about an empty input and the other
+# about the corpus. Equality there would mean Stage 2 compiled NOTHING.
+#
+# REPORTED, NOT GATED: byte-identity below is what the fixpoint is.
+actual=$(sed -n 's/.*status: Some(\([0-9][0-9]*\)).*/\1/p' "$OUT/stage2.log" | tail -1)
+case "${actual:-}" in
+    1200) echo "  status:  $actual — BUILT (shrinkhala.t1:3528)" ;;
+    1201) echo "  status:  $actual — built an EMPTY image; the octet count below is of nothing" >&2 ;;
+    1202) echo "  status:  $actual — NO INPUT ARRIVED; Stage 2 compiled nothing" >&2 ;;
+    "")   echo "  status:  NOT READ — no 'status: Some(n)' in stage2.log" >&2 ;;
+    *)    echo "  status:  $actual — not one of 1200/1201/1202; read shrinkhala.t1:3528" >&2 ;;
+esac
+
 # The rung prints its image between markers, so the sink carries one octet of
 # marker on each side of the ELF.
 python3 - "$S1" "$OUT/stage2.sink" "$OUT/stage2.elf" <<'PY'

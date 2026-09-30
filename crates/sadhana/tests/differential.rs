@@ -247,7 +247,18 @@ fn the_padding_संरेखः_emits_is_the_padding_gnu_as_emits() {
         return;
     };
 
-    let dir = std::env::temp_dir().join("sansos-w079-align");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-w079-align-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let src = dir.join("a.s");
     let obj = dir.join("a.o");

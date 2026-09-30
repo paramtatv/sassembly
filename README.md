@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="assets/banner.png" alt="संस्कृतयन्त्रम् · Sassembly — a grammar-based instruction set. Stage 2 == Stage 1, 1,393,602 octets, byte for byte." width="100%">
+  <img src="assets/banner.png" alt="संस्कृतयन्त्रम् · Sassembly — a grammar-based instruction set. Stage 2 == Stage 1, byte for byte." width="100%">
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v0.3.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v0.3.0"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v0.4.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v0.4.0"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-A63A21?style=flat-square&labelColor=2B2521" alt="licence MIT"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -23,6 +23,7 @@
 <p align="center">
   <a href="https://paramtatv.github.io/sassembly/">docs and playground</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
+  <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.2.0.md">v0.2.0 announcement</a>
 </p>
 
@@ -43,12 +44,12 @@ itself.
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical, `1,393,602` octets |
+| **Stage 2 == Stage 1** | byte-identical, `1,399,434` octets |
 | **the compiler** | 21 `.t1` sources, 39,775 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — 476 KB of wasm, no server |
 | **measured** | 2026-09-25, in a fresh clone of this repository |
-| **status** | v0.3.0 — nothing is stable |
+| **status** | v0.4.0 — nothing is stable |
 
 ### Contents
 
@@ -78,26 +79,33 @@ Stage 1   the compiler's 21 sources, compiled by the interpreted compiler
 Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 ```
 
-**Measured 2026-09-25, `tools/fixpoint.sh`, in a fresh clone of THIS
+**Measured 2026-09-30, `tools/fixpoint.sh`, in a fresh clone of THIS
 repository** — not inherited from the tree it was extracted from:
 
 ```console
 fixpoint: packing the corpus from crates/sadhana-t1/src
-packed 21 source(s), 4312336 octets
-fixpoint: Stage 1  1393602 octets
-fixpoint: Stage 2  1393602 octets
-FIXPOINT HOLDS: 1393602 octets, byte-identical
+packed 21 source(s), 4375038 octets
+fixpoint: Stage 1  1399434 octets
+fixpoint: Stage 2  1399434 octets
+  status:  1200 — BUILT (shrinkhala.t1:3528)
+FIXPOINT HOLDS: 1399434 octets, byte-identical
 ```
 
-Stage 1 took ~47 min and Stage 2 ~69 min on a 2019 Intel Mac, with a high
-water of 1,587,571,536 octets of the 2,684,354,560 the run is given. The
+Stage 1 took 23m46s and Stage 2 41m57s on an Apple Silicon Mac, with a high
+water of 1,602,481,536 octets of the 2,684,354,560 the run is given. The
 figures below are that run.
+
+Stage 1's own controls — `build: 0 source(s) failed to compile, 1 declared
+nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 27807029110`** — are
+identical to the development tree's. That last figure is the interpreted
+compiler's instruction count for the whole build, and it moves if any byte of any
+source or spec table differs.
 
 | quantity | value |
 |---|---|
 | Stage 2 == Stage 1 | **byte-identical** |
-| image size | **1,393,602 octets** |
-| sources | **21** `.t1` files, 39,775 lines |
+| image size | **1,399,434 octets** |
+| sources | **21** `.t1` files, 40,542 lines |
 
 Reproduce it:
 
@@ -130,7 +138,7 @@ confused:
 Some(0) }`, 1,763 s.
 
 > [!WARNING]
-> That is a different artifact from the 1,393,602-octet fixpoint image, built on
+> That is a different artifact from the 1,399,434-octet fixpoint image, built on
 > a different date. **Neither number is a typo for the other.**
 
 ---
@@ -194,7 +202,7 @@ Two footnotes that will otherwise cost you an afternoon:
 
 ## It runs in a browser
 
-New in v0.3.0, and the shortest way to see the thing work:
+New in v0.3.0 and unchanged since, and the shortest way to see the thing work:
 
 **<https://paramtatv.github.io/sassembly/playground.html>** — type Devanagari
 assembly, press चालय, and the page assembles it and executes it in your tab.
@@ -245,6 +253,82 @@ refusal arrives from the *loader*, a stage later, talking about superpages.
 addresses.
 
 ---
+
+## It computes with real numbers
+
+`v0.4.0` gives the language floating point: the `प्लव` type, F and D in the
+machine, and — the part that is worth a section — **arithmetic that a machine this
+project did not write agrees with.**
+
+```ebnf
+float_type = "प" , ( "३२" | "६४" ) ;        (* प्लव *)
+```
+
+`प६४` is a double, `प३२` a single. The letter is the initial of `प्लव`, the way
+`अ` is of `अंश` and `न` of `निर्ऋण` — a type letter here is always the initial of a
+chosen word with a published derivation, which is why moving the root moved the
+letter (`docs/adr/0042`).
+
+### Two machines, one answer
+
+`oracle/float-oracle.sas` is a Sassembly program that is its own oracle. Each of
+its six checks computes a result, moves the **bit pattern** into an integer
+register with `प्लवसंचारः`, and branches on an integer compare. So the verdict
+never rests on a float comparison — a wrong `fadd.d` cannot be hidden by an
+equally wrong `feq.d`, which is exactly the shape of the one real defect the F/D
+implementation had.
+
+```sh
+tools/check-float-oracle.sh
+```
+
+```console
+ok  float arithmetic agrees on two machines — yantra and qemu-system-riscv64
+    yantra: halt 0x5555 in 34 executed instructions
+    qemu:   exit 0 (the program's own finisher write decides)
+```
+
+`1.0 + 2.0 == 3.0` exactly · `2.0 × 3.0 == 6.0` · `6.0 − 3.0 == 3.0` ·
+`√4.0 == 2.0` · and `प्लवसमम्` answering १ on equal operands **and ० on unequal**,
+so the fifth check cannot pass vacuously.
+
+It needs `qemu-system-riscv64`. Without it the script exits 77 — `CANNOT RUN` —
+rather than passing, because running only `yantra` would be this repository
+agreeing with itself.
+
+### The encodings are checked against GNU binutils
+
+`spec/conformance-t0.tsv` is generated against `riscv64-elf-as`, and the generator
+**returns non-zero without writing the file** if the assembler rejects a case. So
+every row in it is one GNU binutils agreed to. All 62 float rows are driven
+through the compiler's own encoder:
+
+```
+METRIC t1_float_oracle_cases 432   families 62   refused 0   disagreements 0
+```
+
+`flw`/`fld`/`fsw`/`fsd` at 28 cases each, and the four fused-multiply forms at 6
+per width.
+
+### There is no decimal float literal, on purpose
+
+`३ॱ१४१५९` will be refused. Decimal-to-binary conversion in the front end would put
+host-dependent rounding between a source file and the bits it denotes, and
+bit-exact determinism is the property this compiler exists to have. Floats enter
+as their exact IEEE octets and are reinterpreted:
+
+```
+॥ अष्टाष्टकाः ०षोड्३ऊऊ००००००००००००० ॥     ॰ 0x3FF0000000000000 — 1.0
+प्लवाहारःॱप६४ प्लव०म् क्षणिक६त् ०न ।
+```
+
+Which is what a conformance check wants anyway: no rounding sits between the
+source and the assertion. `oracle/float-oracle.sas` is written this way and is
+worth reading as the worked example.
+
+**Non-RNE arithmetic HALTS rather than approximating.** A rounding mode the machine
+does not implement is a refusal, not a guess.
+
 
 ## A first look at the language
 
@@ -363,7 +447,7 @@ Twenty-three of them reference `.loop/STATE.md`, `.loop/ASSUMPTIONS.md` or
 a ruling was recorded. They are provenance markers, not broken code, and they are
 left exactly as written for a specific reason: one of them is inside
 `crates/sadhana-t1/src/encode.t1`, and **editing any `.t1` file changes the
-1,393,602-octet image**. The fixpoint number above is the claim of this
+1,399,434-octet image**. The fixpoint number above is the claim of this
 repository, so the sources are published byte-for-byte as measured rather than
 tidied.
 
@@ -387,7 +471,7 @@ the 21 Sassembly sources that are the compiler.
 
 ## Status and stability
 
-This is version **v0.3.0**. Nothing here is stable: not the surface syntax, not
+This is version **v0.4.0**. Nothing here is stable: not the surface syntax, not
 the object format, not the tool names. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
@@ -433,7 +517,8 @@ fixpoint — and nothing else.
   <a href="https://paramtatv.github.io/sassembly/">docs</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
   <a href="WHY-NO-NETWORKING.md">ADR-0040</a> ·
-  <a href="ANNOUNCEMENT-v0.2.0.md">announcement</a>
+  <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·
+  <a href="ANNOUNCEMENT-v0.2.0.md">v0.2.0 announcement</a>
   <br><br>
   <sub>सद्गुरुचरणेषु समर्पणम्</sub>
 </p>

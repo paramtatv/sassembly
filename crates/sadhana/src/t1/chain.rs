@@ -1334,10 +1334,160 @@ pub fn typecheck_site(it: &Interpreter) -> Option<String> {
 /// sweep: naming a site the refusal cannot own is the defect, not the cure.
 #[must_use]
 pub fn refusal_site(it: &Interpreter) -> Option<String> {
+    // R-15-1 FIRST, AND THE STAGE GATE'S OWN ARGUMENT IS WHY (W-304).
+    // `पठनम्` refuses a source whose octets leave the repertoire and returns
+    // BEFORE `निर्णयः` runs, so `निर्णयविरामभेद` still holds the PREVIOUS
+    // source's verdict on exactly that path — the stale-record failure this
+    // routine's contract test names, arriving from the other direction.
+    // `परिधिदोषस्थितम्` cannot go stale the same way: `पठनम्` is entered for
+    // every source and resets it on entry, so it is always this source's answer.
+    if g_bool(it, "परिधिदोषस्थितम्") {
+        return Some(format!(
+            "repertoire: octet {} is outside R-15-1",
+            g_int(it, "परिधिदोषस्थानम्")
+        ));
+    }
+    if let Some(s) = emit_site(it) {
+        return Some(s);
+    }
     match g_int(it, "निर्णयविरामभेद") {
         1 => resolve_site(it).map(|s| format!("resolve: {s}")),
         2 => typecheck_site(it).map(|s| format!("typecheck: {s}")),
         _ => None,
+    }
+}
+
+/// The EMITTER's refusal, which had a full record and no reader — `W-331`.
+///
+/// # The defect this closes
+///
+/// `refusal_site` above asked only `निर्णयविरामभेद`, the DECIDE stage's verdict.
+/// A source that resolves and typechecks and is then refused by the emitter
+/// therefore answered `०` — `निर्णयसिद्धभेद`, *"resolved AND typechecked"* — and
+/// `t1_image` printed `no site recorded`, after spending 347,659,457 extra steps
+/// re-compiling to look for one. Measured 2026-09-29 on `W-330`.
+///
+/// **THE RECORD WAS ALREADY COMPLETE.** `yantrotsarjana.t1:167-173` declares six
+/// globals and `यन्त्रनिषेधः` (`:178`) fills five of them on every refusal: the
+/// variant, the ROUTINE LABEL, the block, the target and a number whose meaning
+/// is per-variant (`bytes` for a branch, `params` for an entry, `symbol` for an
+/// unnamed one). So the site existed in the interpreter and nothing read it.
+///
+/// `यन्त्रनिषेधमस्ति` IS THE GUARD AND NOT THE KIND, deliberately. Kind `०` is
+/// not "no refusal" — `:168` initialises the variant to `०` while the numbered
+/// kinds start at `१` (`:105`), so a corpus that refused with an unrecognised
+/// variant must still be reported rather than read as silence.
+///
+/// The variant names come from `yantrotsarjana.t1:105-114`, which pairs each with
+/// its Rust `Refusal` twin; `crates/sadhana-t1/tests/t1_sources.rs:2164-2173`
+/// asserts that pairing, so this table has a contract test behind it rather than
+/// a transcription.
+fn emit_site(it: &Interpreter) -> Option<String> {
+    if !g_bool(it, "यन्त्रनिषेधमस्ति") {
+        return None;
+    }
+    let kind = g_int(it, "यन्त्रनिषेधभेद");
+    let name = match kind {
+        1 => "Unreachable",
+        2 => "NoTerminator",
+        3 => "TargetNotInFunction",
+        4 => "UnnamedSymbol",
+        5 => "LabelCollision",
+        6 => "ParamAfterCall",
+        7 => "ParamOutsideEntry",
+        8 => "FrameTooLarge",
+        9 => "EntryTakesParameters",
+        10 => "BranchOutOfRange",
+        _ => "an unnumbered variant",
+    };
+    let routine = match it.global("यन्त्रनिषेधवृत्ति") {
+        Some(Value::Octets(o)) if !o.as_slice().is_empty() => {
+            String::from_utf8_lossy(o.as_slice()).into_owned()
+        }
+        // NOT A DEFECT, AND I FIRST WROTE IT UP AS ONE. The five `UnnamedSymbol`
+        // sites pass `रिक्तम्` here ON PURPOSE (`yantrotsarjana.t1:489`, `:585`,
+        // `:1282`, `:1940`, `:2597`): no routine is known at those sites, and the
+        // discriminator they carry instead is a SITE CODE in `यन्त्रनिषेधलक्ष्य` —
+        // which is what `t1_refusal_site.rs`'s first test exists to check. A
+        // `पाठ` global declared `भवति ०` also reads `Int(0)` until something writes
+        // text, and both cases are honestly "none" rather than "".
+        _ => "-".to_string(),
+    };
+    // THE THIRD AND FOURTH FIELDS MEAN DIFFERENT THINGS PER VARIANT, and printing
+    // them under one pair of names is how a reader is sent to the wrong place.
+    // `यन्त्रनिषेधलक्ष्य` is a branch TARGET for the branch variants and a SITE
+    // CODE for `UnnamedSymbol`; the globals' own comment at `:172` says
+    // `यन्त्रनिषेधसंख्या` is "`param` / `bytes` / `params` / `symbol`". Measured:
+    // printing `target 1` for a site code read as "the target is block 1".
+    let (third, fourth) = match kind {
+        4 => ("site", "symbol"),
+        5 => ("first-holder", "-"),
+        6 | 7 => ("-", "param"),
+        8 => ("-", "frame octets"),
+        9 => ("-", "params"),
+        10 => ("target", "bytes"),
+        _ => ("target", "n"),
+    };
+    Some(format!(
+        "emit: {name} ({kind}) in `{routine}`, block {}, {third} {}, {fourth} {}",
+        g_int(it, "यन्त्रनिषेधपर्व"),
+        g_int(it, "यन्त्रनिषेधलक्ष्य"),
+        g_int(it, "यन्त्रनिषेधसंख्या"),
+    ))
+}
+
+/// What to print when [`refusal_site`] answers `None`, in ONE copy.
+///
+/// # Why the caller's situation is a parameter and not a detail
+///
+/// `०` is `निर्णयसिद्धभेद` — `shrinkhala.t1:278`, *"resolved AND typechecked"* —
+/// so on the `None` path it says the decide stage SUCCEEDED. What that MEANS
+/// depends entirely on what the caller compiled, and the two readings send a
+/// reader to different files:
+///
+/// - `t1_image` re-compiles the first failed source **alone**, deliberately
+///   (`t1_image.rs:500-507`: the globals after a whole-corpus build belong to the
+///   last source resolved, not the failed one). So `०` there means *this source
+///   compiles BY ITSELF* — the refusal is load-dependent and is not in this
+///   file's own front half. That is the most useful fact the run has, and the
+///   message used to throw it away as "no site recorded".
+/// - `t1_boot --object` compiles ONE source and nothing else, so `०` beside empty
+///   output means a stage AFTER decide refused, and the file itself is the place
+///   to look.
+///
+/// MEASURED 2026-09-29, and this function exists because of it: `ir.t1 +51`
+/// (`W-330`) made the 21-source build print `refused: मध्यरूप: no site recorded
+/// (निर्णयविरामभेद = Int(0))` after `diag: 347659457 more step(s)`, and
+/// `tools/t1-census.sh ir` then showed `typecheck ok`, 1 assembled — it compiles
+/// alone. The instrument had the answer and said "no site recorded", which reads
+/// as an instrument failure rather than as a fact about the corpus.
+#[must_use]
+pub fn refusal_third_state(it: &Interpreter, isolated_recompile: bool) -> String {
+    // NOT `g_int`, AND THE DIFFERENCE IS THE WHOLE POINT OF THIS FUNCTION.
+    // `g_int` answers `0` for a global that is ABSENT as readily as for one that
+    // holds zero (`:1216`, `unwrap_or(0)`), and here `0` carries a strong claim —
+    // "decide succeeded". A corpus that never declared `निर्णयविरामभेद` would be
+    // told its decide stage passed. The Option is kept, so absent falls to the
+    // last arm and says only what it knows.
+    let v = it.global("निर्णयविरामभेद");
+    let raw = v
+        .as_ref()
+        .map_or_else(|| "-".to_string(), |v| format!("{v:?}"));
+    match v.as_ref().and_then(|v| Value::as_int(v)) {
+        Some(0) if isolated_recompile => format!(
+            "no site in this file — it RESOLVED AND TYPECHECKED when re-compiled \
+             ALONE (निर्णयविरामभेद = {raw}), so the refusal is LOAD-DEPENDENT. \
+             Bisect the load with T1_CORPUS, not this source"
+        ),
+        Some(0) => format!(
+            "no site — decide SUCCEEDED (निर्णयविरामभेद = {raw}) yet this source \
+             produced no object, so a stage AFTER typecheck refused and records no site"
+        ),
+        Some(3) => format!(
+            "no site — निर्णयः was never entered, or took an exit it does not \
+             record (निर्णयविरामभेद = {raw})"
+        ),
+        _ => format!("no site recorded (निर्णयविरामभेद = {raw})"),
     }
 }
 

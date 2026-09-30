@@ -166,10 +166,13 @@
 
 #![forbid(unsafe_code)]
 
+pub mod fp;
 pub mod host;
 pub mod input;
 pub mod loader;
+pub mod patra;
 pub mod process;
+pub mod profile;
 pub mod supervisor;
 pub mod virtio_gpu;
 
@@ -450,16 +453,33 @@ const SSTATUS_SPP: u64 = 1 << 8;
 const SSTATUS_SUM: u64 = 1 << 18;
 /// `sstatus.MXR` — make a load that would need `R` accept an `X`-only page instead.
 const SSTATUS_MXR: u64 = 1 << 19;
+/// `sstatus.FS` — the floating-point unit's state, two bits: 0 off, 1 initial, 2 clean,
+/// 3 dirty.
+const SSTATUS_FS: u64 = 0b11 << 13;
+
 /// The only bits of `sstatus` this machine keeps. A write drops the rest, and that is
-/// safe **because every feature they gate is itself refused**: `FS`/`XS`/`VS` track
-/// extension state and `fadd.d` still halts `Unimplemented`. A program cannot act on a
-/// dropped bit without first reaching a stop.
+/// safe **because every feature they gate is itself refused**.
+///
+/// **`FS` WAS DROPPED UNDER THAT RULE AND THE RULE'S PREMISE HAS GONE.** The sentence
+/// here read "`FS`/`XS`/`VS` track extension state and `fadd.d` still halts
+/// `Unimplemented`" — which was true, and was the whole argument. Row `V-001` implemented
+/// F and D ([`crate::fp`]), so `fadd.d` runs, and a dropped `FS` would mean a program
+/// could not record that its FPU state is live: it would write `FS = dirty`, read back 0,
+/// and a context switch built on that reading would discard a live register file. `FS` is
+/// therefore kept now, for exactly the reason `F-001c2b2` kept `SUM` and `MXR` — the
+/// feature the bit gates exists.
+///
+/// `XS` and `VS` stay dropped and the original argument still holds for them: there is no
+/// user extension and no vector unit, so `vsetvli` halts `Unimplemented`. When row `V-007`
+/// implements V, **this margin is owed the same refounding for `VS`** — the pattern is
+/// now twice-established, so it is written down rather than rediscovered.
 ///
 /// `SUM` and `MXR` were dropped by the same rule until `F-001c2b2`, and they are here now
 /// for the reason it lifted the drop: there is a walker, and there is a mode below the
 /// one that runs it, so both bits now change what a walk permits. See
 /// [`Machine::translate`].
-const SSTATUS_MASK: u64 = SSTATUS_SIE | SSTATUS_SPIE | SSTATUS_SPP | SSTATUS_SUM | SSTATUS_MXR;
+const SSTATUS_MASK: u64 =
+    SSTATUS_SIE | SSTATUS_SPIE | SSTATUS_SPP | SSTATUS_SUM | SSTATUS_MXR | SSTATUS_FS;
 
 /// The privilege the hart is executing at.
 ///
@@ -621,12 +641,39 @@ impl Access {
 pub struct Machine {
     /// `x0`..`x31`. `x0` is written on every step rather than special-cased at each site.
     pub x: [u64; 32],
+    /// `f0`..`f31`, the F/D register file, as RAW BITS rather than `f64`.
+    ///
+    /// Bits and not floats because a register is not always a double: `fmv.w.x`, `flw`
+    /// and every single-precision result store a NaN-boxed single (upper 32 bits all
+    /// ones, see [`crate::fp::box_s`]), and `fmv.x.d` hands the whole word to an integer
+    /// register. Holding `f64` here would make the boxing convention unrepresentable and
+    /// would quieten a signalling NaN on every move, which the spec forbids: a move is
+    /// not an arithmetic operation and must not touch the payload.
+    pub f: [u64; 32],
+    /// `fcsr` — `frm` in bits 7..5, `fflags` in bits 4..0.
+    ///
+    /// One field rather than two CSRs because `frm` and `fflags` are windows onto this
+    /// same register, and two fields would let them disagree. See
+    /// [`Machine::frm`]/[`Machine::fflags`].
+    pub fcsr: u64,
     /// The program counter.
     pub pc: u64,
     /// Physical base address of [`Machine::mem`].
     pub base: u64,
     /// RAM, contiguous from `base`.
     pub mem: Vec<u8>,
+    /// The PATH run a [`patra`] request named, waiting for its third store.
+    pub patra_path: Option<u64>,
+    /// The BUFFER run likewise.
+    pub patra_buffer: Option<u64>,
+    /// The directory a [`patra`] request may read under, or `None`.
+    ///
+    /// **`None` REFUSES EVERY FILE REQUEST, and that is the default.** `yantra`
+    /// is a developer runtime and not an isolation boundary (ADR-0039), but a
+    /// program that can name any path can read `~/.ssh`, and no existing caller
+    /// asked for that capability. Opting in is one field; opting out must not
+    /// be something a caller forgets.
+    pub patra_root: Option<std::path::PathBuf>,
     /// The address `lr.w`/`lr.d` reserved, if one is live. `sc` succeeds only against a
     /// reservation for its own address; on one hart nothing else can steal it, so this is
     /// a single word rather than a set. It is deliberately **not** cleared by an ordinary
@@ -683,7 +730,12 @@ impl Machine {
             .min()
             .expect("Program::parse refuses a file with no PT_LOAD");
         let mut m = Machine {
+            patra_root: None,
+            patra_path: None,
+            patra_buffer: None,
             x: [0; 32],
+            f: [0; 32],
+            fcsr: 0,
             pc: program.entry,
             base,
             mem: vec![0; ram],
@@ -751,6 +803,49 @@ impl Machine {
         // THE BRIDGE. On metal this store reaches a device; here it reaches the page.
         if addr == UART {
             out.putc(value as u8);
+            return Ok(None);
+        }
+        // THE FILE WINDOW. The store carries the ADDRESS of a request block in
+        // the program's own RAM, and the whole operation finishes before it
+        // returns — see `patra`'s module margin for why there is no status
+        // register to poll and no "not yet" to encode.
+        // THE FILE WINDOW, three stores. The first two are REMEMBERED and the
+        // third does the work, so a half-built request never reaches the
+        // filesystem — see `patra`'s margin for why it is three runs and not
+        // one block.
+        if addr == patra::PATRA_PATH {
+            self.patra_path = Some(value);
+            return Ok(None);
+        }
+        if addr == patra::PATRA_BUFFER {
+            self.patra_buffer = Some(value);
+            return Ok(None);
+        }
+        // THE WRITE, at its own address. A separate arm rather than a command
+        // word, so the emitted text says which direction the octets move and a
+        // program cannot turn a read into a write by computing a wrong number.
+        if addr == patra::PATRA_PUT {
+            let root = self.patra_root.clone();
+            let (Some(p), Some(b)) = (self.patra_path, self.patra_buffer) else {
+                patra::put(&mut self.mem, self.base, 0, 0, value, None);
+                return Ok(None);
+            };
+            patra::put(&mut self.mem, self.base, p, b, value, root.as_deref());
+            self.patra_path = None;
+            self.patra_buffer = None;
+            return Ok(None);
+        }
+        if addr == patra::PATRA_GO {
+            let root = self.patra_root.clone();
+            let (Some(p), Some(b)) = (self.patra_path, self.patra_buffer) else {
+                // A go with no path or buffer named: refuse into the status run
+                // rather than reading something arbitrary.
+                patra::serve(&mut self.mem, self.base, 0, 0, value, None);
+                return Ok(None);
+            };
+            patra::serve(&mut self.mem, self.base, p, b, value, root.as_deref());
+            self.patra_path = None;
+            self.patra_buffer = None;
             return Ok(None);
         }
         if addr == FINISHER {
@@ -1086,6 +1181,307 @@ impl Machine {
         Halt::StepLimit { pc: self.pc }
     }
 
+    /// `fcsr.frm`, the dynamic rounding mode.
+    #[must_use]
+    pub fn frm(&self) -> u32 {
+        ((self.fcsr >> 5) & 0x7) as u32
+    }
+
+    /// `fcsr.fflags`, the five accrued exception flags.
+    #[must_use]
+    pub fn fflags(&self) -> u64 {
+        self.fcsr & 0x1f
+    }
+
+    /// Accrue exception flags. **They accumulate and are never cleared here** — that is
+    /// the architectural contract: only a write to `fflags`/`fcsr` clears them, so a
+    /// program can run a whole kernel and ask once at the end whether anything was
+    /// invalid.
+    fn set_fflags(&mut self, flags: u64) {
+        self.fcsr |= flags & 0x1f;
+    }
+
+    /// Record that the FPU state is live, by setting `sstatus.FS` to `dirty`.
+    ///
+    /// Every instruction that writes an `f` register calls this. It is what makes keeping
+    /// `FS` in `SSTATUS_MASK` meaningful rather than decorative: a supervisor that saves
+    /// the register file only when `FS` says dirty needs something to have set it.
+    fn mark_fp_dirty(&mut self) {
+        self.csr.sstatus |= SSTATUS_FS;
+    }
+
+    /// OP-FP (`0x53`) — the whole scalar floating-point operation space.
+    ///
+    /// Split out of [`Machine::step_inner`] because that function's `match` is already
+    /// long and this is a second, independently-indexed encoding table. `funct7` is
+    /// `(op5 << 2) | fmt`, and the arms are written as the funct7 VALUE so a reader can
+    /// check them against the specification's table without doing the shift by hand.
+    #[allow(clippy::too_many_arguments, clippy::cast_possible_truncation)]
+    fn op_fp(
+        &mut self,
+        word: u32,
+        opcode: u8,
+        pc: u64,
+        rd: usize,
+        rs1: usize,
+        rs2: usize,
+        funct3: u32,
+        funct7: u32,
+    ) -> Option<Halt> {
+        let rm = funct3;
+        let unimpl = || Some(Halt::Unimplemented { pc, word, opcode });
+
+        // The arithmetic arms share one refusal: a rounding mode this machine cannot
+        // honour must STOP rather than round to nearest and look right. Checked once,
+        // here, for every arm that rounds.
+        let needs_rne = matches!(
+            funct7,
+            0x00 | 0x01 | 0x04 | 0x05 | 0x08 | 0x09 | 0x0c | 0x0d | 0x2c | 0x2d | 0x20 | 0x21
+        );
+        if needs_rne && !fp::arith_rm_supported(rm, self.frm()) {
+            return unimpl();
+        }
+
+        macro_rules! bin_s {
+            ($op:expr) => {{
+                let (a, b) = (fp::unbox_s(self.f[rs1]), fp::unbox_s(self.f[rs2]));
+                let out: f32 = $op(a, b);
+                self.set_fflags(fp::arith_nv_s(a, b, out));
+                self.f[rd] = fp::box_s(fp::canonicalise_s(out));
+                self.mark_fp_dirty();
+            }};
+        }
+        macro_rules! bin_d {
+            ($op:expr) => {{
+                let (a, b) = (f64::from_bits(self.f[rs1]), f64::from_bits(self.f[rs2]));
+                let out: f64 = $op(a, b);
+                self.set_fflags(fp::arith_nv(a, b, out));
+                self.f[rd] = fp::canonicalise_d(out).to_bits();
+                self.mark_fp_dirty();
+            }};
+        }
+
+        match funct7 {
+            0x00 => bin_s!(|a: f32, b: f32| a + b),
+            0x01 => bin_d!(|a: f64, b: f64| a + b),
+            0x04 => bin_s!(|a: f32, b: f32| a - b),
+            0x05 => bin_d!(|a: f64, b: f64| a - b),
+            0x08 => bin_s!(|a: f32, b: f32| a * b),
+            0x09 => bin_d!(|a: f64, b: f64| a * b),
+            // DIVISION SETS `DZ` AND THE RESULT IS STILL AN INFINITY, not a trap.
+            0x0c => {
+                let (a, b) = (fp::unbox_s(self.f[rs1]), fp::unbox_s(self.f[rs2]));
+                if b == 0.0 && !a.is_nan() && a != 0.0 {
+                    self.set_fflags(fp::DZ);
+                }
+                let out = a / b;
+                self.set_fflags(fp::arith_nv_s(a, b, out));
+                self.f[rd] = fp::box_s(fp::canonicalise_s(out));
+                self.mark_fp_dirty();
+            }
+            0x0d => {
+                let (a, b) = (f64::from_bits(self.f[rs1]), f64::from_bits(self.f[rs2]));
+                if b == 0.0 && !a.is_nan() && a != 0.0 {
+                    self.set_fflags(fp::DZ);
+                }
+                let out = a / b;
+                self.set_fflags(fp::arith_nv(a, b, out));
+                self.f[rd] = fp::canonicalise_d(out).to_bits();
+                self.mark_fp_dirty();
+            }
+            // fsqrt — one operand; `rs2` must be 0 and a non-zero one is not this
+            // instruction.
+            0x2c | 0x2d => {
+                if rs2 != 0 {
+                    return unimpl();
+                }
+                if funct7 == 0x2c {
+                    let a = fp::unbox_s(self.f[rs1]);
+                    let out = a.sqrt();
+                    self.set_fflags(fp::arith_nv_s(a, a, out));
+                    self.f[rd] = fp::box_s(fp::canonicalise_s(out));
+                } else {
+                    let a = f64::from_bits(self.f[rs1]);
+                    let out = a.sqrt();
+                    self.set_fflags(fp::arith_nv(a, a, out));
+                    self.f[rd] = fp::canonicalise_d(out).to_bits();
+                }
+                self.mark_fp_dirty();
+            }
+            // fsgnj / fsgnjn / fsgnjx — SIGN INJECTION IS NOT ARITHMETIC. It moves bits,
+            // sets no flag, and must not quieten a signalling NaN.
+            0x10 | 0x11 => {
+                let wide = funct7 == 0x11;
+                let (sign_bit, mask) = if wide {
+                    (1u64 << 63, u64::MAX)
+                } else {
+                    (1u64 << 31, 0xffff_ffff)
+                };
+                let a = self.f[rs1] & mask;
+                let b = self.f[rs2] & mask;
+                let s = match funct3 {
+                    0x0 => b & sign_bit,
+                    0x1 => !b & sign_bit,
+                    0x2 => (a ^ b) & sign_bit,
+                    _ => return unimpl(),
+                };
+                let v = (a & !sign_bit) | s;
+                self.f[rd] = if wide { v } else { 0xffff_ffff_0000_0000 | v };
+                self.mark_fp_dirty();
+            }
+            // fmin / fmax — the NaN rule is RISC-V's, not Rust's. See `fp::minmax_d`.
+            0x14 | 0x15 => {
+                let max = match funct3 {
+                    0x0 => false,
+                    0x1 => true,
+                    _ => return unimpl(),
+                };
+                if funct7 == 0x14 {
+                    let (v, fl) =
+                        fp::minmax_s(fp::unbox_s(self.f[rs1]), fp::unbox_s(self.f[rs2]), max);
+                    self.set_fflags(fl);
+                    self.f[rd] = fp::box_s(v);
+                } else {
+                    let (v, fl) = fp::minmax_d(
+                        f64::from_bits(self.f[rs1]),
+                        f64::from_bits(self.f[rs2]),
+                        max,
+                    );
+                    self.set_fflags(fl);
+                    self.f[rd] = v.to_bits();
+                }
+                self.mark_fp_dirty();
+            }
+            // fcvt.s.d (0x20, rs2 = 1) and fcvt.d.s (0x21, rs2 = 0)
+            0x20 => {
+                if rs2 != 1 {
+                    return unimpl();
+                }
+                let a = f64::from_bits(self.f[rs1]);
+                let out = a as f32;
+                self.set_fflags(fp::arith_nv(a, a, f64::from(out)));
+                self.f[rd] = fp::box_s(fp::canonicalise_s(out));
+                self.mark_fp_dirty();
+            }
+            0x21 => {
+                if rs2 != 0 {
+                    return unimpl();
+                }
+                let a = fp::unbox_s(self.f[rs1]);
+                let out = f64::from(a);
+                self.set_fflags(fp::arith_nv_s(a, a, out as f32));
+                self.f[rd] = fp::canonicalise_d(out).to_bits();
+                self.mark_fp_dirty();
+            }
+            // feq / flt / fle — the result is an INTEGER register.
+            0x50 | 0x51 => {
+                if funct3 > 2 {
+                    return unimpl();
+                }
+                let (v, fl) = if funct7 == 0x50 {
+                    fp::compare_s(fp::unbox_s(self.f[rs1]), fp::unbox_s(self.f[rs2]), rm)
+                } else {
+                    fp::compare_d(f64::from_bits(self.f[rs1]), f64::from_bits(self.f[rs2]), rm)
+                };
+                self.set_fflags(fl);
+                self.x[rd] = u64::from(v);
+            }
+            // fcvt.{w,wu,l,lu}.{s,d} — float to integer, ALL FIVE ROUNDING MODES.
+            0x60 | 0x61 => {
+                let x = if funct7 == 0x60 {
+                    f64::from(fp::unbox_s(self.f[rs1]))
+                } else {
+                    f64::from_bits(self.f[rs1])
+                };
+                let (signed, bits) = match rs2 {
+                    0 => (true, 32),
+                    1 => (false, 32),
+                    2 => (true, 64),
+                    3 => (false, 64),
+                    _ => return unimpl(),
+                };
+                let effective = if rm == fp::DYN { self.frm() } else { rm };
+                if effective > fp::RMM {
+                    return unimpl();
+                }
+                let (v, fl) = fp::cvt_to_int(x, effective, signed, bits);
+                self.set_fflags(fl);
+                // `fcvt.w`/`wu` SIGN-EXTEND their 32-bit result into the 64-bit register,
+                // both of them — `wu` too, which reads wrong and is what the spec says.
+                self.x[rd] = if bits == 32 {
+                    i64::from(v as i32) as u64
+                } else {
+                    v
+                };
+            }
+            // fcvt.{s,d}.{w,wu,l,lu} — integer to float.
+            0x68 | 0x69 => {
+                let src = self.x[rs1];
+                let as_f64: f64 = match rs2 {
+                    0 => f64::from(src as i32),
+                    1 => f64::from(src as u32),
+                    2 => src as i64 as f64,
+                    3 => src as f64,
+                    _ => return unimpl(),
+                };
+                // AN INEXACT INT-TO-FLOAT UNDER A MODE THIS MACHINE CANNOT HONOUR MUST
+                // STOP. i32 -> f64 is always exact, so `rm` cannot matter there and
+                // refusing it would refuse the common case for no reason; a wide integer
+                // that does not fit the mantissa is the case that actually rounds.
+                let exact = match rs2 {
+                    0 | 1 => true,
+                    2 => (as_f64 as i64) == (src as i64),
+                    _ => (as_f64 as u64) == src,
+                };
+                if !exact && !fp::arith_rm_supported(rm, self.frm()) {
+                    return unimpl();
+                }
+                if !exact {
+                    self.set_fflags(fp::NX);
+                }
+                if funct7 == 0x68 {
+                    self.f[rd] = fp::box_s(as_f64 as f32);
+                } else {
+                    self.f[rd] = as_f64.to_bits();
+                }
+                self.mark_fp_dirty();
+            }
+            // fmv.x.w / fmv.x.d (funct3 0) and fclass (funct3 1) — f register to x.
+            0x70 | 0x71 => match funct3 {
+                0x0 => {
+                    // `fmv.x.w` sign-extends the low 32 bits; `fmv.x.d` moves all 64.
+                    self.x[rd] = if funct7 == 0x70 {
+                        i64::from(self.f[rs1] as i32) as u64
+                    } else {
+                        self.f[rs1]
+                    };
+                }
+                0x1 => {
+                    self.x[rd] = if funct7 == 0x70 {
+                        fp::fclass_s(fp::unbox_s(self.f[rs1]))
+                    } else {
+                        fp::fclass_d(f64::from_bits(self.f[rs1]))
+                    };
+                }
+                _ => return unimpl(),
+            },
+            // fmv.w.x / fmv.d.x — x register to f, RAW BITS, no conversion.
+            0x78 | 0x79 => {
+                if funct3 != 0 || rs2 != 0 {
+                    return unimpl();
+                }
+                self.f[rd] = if funct7 == 0x78 {
+                    0xffff_ffff_0000_0000 | (self.x[rs1] & 0xffff_ffff)
+                } else {
+                    self.x[rs1]
+                };
+                self.mark_fp_dirty();
+            }
+            _ => return unimpl(),
+        }
+        None
+    }
+
     /// One instruction. `None` means keep going.
     ///
     /// A **page fault is an exception, not a stop**: if the instruction faults and the
@@ -1270,6 +1666,126 @@ impl Machine {
 
                     _ => return Some(Halt::Unimplemented { pc, word, opcode }),
                 };
+            }
+            // ── the F and D extensions, row `V-001` ─────────────────────────
+            // Until this row every one of these fell to the `_` below and halted
+            // `Unimplemented`, and `SSTATUS_MASK`'s margin used that as its safety
+            // argument for dropping `FS`. Both facts changed together; see
+            // [`crate::fp`] for what is honoured and what is refused, in
+            // particular THE ROUNDING MODE, which is never silently ignored.
+            0x07 => {
+                // LOAD-FP — flw (funct3 2), fld (funct3 3)
+                let addr = self.x[rs1].wrapping_add(imm_i);
+                let width = match funct3 {
+                    0x2 => 4,
+                    0x3 => 8,
+                    _ => return Some(Halt::Unimplemented { pc, word, opcode }),
+                };
+                let pa = match self.translate_span(addr, width, Access::Load, pc) {
+                    Ok(pa) => pa,
+                    Err(h) => return Some(h),
+                };
+                match self.load(pa, width, false, pc) {
+                    // A loaded single is BOXED. Without this a later `fadd.s` on the
+                    // register would be indistinguishable from one holding a double.
+                    Ok(v) => {
+                        self.f[rd] = if width == 4 {
+                            0xffff_ffff_0000_0000 | v
+                        } else {
+                            v
+                        };
+                        self.mark_fp_dirty();
+                    }
+                    Err(h) => return Some(h),
+                }
+            }
+            0x27 => {
+                // STORE-FP — fsw (2), fsd (3)
+                let addr = self.x[rs1].wrapping_add(imm_s);
+                let width = match funct3 {
+                    0x2 => 4,
+                    0x3 => 8,
+                    _ => return Some(Halt::Unimplemented { pc, word, opcode }),
+                };
+                let pa = match self.translate_span(addr, width, Access::Store, pc) {
+                    Ok(pa) => pa,
+                    Err(h) => return Some(h),
+                };
+                // `fsw` stores the LOW 32 bits, box or no box.
+                match self.store(pa, width, self.f[rs2], pc, out) {
+                    Ok(Some(h)) => return Some(h),
+                    Ok(None) => {}
+                    Err(h) => return Some(h),
+                }
+            }
+            0x43 | 0x47 | 0x4b | 0x4f => {
+                // The four fused multiply-adds. `rs3` is bits 31..27; `fmt` is 26..25.
+                let rs3 = ((word >> 27) & 0x1f) as usize;
+                let fmt = (word >> 25) & 0x3;
+                let rm = funct3;
+                if !fp::arith_rm_supported(rm, self.frm()) {
+                    return Some(Halt::Unimplemented { pc, word, opcode });
+                }
+                // Negate the product / negate the addend, per opcode.
+                //
+                // **THE TWO `n` FORMS ARE NAMED FOR THE OPPOSITE OF WHAT THEY DO, and
+                // this table had them swapped until the test caught it.** Read the spec's
+                // definitions, not the mnemonics:
+                //
+                //     fmadd   =    a*b + c
+                //     fmsub   =    a*b - c
+                //     fnmsub  = -(a*b) + c     <-- an ADD, despite "sub"
+                //     fnmadd  = -(a*b) - c     <-- a SUB, despite "add"
+                //
+                // The `n` negates the PRODUCT, and the `add`/`sub` suffix then describes
+                // the operation as it reads BEFORE that negation is distributed. So
+                // `fnmsub` is "negate the multiply-sub", i.e. -(a*b - c) = -(a*b) + c.
+                // With a=2 b=3 c=1 the four answers are 7, 5, -5, -7; getting the last
+                // two the wrong way round is arithmetically silent — both are plausible
+                // numbers of the right magnitude.
+                let (neg_prod, neg_add) = match opcode {
+                    0x43 => (false, false), // fmadd   =    a*b + c
+                    0x47 => (false, true),  // fmsub   =    a*b - c
+                    0x4b => (true, false),  // fnmsub  = -(a*b) + c
+                    _ => (true, true),      // fnmadd  = -(a*b) - c
+                };
+                match fmt {
+                    0x0 => {
+                        let (a, b, c) = (
+                            fp::unbox_s(self.f[rs1]),
+                            fp::unbox_s(self.f[rs2]),
+                            fp::unbox_s(self.f[rs3]),
+                        );
+                        let a = if neg_prod { -a } else { a };
+                        let c = if neg_add { -c } else { c };
+                        let out = a.mul_add(b, c);
+                        self.set_fflags(fp::arith_nv_s(a, b, out));
+                        self.f[rd] = fp::box_s(fp::canonicalise_s(out));
+                    }
+                    0x1 => {
+                        let (a, b, c) = (
+                            f64::from_bits(self.f[rs1]),
+                            f64::from_bits(self.f[rs2]),
+                            f64::from_bits(self.f[rs3]),
+                        );
+                        let a = if neg_prod { -a } else { a };
+                        let c = if neg_add { -c } else { c };
+                        let out = a.mul_add(b, c);
+                        self.set_fflags(fp::arith_nv(a, b, out));
+                        self.f[rd] = fp::canonicalise_d(out).to_bits();
+                    }
+                    _ => return Some(Halt::Unimplemented { pc, word, opcode }),
+                }
+                self.mark_fp_dirty();
+            }
+            0x53 => {
+                // OP-FP. `funct7` is (op5 << 2) | fmt, so the arms below are written as
+                // the funct7 VALUE rather than as a pair — the encoding table in the
+                // specification is indexed that way and a reader checking one against the
+                // other should not have to do the shift in their head.
+                if let Some(h) = self.op_fp(word, opcode, pc, rd, rs1, rs2, funct3, funct7) {
+                    return Some(h);
+                }
             }
             0x03 => {
                 // LOAD

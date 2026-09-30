@@ -21,6 +21,7 @@
 
 use sadhana::t1::chain::{self, CHAIN};
 use sadhana::t1::nirvahana::{Interpreter, Octets, Value};
+use sadhana::t1::riscv64::devanagari;
 use std::path::{Path, PathBuf};
 
 const FUEL: u64 = 80_000_000_000;
@@ -76,7 +77,7 @@ const POSITIONS: &[(&str, &str)] = &[
 #[test]
 fn a_field_the_struct_has_not_is_refused_in_every_statement_position() {
     for (n, (what, body)) in POSITIONS.iter().enumerate() {
-        let module = format!("वाक्यपरीक्षा{n}");
+        let module = format!("वाक्यपरीक्षा{}", devanagari(n as i64));
         let (text, it) = compile(&source(&module, body), &module);
         let site = chain::refusal_site(&it).unwrap_or_default();
         assert!(
@@ -101,7 +102,7 @@ fn the_same_shapes_compile_when_the_field_exists() {
         "    पदम् ॱ कारक भवति ० ।",
     ];
     for (n, body) in bodies.iter().enumerate() {
-        let module = format!("वाक्यनियन्त्रणम्{n}");
+        let module = format!("वाक्यनियन्त्रणम्{}", devanagari(n as i64));
         let (text, it) = compile(&source(&module, body), &module);
         assert!(
             !text.is_empty(),

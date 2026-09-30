@@ -1,11 +1,15 @@
 //! Conformance at the compressed target — task `B-058b2b4`, doc 03 §4.4.
 //!
 //! `tests/conformance.rs` checks the assembler against `riscv64-elf-as` with
-//! `.option norvc`. This checks the same 5949 programs against the same
-//! assembler with compression **on**, which is what `-march=rv64gc` does by
-//! default and therefore what the march this project targets actually means.
+//! `.option norvc`. This checks **the same programs** against the same assembler
+//! with compression **on**, which is what `-march=rv64gc` does by default and
+//! therefore what the march this project targets actually means.
 //!
-//! 75 of the 5949 differ between the two files — the corpus uses registers from
+//! "The same programs" is asserted rather than asserted-about: [`base_corpus_len`]
+//! reads the other table's row count, because the two files drifted 49 apart
+//! while a literal `5949` here agreed with the smaller one.
+//!
+//! 75 of them differ between the two files — the corpus uses registers from
 //! across the whole file and immediates near the ends of their ranges, and most
 //! of those cannot be named by a compressed form. Those 75 are the whole of
 //! what compression buys here, and the whole of what selecting it can get
@@ -43,6 +47,30 @@ fn corpus() -> Vec<(String, u32, bool, String)> {
         .collect()
 }
 
+/// How many rows `spec/conformance-t0.tsv` has, counted with the same filter.
+///
+/// **THIS FILE'S HEADER CLAIMS THE TWO TABLES HOLD "THE SAME PROGRAMS", AND
+/// NOTHING CHECKED IT.** The claim was pinned instead as a literal `5949`, which
+/// a stale table satisfies perfectly: `conformance-t0.tsv` grew by 49 rows
+/// (`ecall`, `sret`, the `sfence.vma` family) and `gen-conformance-rvc.py` was
+/// never re-run, so the compressed corpus sat 49 programs short and the number
+/// agreed with itself the whole time. Rediscovered while regenerating both
+/// tables for ADR-0042. A count taken from the other file cannot express that
+/// drift and a literal cannot avoid it.
+fn base_corpus_len() -> usize {
+    let text = std::fs::read_to_string(root().join("spec/conformance-t0.tsv"))
+        .expect("read spec/conformance-t0.tsv");
+    text.lines()
+        .filter(|l| !l.starts_with('#') && !l.starts_with("sassembly\t") && !l.trim().is_empty())
+        .filter(|l| {
+            let f: Vec<&str> = l.split('\t').collect();
+            f.get(1)
+                .and_then(|h| u32::from_str_radix(h.trim().trim_start_matches("0x"), 16).ok())
+                .is_some()
+        })
+        .count()
+}
+
 /// What this assembler would emit for one statement at the compressed target.
 fn ours(src: &str) -> Option<(u32, bool)> {
     let p = sadhana::parse::assemble_program(&format!("{src}\n")).ok()?;
@@ -65,7 +93,18 @@ fn the_compressed_choice_is_never_the_wrong_instruction() {
     // A wrong compressed choice is not a smaller program — it is a different
     // one, and `B-058b2b3` found four ways to make one before this passed.
     let corpus = corpus();
-    assert_eq!(corpus.len(), 5949, "the rvc corpus has changed size");
+    assert_eq!(
+        corpus.len(),
+        base_corpus_len(),
+        "the compressed corpus and spec/conformance-t0.tsv are not the same programs — \
+         re-run tools/gen-conformance.py and tools/gen-conformance-rvc.py"
+    );
+    assert!(
+        corpus.len() >= 5949,
+        "the corpus shrank to {} from 5949; a suite that stops measuring is not a suite that \
+         passes",
+        corpus.len()
+    );
 
     let (mut agreed, mut conservative, mut unencodable) = (0, 0, 0);
     let mut wrong = Vec::new();

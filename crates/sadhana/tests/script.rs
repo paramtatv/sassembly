@@ -13,7 +13,18 @@ use std::process::Command;
 
 /// A source that fails to parse, written to a scratch file.
 fn broken() -> PathBuf {
-    let dir = std::env::temp_dir().join("sansos-b092");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-b092-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("mkdir");
     let path = dir.join("टूटा.sas");
     // `कम्` carries a kāraka and no verb precedes it — `P09`, ADR-0004.

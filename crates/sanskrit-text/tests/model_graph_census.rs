@@ -462,14 +462,37 @@ fn statistic_4_every_pratyahara_is_an_interval() {
         intervals, pairs,
         "a pratyāhāra that is not a contiguous range"
     );
-    // THE PINNED CONVENTION AND ITS NUMBER — doc 19 R2 as corrected by
-    // `W-217`. By position: 43 phoneme starts (ह twice) × the marker
-    // positions after each (ण् twice), own sūtra included, which is
-    // Σ n_r·(15−r) over the sūtras' phoneme counts 3 2 2 2 4 1 5 2 3 5 8 2 3 1.
+    // THE RATIFIED CONVENTION AND ITS NUMBER — `ByName`, ruled 2026-09-29.
+    //
+    // **THIS ASSERTED `ByPosition` UNTIL THAT RULING, AND THE CODE NEVER AGREED
+    // WITH IT.** Doc 19 R2 stated 305 while `phonology::pratyahara` has always
+    // keyed by name and computed 301 — a four-pair disagreement between the
+    // specification and the implementation, standing since 2026-09-04. It was
+    // harmless while the masks were a census and stops being harmless under
+    // `N-001`, where they become the instruction-selection matcher and this
+    // inventory becomes that matcher's alphabet.
+    //
+    // The ruling is grammatical: an anubandha is a saṁjñā, a NAMED symbolic
+    // entity, not a location. So a start is a phoneme by name at first
+    // occurrence (42 — the two `ह` at 5‑1 and 14‑1 are ONE name) and a marker is
+    // a marker by name at first occurrence after it (13 — the two `ण्` are ONE
+    // name).
+    assert_eq!(
+        census_under(Convention::ByName),
+        (301, 301),
+        "doc 19 R2 ratifies the BY-NAME convention: 301 pairs, 301 sets — and this \
+         is what `phonology::pratyahara` keys, so a disagreement here is the doc \
+         and the code parting company again"
+    );
+    // BY POSITION IS STILL PINNED, because it is correct arithmetic about a
+    // different convention and the closed form below derives it. Keeping both
+    // means a future reader who counts 305 can see which convention they counted
+    // under rather than concluding the census is wrong.
     assert_eq!(
         census_under(Convention::ByPosition),
         (305, 305),
-        "doc 19 R2 states the BY-POSITION convention: 305 pairs, 305 sets"
+        "the by-position reading: 43 phoneme starts (ह twice) × the marker \
+         positions after each (ण् twice), own sūtra included"
     );
     // The 43 phonemes are the 43 starts.
     assert_eq!(index.iter().flatten().count(), 43);

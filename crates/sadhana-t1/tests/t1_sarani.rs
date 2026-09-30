@@ -43,6 +43,10 @@ use sadhana::t1::anita;
 use sadhana::t1::nirvahana::{Interpreter, Value};
 use std::path::{Path, PathBuf};
 
+/// Unique scratch roots, shared with every other binary that needs one —
+/// because five copies of `(pid, counter)` was five copies of one defect.
+mod spec_fixture;
+
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -63,13 +67,11 @@ fn source(name: &str) -> String {
 /// `t1_exec_aksara.rs` gives: two tests that share a temp root can remove it
 /// under each other. Nothing is copied into it — that is the point of it.
 fn empty_spec_root() -> PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let dir = std::env::temp_dir().join(format!(
-        "sarani-nospec-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
+    // `unique_root` and not a local (pid, counter): that pair is unique inside
+    // ONE PROCESS and not on disk, because pids are reused and these roots are
+    // never removed. This family had accumulated its own pile of directories
+    // under $TMPDIR (W-301).
+    let dir = spec_fixture::unique_root("sarani-nospec");
     std::fs::create_dir_all(&dir).expect("temp spec root");
     dir
 }

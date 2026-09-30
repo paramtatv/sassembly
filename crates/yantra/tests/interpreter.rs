@@ -24,7 +24,14 @@ use yantra::{FINISHER, Halt, Machine, Privilege, UART};
 /// A machine with `text` at `0x8000_0000` and nothing else. Registers zeroed.
 fn machine(text: &[u32]) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: 0x8000_0000,
         base: 0x8000_0000,
         mem: vec![0; 1 << 16],
@@ -257,15 +264,33 @@ fn an_unknown_instruction_stops_and_names_itself() {
     // would move it again; `0x53` has no arm AT ALL, so the whole floating-point family
     // halts and this word stays genuinely unimplemented for as long as that is true.
     // If it ever moves again, move it — do not weaken what it asks.
+    //
+    // 2026-09-28: IT MOVES A FIFTH TIME, on that instruction and for the same reason as the
+    // fourth. Row `V-001` implemented F and D, so `0x53` is OP-FP and every arm of it now
+    // either executes or halts for a REASON — a rounding mode this machine declines to
+    // approximate — which is not the same fact as "no arm at all" and would have made this
+    // test assert the wrong thing.
+    //
+    // The word is now `0x57`, OP-V, the vector family: **no arm at all**, which is the
+    // property this test needs and the only major family left that has it. `0x0200_0057` is
+    // a well-formed V-encoded word rather than a random unused pattern, so the halt it
+    // produces is the one a real vector program would provoke.
+    //
+    // WHEN ROW `V-007` IMPLEMENTS V, THIS MOVES A SIXTH TIME, and by then there may be no
+    // major family left to move to. At that point the honest reading is that this test's
+    // subject has run out — retire it as `tests/atomics.rs`'s
+    // `the_families_this_machine_does_not_have_still_stop` was retired on 2026-09-28, and
+    // for the same stated reason: a test given a word it does not mean is worse than no
+    // test. Do not weaken what it asks.
     let mut out = Vec::new();
-    let mut m = machine(&[0x0200_0053]);
+    let mut m = machine(&[0x0200_0057]);
     let halt = m.step(&mut out).expect("must halt");
     assert_eq!(
         halt,
         Halt::Unimplemented {
             pc: 0x8000_0000,
-            word: 0x0200_0053,
-            opcode: 0x53
+            word: 0x0200_0057,
+            opcode: 0x57
         }
     );
 }
@@ -322,7 +347,14 @@ fn a_program_that_outgrows_its_ram_halts_naming_the_limit_not_the_address() {
     // `ld x5, 0(x6)` — a load whose address this machine does not have.
     let word: u32 = 0x0003_3283;
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: {

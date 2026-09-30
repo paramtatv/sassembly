@@ -91,12 +91,38 @@
 ॰ `split_trailing_punct`, `punctuation`, and `split_sigil` (विभज).
 ॰
 ॰ NOT ported, each blocked on a named thing that does not exist:
-॰   (a) repertoire::check — `sanskrit_text::repertoire` is a DERIVED TABLE
-॰       and no .t1 module holds it. This is the same blocker सङ्केतन's four
-॰       table readers are pinned on. So this port CANNOT FAIL, which is why
-॰       the दोष record below is declared and has no arena: an arena nothing
-॰       can write is the defect this row exists to remove, and adding one
-॰       here would have reproduced it one level down.
+॰   (a) repertoire::check — REFOUNDED 2026-09-28 (W-304), AND BOTH HALVES OF
+॰       WHAT STOOD HERE ARE NOW FALSE. It read: "`sanskrit_text::repertoire`
+॰       is a DERIVED TABLE and no .t1 module holds it … So this port CANNOT
+॰       FAIL, which is why the दोष record below is declared and has no arena."
+॰
+॰       A .t1 MODULE HOLDS IT. `अक्षरकोशॱपरिधिस्थम्` answers R-15-1 for one
+॰       code point, and `t1_repertoire_twin` pins it against Rust over 1,116
+॰       code points — 309 admitted, zero disagreements — with the walk agreeing
+॰       on all 69 sources. `परिधिदोषः` beside it carries the आस्की/जाल text
+॰       directives.
+॰
+॰       AND THE PORT CAN NOW FAIL — BUT NOT HERE, AND THAT IS THE POINT.
+॰       THIS FILE IMPORTS NOTHING. `अक्षरकोश` imports `पदविभाग`, so the edge
+॰       this check would need runs the wrong way and `पदविभाग` cannot reach
+॰       the table. The corpus DOES tolerate mutual imports (`अक्षरकोश` and
+॰       `सङ्केतन` import each other), so inverting it is possible — it would
+॰       mean giving this file its first import, which W-304 judged a bigger
+॰       change than the gate needs.
+॰
+॰       SO THE GATE IS A PRE-PASS ONE LEVEL UP: `शृङ्खलाॱपठनम्` calls
+॰       `अक्षरकोशॱपरिधिदोषः` before it calls `पदविभाग` and refuses the source,
+॰       recording `परिधिदोषस्थितम्`/`परिधिदोषस्थानम्` that `chain::refusal_site`
+॰       renders. lex.rs:583-625 checks per WORD while lexing and reports one
+॰       diagnostic per offending word; the pre-pass refuses at the FIRST
+॰       offending code point. The verdicts are identical — that is what the
+॰       twin compares — and the diagnostic granularity is not.
+॰
+॰       THE दोष RECORD BELOW STILL HAS NO ARENA, and now for a different
+॰       reason than the one that stood here: nothing in THIS file can write
+॰       one, because nothing in this file can see the table. The arena the old
+॰       margin withheld would today belong beside `पठनम्`, not here. Adding
+॰       one here would still be an arena nothing can write.
 ॰   (b) is_numeral — CORRECTED 2026-09-01, and the correction is the whole
 ॰       point of auditing a blocker before believing it. This read
 ॰       "अक्षरकोश ॱ सङ्ख्या is a stub". IT IS NOT, and had not been for some
@@ -563,6 +589,7 @@
 
     प्रत्यागमनम् फलम् ।
 इति
+
 
 ॰ ══════════════════ lex ══════════════════
 ॰ Rust's `lex`. Walks the source line by line; strips the comment; walks

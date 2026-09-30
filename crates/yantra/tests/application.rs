@@ -491,7 +491,14 @@ fn build(source: &str, load: u64) -> (Vec<u8>, Vec<u8>) {
 /// that forgets to clear it returns to S-mode and this test says so instead of passing.
 fn machine() -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: 0,
         base: BASE,
         mem: vec![0; RAM],

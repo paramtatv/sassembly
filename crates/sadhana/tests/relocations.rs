@@ -88,7 +88,7 @@ fn an_error_names_the_fault_and_not_a_wording() {
     // a table so the wording could change, and a test matching on wording is
     // precisely what that would break.
     use std::collections::BTreeMap;
-    let p = sadhana::parse::assemble_program("योगःॱभ३२ अर्थ०म् अर्थ१न अर्थ२न ।\n").expect("parses");
+    let p = sadhana::parse::assemble_program("योगःॱप३२ अर्थ०म् अर्थ१न अर्थ२न ।\n").expect("parses");
     let e = sadhana::encode::encode_at(&p.instructions[0], 0, &BTreeMap::new())
         .expect_err("an integer family with a float type must be refused");
 

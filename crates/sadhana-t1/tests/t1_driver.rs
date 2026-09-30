@@ -414,14 +414,22 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     // builds exactly its declarations.
     let grew = matches!(it.global("वृद्धिवृत्तिप्रयुक्तम्"), Some(Value::Bool(true)));
     // NINE -> TEN DECLARED ON 2026-09-14: `मुद्रणम्`, the output channel's
-    // declaration. So eleven built — ten declared plus the synthesised
-    // `खण्डवृद्धिः`. This pin firing on a deliberate addition is what it is for,
-    // and it is the reason the count is asserted TOGETHER WITH the growth flag:
-    // a bare number would not say which of the two moved.
+    // declaration. TEN -> ELEVEN ON 2026-09-26: `पत्रम्`, the FILE window's
+    // declaration (ADR-0041) — the second intrinsic to be lowered to a store
+    // rather than a call, and the second to keep a body that answers its own
+    // device address when no interception fires. ELEVEN -> TWELVE the same day:
+    // `पत्रलेखनम्`, the WRITE, which differs from `पत्रम्` only in which address
+    // its third store names. So thirteen built: twelve declared plus the
+    // synthesised `खण्डवृद्धिः`.
+    //
+    // This pin firing on a deliberate addition is what it is for, and it fired
+    // on exactly that — it was the ONLY red in a 130-target run. It is the
+    // reason the count is asserted TOGETHER WITH the growth flag: a bare number
+    // would not say which of the two moved.
     assert_eq!(
         (routines, grew),
-        (11, true),
-        "ashtaka.t1 declares ten routines and needs the synthesised खण्डवृद्धिः"
+        (13, true),
+        "ashtaka.t1 declares twelve routines and needs the synthesised खण्डवृद्धिः"
     );
 
     let named = it
@@ -512,12 +520,18 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     // that is right by construction, so fifteen correct names on fifteen wrong
     // keys satisfies every membership check below. Sorted because the two
     // populations are appended in two passes and their ORDER is not the claim.
-    // १-१५ → २-१६ → २-१७ (2026-09-14, twice in one day): the module's own
-    // ordinals still run contiguous, one per declaration; `मुद्रणम्` is the
-    // sixteenth. The first move was the gather reserving a leading symbol, the
-    // second is a declaration added — and the contiguity is what tells them
-    // apart, because a reserved slot shifts the range and a new declaration
-    // extends it.
+    // १-१५ → २-१६ → २-१७ (2026-09-14, twice in one day) → २-१८ → २-१९
+    // (2026-09-26, `पत्रम्` then `पत्रलेखनम्`, ADR-0041): the module's own ordinals still run contiguous, one
+    // per declaration; `मुद्रणम्` is the sixteenth and `पत्रम्` the seventeenth.
+    // The first move was the gather reserving a leading symbol, the rest are
+    // declarations added — and the CONTIGUITY is what tells those two apart,
+    // because a reserved slot shifts the range and a new declaration extends
+    // it. Both moves have now been seen, which is why the distinction is worth
+    // keeping.
+    //
+    // THIS PIN IS THE SECOND ASSERTION IN THIS TEST AND IT WAS INVISIBLE UNTIL
+    // THE FIRST WAS FIXED. A red names what tripped FIRST; the gate reporting
+    // one failure meant one failure REACHED, not one present.
     // one per declaration, but they start at २. Ordinal १ is skipped in kosha
     // too — two modules, the same leading gap — so this is the gather reserving
     // a symbol ahead of the walk, not something about ashtaka.
@@ -525,8 +539,8 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     ks.sort_unstable();
     assert_eq!(
         ks,
-        (2..=17).collect::<Vec<i128>>(),
-        "symbols २-१७ contiguous, one per declaration after the module: {keys:?}"
+        (2..=19).collect::<Vec<i128>>(),
+        "symbols २-१९ contiguous, one per declaration after the module: {keys:?}"
     );
 
     // MEMBERS. Fifteen identical labels would satisfy both counts above and is
@@ -549,6 +563,17 @@ fn the_driver_names_every_symbol_of_ashtaka() {
         // replace calls to it; the body it keeps answers २६८४३५४५६ so a broken
         // wire names itself rather than returning a plausible ०.
         "मुद्रणम्",
+        // THE FILE WINDOW, 2026-09-26 (ADR-0041) — the SECOND channel out of a
+        // program, and built to the same rule: `ir.t1` replaces the call with a
+        // store, and the body it keeps answers २६८४४३६४८, its own device
+        // address. The interpreter does NOT intercept this one, because it has
+        // no RAM for the request run to point into — so an interpreted run
+        // reaches the body and is told so.
+        "पत्रम्",
+        // AND THE WRITE, same day. It shares `पत्रम्`'s three runs and its two
+        // remembered stores; only the third address differs, which is why it is
+        // a separate declaration rather than a flag on the first.
+        "पत्रलेखनम्",
         // The six globals, `ashtaka.t1:41-50`, symbols २-७ (१-६ before the
         // 2026-09-14 shift). `अष्टकदोषमस्ति`, symbol ५ today and ४ then, is the
         // one the emitter named in its refusal.

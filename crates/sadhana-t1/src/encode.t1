@@ -2404,7 +2404,7 @@
 ॰ element type, so neither site is in the file's remaining count.
 
 सार्वजनिक चरः असम्बन्धः ॱॱ न६४ भवति ० ।              ॰ a relation this reader does not model
-सार्वजनिक चरः अभिन्नसम्बन्धः ॱॱ न६४ भवति १ ।          ॰ none
+सार्वजनिक चरः अप्लवसम्बन्धः ॱॱ न६४ भवति १ ।          ॰ none
 सार्वजनिक चरः प्रथमानुवृत्तिसम्बन्धः ॱॱ न६४ भवति २ ।   ॰ arg1=arg0
 सार्वजनिक चरः द्वितीयशून्यसम्बन्धः ॱॱ न६४ भवति ३ ।     ॰ arg1=zero
 सार्वजनिक चरः तृतीयशून्यसम्बन्धः ॱॱ न६४ भवति ४ ।       ॰ arg2=zero
@@ -2427,7 +2427,7 @@
         प्रत्यागमनम् शून्यम् ।
     इति
 
-    यदि सम्बन्धः समम् अभिन्नसम्बन्धः आदि
+    यदि सम्बन्धः समम् अप्लवसम्बन्धः आदि
         प्रत्यागमनम् दैर्घ्य योगः १ ।
     इति
 
@@ -4057,7 +4057,7 @@
 इति
 
 ॰ the class letter a type name OPENS WITH — Rust's
-॰ `inst.types[0].chars().next()` under `matches!(class, 'अ' | 'न' | 'भ')`.
+॰ `inst.types[0].chars().next()` under `matches!(class, 'अ' | 'न' | 'प')`.
 ॰ १ is अ, २ is न, ३ is भ, and ० is EVERY OTHER OPENING, which is the whole
 ॰ of what the `matches!` adds.
 ॰
@@ -4088,7 +4088,7 @@
     चरः तृतीयः ॱॱ अ८ भवति प्रकारनाम अङ्कः २ अन्तः ।
     यदि तृतीयः समम् १३३ आदि प्रत्यागमनम् १ । इति   ॰ अ U+0905 — signed
     यदि तृतीयः समम् १६८ आदि प्रत्यागमनम् २ । इति   ॰ न U+0928 — unsigned
-    यदि तृतीयः समम् १७३ आदि प्रत्यागमनम् ३ । इति   ॰ भ U+092D — float
+    यदि तृतीयः समम् १७० आदि प्रत्यागमनम् ३ । इति   ॰ प U+092A — float
     प्रत्यागमनम् ० ।
 इति
 
@@ -4380,7 +4380,7 @@
     इति
 
     ॰ The destination's register CLASS chooses among encodings that differ
-    ॰ only in direction. `भिन्नसंचारः` covers four — two write a float
+    ॰ only in direction. `प्लवसंचारः` covers four — two write a float
     ॰ register from an integer one and two do the reverse — and the operands
     ॰ already say which, so the direction needs no name (`B-074`).
     चरः गन्तृसूचकः ॱॱ अ६४ भवति वाक्यविभागॱकारकानुसारम् आज्ञाम् १ ।
@@ -4443,7 +4443,7 @@
     इति
 
     ॰ The type's CLASS must match what the encoding operates on. Until
-    ॰ `B-077` the letter was validated and then thrown away, so `योगःॱभ३२`
+    ॰ `B-077` the letter was validated and then thrown away, so `योगःॱप३२`
     ॰ — "add, 32-bit float" — assembled as an integer `addw`. A conversion
     ॰ is exempt: ADR-0010 gives it an explicit pair whose written half names
     ॰ the destination, which for `fcvt.w.s` is an integer.
@@ -5453,7 +5453,7 @@
             यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः समम् १११ आदि
                 यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः २ समाप्तम् अन्तः समम् ११० आदि
                     यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः ३ समाप्तम् अन्तः समम् १०१ आदि
-                        प्रत्यागमनम् अभिन्नसम्बन्धः ।
+                        प्रत्यागमनम् अप्लवसम्बन्धः ।
                     इति
                 इति
             इति
@@ -5673,7 +5673,7 @@
     ॰ only under `none`: Rust's `at(i)?` fails for every other relation.
     चरः त्याज्यः ॱॱ सम्भाव्य न६४ भवति शून्यम् ।
     यदि संख्यानम् समम् ० आदि
-        यदि सम्बन्धः समम् अभिन्नसम्बन्धः आदि
+        यदि सम्बन्धः समम् अप्लवसम्बन्धः आदि
             त्याज्यः भवति १ ।
         इति
     इति अन्यथा आदि

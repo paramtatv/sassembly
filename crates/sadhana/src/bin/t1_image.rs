@@ -406,6 +406,27 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    // **THE METER IS READ HERE AND NOWHERE LOWER, AND THE REASON IS FOUR LINES
+    // OF `SAS-013`.** `Interpreter::call` takes a fuel argument and ASSIGNS it
+    // (`t1/nirvahana.rs:1345`, `self.fuel = fuel`), so every `call` restarts the
+    // meter. The diagnostic re-compile below is a `call`, and while the `steps:`
+    // line was printed AFTER it the figure was that re-compile's and not the
+    // build's.
+    //
+    // MEASURED TWICE, FIVE DAYS APART, ON DIFFERENT TREES. When the defect was
+    // found: `steps: 35352` against `41605839` for a build of the SAME sources
+    // with the refusal removed — 1,177x. Re-measured 2026-09-27 on this tree by
+    // `t1_image_steps_meter.rs` before this line existed: 35352 against
+    // 43466282, a factor of 1,229. A build that did strictly LESS work reporting
+    // three orders of magnitude more.
+    //
+    // ON THE SELF-IMAGE THE FAILURE PATH IS THE ONLY PATH, because `lib.t1` is
+    // the zero-code-line facade and always refuses, so every self-image build
+    // carried this: rung 103 printed `steps: 17436` where the same build before
+    // `SAS-013` printed `27642890406`. That is the owner's point-3 meter — the
+    // one that says lex has 4.4x ashtaka's instructions — reading six orders of
+    // magnitude low and looking exactly like an answer.
+    let build_steps = FUEL - it.fuel_remaining();
     let failed = match it.global("सङ्कलनविफलसंख्या") {
         Some(Value::Int(k)) => *k,
         _ => -1,
@@ -501,10 +522,14 @@ fn main() -> ExitCode {
                         // THE THIRD STATE, NAMED. A refusal `अर्थ` did not
                         // record is not the same as no refusal, and a silent
                         // line here would be read as the latter.
+                        // THE THIRD STATE, AND THE RE-COMPILE ABOVE IS ISOLATED,
+                        // so `निर्णयविरामभेद = ०` here means THIS SOURCE COMPILES
+                        // ALONE and the refusal is load-dependent. `chain` words
+                        // it; the fact was already in this run and was printed as
+                        // "no site recorded" for as long as the line existed.
                         None => println!(
-                            "refused:  {module}: no site recorded (निर्णयविरामभेद = {})",
-                            it.global("निर्णयविरामभेद")
-                                .map_or_else(|| "-".to_string(), |v| format!("{v:?}"))
+                            "refused:  {module}: {}",
+                            chain::refusal_third_state(&it, true)
                         ),
                     }
                 }
@@ -522,7 +547,19 @@ fn main() -> ExitCode {
     // Steps spent by the build (the deterministic meter — a wall clock on this
     // machine measures the other lanes), and with T1_CALLS set the thirty
     // routines invoked most often: what located the assembler's table walk.
-    println!("steps:    {}", FUEL - it.fuel_remaining());
+    //
+    // TWO LINES AND NOT ONE, BECAUSE THE TRUTH HAS THREE STATES. `steps:` alone
+    // could not distinguish a build from a build plus a diagnostic re-compile,
+    // and that is how it came to report the re-compile for a whole cycle. The
+    // re-compile is real work and is now named as its own figure on the one path
+    // that spends it, rather than folded into the build's or hidden.
+    println!("steps:    {build_steps}");
+    if failed > 0 {
+        println!(
+            "diag:     {} more step(s) re-compiling the first refused source to name its site",
+            FUEL - it.fuel_remaining()
+        );
+    }
     if std::env::var_os("T1_BUMP").is_some() {
         let (octets, growths, runs) = sadhana::t1::nirvahana::bump_total();
         let (first_blocks, records, record_octets, with_records) =

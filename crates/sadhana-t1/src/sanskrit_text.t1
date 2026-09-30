@@ -413,6 +413,301 @@
     प्रत्यागमनम् चतुरग्रम् योगः चतुरन्त्यम् ।
 इति
 
+॰ ══════════════ R-15-1 — THE REPERTOIRE GATE, doc 15 §1 ══════════════
+॰ Whether one code point may appear in an authored SANSOS source file.
+॰
+॰ THE TWIN IS `crates/sanskrit-text/src/repertoire.rs`, whose header calls this
+॰ "PASS 0 of the toolchain": it runs BEFORE normalization and BEFORE the lexer,
+॰ so no later stage ever has to consider a foreign character. The Rust chain has
+॰ that pass; the .t1 chain had NONE, which is why `build()` compiled
+॰ `उक्तम् SAS इति` while `Interpreter::load` refused it — `W-304`. The asymmetry
+॰ was never a permissive arm in the lexer; it was a gate that did not exist on
+॰ one of the two paths.
+॰
+॰ AND `lex.t1:94` SAID THIS PORT WAS BLOCKED ON A TABLE THAT DOES NOT EXIST:
+॰ "repertoire::check — `sanskrit_text::repertoire` is a DERIVED TABLE and no .t1
+॰ module holds it." IT IS NOT A TABLE. `repertoire.rs` is hand-written and no
+॰ generator emits it: four ranges, three layout characters and two joiners. That
+॰ is the SECOND false blocker in that numbered list — item (b) carries its own
+॰ correction, twice — and this routine is a dozen comparisons because of it.
+॰
+॰ THE BOUNDS ARE EXCLUSIVE ON BOTH SIDES, AND THAT IS A CHOICE RATHER THAN A
+॰ LIMIT. `nirvahana.rs:52` says `spec/lexicon.tsv` proposes `अधिकसमम्` for
+॰ greater-or-equal at line 26 and that it never occurs — and that sentence is
+॰ STALE. MEASURED 2026-09-28: `अधिकसमम्` is not in `lexicon.tsv` at all, line 26
+॰ is `अधिकाराभावः` (capability denied, an error term), and the lexicon's
+॰ greater-or-equal is `बृहत्समम्` at line 261, source ADR-0037, noted "frozen
+॰ from the corpus". It IS implemented: `parse.t1:468` and `:502` read it, and
+॰ `:501` cites W-229 for it.
+॰
+॰ SO `>=` EXISTS AND `<=` DOES NOT, and that is why both bounds are exclusive.
+॰ `बृहत्समम्` is real. `न्यूनसमम्` is NOT: all five of its occurrences in this
+॰ corpus are MARGINS, and they say so themselves — `nidana.t1:60` reads "अधिकम्
+॰ and NO न्यूनसमम् or अधिकसमम् ; none is written anywhere in this", and
+॰ `encode.t1:2738` repeats it. It is absent from the Rust parser too. An earlier
+॰ version of this margin claimed both "were available", counted from SUBSTRING
+॰ hits in files whose prose was denying the very thing being counted; the derived
+॰ `status` column added by `W-307` marks it `proposed` for exactly that reason.
+॰
+॰ With no `<=`, an inclusive high bound cannot be written at all, so the pair
+॰ below is the only consistent form available — and `अधिकम्` and `न्यूनम्` are
+॰ also the best-attested operators in the corpus at 353 and 636 uses.
+॰ `०x०९००..=०x०९७F` is therefore अधिकम् २३०३ and न्यूनम् २४३२, and every bound
+॰ was computed rather than converted by hand — 0x11B00 is 72448, which a hand
+॰ conversion gets wrong easily.
+॰
+॰ ZWNJ and ZWJ are admitted HERE and position-checked elsewhere, exactly as the
+॰ Rust arm's own comment says: they are legal characters whose PLACEMENT is a
+॰ separate question this predicate does not answer.
+सार्वजनिक वृत्तिः परिधिस्थम् आदाय सङ्केताङ्क ॱॱ अ६४ ददाति बूल आदि
+    ॰ SPACE, TAB, LINE FEED — the three layout characters doc 15 §1 admits.
+    यदि सङ्केताङ्क समम् ३२ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ९ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् १० आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+
+    ॰ Devanagari, ०x०९०० through ०x०९७F.
+    यदि सङ्केताङ्क अधिकम् २३०३ आदि
+        यदि सङ्केताङ्क न्यूनम् २४३२ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+
+    ॰ Devanagari Extended, ०xA८E० through ०xA८FF.
+    यदि सङ्केताङ्क अधिकम् ४३२३१ आदि
+        यदि सङ्केताङ्क न्यूनम् ४३२६४ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+
+    ॰ Vedic Extensions, ०x१CD० through ०x१CFF.
+    यदि सङ्केताङ्क अधिकम् ७३७५ आदि
+        यदि सङ्केताङ्क न्यूनम् ७४२४ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+
+    ॰ Devanagari Extended-A, ०x११B०० through ०x११B५F.
+    यदि सङ्केताङ्क अधिकम् ७२४४७ आदि
+        यदि सङ्केताङ्क न्यूनम् ७२५४४ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+
+    ॰ ZWNJ ०x२००C and ZWJ ०x२००D.
+    यदि सङ्केताङ्क समम् ८२०४ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ८२०५ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ══════════════ R-15-1 OVER A WHOLE SOURCE — `W-304` ══════════════
+॰ Whether this source holds a character doc 15 does not admit, and WHERE.
+॰
+॰ THE PASS THIS MIRRORS IS `lex.rs`'s, NOT `repertoire::check`'s. Pass 0 is
+॰ strict and knows nothing of `आस्की` — `repertoire.rs` contains the word zero
+॰ times. The refusal `W-304` observed comes from the LEXER, which carries a
+॰ ratified exemption, and porting the strict pass instead would have refused the
+॰ 1,724 Latin characters standing legally in ten `spec/*.sas` files today.
+॰
+॰ Derived from four sites in `lex.rs` and mirrored here:
+॰   `:583` sets in-ascii on the word `आस्की` and in-jal on `जाल`;
+॰   `:676` and `:720` CLEAR BOTH on a `॥`, as a head token or as a trailing
+॰     mark — so `॥` closes the directive either way;
+॰   `:591` checks the repertoire per WORD, and only when not in-ascii;
+॰   `:600` narrows rather than disables it under `जाल`: twelve marks and the
+॰     two ASCII letter classes, and nothing else.
+॰
+॰ ANSWERS AN OFFSET, NOT A BOOLEAN, because a gate that says only "no" cannot
+॰ name the character it refused. The offset of the FIRST inadmissible code point
+॰ is returned; a clean source answers `मूल ॱ दैर्घ्य`, one past the last octet and
+॰ therefore never a real position. One number tells the two apart.
+॰
+॰ IT LIVES HERE AND NOT IN `पदविभाग`, because `अक्षरकोश` ALREADY IMPORTS
+॰ `पदविभाग` (line 8) and the reverse edge would be a CYCLE. The first version
+॰ of this put the walk in `lex.t1` calling `अक्षरकोशॱसङ्केतमूल्यम्`, and Stage 1
+॰ of the fixpoint PRODUCED NO IMAGE while `no_module_is_reached_without_being
+॰ _imported` named the cause. Here both halves are reachable with no new edge:
+॰ this module's own decoder and predicate, and `पदविभाग`'s word splitting.
+॰
+॰ Every sign `पदविभाग` knows is three octets wide, so `पदविभागॱत्र्यष्टकसाम्यम्` — bounds
+॰ checked, already here — spells `आस्की` in five comparisons and `जाल` in three.
+
+॰ whether the span [आरम्भः, सीमा) is exactly the word `आस्की`.
+सार्वजनिक वृत्तिः आस्कीपदम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति बूल आदि
+    यदि आरभ्य सीमा वियोगः आरम्भः समाप्तम् असमम् १५ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६४ १३४ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ३ समाप्तम् २२४ १६४ १८४ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ६ समाप्तम् २२४ १६५ १४१ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ९ समाप्तम् २२४ १६४ १४९ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः १२ समाप्तम् २२४ १६५ १२८ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ whether the span [आरम्भः, सीमा) is exactly the word `जाल`.
+सार्वजनिक वृत्तिः जालपदम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति बूल आदि
+    यदि आरभ्य सीमा वियोगः आरम्भः समाप्तम् असमम् ९ आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६४ १५६ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ३ समाप्तम् २२४ १६४ १९० समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ६ समाप्तम् २२४ १६४ १७८ समम् असत्यम् आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ `जाल` NARROWS the repertoire, it does not disable it. Exactly the twelve marks
+॰ `lex.rs:601`-`:613` names — < > = " / - ! SPACE { } ; : — and the two ASCII
+॰ letter classes. Anything else is still refused inside a `जाल` directive, which
+॰ is what makes it an exemption rather than a hole.
+सार्वजनिक वृत्तिः जालानुमतम् आदाय सङ्केताङ्क ॱॱ अ६४ ददाति बूल आदि
+    यदि सङ्केताङ्क समम् ३२ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ३३ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ३४ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ४५ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ४७ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ५८ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ५९ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ६० आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ६१ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् ६२ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् १२३ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि सङ्केताङ्क समम् १२५ आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    ॰ A-Z is ६५ through ९० and a-z is ९७ through १२२ , written with exclusive
+    ॰ bounds because `अधिकसमम्` does not occur in this corpus.
+    यदि सङ्केताङ्क अधिकम् ६४ आदि
+        यदि सङ्केताङ्क न्यूनम् ९१ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+    यदि सङ्केताङ्क अधिकम् ९६ आदि
+        यदि सङ्केताङ्क न्यूनम् १२३ आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ the offset of the first code point doc 15 does not admit, or `मूल ॱ दैर्घ्य`
+॰ when the source is clean.
+सार्वजनिक वृत्तिः परिधिदोषः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
+    चरः पङ्क्त्यारम्भः ॱॱ न६४ भवति ० ।
+    चरः आस्कीस्थः ॱॱ बूल भवति असत्यम् ।
+    चरः जालस्थः ॱॱ बूल भवति असत्यम् ।
+
+    यावत् पङ्क्त्यारम्भः न्यूनम् दैर्घ्य आदि
+        चरः पङ्क्त्यन्तः ॱॱ न६४ भवति पदविभागॱपङ्क्तिसीमा मूल पङ्क्त्यारम्भः ।
+        चरः सीमा ॱॱ न६४ भवति पदविभागॱटिप्पणीसीमा मूल पङ्क्त्यारम्भः पङ्क्त्यन्तः ।
+        चरः स्थितिः ॱॱ न६४ भवति पङ्क्त्यारम्भः ।
+
+        यावत् स्थितिः न्यूनम् सीमा आदि
+            चरः पदारम्भः ॱॱ न६४ भवति पदविभागॱपदादिः मूल स्थितिः सीमा ।
+            यदि पदारम्भः न्यूनम् सीमा आदि
+                चरः पदान्तः ॱॱ न६४ भवति पदविभागॱपदान्तिकम् मूल पदारम्भः सीमा ।
+                चरः शिरोन्तः ॱॱ न६४ भवति पदविभागॱपुच्छविरामः मूल पदारम्भः पदान्तः ।
+                चरः भेद ॱॱ न६४ भवति पदविभागॱविरामचिह्न मूल पदारम्भः शिरोन्तः ।
+                चरः पुच्छभेद ॱॱ न६४ भवति पदविभागॱविरामचिह्न मूल शिरोन्तः पदान्तः ।
+
+                ॰ the directive OPENS on its own word, before any check.
+                यदि आस्कीपदम् मूल पदारम्भः शिरोन्तः आदि
+                    आस्कीस्थः भवति सत्यम् ।
+                इति
+                यदि जालपदम् मूल पदारम्भः शिरोन्तः आदि
+                    जालस्थः भवति सत्यम् ।
+                इति
+
+                ॰ and the check runs over the HEAD only when not inside `आस्की`.
+                यदि आस्कीस्थः समम् असत्यम् आदि
+                    चरः अष्टकस्थानम् ॱॱ न६४ भवति पदारम्भः ।
+                    यावत् अष्टकस्थानम् न्यूनम् शिरोन्तः आदि
+                        चरः सङ्केताङ्क ॱॱ अ६४ भवति सङ्केतमूल्यम् मूल अष्टकस्थानम् ।
+                        चरः चौडा ॱॱ अ६४ भवति अष्टकविस्तारः मूल अङ्कः अष्टकस्थानम् अन्तः ।
+                        यदि परिधिस्थम् सङ्केताङ्क समम् असत्यम् आदि
+                            यदि जालस्थः समम् असत्यम् आदि
+                                प्रत्यागमनम् अष्टकस्थानम् ।
+                            इति अन्यथा आदि
+                                यदि जालानुमतम् सङ्केताङ्क समम् असत्यम् आदि
+                                    प्रत्यागमनम् अष्टकस्थानम् ।
+                                इति
+                            इति
+                        इति
+                        अष्टकस्थानम् भवति आरभ्य अष्टकस्थानम् योगः चौडा समाप्तम् ।
+                    इति
+                इति
+
+                ॰ `॥` closes the directive, as a head sign or as a trailing one.
+                यदि भेद समम् पदविभागॱयुग्मदण्डभेद आदि
+                    आस्कीस्थः भवति असत्यम् ।
+                    जालस्थः भवति असत्यम् ।
+                इति
+                यदि पुच्छभेद समम् पदविभागॱयुग्मदण्डभेद आदि
+                    आस्कीस्थः भवति असत्यम् ।
+                    जालस्थः भवति असत्यम् ।
+                इति
+
+                स्थितिः भवति पदान्तः ।
+            इति अन्यथा आदि
+                स्थितिः भवति सीमा ।
+            इति
+        इति
+
+        पङ्क्त्यारम्भः भवति आरभ्य पङ्क्त्यन्तः योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् दैर्घ्य ।
+इति
+
 
 ॰ ══════════════════ the three tables, read ONCE into arenas ══════════════
 ॰ THE RANGES ARE NOT WALKED PER LOOKUP AND THE REASON IS NOT ONLY SPEED.

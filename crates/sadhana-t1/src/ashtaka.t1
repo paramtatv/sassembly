@@ -204,3 +204,60 @@
 सार्वजनिक वृत्तिः मुद्रणम् आदाय अष्टकम् ॱॱ अ८ ददाति न६४ आदि
     प्रत्यागमनम् २६८४३५४५६ ।
 इति
+
+॰ ॥ THE FILE WINDOW (ADR-0041) ॥ The SECOND channel out of a program, and it is
+॰ built to the same rule as the first one above: the lowering replaces this call
+॰ with a store, and this body answers THE DEVICE ADDRESS — २६८४४३६४८, which is
+॰ ०x१००० २००० — when no interception fires. No legitimate answer resembles it.
+॰
+॰ THE ARGUMENT IS A RUN, AND THAT IS THE WHOLE REASON THIS IS CALLABLE. A first
+॰ cut typed it `न६४`, an address — and no program can produce one: `.t1` has no
+॰ address-of, and `स्थाननिधानरचना` is private to `ir.t1` and builds an IR node at
+॰ COMPILE time. A run needs none of that: a run's runtime value already IS a
+॰ pointer, with its length word at `storage − 8` and storage 16-aligned
+॰ (`yantra/src/input.rs:43`), which is exactly how the host fills `निवेशपाठः`
+॰ from the other side. So the program builds its request with ordinary indexing
+॰ and the lowering passes the pointer it already holds.
+॰
+॰ THREE RUNS, THREE STORES, AND THE THIRD DOES THE WORK. `मार्गः` is the path,
+॰ `पात्रम्` the buffer the octets land in, `स्थितिः` a run the host writes the
+॰ answer into. A first cut passed ONE run holding the other two — and a program
+॰ cannot build that: there is no surface form that turns a run into a number, so
+॰ putting a run's pointer inside a run is refused. Three arguments need no such
+॰ conversion, because the lowering forwards each run's pointer the way
+॰ `मुद्रणम्` forwards an octet.
+॰
+॰ THE STATUS COMES BACK IN A RUN because a program cannot load from a device
+॰ address at all. The host writes into memory the program already owns and the
+॰ program reads it with ordinary indexing — `स्थितिः अङ्कः ० अन्तः`. Every LENGTH
+॰ is read from the runs' own headers, never from a word the caller fills in: a
+॰ program that overstated its buffer would otherwise be written past the end of
+॰ its own run and told it succeeded. `crates/yantra/src/patra.rs` holds the
+॰ protocol and the reasons.
+॰
+॰ **THE INTERPRETER DOES NOT INTERCEPT THIS ONE, AND THAT IS DELIBERATE.** It
+॰ has no RAM for a block address to point into — the same reason
+॰ `t1_user_input_interface.rs` cannot be cross-checked across the engines. So an
+॰ interpreted run reaches this body and gets २६८४४३६४८ back, which says "there
+॰ was no device here" rather than quietly answering zero. A program that wants
+॰ to run either way must check.
+सार्वजनिक वृत्तिः पत्रम् आदाय मार्गः ॱॱ अङ्कः अन्तः अ८ ऽ पात्रम् ॱॱ अङ्कः अन्तः अ८ ऽ स्थितिः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    प्रत्यागमनम् २६८४४३६४८ ।
+इति
+
+॰ ॥ THE WRITE ॥ The same three runs and the same two remembered stores; only the
+॰ THIRD address differs — २६८४४३६७२, which is ०x१००० २०१८. A separate address
+॰ rather than a command word, so the emitted text says which direction the
+॰ octets move and a program cannot turn a read into a write by computing a
+॰ wrong number.
+॰
+॰ `पात्रम्` is the SOURCE here, and its own length decides how much is written.
+॰ The host writes all of it or reports a failure: a short write is not a state
+॰ this interface can express, because a partial write reported as success is the
+॰ failure a file channel must not have.
+॰
+॰ The body answers २६८४४३६७२ — its own device address — when no lowering
+॰ replaced the call, exactly as `मुद्रणम्` and `पत्रम्` do.
+सार्वजनिक वृत्तिः पत्रलेखनम् आदाय मार्गः ॱॱ अङ्कः अन्तः अ८ ऽ पात्रम् ॱॱ अङ्कः अन्तः अ८ ऽ स्थितिः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    प्रत्यागमनम् २६८४४३६७२ ।
+इति

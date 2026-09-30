@@ -161,11 +161,10 @@ fn main() -> ExitCode {
                 // NOT SILENCE. A refusal whose stage recorded no site is a
                 // THIRD state — `निर्णयविरामभेद` ० or ३, or a stop before
                 // `अर्थ` — and printing nothing would read as the second.
-                None => eprintln!(
-                    "REFUSED {name}: no site recorded (निर्णयविरामभेद = {})",
-                    it.global("निर्णयविरामभेद")
-                        .map_or_else(|| "-".to_string(), |v| format!("{v:?}"))
-                ),
+                // `--object` compiled ONE source, so this is NOT the isolated
+                // re-compile case: `०` beside empty output means a stage after
+                // decide refused, and this file is where to look.
+                None => eprintln!("REFUSED {name}: {}", chain::refusal_third_state(&it, false)),
             }
             for g in [
                 "सङ्कलनविरामभेद",

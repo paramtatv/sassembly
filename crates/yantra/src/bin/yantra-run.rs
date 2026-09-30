@@ -24,9 +24,14 @@ impl Output for Sink {
 }
 fn main() -> ExitCode {
     let Some(path) = std::env::args().nth(1) else {
-        eprintln!("usage: yantra-run <program.elf>");
+        eprintln!("usage: yantra-run <program.elf> [args...]");
         return ExitCode::FAILURE;
     };
+    // EVERYTHING AFTER THE IMAGE IS THE PROGRAM'S, not this binary's — the
+    // execve convention, and the reason there are no flags here. A flag added
+    // later would have to be rejected before this line or it would silently
+    // stop reaching the program.
+    let program_args: Vec<String> = std::env::args().skip(1).collect();
     let image = std::fs::read(&path).expect("read the ELF");
 
     // F-020 (W-119): Refuse application images instead of booting and faulting.
@@ -136,10 +141,45 @@ fn main() -> ExitCode {
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
         .unwrap_or(DEFAULT_STEPS);
+
+    // ── THE PROGRAM'S ARGUMENTS ──────────────────────────────────────────────
+    //
+    // **A REFUSAL HERE IS NOT AN ERROR.** Most images do not declare the
+    // argument globals and never will; the whole corpus is one of them. So a
+    // missing interface is reported at one line and the run continues, where a
+    // missing INPUT interface above is fatal — the difference being that
+    // `--input` was ASKED FOR and arguments are always present.
+    //
+    // The refusal is still PRINTED rather than swallowed: a program that
+    // declared the globals and got nothing would otherwise see an empty run and
+    // conclude it was invoked with no arguments, which is a different fact.
+    let base = m.base;
+    let argv: Vec<&[u8]> = program_args.iter().map(|a| a.as_bytes()).collect();
+    match yantra::input::inject_arguments(&mut m.mem, base, &argv) {
+        Ok(r) => eprintln!(
+            "args: {} handed over, tags at {:x?}, run at {:#x}",
+            r.argc, r.tags_at, r.argv_ptr
+        ),
+        Err(e) => eprintln!("args: not handed over — {e}"),
+    }
+
     let halt = m.run(steps, &mut sink);
     use std::io::Write;
     std::io::stdout().write_all(&sink.out).unwrap_or(());
     eprintln!("halt: {halt:?}");
+    // **EXECUTED INSTRUCTIONS — the ratified benchmark metric (`T-102`).**
+    //
+    // `Machine::time` counts one tick per instruction the hart BEGINS, and it
+    // has always been kept; nothing printed it, so the one number a benchmark
+    // needs was unreachable from outside the process.
+    //
+    // IT IS NOT A HARDWARE CYCLE COUNT AND THE LABEL SAYS SO. This machine has
+    // no `rdcycle`/`rdtime` — the honoured CSRs are the supervisor set — and a
+    // step-counting interpreter's ticks are not a CPU's cycles. What they ARE
+    // is exactly reproducible across hosts, schedulers and clock speeds, which
+    // is the property Sassembly claims and a wall clock cannot give. Quoting
+    // this as "cycles" would be quoting a different measurement.
+    eprintln!("steps: {} executed instructions", m.time);
     if std::env::var_os("YANTRA_WATERMARK").is_some() {
         eprintln!("ram: high water {} of {} octets", sink.high_water, ram);
     }

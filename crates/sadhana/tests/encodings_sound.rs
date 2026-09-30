@@ -269,7 +269,7 @@ fn the_families_that_file_order_silently_decides_are_pinned() {
             .filter(|s| s.starts_with("reg:") || s.starts_with("freg:"))
             .count();
         // The DESTINATION's register class is part of what distinguishes an
-        // encoding, because the encoder selects on it: `भिन्नसंचारः` covers
+        // encoding, because the encoder selects on it: `प्लवसंचारः` covers
         // four moves and the operands say which way each goes (`B-074`).
         // Leaving it out of the key made the census report a pair the encoder
         // can tell apart perfectly well.

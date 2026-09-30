@@ -1128,6 +1128,118 @@ fn a_thirty_two_bit_slice_element_round_trips() {
     );
 }
 
+/// **PREDICTION, REGISTERED BEFORE THE RUN: THIS ANSWERS ५ AND NOT ११, AND THE
+/// FIXTURE ABOVE CANNOT SEE WHY.**
+///
+/// `a_thirty_two_bit_slice_element_round_trips` writes element ० then element १
+/// and sums them. It reasons about the LOAD's stride and says nothing about the
+/// STORE's WIDTH — and the store is eight octets wide for every element width
+/// but one. `ir.t1:4519` sends `विस्तार १` to `अष्टकनिधानरचना`, a
+/// read-modify-write that touches exactly its lane, and sends **every other
+/// width to the plain `स्थाननिधान`, which writes a full word**.
+///
+/// For `अ३२` at stride 4 that means the write to element ० writes octets ०..८ —
+/// element ० AND element १ — and the write to element १ writes octets ४..१२,
+/// four octets PAST a two-element run. In ASCENDING order the damage is
+/// overwritten by the next statement, so ५+६ still sums to ११ and the fixture
+/// above is green on a store that clobbers its neighbour every time.
+///
+/// **ONLY THE ORDER CHANGES HERE.** Same declaration, same two elements, same
+/// two values, same sum. Element १ is written FIRST, so the word-wide store to
+/// element ० zeroes it, and the sum drops to ५ — the value of the one element
+/// whose write happened to be last.
+#[test]
+fn a_thirty_two_bit_element_write_does_not_clobber_the_next_element() {
+    let src = concat!(
+        "मण्डलम् परीक्षा ॥\n",
+        "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि\n",
+        "    चरः सूची ॱॱ अङ्कः अन्तः अ३२ भवति ० ।\n",
+        "    सूची अङ्कः १ अन्तः भवति ६ ।\n",
+        "    सूची अङ्कः ० अन्तः भवति ५ ।\n",
+        "    प्रत्यागमनम् सूची अङ्कः ० अन्तः योगः सूची अङ्कः १ अन्तः ।\n",
+        "इति\n",
+    );
+    let halt = compile_and_run(src, "परीक्षा", "मुख्यम्");
+    println!("METRIC t1_storage_witness_a32_descending {halt}");
+    assert!(
+        halt.contains("Some(11)"),
+        "writing element १ BEFORE element ० must leave both standing: an `अ३२` \
+         element is FOUR octets and a store into one must write four, not eight. \
+         The machine halted {halt}; `Some(5)` is the word-wide store eating \
+         element १, `Some(6)` would be it eating element ०."
+    );
+}
+
+/// **THE `अ१६` ARM, EXECUTED FOR THE FIRST TIME — AND `ir.t1:3098` SAYS WHY
+/// NOTHING ELSE CAN DO IT.** That census reads the corpus's slice element types
+/// as `अ८` 609, `अ३२` 20, `अ६४`/`न६४` 77, and **`अ१६` zero**, and the margin
+/// beside it rules the row live on purpose: the width table is exhaustive over
+/// what the TYPE SYSTEM admits, not over what today's corpus happens to write.
+///
+/// So the store side's `अ१६` lane is reachable by no source in the tree and had
+/// to be a unit fixture or nothing. At the old word-wide store it would have
+/// written EIGHT octets at a stride of TWO — element ० eating elements १, २ and
+/// ३ — the loudest of the three widths and the only one with no corpus caller to
+/// notice.
+///
+/// Descending order for the same reason as the `अ३२` twin: ascending hides a
+/// wide store because the next statement repairs what the last one ate.
+#[test]
+fn a_sixteen_bit_element_write_does_not_clobber_the_next_element() {
+    let src = concat!(
+        "मण्डलम् परीक्षा ॥\n",
+        "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि\n",
+        "    चरः सूची ॱॱ अङ्कः अन्तः अ१६ भवति ० ।\n",
+        "    सूची अङ्कः १ अन्तः भवति ६ ।\n",
+        "    सूची अङ्कः ० अन्तः भवति ५ ।\n",
+        "    प्रत्यागमनम् सूची अङ्कः ० अन्तः योगः सूची अङ्कः १ अन्तः ।\n",
+        "इति\n",
+    );
+    let halt = compile_and_run(src, "परीक्षा", "मुख्यम्");
+    println!("METRIC t1_storage_witness_a16_descending {halt}");
+    assert!(
+        halt.contains("Some(11)"),
+        "an `अ१६` element is TWO octets and a store into one must write two: at \
+         the old width of eight, element ० would eat elements १, २ and ३. The \
+         machine halted {halt}. This width has no corpus caller — `ir.t1:3098` \
+         censuses it at ZERO — so this fixture is the only thing in the tree \
+         that executes the arm."
+    );
+}
+
+/// **THE CASE THAT MUST STILL TAKE THE PLAIN WORD STORE, AND IT IS HERE BECAUSE
+/// THE LADDER COULD HAVE SWALLOWED IT.**
+///
+/// `विस्तार ८` is deliberately absent from both three-way ladders — the one in
+/// `सङ्कीर्णनिधानरचना` and the one at its caller — so a whole-word element falls
+/// through to `स्थाननिधान` and emits ONE instruction rather than thirteen. A
+/// ladder written `विस्तार न्यूनम् ८` instead of three equality tests would have
+/// been green on every fixture above and would have put a read-modify-write on
+/// 77 corpus sites for nothing.
+///
+/// Descending order, same two values, same sum: at a stride of eight the word
+/// store is exact and the order cannot matter. `Some(11)` here says the widest
+/// lane did not move.
+#[test]
+fn a_sixty_four_bit_element_write_still_takes_the_whole_word() {
+    let src = concat!(
+        "मण्डलम् परीक्षा ॥\n",
+        "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि\n",
+        "    चरः सूची ॱॱ अङ्कः अन्तः अ६४ भवति ० ।\n",
+        "    सूची अङ्कः १ अन्तः भवति ६ ।\n",
+        "    सूची अङ्कः ० अन्तः भवति ५ ।\n",
+        "    प्रत्यागमनम् सूची अङ्कः ० अन्तः योगः सूची अङ्कः १ अन्तः ।\n",
+        "इति\n",
+    );
+    let halt = compile_and_run(src, "परीक्षा", "मुख्यम्");
+    println!("METRIC t1_storage_witness_a64_descending {halt}");
+    assert!(
+        halt.contains("Some(11)"),
+        "an `अ६४` element is a whole word and must keep the single-instruction \
+         store; the machine halted {halt}"
+    );
+}
+
 /// **THE STRIDE OF A STRUCT-ELEMENT ARRAY — does element १ overlap element ०?**
 ///
 /// The field path multiplies an ordinal by a literal `८` with no `विस्तार` check

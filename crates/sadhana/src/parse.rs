@@ -49,7 +49,7 @@ impl Width {
         }
     }
 
-    /// The width part of a doc 02 §2.5 type name: `भ६४` is 64 bits.
+    /// The width part of a doc 02 §2.5 type name: `प६४` is 64 bits.
     fn from_type(t: &str) -> Option<Self> {
         Self::from_digits(strip_type_class(t)?.1)
     }
@@ -456,7 +456,7 @@ fn string_body(args: &[&str]) -> Option<(String, usize)> {
 fn strip_type_class(t: &str) -> Option<(char, &str)> {
     let mut chars = t.chars();
     match chars.next()? {
-        c @ ('अ' | 'न' | 'भ') => Some((c, chars.as_str())),
+        c @ ('अ' | 'न' | 'प') => Some((c, chars.as_str())),
         _ => Some(('अ', t)),
     }
 }
@@ -465,7 +465,7 @@ fn strip_type_class(t: &str) -> Option<(char, &str)> {
 ///
 /// Most instructions write one — the व्याप्ति of what they operate on. A
 /// conversion writes two, because it names a pair of types (`B-075`): in
-/// `भिन्नरूपान्तरम्ॱअ३२ॱभ६४` the first is what is written and the second what is
+/// `प्लवरूपान्तरम्ॱअ३२ॱप६४` the first is what is written and the second what is
 /// read, in the order a reader meets them.
 fn split_types(text: &str) -> (&str, Vec<&str>) {
     let mut parts = text.split('ॱ');
@@ -1362,11 +1362,11 @@ mod tests {
 
     #[test]
     fn a_conversion_writes_two_types_and_everything_else_writes_one() {
-        // `B-075`. `भिन्नरूपान्तरम्ॱअ३२ॱभ६४` is "convert, writing a signed 32-bit
+        // `B-075`. `प्लवरूपान्तरम्ॱअ३२ॱप६४` is "convert, writing a signed 32-bit
         // integer, reading a 64-bit float" — the pair doc 02 §2.5 already had
         // names for, which is why no new vocabulary was coined.
-        let i = &assemble_source("भिन्नरूपान्तरम्ॱअ३२ॱभ६४ कम् खन ।").expect("parses")[0];
-        assert_eq!(i.types, vec!["अ३२", "भ६४"]);
+        let i = &assemble_source("प्लवरूपान्तरम्ॱअ३२ॱप६४ कम् खन ।").expect("parses")[0];
+        assert_eq!(i.types, vec!["अ३२", "प६४"]);
         assert_eq!(i.width, Width::W32, "the width is the RESULT's");
 
         // One suffix is the ordinary case and leaves the list one long.
@@ -1381,14 +1381,14 @@ mod tests {
         );
 
         // Nothing reads three types.
-        assert_eq!(codes("भिन्नरूपान्तरम्ॱअ३२ॱभ६४ॱभ३२ कम् खन ।"), ["P08"]);
+        assert_eq!(codes("प्लवरूपान्तरम्ॱअ३२ॱप६४ॱप३२ कम् खन ।"), ["P08"]);
     }
 
     #[test]
     fn the_unsigned_and_float_kinds_are_writable_type_names() {
         // Doc 02 §2.5 fixed three classes and the parser had only ever
         // accepted one, because until `B-075` one width was all a suffix said.
-        for src in ["योगःॱन३२ कम् खन ।", "योगःॱभ६४ कम् खन ।", "योगःॱ३२ कम् खन ।"]
+        for src in ["योगःॱन३२ कम् खन ।", "योगःॱप६४ कम् खन ।", "योगःॱ३२ कम् खन ।"]
         {
             assemble_source(src).unwrap_or_else(|e| panic!("{src}: {e:?}"));
         }

@@ -749,7 +749,7 @@ const SYNTHETIC_2_4: &str = "### 2.4 Registers
 | `tp` | ecall number | `तन्तुसूचकः` | thread-pointer |
 | `t0–t6` | temporaries | `क्षणिक०–क्षणिक६` | momentary |
 | `a0–a7` | args/return | `अर्थ०–अर्थ७` | argument/value |
-| `f0–f31` | float | `भिन्न०–भिन्न३१` | fractional |
+| `f0–f31` | float | `प्लव०–प्लव३१` | fractional |
 | `pc` | program counter | `क्रमसूचकः` | sequence-pointer |
 
 ### 2.5 Labels

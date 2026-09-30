@@ -70,7 +70,14 @@ fn csr_insn(funct3: u32, rd: u32, csr: u32, source: u32) -> u32 {
 /// A machine holding `words` at the entry point and nothing else.
 fn machine(words: &[u32]) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: vec![0; 1 << 16],
@@ -282,18 +289,31 @@ fn sstatus_keeps_only_the_bits_this_machine_stands_behind() {
     // SUM (bit 18) and MXR (bit 19) were dropped until `F-001c2b2` — they change what a
     // page-table walk permits, and a kernel must not read back a permission model nothing
     // enforces. They are STORED now, and the rule did not change: there is a walker, it is
-    // in user mode's way, and `tests/user.rs` holds both bits to what they permit. FS, XS
-    // and VS (bits 13:9 and 33:32) are still dropped, because `fadd.d` still halts.
+    // in user mode's way, and `tests/user.rs` holds both bits to what they permit.
+    //
+    // **FS (bits 14:13) JOINED THEM ON 2026-09-28, AND THIS TEST ASSERTED THE OPPOSITE.**
+    // It read "FS, XS and VS are still dropped, because `fadd.d` still halts" — which was
+    // true, and was the whole argument. Row `V-001` implemented F and D, so `fadd.d` runs;
+    // a dropped FS would mean a program writes `FS = dirty`, reads back 0, and a context
+    // switch built on that reading discards a live register file. The rule has not changed
+    // once: a bit is kept exactly when the feature it gates exists.
+    //
+    // **XS STAYS DROPPED AND IS WHAT MAKES THIS TEST STILL DISCRIMINATE.** Asserting only
+    // that FS survives would pass against a machine that had stopped narrowing at all, so
+    // the write below sets XS (bits 16:15) too and the expectation excludes it. There is no
+    // user extension, so nothing would honour it. VS is the same case until row `V-007`
+    // lands the vector unit — at which point this test and `SSTATUS_MASK`'s own margin are
+    // BOTH owed the refounding FS just had, and both say so.
     let mut m = machine(&[csr_insn(0x1, 0, SSTATUS, 6)]);
-    let (sum, mxr, fs) = (1 << 18, 1 << 19, 0x3 << 13);
-    m.x[6] = SSTATUS_SPP | sum | mxr | fs;
+    let (sum, mxr, fs, xs) = (1 << 18, 1 << 19, 0x3 << 13, 0x3 << 15);
+    m.x[6] = SSTATUS_SPP | sum | mxr | fs | xs;
     assert_eq!(m.step(&mut Vec::new()), None);
     assert_eq!(
         m.csr.sstatus,
-        SSTATUS_SPP | sum | mxr,
+        SSTATUS_SPP | sum | mxr | fs,
         "the WARL narrowing happens in the machine, so a later read cannot report a \
          permission bit as set when nothing would honour it — and cannot report one as \
-         clear when the walker is honouring it"
+         clear when the walker, or now the FPU, is honouring it"
     );
 }
 

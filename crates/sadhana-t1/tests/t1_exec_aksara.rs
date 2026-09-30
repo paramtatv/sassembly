@@ -33,6 +33,10 @@
 use sadhana::t1::nirvahana::{Interpreter, Octets, Value};
 use std::path::{Path, PathBuf};
 
+/// Building a substitute `spec/` root — shared with the other binary that does
+/// it, because two copies of this routine carried the same defect.
+mod spec_fixture;
+
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -132,14 +136,7 @@ fn unmutated() -> Interpreter {
 /// the substituted one is written fresh — the link is why a per-call root is
 /// affordable at ~50 calls against a 4.9 MB `spec/`.
 fn spec_root_with(file: &str, content: &str) -> PathBuf {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-
-    let dir = std::env::temp_dir().join(format!(
-        "aksara-spec-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
+    let dir = spec_fixture::unique_root("aksara-spec");
     std::fs::create_dir_all(&dir).expect("temp spec root");
     for entry in std::fs::read_dir(spec_root()).expect("spec/ is readable") {
         let p = entry.expect("entry").path();
@@ -160,8 +157,74 @@ fn spec_root_with(file: &str, content: &str) -> PathBuf {
             std::fs::copy(&p, &to).expect("copy spec file");
         }
     }
-    std::fs::write(dir.join(file), content).expect("write the substituted table");
+    spec_fixture::write_substituted(&dir, file, content);
     dir
+}
+
+/// **The substituted table must not be the repository's table.** SAS-017.
+///
+/// `spec_root_with` fills its root with HARD LINKS and then writes one file. If
+/// that one file is ever reached as a link, `fs::write` truncates
+/// `spec/` itself, and every reader in the workspace — this binary and the dozen
+/// running beside it — sees an empty table until something restores it. The
+/// failure that cost a day looked nothing like this: `no_pict` = 0 in a
+/// whole-workspace run, green everywhere else.
+///
+/// **WHAT THIS TEST PROVES AND WHAT IT DOES NOT, said because the first version
+/// of this margin overclaimed.** It checks the HAPPY PATH: the substitution
+/// takes, the result is a fresh file rather than a link, and two calls get two
+/// roots — so `spec_fixture::unique_root` is doing its job.
+///
+/// It does NOT prove the unlink works. It starts from a FRESH directory, where
+/// the substituted path was never a link, so the bug's PRECONDITION is absent
+/// and this would pass with the defect present — in every run where a collision
+/// did not happen to occur, which is about 249 in 250.
+///
+/// The proof is `spec_fixture::\
+/// writing_a_substituted_table_never_edits_the_file_it_was_linked_from`, which
+/// CONSTRUCTS the link first. Verified by deleting the unlink: that test reds and
+/// names the cause, and this one stays green.
+#[test]
+fn a_substituted_table_is_never_the_repositorys_own_file() {
+    use std::os::unix::fs::MetadataExt;
+
+    let real = spec_root().join("extended-pictographic.tsv");
+    let before = std::fs::metadata(&real).expect("the real table").len();
+    assert!(
+        before > 0,
+        "spec/extended-pictographic.tsv is already empty"
+    );
+
+    // Twice, because the bug needed a REUSED root: two calls must not land on
+    // one directory either.
+    let mut seen = Vec::new();
+    for _ in 0..2 {
+        let root = spec_root_with("extended-pictographic.tsv", "");
+        let sub = root.join("extended-pictographic.tsv");
+        let m = std::fs::metadata(&sub).expect("the substituted table");
+        assert_eq!(m.len(), 0, "the substitution did not take");
+        assert_ne!(
+            m.ino(),
+            std::fs::metadata(&real).expect("the real table").ino(),
+            "the substituted table SHARES AN INODE with spec/\
+             extended-pictographic.tsv — writing it edits the repository"
+        );
+        assert_eq!(
+            m.nlink(),
+            1,
+            "the substituted table has {} links; it should be a fresh file",
+            m.nlink()
+        );
+        seen.push(root);
+    }
+    assert_ne!(seen[0], seen[1], "two calls returned the SAME root");
+
+    assert_eq!(
+        std::fs::metadata(&real).expect("the real table").len(),
+        before,
+        "spec/extended-pictographic.tsv changed size while a substituted copy \
+         was written — the write went through a link"
+    );
 }
 
 fn spec_root_with_sutras(sutras: &str) -> PathBuf {
@@ -1186,6 +1249,35 @@ fn every_case_of_the_ucd_conformance_corpus_segments_identically() {
 /// well-formed table — it simply claims no code point. Every lookup then falls
 /// through to the default, which is what the reader must do for a code point in
 /// no range anyway.
+/// What a spec root ACTUALLY HOLDS for one table — the path, whether it is
+/// there, and how many non-comment rows it carries.
+///
+/// **BOTH FAILURES IN THIS FILE ARE OF THE FORM "the reader is not reading this
+/// file", AND NOTHING SAID WHICH FILE IT READ.** On 2026-09-26 the pair red in
+/// a whole-workspace run and passed every other way; four hypotheses died —
+/// the landing change, a corrupted `spec/`, the two tests interfering, and
+/// cross-process mutation (refuted: these use temp copies) — without localising
+/// anything, because no message carried the one fact that would.
+///
+/// So a red now names the root and the row count. A substituted table that is
+/// NOT empty, or a root that is not the temp dir, says in one reproduction what
+/// a bisect would take a day to say.
+fn table_state(root: &Path, table: &str) -> String {
+    let p = root.join(table);
+    match std::fs::read_to_string(&p) {
+        Ok(t) => {
+            let rows = t
+                .lines()
+                .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
+                .count();
+            // The header line counts as a row here and is subtracted, so an
+            // emptied table reads 0 and not 1.
+            format!("{} ({} data rows)", p.display(), rows.saturating_sub(1))
+        }
+        Err(e) => format!("{} (UNREADABLE: {e})", p.display()),
+    }
+}
+
 fn spec_root_without(table: &str) -> PathBuf {
     let real = std::fs::read_to_string(spec_root().join(table))
         .unwrap_or_else(|e| panic!("spec/{table}: {e}"));
@@ -1226,8 +1318,13 @@ fn each_of_the_three_tables_is_load_bearing() {
     let with_all = failures(&spec_root());
     assert_eq!(with_all, 0, "the unmodified tables must segment every case");
 
-    let no_incb = failures(&spec_root_without("incb.tsv"));
-    let no_pict = failures(&spec_root_without("extended-pictographic.tsv"));
+    // The roots are KEPT rather than passed inline: a failure must be able to
+    // say what the reader was pointed at, and a temporary that died at the end
+    // of the call cannot.
+    let root_no_incb = spec_root_without("incb.tsv");
+    let root_no_pict = spec_root_without("extended-pictographic.tsv");
+    let no_incb = failures(&root_no_incb);
+    let no_pict = failures(&root_no_pict);
 
     println!("METRIC sadhana_t1_aksharani_fail_without_incb {no_incb}");
     println!("METRIC sadhana_t1_aksharani_fail_without_extpict {no_pict}");
@@ -1235,12 +1332,18 @@ fn each_of_the_three_tables_is_load_bearing() {
     assert!(
         no_incb >= 16,
         "emptying spec/incb.tsv broke only {no_incb} cases; GB9c is either not \
-         being applied or not being read from that file"
+         being applied or not being read from that file.\n  the root it was \
+         given holds: {}\n  and the real one holds: {}",
+        table_state(&root_no_incb, "incb.tsv"),
+        table_state(&spec_root(), "incb.tsv")
     );
     assert!(
         no_pict >= 3,
         "emptying spec/extended-pictographic.tsv broke only {no_pict} cases; \
-         GB11 is not reading that file"
+         GB11 is not reading that file.\n  the root it was given holds: {}\n  \
+         and the real one holds: {}",
+        table_state(&root_no_pict, "extended-pictographic.tsv"),
+        table_state(&spec_root(), "extended-pictographic.tsv")
     );
 }
 
@@ -1289,16 +1392,20 @@ fn the_segmenter_reads_the_three_tables_and_not_a_baked_list() {
         .join("\n");
     assert_ne!(without_virama, incb, "the U+094D Linker row must be there");
 
-    let mut it = load_at(
-        &source("sanskrit_text.t1"),
-        &spec_root_with("incb.tsv", &without_virama),
-    );
+    // The root is BOUND, not passed inline: the assertion below concludes "this
+    // reader is not reading spec/incb.tsv" and until 2026-09-26 it could not say
+    // WHICH file it read. See `table_state`.
+    let struck = spec_root_with("incb.tsv", &without_virama);
+    let mut it = load_at(&source("sanskrit_text.t1"), &struck);
     prepare(&mut it);
     assert_eq!(
         aksharas(&mut it, "क्ष"),
         Ok(vec![(0, 6), (6, 3)]),
         "with U+094D no longer a Linker, GB9c cannot fire and क + ् must part \
-         from ष — this reader is not reading spec/incb.tsv"
+         from ष — this reader is not reading spec/incb.tsv.\n  the root it was \
+         given holds: {}\n  and the real one holds: {}",
+        table_state(&struck, "incb.tsv"),
+        table_state(&spec_root(), "incb.tsv")
     );
 }
 

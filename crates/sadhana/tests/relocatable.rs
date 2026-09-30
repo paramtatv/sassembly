@@ -104,7 +104,18 @@ fn readelf_reads_our_relocation_back() {
     ) {
         return;
     }
-    let dir = std::env::temp_dir().join("sansos-rel-readelf");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-rel-readelf-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let obj = dir.join("a.o");
     std::fs::write(&obj, object()).expect("write");
@@ -162,7 +173,18 @@ fn संरेखः_still_holds_after_a_link() {
     ) {
         return;
     }
-    let dir = std::env::temp_dir().join("sansos-w084");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-w084-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
 
     let src = "॥ कोष्ठकम् ॱपाठ ॥\nयोगः अर्थ०म् शून्यःन १न ।\n॥ संरेखः ०षोड्१० ॥\nसंरेखितम्ॱॱ\nयोगः अर्थ०म् शून्यःन २न ।\n";
@@ -259,7 +281,18 @@ fn a_linker_resolves_the_symbol_we_left_undefined() {
     ) {
         return;
     }
-    let dir = std::env::temp_dir().join("sansos-rel-link");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-rel-link-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let ours = dir.join("ours.o");
     std::fs::write(&ours, object()).expect("write");
@@ -344,7 +377,18 @@ fn a_devanagari_source_becomes_an_object_a_linker_can_finish() {
         "the displacement must be zero for the linker to fill"
     );
 
-    let dir = std::env::temp_dir().join("sansos-obj-end-to-end");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-obj-end-to-end-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let ours = dir.join("ours.o");
     std::fs::write(
@@ -417,7 +461,18 @@ fn we_can_read_an_object_gnu_wrote() {
     ) {
         return;
     }
-    let dir = std::env::temp_dir().join("sansos-read-gnu");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-read-gnu-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let src = dir.join("g.s");
     std::fs::write(
@@ -558,7 +613,18 @@ fn gnu_ld_fixes_our_line_table_when_it_places_the_text() {
         return;
     }
 
-    let dir = std::env::temp_dir().join("sansos-b100b");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-b100b-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("mkdir");
     let source = root().join("spec/lib-mudraka.sas");
     let text = std::fs::read_to_string(&source).expect("read");
@@ -668,7 +734,18 @@ fn gnu_ld_links_an_object_containing_a_pc_relative_pair() {
     ) {
         return;
     }
-    let dir = std::env::temp_dir().join("sansos-b105");
+    let dir = std::env::temp_dir().join(format!(
+        // UNIQUE PER PROCESS AND PER RUN. A fixed name is SHARED: 43 worktrees
+        // and several agents run gates on this machine at once, and two runs in
+        // one directory corrupt each other. The clock is the load-bearing part --
+        // pids are reused and these directories are never removed (W-301).
+        "sansos-b105-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("mkdir");
 
     let mut objects = Vec::new();

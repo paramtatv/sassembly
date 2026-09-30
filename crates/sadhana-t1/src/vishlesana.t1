@@ -17,8 +17,8 @@
 ॰ `usize` or `u32`.
 ॰
 ॰ T0 CONFIRMS THE GLOSS INDEPENDENTLY OF DOC 02: `crates/sadhana/tests/
-॰ type_classes.rs:94-95` assembles `भिन्नरूपान्तरम्ॱभ६४ॱन६४` to `fcvt.d.lu` and
-॰ `भिन्नरूपान्तरम्ॱभ६४ॱअ६४` to `fcvt.d.l` — the RISC-V mnemonics for convert
+॰ type_classes.rs:94-95` assembles `प्लवरूपान्तरम्ॱप६४ॱन६४` to `fcvt.d.lu` and
+॰ `प्लवरूपान्तरम्ॱप६४ॱअ६४` to `fcvt.d.l` — the RISC-V mnemonics for convert
 ॰ FROM UNSIGNED long and FROM SIGNED long. So `न` = `u64` and `अ` = `i64` is a
 ॰ claim already checked by an assembler test, not only by a lexicon row.
 ॰

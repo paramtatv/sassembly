@@ -1294,7 +1294,7 @@ fn encode_collecting(
             continue;
         }
         // The destination's register CLASS chooses among encodings that differ
-        // only in direction. `भिन्नसंचारः` covers four: two write a float
+        // only in direction. `प्लवसंचारः` covers four: two write a float
         // register from an integer one and two do the reverse, and the operands
         // already say which — so the direction needs no name (`B-074`).
         if let Some(dest) = inst.by_role(Karaka::Destination)
@@ -1339,9 +1339,9 @@ fn encode_collecting(
         // every one of them takes rd, rs1 and an immediate — identical shapes.
         // Selecting on shape alone therefore took whichever came first in the
         // file, so `आहारः` was `lb` at every width and `ld` was unreachable.
-        // The type's CLASS must match what the encoding operates on. `ॱभ` is a
+        // The type's CLASS must match what the encoding operates on. `ॱप` is a
         // float and `ॱअ`/`ॱन` are integers, and until `B-077` the letter was
-        // validated and then thrown away — so `योगःॱभ३२`, "add, 32-bit float",
+        // validated and then thrown away — so `योगःॱप३२`, "add, 32-bit float",
         // assembled as an integer `addw`, and every float family in the corpus
         // was written with the integer type that happens to share its width.
         //
@@ -1354,10 +1354,10 @@ fn encode_collecting(
         // an integer even though the encoding reads a float.
         if e.converts.is_none()
             && let Some(class) = inst.types.first().and_then(|s| s.chars().next())
-            && matches!(class, 'अ' | 'न' | 'भ')
+            && matches!(class, 'अ' | 'न' | 'प')
         {
             let wants_float = e.slots.iter().any(|s| s.kind == "freg");
-            if wants_float != (class == 'भ') {
+            if wants_float != (class == 'प') {
                 continue;
             }
         }
@@ -1406,12 +1406,12 @@ fn encode_collecting(
         // fine, and blaming the operand count would send the reader to check
         // registers that were correct (`B-077`).
         if let Some(class) = inst.types.first().and_then(|s| s.chars().next())
-            && matches!(class, 'अ' | 'न' | 'भ')
+            && matches!(class, 'अ' | 'न' | 'प')
         {
             let float = candidates
                 .iter()
                 .any(|e| e.slots.iter().any(|s| s.kind == "freg"));
-            if float != (class == 'भ') {
+            if float != (class == 'प') {
                 return Err(EncodeError {
                     line: inst.line,
                     // Two codes, not one with a word for an argument: an
@@ -1704,7 +1704,7 @@ fn encode_collecting(
                     enc.slot_with(RS1)
                 } else {
                     // rs2, then rs3. A fused multiply-add reads three
-                    // registers — `भिन्नगुणयोगः` is the only shape with more
+                    // registers — `प्लवगुणयोगः` is the only shape with more
                     // sources than the two the encoder knew about, and it
                     // collided on the third rather than placing it.
                     //
@@ -1885,8 +1885,8 @@ mod tests {
         // destination class, same result width. Only what they READ differs,
         // and before this the assembler had no way to be told which was meant
         // — it took whichever the encoding table listed first.
-        let from_single = word("भिन्नरूपान्तरम्ॱअ३२ॱभ३२ अर्थ०म् भिन्न१न ।");
-        let from_double = word("भिन्नरूपान्तरम्ॱअ३२ॱभ६४ अर्थ०म् भिन्न१न ।");
+        let from_single = word("प्लवरूपान्तरम्ॱअ३२ॱप३२ अर्थ०म् प्लव१न ।");
+        let from_double = word("प्लवरूपान्तरम्ॱअ३२ॱप६४ अर्थ०म् प्लव१न ।");
         assert_ne!(
             from_single, from_double,
             "reading a float32 and a float64 are different instructions"
@@ -1904,7 +1904,7 @@ mod tests {
         // Every one of the eighteen has the same shape, so counting registers
         // would say "no encoding taking 2 registers" — true of nothing, and
         // pointing the reader at the operands, which were fine.
-        let p = crate::parse::assemble_program("भिन्नरूपान्तरम्ॱअ३२ अर्थ०म् भिन्न१न ।").expect("parses");
+        let p = crate::parse::assemble_program("प्लवरूपान्तरम्ॱअ३२ अर्थ०म् प्लव१न ।").expect("parses");
         let e = encode_program(&p).expect_err("must not encode");
         // The family and the list of pairs, both of which survive translation.
         // Asserting the PROSE would pin whichever language the compiler happens
@@ -1912,12 +1912,12 @@ mod tests {
         // stop — and asserting the CODE needs `EncodeError` to carry one, which
         // is `B-078b`.
         assert!(
-            e[0].reason.contains("भिन्नरूपान्तरम्"),
+            e[0].reason.contains("प्लवरूपान्तरम्"),
             "the family at fault: {}",
             e[0].reason
         );
         assert!(
-            e[0].reason.contains("ॱअ३२ॱभ६४"),
+            e[0].reason.contains("ॱअ३२ॱप६४"),
             "it lists the pairs: {}",
             e[0].reason
         );
@@ -1928,7 +1928,7 @@ mod tests {
         // `योगः` reads and writes one type. A second suffix on it is a
         // misunderstanding, and silently ignoring it would encode an addition
         // the reader did not ask for.
-        let p = crate::parse::assemble_program("योगःॱअ३२ॱभ६४ अर्थ०म् अर्थ१न अर्थ२न ।").expect("parses");
+        let p = crate::parse::assemble_program("योगःॱअ३२ॱप६४ अर्थ०म् अर्थ१न अर्थ२न ।").expect("parses");
         assert!(
             encode_program(&p).is_err(),
             "a second type on an add is refused"
@@ -2005,7 +2005,7 @@ mod tests {
         assert!(e.len() > 150, "only {} encodings loaded", e.len());
         assert_eq!(register("शून्यः"), Some((0, false)));
         assert_eq!(register("क्षणिक३"), Some((28, false)), "t3 is x28");
-        assert_eq!(register("भिन्न३१"), Some((31, true)));
+        assert_eq!(register("प्लव३१"), Some((31, true)));
         assert_eq!(register("नास्ति"), None);
     }
 

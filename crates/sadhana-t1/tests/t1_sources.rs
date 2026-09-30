@@ -1093,7 +1093,7 @@ fn the_disassembler_port_reports_how_much_of_it_is_real() {
 const SEMA_SYMBOLS: &[(&str, &str)] = &[
     ("enum Ty", "संरचना अर्थप्रकार"),
     ("Ty::Int", "पूर्णाङ्कार्थभेद"),
-    ("Ty::Float", "भिन्नार्थभेद"),
+    ("Ty::Float", "प्लवार्थभेद"),
     ("Ty::Pointer", "स्थानार्थभेद"),
     ("Ty::Slice", "खण्डार्थभेद"),
     ("Ty::Optional", "सम्भाव्यार्थभेद"),
@@ -2515,7 +2515,7 @@ const T0_READER_SYMBOLS: &[(&str, &str)] = &[
 ///   pair here. If it collapses to one field the run it stands for is gone.
 /// * `Instruction::types` is a `Vec<String>` of at most TWO — one width for an
 ///   ordinary instruction, two for a conversion (`B-075`) — so it is two named
-///   fields and a count, and `प्रकारसंख्यान` is what keeps `भिन्नरूपान्तरम्ॱअ३२ॱभ६४`
+///   fields and a count, and `प्रकारसंख्यान` is what keeps `प्लवरूपान्तरम्ॱअ३२ॱप६४`
 ///   distinguishable from a bare mnemonic.
 /// * `Datum::addresses` is `ADR-0013`'s deferred relocation: without
 ///   `स्थानारम्भ`/`स्थानसंख्यान` a datum that names a label loses the fact.

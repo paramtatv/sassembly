@@ -6346,12 +6346,12 @@ fn the_type_evaluator_names_a_primitive_and_shapes_a_wrapper() {
 /// THE VOCABULARY IS TAKEN FROM THE SPEC, not from the routine. `grammar-t1.ebnf`
 /// freezes `integer_type = ( "अ" | "न" ) , type_width` with the margin
 /// "अंश signed, निर्ऋण unsigned", `type_width = ८ | १६ | ३२ | ६४ | १२८`, and
-/// `float_type = "भ" , ( "३२" | "६४" )`. A name added to the grammar and not
+/// `float_type = "प" , ( "३२" | "६४" )`. A name added to the grammar and not
 /// here fails this test, which is the point.
 #[test]
 fn every_frozen_primitive_type_name_has_a_semantic_type() {
     let mut it = load_sema_with_parser();
-    // (name, kind, width, signed) — kind 1 = पूर्णाङ्कार्थभेद, 2 = भिन्नार्थभेद.
+    // (name, kind, width, signed) — kind 1 = पूर्णाङ्कार्थभेद, 2 = प्लवार्थभेद.
     let cases: &[(&str, i128, i128, bool)] = &[
         ("अ८", 1, 8, true),
         ("अ१६", 1, 16, true),
@@ -6363,8 +6363,8 @@ fn every_frozen_primitive_type_name_has_a_semantic_type() {
         ("न३२", 1, 32, false),
         ("न६४", 1, 64, false),
         ("न१२८", 1, 128, false),
-        ("भ३२", 2, 32, false),
-        ("भ६४", 2, 64, false),
+        ("प३२", 2, 32, false),
+        ("प६४", 2, 64, false),
         ("बूल", 1, 1, false),
         // `अक्षरम्` AND `पाठः` — blocker (d) decided: both reuse पूर्णाङ्कार्थभेद
         // rather than getting a new kind, the same reuse बूल already makes.

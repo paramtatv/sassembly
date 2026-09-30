@@ -106,6 +106,64 @@ const MISTYPED: &str = "मण्डलम् विपरीतम् ॥\n\
      \x20   क ।\n\
      इति\n";
 
+/// A source with a Latin letter in it — `x` in the routine's name. Every other
+/// octet is in R-15-1, so the ONE code point outside it is what refuses this.
+const LATIN: &str = "मण्डलम् परिधिपरीक्षा ॥\n\
+     सार्वजनिक वृत्तिः मुख्यx ददाति न६४ आदि\n\
+     \x20   प्रत्यागमनम् २१ ।\n\
+     इति\n";
+
+/// **W-304: A SOURCE OUTSIDE R-15-1 IS REFUSED, AND THE REFUSAL SAYS WHY.**
+///
+/// `पठनम्` gates on `अक्षरकोशॱपरिधिदोषः` and returns ० BEFORE `निर्णयः` runs,
+/// so `निर्णयविरामभेद` never records this refusal — it still holds whatever the
+/// PREVIOUS source left there. Without an arm of its own, `refusal_site`
+/// answered `""` on exactly this path, which is how the wiring first showed up:
+/// two fixtures in `t1_statement_expressions.rs` failed with `refusal: None`.
+#[test]
+fn a_source_outside_the_repertoire_is_named_as_a_repertoire_refusal() {
+    let mut it = load_chain();
+    let text = compile(&mut it, "परिधिपरीक्षा", LATIN);
+    assert!(
+        text.is_empty(),
+        "a source with a Latin letter must be REFUSED:\n{}",
+        &text[..text.len().min(400)]
+    );
+    let site = chain::refusal_site(&it).unwrap_or_default();
+    assert!(
+        site.starts_with("repertoire: octet "),
+        "the refusal must name the repertoire, not a later stage; got {site:?}"
+    );
+}
+
+/// **THE CASE THAT MUST STILL BE REFUSED: THE REPERTOIRE RECORD MUST NOT STAND.**
+///
+/// Same interpreter, immediately after the refusal above. `पठनम्` resets
+/// `परिधिदोषस्थितम्` on entry, and if it stopped doing so this routine would
+/// report a repertoire refusal for every later source — the stale-record
+/// failure the stage gate exists to prevent, arriving by the new arm instead.
+#[test]
+fn a_clean_source_after_a_repertoire_refusal_has_no_site() {
+    let mut it = load_chain();
+    assert!(
+        compile(&mut it, "परिधिपरीक्षा", LATIN).is_empty(),
+        "the refusing module is compiled FIRST, so the clean one runs over its record"
+    );
+    assert!(
+        chain::refusal_site(&it).is_some(),
+        "…and that record exists"
+    );
+    assert!(
+        !compile(&mut it, "निजम्", CLEAN).is_empty(),
+        "the clean module must compile"
+    );
+    assert_eq!(
+        chain::refusal_site(&it),
+        None,
+        "a module that compiled must have NO site — the repertoire record was left standing"
+    );
+}
+
 /// **THE ROW'S FALSIFIER**, verbatim: *a scratch module calling an undeclared
 /// routine reports its name and site.* Through the drivers' own call, not
 /// through `Front`.

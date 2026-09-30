@@ -47,14 +47,28 @@
 //! **occurs in the corpus**, counted rather than chosen: `योगः` 399, `समम्`
 //! 357, `न्यूनम्` 205, `वियोगः` 95, `असमम्` 78, `अधिकम्` 76, `वामसृ` 23,
 //! `युक्` 17, `दक्षिणसृ` 12, `गुणनम्` 12, `विकल्प` 9, `विभाजनम्` 5, `शेषः` 3,
-//! `बृहत्समम्` 2. `spec/lexicon.tsv` proposes a DIFFERENT set for the same jobs
-//! — `अधि` for plus (line 24), `ऊन` for minus (86), `विषमम्` for not-equal
-//! (340), `अधिकसमम्` for greater-or-equal (26) — and **not one of those four is
-//! used as an operator in any `.t1` body.** `ऊन`, `विषमम्` and `अधिकसमम्` do not
-//! occur at all; `अधि` occurs twice, `crates/sadhana-t1/src/utsarjana.t1:624`
-//! and `:625`, where it is a LOCAL VARIABLE — a lexicon operator bound as a
-//! name, which is the shape `B-112` fixed for `समावेशः`. Reconciling the two
-//! sets is `D-002h`'s remaining half and is not done here.
+//! `बृहत्समम्` 2.
+//!
+//! **THIS PARAGRAPH USED TO SAY THE LEXICON PROPOSED A DIFFERENT SET, AND NAMED
+//! FOUR WORDS THAT ARE NOT IN IT.** It read that `spec/lexicon.tsv` proposes
+//! `अधि` for plus (line 24), `ऊन` for minus (86), `विषमम्` for not-equal (340)
+//! and `अधिकसमम्` for greater-or-equal (26). MEASURED 2026-09-28: **none of those
+//! four is an entry in that file at all**, and the cited lines hold unrelated
+//! rows. Two of them are one syllable from a word that IS there and IS used —
+//! `विषम` is bitwise-xor and `बृहत्समम्` is greater-or-equal (ADR-0037, "frozen
+//! from the corpus", read by `parse.t1:468` and `:502`). A margin that names a
+//! near-miss spelling is worse than none: `W-307` was opened after this sentence
+//! sent a reader looking for a `>=` the language already has.
+//!
+//! What survives is the count above — the operator set IS the set that occurs —
+//! and the direction: **CORPUS PRIMACY**, `D-002h` (owner, 2026-08-29), restated
+//! as ruling Q5(b) on 2026-09-28. The lexicon reflects the language and does not
+//! constrain it; where the two differ the corpus wins and the row changes.
+//! `spec/lexicon.tsv`'s `status` column is now DERIVED from corpus token
+//! presence or an ADR source rather than authored, so a word this file has never
+//! adopted reads `proposed` and is not a defect. `D-002h`'s remaining half is
+//! scoped by ruling Q5(c) to the 185 language-bearing entries — keyword,
+//! operator, type and mnemonic — and is not done here.
 //!
 //! `spec/grammar-t1.ebnf:380-395` still says `expression`, `statement` and
 //! `type` are DEFERRED NON-TERMINALS that *"are not defined anywhere yet"*, and

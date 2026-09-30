@@ -62,7 +62,14 @@ const SBI_SHUTDOWN: u64 = 8;
 /// installed, in `mode`.
 fn calling(a7: u64, mode: Privilege) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: vec![0; RAM],

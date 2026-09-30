@@ -44,6 +44,26 @@
 आयातः अष्टक ।        ॰ the OUTPUT CHANNEL — `मुद्रणम्`, and nothing else here uses it
 आयातः समावेशसारणी ।   ॰ the generated spec-table store (tools/mkspectables.py)
 
+आयातः अक्षरकोश ।     ॰ R-15-1's repertoire — W-304, and `पठनम्` gates on it
+
+॰ ॥ THE REPERTOIRE REFUSAL ॥ did the last `पठनम्` meet a code point outside
+॰ R-15-1, and at which octet. A reader asks the module that refused, exactly as
+॰ `निर्णयविरामभेद` is asked: `पठनम्` answers ० for this AND for "no
+॰ declarations", so the two cannot be told apart from the return alone.
+॰
+॰ `न६४` IS UNSIGNED, so there is no −१ to mean "none" — hence a बूल beside the
+॰ offset rather than a sentinel inside it.
+॰
+॰ THE GATE IS A PRE-PASS, NOT A CHECK INSIDE THE LEXER, AND THAT IS FORCED.
+॰ `lex.t1` imports NOTHING and the table lives in `अक्षरकोश`, so `पदविभाग`
+॰ cannot reach it; giving the lexer its first import to invert that edge is a
+॰ structural change this row does not need. `lex.rs:583-625` checks per WORD
+॰ while lexing; this refuses the source before `पदविभाग` sees it. The VERDICT is
+॰ identical — `t1_repertoire_twin` compares verdicts, not offsets, over 69
+॰ sources — and the diagnostic is ONE offset rather than one per offending word.
+सार्वजनिक चरः परिधिदोषस्थितम् ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः परिधिदोषस्थानम् ॱॱ न६४ भवति ० ।   ॰ the octet, meaningful only when the बूल above is सत्यम्
+
 ॰ How many objects the last `मण्डलानिप्रतिबिम्बम्` collected — the startup plus
 ॰ every source that produced one. A caller cannot recover this from the image,
 ॰ and a test asserting "twenty sources went in" without asking how many objects
@@ -270,6 +290,17 @@
 
 ॰ ॥ पठनम् ॥ source octets to declarations — lex and parse.
 सार्वजनिक वृत्तिः पठनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    ॰ RESET FIRST, so a reader of a SECOND call never sees the first's exit.
+    परिधिदोषस्थितम् भवति असत्यम् ।
+    परिधिदोषस्थानम् भवति ० ।
+    ॰ R-15-1 BEFORE ANYTHING IS TOKENISED. `परिधिदोषः` answers the octet of the
+    ॰ first inadmissible code point, or `मूल ॱ दैर्घ्य` when the source is clean.
+    चरः परिधिस्थानम् ॱॱ न६४ भवति अक्षरकोशॱपरिधिदोषः मूल ।
+    यदि परिधिस्थानम् न्यूनम् मूल ॱ दैर्घ्य आदि
+        परिधिदोषस्थितम् भवति सत्यम् ।
+        परिधिदोषस्थानम् भवति परिधिस्थानम् ।
+        प्रत्यागमनम् ० ।
+    इति
     चरः चिह्नकाः ॱॱ न६४ भवति पदविभागॱपदविभाग मूल ।
     यदि चिह्नकाः समम् ० आदि
         प्रत्यागमनम् ० ।

@@ -167,6 +167,6 @@ fn indexed_names_use_devanagari_numerals() {
     let by: BTreeMap<String, String> = regs().into_iter().map(|r| (r.abi, r.devanagari)).collect();
     assert_eq!(by["t3"], "क्षणिक३");
     assert_eq!(by["a0"], "अर्थ०");
-    assert_eq!(by["f31"], "भिन्न३१");
+    assert_eq!(by["f31"], "प्लव३१");
     println!("METRIC sassembly_registers_named {}", regs().len());
 }

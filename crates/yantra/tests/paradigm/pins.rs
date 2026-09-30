@@ -273,7 +273,21 @@ pub const T1_ASSEMBLED: usize = 19;
 // source, 4 threads, 3061 s): every object is present now, so `shrinkhala.t1` LINKS and
 // runs, and the two data-only objects run at the stub. `sanskrit_text.t1` moved the other
 // way — see `T1_ASSEMBLED_NOT_ON_YANTRA`. MEASURED from the failing assertion.
-pub const T1_ON_YANTRA: usize = 18;
+// 18 -> 19 on 2026-09-28, `W-306`, MEASURED from the failing assertion on the full
+// 19-source walk: `sanskrit_text.t1` runs, and the stopped list below empties with it.
+// THE COMMIT THAT DID IT IS `14799fad` (2026-09-14), "the compiler reads its own spec
+// tables at run time, not through the include" — it replaced four LEX-TIME
+// `समावेशः आरभ्य <table> समाप्तम्` substitutions in `sanskrit_text.t1` with run-time
+// lookups in `समावेशपाठकोश`, so the module object no longer walks a table literal
+// baked into itself at load. Its own message says "NOT COVERED: the full census and
+// the pins (report-only)", so the re-take was owed from that day and this is it.
+// NOT RE-TAKEN ON THE STRENGTH OF ONE GREEN RUN — that is the failure this file
+// records. `W-306` gave the census `Row::step_margin` first, and the margin is what
+// justifies the move: `sanskrit_text.t1` halts at the finisher in **80 steps of
+// 1,000,000 (0%)**, four orders of magnitude clear of the limit it used to hit. A
+// source that had merely squeaked under would read `tight` and this pin would have
+// stayed where it was.
+pub const T1_ON_YANTRA: usize = 19;
 
 /// Of those, the sources the whole chain accepts — lex, parse, resolve AND
 /// typecheck — before the emitter's stages: the owner's definition of done
@@ -373,7 +387,10 @@ pub const T1_ON_YANTRA: usize = 18;
 // machine. The checker's verdict on it did not change — it typechecks in both
 // trees. What changed is that it now HAS an IR for the later stages to refuse.
 // 16 -> 18 on 2026-09-13 with `T1_ON_YANTRA` above.
-pub const T1_CHAIN_ON_YANTRA: usize = 18;
+// 18 -> 19 on 2026-09-28, `W-306`, MEASURED (`paradigm_encode_t1_chain_on_yantra 19`):
+// it moves WITH `T1_ON_YANTRA` above and for that pin's reason — the checker accepts
+// `sanskrit_text.t1`, so the source it gained is one the WHOLE chain carries.
+pub const T1_CHAIN_ON_YANTRA: usize = 19;
 
 /// Every source that does NOT assemble, with the stage the emitter's side of
 /// the chain stopped at — `parse`, `resolve`, `IR`, `emit`, or `assemble` —
@@ -615,7 +632,17 @@ pub const T1_UNASSEMBLED: &[(&str, &str)] = &[
 // finisher before it and now spins to the step limit: a read that was a stub's
 // ० is a real load of another module's global, whose initialiser has not run in
 // this image. Named here, fixed on top; the census's stage says `run:step-limit`.
-pub const T1_ASSEMBLED_NOT_ON_YANTRA: &[(&str, &str)] = &[("sanskrit_text.t1", "run:step-limit")];
+// EMPTIED 2026-09-28, `W-306`: `sanskrit_text.t1` was its one entry and it runs now
+// (see `T1_ON_YANTRA`). An empty list here is the state this file warned about — it is
+// the only place a source that STOPPED running would show, so emptying it by hand
+// removes the instrument rather than the fault. IT IS NOT EMPTIED BY HAND AND IT IS NOT
+// LEFT WITHOUT AN INSTRUMENT: the same cycle added the census's per-source
+// `METRIC t1_run_steps <name> <spare|tight|exhausted> <n> of <BUDGET>` line, which
+// names every source's step count whether or not it ran, so a source that falls back to
+// the step limit now reads `exhausted` with its count beside it instead of showing up
+// only as a new tuple in this list. The tuple equality below still reds on the move;
+// what changed is that the reader is told HOW CLOSE the survivors are.
+pub const T1_ASSEMBLED_NOT_ON_YANTRA: &[(&str, &str)] = &[];
 
 /// `tests/corpus/t1/*.सस` — counted, 0 readable BY DESIGN (research/25 §1.4a,
 /// `W-238`: a retired dialect, never a readable count to raise).

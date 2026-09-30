@@ -41,7 +41,14 @@ const SBI_PAYLOAD: u64 = 0x8020_0000;
 /// A machine with one instruction at the entry point and nothing else.
 fn machine(word: u32) -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: BASE,
         base: BASE,
         mem: vec![0; 1 << 16],

@@ -78,28 +78,28 @@ amomaxu	अचिह्नपरमाणुपरमम्	atomic maximum witho
 amomin	परमाणुन्यूनतमम्	atomic minimum	A	amomin.w,amomin.d		coined
 amominu	अचिह्नपरमाणुन्यूनतमम्	atomic minimum without sign extension	A	amominu.w,amominu.d		coined
 # ---- F and D: floating point ---------------------------------------------
-fload	भिन्नाहारः	float load	FD	flw,fld,c.fld,c.fldsp		coined
-fstore	भिन्ननिधानम्	float store	FD	fsw,fsd,c.fsd,c.fsdsp		coined
-fadd	भिन्नयोगः	float add	FD	fadd.s,fadd.d		coined
-fsub	भिन्नवियोगः	float subtract	FD	fsub.s,fsub.d		coined
-fmul	भिन्नगुणनम्	float multiply	FD	fmul.s,fmul.d		coined
-fdiv	भिन्नभागः	float divide	FD	fdiv.s,fdiv.d		coined
-fsqrt	वर्गमूलम्	square root	FD	fsqrt.s,fsqrt.d		lexicon
-fmadd	भिन्नगुणयोगः	multiply then add	FD	fmadd.s,fmadd.d		coined
-fmsub	भिन्नगुणवियोगः	multiply then subtract	FD	fmsub.s,fmsub.d		coined
-fnmadd	ऋणभिन्नगुणयोगः	negated multiply then add	FD	fnmadd.s,fnmadd.d		coined
-fnmsub	ऋणभिन्नगुणवियोगः	negated multiply then subtract	FD	fnmsub.s,fnmsub.d		coined
-fmax	भिन्नपरमम्	float maximum	FD	fmax.s,fmax.d		coined
-fmin	भिन्नन्यूनतमम्	float minimum	FD	fmin.s,fmin.d		coined
-fcvt	भिन्नरूपान्तरम्	float convert	FD	fcvt.w.s,fcvt.wu.s,fcvt.l.s,fcvt.lu.s,fcvt.s.w,fcvt.s.wu,fcvt.s.l,fcvt.s.lu,fcvt.w.d,fcvt.wu.d,fcvt.l.d,fcvt.lu.d,fcvt.d.w,fcvt.d.wu,fcvt.d.l,fcvt.d.lu,fcvt.s.d,fcvt.d.s		coined
-fsgnj	चिह्नारोपणम्	copy the sign	FD	fsgnj.s,fsgnj.d		coined
-fsgnjn	व्यत्ययचिह्नारोपणम्	copy the inverted sign	FD	fsgnjn.s,fsgnjn.d		coined
-fsgnjx	वैषम्यचिह्नारोपणम्	copy the signs xored	FD	fsgnjx.s,fsgnjx.d		coined
-fcmpeq	भिन्नसमम्	float equal	FD	feq.s,feq.d		coined
-fcmplt	भिन्नन्यूनम्	float less than	FD	flt.s,flt.d		coined
-fcmple	भिन्नानधिकम्	float not greater than	FD	fle.s,fle.d		coined
-fclass	भिन्नवर्गः	classify float	FD	fclass.s,fclass.d		coined
-fmv	भिन्नसंचारः	float move	FD	fmv.x.w,fmv.w.x,fmv.x.d,fmv.d.x		coined
+fload	प्लवाहारः	float load	FD	flw,fld,c.fld,c.fldsp		coined
+fstore	प्लवनिधानम्	float store	FD	fsw,fsd,c.fsd,c.fsdsp		coined
+fadd	प्लवयोगः	float add	FD	fadd.s,fadd.d		coined
+fsub	प्लववियोगः	float subtract	FD	fsub.s,fsub.d		coined
+fmul	प्लवगुणनम्	float multiply	FD	fmul.s,fmul.d		coined
+fdiv	प्लवभागः	float divide	FD	fdiv.s,fdiv.d		coined
+fsqrt	प्लववर्गमूलम्	square root	FD	fsqrt.s,fsqrt.d		lexicon
+fmadd	प्लवगुणयोगः	multiply then add	FD	fmadd.s,fmadd.d		coined
+fmsub	प्लवगुणवियोगः	multiply then subtract	FD	fmsub.s,fmsub.d		coined
+fnmadd	ऋणप्लवगुणयोगः	negated multiply then add	FD	fnmadd.s,fnmadd.d		coined
+fnmsub	ऋणप्लवगुणवियोगः	negated multiply then subtract	FD	fnmsub.s,fnmsub.d		coined
+fmax	प्लवपरमम्	float maximum	FD	fmax.s,fmax.d		coined
+fmin	प्लवन्यूनतमम्	float minimum	FD	fmin.s,fmin.d		coined
+fcvt	प्लवरूपान्तरम्	float convert	FD	fcvt.w.s,fcvt.wu.s,fcvt.l.s,fcvt.lu.s,fcvt.s.w,fcvt.s.wu,fcvt.s.l,fcvt.s.lu,fcvt.w.d,fcvt.wu.d,fcvt.l.d,fcvt.lu.d,fcvt.d.w,fcvt.d.wu,fcvt.d.l,fcvt.d.lu,fcvt.s.d,fcvt.d.s		coined
+fsgnj	प्लवचिह्नारोपणम्	copy the sign	FD	fsgnj.s,fsgnj.d		coined
+fsgnjn	व्यत्ययप्लवचिह्नारोपणम्	copy the inverted sign	FD	fsgnjn.s,fsgnjn.d		coined
+fsgnjx	वैषम्यप्लवचिह्नारोपणम्	copy the signs xored	FD	fsgnjx.s,fsgnjx.d		coined
+fcmpeq	प्लवसमम्	float equal	FD	feq.s,feq.d		coined
+fcmplt	प्लवन्यूनम्	float less than	FD	flt.s,flt.d		coined
+fcmple	प्लवानधिकम्	float not greater than	FD	fle.s,fle.d		coined
+fclass	प्लववर्गः	classify float	FD	fclass.s,fclass.d		coined
+fmv	प्लवसंचारः	float move	FD	fmv.x.w,fmv.w.x,fmv.x.d,fmv.d.x		coined
 # ---- Zicsr and Zifencei --------------------------------------------------
 csrrw	नियन्त्रकविनिमयः	control register exchange	Zicsr	csrrw,csrrwi		coined
 csrrs	नियन्त्रकविकल्पः	control register set, which is or	Zicsr	csrrs,csrrsi		coined

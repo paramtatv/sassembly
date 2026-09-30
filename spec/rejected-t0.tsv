@@ -26,13 +26,13 @@ sassembly	expect	why
 योगः अर्थ० अर्थ१न अर्थ२न ।	P10	an operand with no case marking has no role
 योगःॱअ१२८ अर्थ०म् अर्थ१न अर्थ२न ।	व्याप्ति	128 is not a width the ISA has
 व्यत्ययः अर्थ०म् अर्थ१न ।	E01	a pseudo-instruction is named but has no encoding of its own
-भिन्नरूपान्तरम्ॱअ३२ अर्थ०म् भिन्न१न ।	E10	B-075: a conversion names what it writes AND what it reads; one type leaves eighteen encodings fitting and file order choosing
-भिन्नरूपान्तरम्ॱअ३२ॱभ१६ अर्थ०म् भिन्न१न ।	E10	B-075: there is no 16-bit float to convert from, and a pair that does not exist must not fall back to one that does
-योगःॱअ३२ॱभ६४ अर्थ०म् अर्थ१न अर्थ२न ।	E04	B-075: only a conversion reads one type and writes another
+प्लवरूपान्तरम्ॱअ३२ अर्थ०म् प्लव१न ।	E10	B-075: a conversion names what it writes AND what it reads; one type leaves eighteen encodings fitting and file order choosing
+प्लवरूपान्तरम्ॱअ३२ॱप१६ अर्थ०म् प्लव१न ।	E10	B-075: there is no 16-bit float to convert from, and a pair that does not exist must not fall back to one that does
+योगःॱअ३२ॱप६४ अर्थ०म् अर्थ१न अर्थ२न ।	E04	B-075: only a conversion reads one type and writes another
 ॥ अष्टकाः उक्तम् क इति इति ॥	इति	B-067: a doubled इति is the word itself, so nothing closes this string
 ॥ अष्टकाः उक्तम् क इति ख ॥	इति	B-067: content after the closing इति would assemble as `क`, which is not what the program says
-योगःॱभ३२ अर्थ०म् अर्थ१न अर्थ२न ।	E03	B-077: भ names a float and योगः adds integers; the letter was validated and discarded, so this assembled as addw
-भिन्नयोगःॱअ३२ भिन्न०म् भिन्न१न भिन्न२न ।	E09	B-077: the corpus wrote every float family with the integer type that happens to share its width
+योगःॱप३२ अर्थ०म् अर्थ१न अर्थ२न ।	E03	B-077: भ names a float and योगः adds integers; the letter was validated and discarded, so this assembled as addw
+प्लवयोगःॱअ३२ प्लव०म् प्लव१न प्लव२न ।	E09	B-077: the corpus wrote every float family with the integer type that happens to share its width
 वैश्विकम् मुख्यम् ॥	P24	ADR-0012: this assembled for 150 cycles, and the claim that a directive is tellable from an instruction without knowing the names was false while it did
 ॥	P25	a lone ॥ was silently an empty statement; a mark that assembles to nothing is how a typo becomes a program that says nothing
 ॥ ॥	P26	an opened and closed directive that names nothing

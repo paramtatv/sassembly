@@ -184,8 +184,10 @@ fn the_fusion_rules_are_recorded_rather_than_assumed() {
 fn the_compressed_encoder_agrees_with_the_assembler_where_it_can_choose() {
     // `compressed_at` matches operands to a 16-bit encoding's slots. Today that
     // succeeds only where the compressed form has the SAME shape as the wide
-    // one — an instruction with no operands at all. One of 5949 conformance
-    // cases, and that number is the size of what `B-058b2b2` has left to do.
+    // one — an instruction with no operands at all. One of the ~6,000
+    // conformance cases, and that number is the size of what `B-058b2b2` has
+    // left to do. Not written exactly: the corpus grows, and a literal here was
+    // how `tests/conformance_rvc.rs` let the two tables drift 49 rows apart.
     use std::collections::BTreeMap;
     let p = sadhana::parse::assemble_program("अन्वेषणविरामः ।\n").expect("parses");
     let inst = p.instructions.first().expect("one instruction");

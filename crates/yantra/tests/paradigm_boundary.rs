@@ -159,6 +159,13 @@ const DIAGNOSTIC_PREFIXES: &[&str] = &[
     "SURFACE: ",
     "note: ",
     "usage: ",
+    // `yantra-run.rs`, always on: "steps: {} executed instructions" — the
+    // benchmark metric row `T-102` ratified. Enrolled in the same commit that
+    // added it, because the margin below already recorded `ram: high water`
+    // being added WITHOUT enrolment and failing this very census. Reading that
+    // note and then repeating the omission is the one outcome it was written to
+    // prevent.
+    "steps: ",
     // `yantra-run.rs:85`, behind `YANTRA_WATERMARK`: "ram: high water {} of {}
     // octets". A real diagnostic on the real stream, added without being enrolled
     // here — so this census reported an unrecognised stderr line and the step
@@ -715,7 +722,14 @@ fn lingerer(load: u64) -> Vec<u8> {
 /// A machine with the supervisor's one `sret` installed at [`BASE`].
 fn kernel_machine() -> Machine {
     let mut m = Machine {
+        // Added with the `patra` file window: a machine that was never asked
+        // to serve files must not be able to.
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
         x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
         pc: 0,
         base: BASE,
         mem: vec![0; KERNEL_RAM],
