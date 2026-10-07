@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "sadhana"
-version = "0.3.0"
+version = "0.0.1"
 dependencies = [
  "sanskrit-text",
 ]
@@ -18,4 +18,4 @@ dependencies = [
 
 [[package]]
 name = "sanskrit-text"
-version = "0.3.0"
+version = "0.0.1"

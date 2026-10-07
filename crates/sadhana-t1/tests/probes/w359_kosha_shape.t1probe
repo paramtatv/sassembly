@@ -1,0 +1,26 @@
+मण्डलम् कोशशीर्षपरीक्षण ॥
+
+॰ W-359 acceptance (e): the archive project's shape. `kernel/kosha.t1`'s `शीर्षम्` (the archive project
+॰ :106) takes `फलम् ॱॱ अङ्कः अन्तः न६४`, answers a STATUS (न६४), and writes
+॰ `फलम् अङ्कः १९ अन्तः` (:158) while its callers size the run to १५ — the one
+॰ grower of a non-returned parameter the dynamic census of 2026-10-04 found.
+॰ Reproduced here: index १० is within the length and passes; index १९ is
+॰ past it and is REFUSED by name on both engines.
+वृत्तिः शीर्षम् आदाय फलम् ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    फलम् अङ्कः १० अन्तः भवति २७ ।
+    फलम् अङ्कः १९ अन्तः भवति ३ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः फलम् ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क ॱॱ न६४ भवति ० ।
+    यावत् क न्यूनम् १५ आदि
+        फलम् अङ्कः क अन्तः भवति ० ।
+        क भवति क योगः १ ।
+    इति
+    चरः स्थितिः ॱॱ न६४ भवति शीर्षम् फलम् ।
+    चरः फलाङ्कः ॱॱ न६४ भवति फलम् अङ्कः १० अन्तः ।
+    फलाङ्कः भवति फलाङ्कः योगः स्थितिः ।
+    प्रत्यागमनम् फलाङ्कः ।
+इति

@@ -64,7 +64,8 @@ fn every_register_name_can_actually_be_written() {
 fn both_files_cover_all_thirty_two_of_each_class() {
     // A missing register is one a program cannot name — and RISC-V has exactly
     // 32 of each, so the count is checkable rather than a matter of judgement.
-    for class in ["int", "float"] {
+    // `V-008` part 2: and the 32 vector registers, `व्यूह०`..`व्यूह३१`.
+    for class in ["int", "float", "vector"] {
         let mut nums: Vec<u32> = regs()
             .into_iter()
             .filter(|r| r.class == class)

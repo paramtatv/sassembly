@@ -1,5 +1,6 @@
 [package]
 name = "sadhana-wasm"
+license = "AGPL-3.0-only"
 version = "0.0.1"
 # Spelled out rather than inherited with `.workspace = true`, for the reason
 # `yantra-wasm` already records: this package is in the workspace root's
@@ -12,7 +13,7 @@ version = "0.0.1"
 # those move, this must move with them.
 edition = "2024"
 rust-version = "1.94"
-repository = "https://github.com/paramtatv/sassembly"
+repository = "https://github.com/paramtatv/sansos"
 publish = false
 
 [lib]

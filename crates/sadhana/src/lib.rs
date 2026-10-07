@@ -6,6 +6,7 @@
 //! `spec/mnemonics-riscv64.src.tsv`.
 
 pub mod census;
+pub mod devanagari8;
 pub mod duplicates;
 pub mod dwarf;
 pub mod encode;

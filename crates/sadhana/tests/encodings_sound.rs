@@ -252,7 +252,7 @@ fn the_families_that_file_order_silently_decides_are_pinned() {
     /// What the encoder selects on: family, width, register count, whether
     /// there is an immediate, whether there is a displacement, the
     /// destination's register class, and the pair of types a conversion names.
-    type SelectionKey = (String, String, usize, bool, bool, bool, String);
+    type SelectionKey = (String, String, usize, bool, bool, String, String);
     let mut groups: BTreeMap<SelectionKey, Vec<String>> = BTreeMap::new();
     let text = std::fs::read_to_string(root().join("spec/encodings-riscv64.tsv")).expect("read");
     for l in text.lines() {
@@ -272,8 +272,16 @@ fn the_families_that_file_order_silently_decides_are_pinned() {
         // encoding, because the encoder selects on it: `प्लवसंचारः` covers
         // four moves and the operands say which way each goes (`B-074`).
         // Leaving it out of the key made the census report a pair the encoder
-        // can tell apart perfectly well.
-        let dest_is_float = slots.first().is_some_and(|s| s.starts_with("freg:"));
+        // can tell apart perfectly well. The CLASS, not only float-or-not: a
+        // VECTOR destination (`vreg:`) is told apart the same way — `ld` and
+        // `vlse64.v` (`V-009` (ii)) share family, mnemonic, width and shape, and
+        // `encode.rs` rejects a candidate whose rd slot's vector-ness differs
+        // from the destination register's (the `vle64.v v6, (ra)` incident).
+        let dest_class = slots
+            .first()
+            .and_then(|s| s.split(':').next())
+            .unwrap_or("")
+            .to_string();
         let imm = slots.iter().any(|s| s.starts_with("imm:"));
         let disp = slots.iter().any(|s| s.starts_with("disp:"));
         groups
@@ -283,7 +291,7 @@ fn the_families_that_file_order_silently_decides_are_pinned() {
                 regs,
                 imm,
                 disp,
-                dest_is_float,
+                dest_class,
                 f[8].into(),
             ))
             .or_default()

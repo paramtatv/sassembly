@@ -182,11 +182,13 @@ fn image(words: &[u32], tail: &[u8]) -> Vec<u8> {
 /// A machine with the supervisor's one `sret` installed at [`BASE`].
 fn machine() -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -198,6 +200,8 @@ fn machine() -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.csr.sstatus = 1 << 8; // SPP, so a loader that forgets to clear it is caught
     install(&mut m, BASE).expect("the supervisor's word is inside RAM");

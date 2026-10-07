@@ -40,8 +40,9 @@ const SRC: &str = "मण्डलम् परीक्षा ॥
 समाप्तम् ।
 
 ॰ ── the two ARENA halves ────────────────────────────────────────────────
-॰ An arena starts at length १ — slot ० is reserved and never live — so a
-॰ write at index १ takes it to २. The whole question is whether ख sees it.
+॰ An arena starts EMPTY, length ० (`W-355`), and a write at index १ takes
+॰ it to २ — slot ० is filled only by growing past it. The whole question is
+॰ whether ख sees it.
 
 सार्वजनिक वृत्तिः आयतनसाझा ददाति अ६४ आदि
     चरः क ॱॱ अङ्कः अन्तः बिन्दु भवति ० ।
@@ -136,10 +137,11 @@ fn an_arena_assigned_between_two_names_is_one_arena() {
     let shared = int(SRC, "आयतनसाझा");
     let alone = int(SRC, "आयतनएकाकी");
     assert_eq!(
-        alone, 1,
+        alone, 0,
         "the CONTROL: with `ख भवति क` deleted, the write through `क` must not \
-         reach `ख`, whose length stays at the reserved slot ० alone. If this \
-         is not १ the shared case below is measuring the write and not the share"
+         reach `ख`, which stays a fresh run — length ० since W-355, no slot at \
+         index ०. If this is not ० the shared case below is measuring the \
+         write and not the share (१ is the pre-W-355 zero run of one nil)"
     );
     assert_eq!(
         shared, 2,
@@ -317,14 +319,26 @@ const UNDECLARED: &str = "मण्डलम् परीक्षा ॥
 ";
 
 #[test]
-fn an_undeclared_type_name_is_a_number_and_therefore_copies() {
-    assert_eq!(
-        int(UNDECLARED, "अघोषितप्रकारः"),
-        0,
-        "a `चरः` whose type is a name the corpus never declares becomes \
-         `Value::Int(0)` and COPIES under `भवति` — which is why the eight \
-         sites `w250-shares.rs` cannot place are not hidden shares. It is \
-         also why `इ६४` (46 uses) and `पाठ` (42 uses) are silently integers \
-         wherever they appear, and nothing anywhere says so"
-    );
+fn an_undeclared_type_name_is_refused_by_name_not_made_a_number() {
+    // W-267 FLIPPED THIS, red first. It used to assert `int(UNDECLARED, …) == 0`:
+    // an undeclared type name became `Value::Int(0)` and COPIED under `भवति`, which
+    // is why the eight sites `w250-shares.rs` cannot place were not hidden shares.
+    // That reasoning still holds for what those sites were; what changed is that
+    // `इ६४` was respelled `अ६४` everywhere (W-267's first half) and `पाठ` now zeroes
+    // to the empty text, so an undeclared name no longer has a corpus use to protect,
+    // and binding it silently is the defect the row names.
+    let mut it = Interpreter::load(&[("test", UNDECLARED)], Path::new(".")).unwrap_or_else(|e| {
+        panic!(
+            "UNDECLARED must load — the refusal is at the declaration: {}",
+            e.reason
+        )
+    });
+    match it.call("अघोषितप्रकारः", Vec::new(), 1_000_000) {
+        Err(e) => assert!(
+            e.reason.contains("इ६४"),
+            "the refusal must name the undeclared type `इ६४`; it said: {}",
+            e.reason
+        ),
+        Ok(v) => panic!("W-267: `चरः क ॱॱ इ६४ भवति ०` must be REFUSED, not bound to {v:?}"),
+    }
 }

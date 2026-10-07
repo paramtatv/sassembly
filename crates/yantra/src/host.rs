@@ -90,9 +90,14 @@ pub struct Hosted {
 /// executed yet.
 pub fn host(image: &[u8], ram: usize, budget: u64) -> Result<Hosted, String> {
     let mut m = Machine {
+        // W-363: the budget, which today equals `mem.len()` because this path never
+        // injects and never resizes — so this changes nothing now and means the guard
+        // is already in place if a hosted machine is ever given an input slab.
+        store_limit: ram,
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -104,6 +109,8 @@ pub fn host(image: &[u8], ram: usize, budget: u64) -> Result<Hosted, String> {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.csr.sstatus = 1 << 8;
     supervisor::install(&mut m, BASE)?;

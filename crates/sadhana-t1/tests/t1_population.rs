@@ -125,7 +125,7 @@ const COUNTED_BY_NOTHING: &[(&str, &str)] = &[
     ),
     // ॥ `spec/rung/` — W-279's cross-module measurement, and why it is not in
     // `spec/demo/` ॥ The demonstration's driver links ONE module object beside
-    // the startup (`pradarshana/src/lib.rs:1079`), so a program spanning two
+    // the startup (`frontend/src/lib.rs:1079`), so a program spanning two
     // modules cannot answer its claim there; and the six above are pinned by
     // name in this very file. These three are reached by an explicit source
     // list instead, and nothing walks `spec/` for `.t1` — the two `read_dir`s
@@ -142,6 +142,45 @@ const COUNTED_BY_NOTHING: &[(&str, &str)] = &[
     (
         "spec/rung/सेतुः.t1",
         "the CALLER half — one cross-module call and nothing else; carries the four runs in its margin",
+    ),
+    // ॥ `spec/virtio-gpu.t1` — the C-009 `.t1` port (v0.5.0, "the GPU-driver project / the GPU driver"),
+    // seam-free half: lays out C-009's controlq region and EMITS the octets;
+    // discovery, init and notify wait on W-350's MMIO seam. Built and judged by
+    // `crates/yantra/tests/virtio_gpu.rs` (octet equality against C-015's encode),
+    // which reaches it by explicit path, not by walking `spec/`. ॥
+    //
+    // AND BEING BUILT BY A TEST IS NOT BEING COUNTED, which is the whole reason this
+    // row belongs here rather than in some list of covered files: this list is
+    // computed as `all − in_crates` (`:194`), so EVERY `.t1` outside `crates/` must
+    // appear in it. All nine rows above are exercised too — `spec/rung/` IS W-279's
+    // cross-module measurement and `spec/demo/` is run by the demonstration driver —
+    // and they are listed all the same. "Counted" here means counted by a CENSUS
+    // instrument (`T1_SOURCES`, `every_t1_source()`, the lexer-refusal ratchet), and
+    // not one of the three walks `spec/`.
+    (
+        "spec/virtio-gpu.t1",
+        "the C-009 virtio-gpu driver port, seam-free half",
+    ),
+    // ॥ `spec/darshaka.t1` and `spec/virtio-gpu-draw.t1` — row C-015, unified on
+    // the GPU-driver project's v0.5.0 driver (owner, 2026-10-06) ॥ The driver and C-009's picture,
+    // built and judged by `tools/check-virtio-gpu-t1.sh` on yantra's model and
+    // QEMU's real virtio-gpu, which names both by explicit path. ॥
+    (
+        "spec/darshaka.t1",
+        "C-015's virtio-gpu 2D driver, shared with the GPU-driver project's v0.5.0 render",
+    ),
+    (
+        "spec/virtio-gpu-draw.t1",
+        "C-015's picture — C-009's frame with one odd pixel, drawn by spec/darshaka.t1",
+    ),
+    // ॥ `spec/entry/` — W-302's native wrapper ॥ An ENTRY module built beside
+    // the twenty-one corpus sources with `t1_image --entry`, so the self-hosted
+    // image assembles a `.sas` from its input channel. Under `spec/` and not
+    // `crates/` so that it does not enter the corpus walks. Built and judged by
+    // `tools/check-w302-native.sh`, which names it by explicit path.
+    (
+        "spec/entry/assemble.t1",
+        "W-302's native wrapper — the self-hosted image assembles a .sas read from its input channel",
     ),
 ];
 
@@ -232,9 +271,9 @@ fn every_t1_file_in_the_tree_is_counted_by_some_instrument_or_recorded_here() {
     println!("METRIC t1_files_counted_by_nothing {}", uncounted.len());
 }
 
-/// The five `.t1` modules in `crates/sankriti/src/text/`, and the module each
+/// The five `.t1` modules in `crates/textapp/src/text/`, and the module each
 /// declares.
-const SANKRITI_MODULES: &[(&str, &str)] = &[
+const TEXTAPP_MODULES: &[(&str, &str)] = &[
     ("ident.t1", "इडएनट"),
     ("nfc.t1", "एनएफसइ"),
     ("numeral.t1", "नउमएरअल"),
@@ -242,7 +281,7 @@ const SANKRITI_MODULES: &[(&str, &str)] = &[
     ("tables.t1", "सारणी"),
 ];
 
-/// ॥ NOTHING IN THE CORPUS IMPORTS THE `sankriti` MODULES ॥
+/// ॥ NOTHING IN THE CORPUS IMPORTS THE `textapp` MODULES ॥
 ///
 /// **This is the criterion, and it is the tree's own.** `W-149/D-002e`
 /// (2026-08-30) repaired `kosha.t1` and `vastu.t1`, which arrived in the same
@@ -267,7 +306,7 @@ const SANKRITI_MODULES: &[(&str, &str)] = &[
 /// different string that nothing declares — recorded already in
 /// `t1_modules.rs`'s `IMPORTS_NAMING_NO_DECLARED_MODULE`.
 #[test]
-fn no_corpus_source_imports_a_sankriti_module() {
+fn no_corpus_source_imports_a_textapp_module() {
     let root = repo_root();
     let corpus = t1_under(&root.join("crates/sadhana-t1/src"));
     assert!(
@@ -285,7 +324,7 @@ fn no_corpus_source_imports_a_sankriti_module() {
             // A margin quoting an import is not an import. `॰` opens a comment
             // and `samyojana.t1:60` discusses `वास्तुॱपाठ्यम्` in prose.
             let code = line.split('॰').next().unwrap_or(line);
-            for (file, module) in SANKRITI_MODULES {
+            for (file, module) in TEXTAPP_MODULES {
                 if code.contains(&format!("आयातः {module}")) {
                     importers.push(format!("{rel}:{} imports `{module}` ({file})", line_no + 1));
                 }
@@ -294,7 +333,7 @@ fn no_corpus_source_imports_a_sankriti_module() {
     }
     assert!(
         importers.is_empty(),
-        "a corpus source now imports a `crates/sankriti/src/text/` module, so it \
+        "a corpus source now imports a `crates/textapp/src/text/` module, so it \
          is REQUIRED and the scaffolding classification above is wrong from this \
          moment — `W-149`'s criterion is whether callers exist:\n  {}",
         importers.join("\n  ")

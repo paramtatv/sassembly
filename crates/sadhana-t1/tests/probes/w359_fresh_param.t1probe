@@ -1,0 +1,17 @@
+मण्डलम् प्राचलसीमापरीक्षण ॥
+
+॰ W-359 rule (2), the nil arm: the caller hands over a FRESH run (`भवति ०`,
+॰ never written — natively the nil word, interpreted an empty arena), so
+॰ its length is ० and a store at index ० is already past the end. This is
+॰ callee.t1probe's shape at index ०; both engines refuse, with the same
+॰ finisher word and cause as w359_past_end.t1probe ("a run of 0").
+वृत्तिः परलेखकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    सूची अङ्कः ० अन्तः भवति ९९ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः उ ॱॱ न६४ भवति परलेखकः सूची ।
+    प्रत्यागमनम् ४२ ।
+इति

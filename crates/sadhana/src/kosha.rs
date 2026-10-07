@@ -10,7 +10,8 @@
 //!
 //! # What is deliberately minimal
 //!
-//! One `PT_LOAD` segment covering the TEXT ONLY, mapped at `0x8000_0000`.
+//! One `PT_LOAD` segment for the text, `R E`, mapped at `0x8000_0000`, and — when the
+//! image has data or `.bss` — a second, `RW`, at the next page ([`data_base`], `W-363`).
 //!
 //! The headers are deliberately not mapped, and that is not tidiness. With
 //! `-bios none` the QEMU `virt` machine's reset vector jumps to `0x8000_0000`
@@ -50,6 +51,35 @@ const SHDR_SIZE: u64 = 64;
 
 /// `EM_RISCV`.
 const EM_RISCV: u16 = 243;
+
+/// A page: where the writable segment begins, relative to the load address (`W-363`).
+pub const PAGE: u64 = 4096;
+
+/// Where `.data` begins relative to the load address, for `text_len` octets of text —
+/// task `W-363`.
+///
+/// THE TEXT ROUNDED UP TO A PAGE, so the data and `.bss` can be their own `PT_LOAD`,
+/// `PF_R | PF_W`, while the text stays `PF_R | PF_X`. Until `W-363` it was the text
+/// rounded to eight and the one segment covering both was labelled `R E`: a loader that
+/// installs protections from `p_flags` (`yantra::loader::load_application` does) faulted
+/// on the first store to `.data`. A page and not eight because protections are per page,
+/// and a data page that shared a frame with text would have to be one or the other.
+///
+/// ONE STATEMENT, read by the writer below and by [`crate::samyojana::link_at`]: the
+/// linker gives every data name its address from this and the writer puts the segment
+/// there, and two copies of the rule are how the two would come apart. The `.t1` twin is
+/// `कोशॱदत्तपृष्ठाधारः`.
+///
+/// LATENT, RECORDED RATHER THAN REFUSED: the page is RELATIVE TO THE LOAD ADDRESS, so it
+/// is a page boundary only when the load address is one. Every address this tree links
+/// at is (`0x8000_0000`, `0x8020_0000`, `0x8040_0000`, `0x2000_0000`, the loader tests'
+/// `0x1000_0000`), and both engines give the same answer at any address, so nothing
+/// diverges — but an image linked at an unaligned address would carry a data segment
+/// `load_application` refuses by name ("not a page boundary").
+#[must_use]
+pub const fn data_base(text_len: u64) -> u64 {
+    text_len.next_multiple_of(PAGE)
+}
 
 // The section-name table is built from the sections that exist, so there is
 // no fixed string blob and no fixed offsets into one (`B-071`).
@@ -834,10 +864,10 @@ pub fn write(text: &[u8]) -> Vec<u8> {
 
 /// Build a bootable image with an initialised data section — task `B-057`.
 ///
-/// `.data` follows `.text` inside the same `PT_LOAD`. A bare-metal image has no
-/// MMU and one segment, so separating them would buy a page boundary and cost
-/// a page of padding; when there is a loader to care (`B-014`) the segments can
-/// separate with it.
+/// `.data` is its own `PT_LOAD`, `PF_R | PF_W`, at the page after the text
+/// ([`data_base`], `W-363`). It shared the text's `R E` segment until a loader that
+/// honours `p_flags` existed (`yantra::loader::load_application`) and faulted on the
+/// first store; the address moves to the page, the file stays packed.
 #[must_use]
 pub fn write_with_data(text: &[u8], data: &[u8]) -> Vec<u8> {
     write_image(text, data, &[])
@@ -907,15 +937,23 @@ pub fn write_debuggable_at(
     debug: &[(&str, Vec<u8>)],
     load: u64,
 ) -> Vec<u8> {
-    let text_offset = EHDR_SIZE + PHDR_SIZE;
+    // TWO SEGMENTS WHEN THERE IS ANYTHING TO WRITE (`W-363`): the text, `PF_R | PF_X`,
+    // and the data with `.bss`, `PF_R | PF_W`, at the next page. An image with neither
+    // data nor `.bss` has nothing writable and keeps the one header.
+    let writable = !data.is_empty() || bss > 0;
+    let phnum: u16 = if writable { 2 } else { 1 };
+    let text_offset = EHDR_SIZE + PHDR_SIZE * u64::from(phnum);
     let text_size = text.len() as u64;
-    let data_offset = if data.is_empty() {
-        text_offset + text_size
-    } else {
+    // In the FILE the data stays packed behind the text, eight-aligned: a page of
+    // padding would buy nothing a bare-metal loader reads. Only its ADDRESS moves to the
+    // page, which is why `p_align` below is eight, the alignment both agree on.
+    let data_offset = if writable {
         (text_offset + text_size).next_multiple_of(8)
+    } else {
+        text_offset + text_size
     };
     let data_size = data.len() as u64;
-    let load_span = data_offset - text_offset + data_size;
+    let data_addr = load + data_base(text_size);
 
     // Locals first: `sh_info` is the index of the first non-local symbol and a
     // reader that trusts it mis-classifies everything if the order is wrong.
@@ -1055,21 +1093,33 @@ pub fn write_debuggable_at(
     push_u32(&mut out, abi_flags(text_has_compressed(text))); // e_flags
     push_u16(&mut out, EHDR_SIZE as u16);
     push_u16(&mut out, PHDR_SIZE as u16);
-    push_u16(&mut out, 1); // e_phnum
+    push_u16(&mut out, phnum); // e_phnum
     push_u16(&mut out, SHDR_SIZE as u16);
     push_u16(&mut out, shnum);
     push_u16(&mut out, i_shstrtab);
 
-    // --- program header ----------------------------------------------------
+    // --- program headers ---------------------------------------------------
+    // The text: read and execute, never write.
     push_u32(&mut out, 1); // PT_LOAD
     push_u32(&mut out, 0b101); // PF_R | PF_X
     push_u64(&mut out, text_offset);
     push_u64(&mut out, load);
     push_u64(&mut out, load);
-    push_u64(&mut out, load_span); // p_filesz
-    // p_memsz — the loader zeroes the difference, which is `ॱरिक्त`.
-    push_u64(&mut out, load_span.next_multiple_of(8) + bss);
+    push_u64(&mut out, text_size); // p_filesz
+    push_u64(&mut out, text_size); // p_memsz
     push_u64(&mut out, 4); // p_align
+    if writable {
+        // The data and `.bss`: read and write, never execute (`W-363`).
+        push_u32(&mut out, 1); // PT_LOAD
+        push_u32(&mut out, 0b110); // PF_R | PF_W
+        push_u64(&mut out, data_offset);
+        push_u64(&mut out, data_addr);
+        push_u64(&mut out, data_addr);
+        push_u64(&mut out, data_size); // p_filesz
+        // p_memsz — the loader zeroes the difference, which is `ॱरिक्त`.
+        push_u64(&mut out, data_size.next_multiple_of(8) + bss);
+        push_u64(&mut out, 8); // p_align
+    }
 
     // --- contents ----------------------------------------------------------
     debug_assert_eq!(out.len() as u64, text_offset);
@@ -1141,11 +1191,21 @@ pub fn write_debuggable_at(
     shdr(0, 0, 0, 0, 0, 0, 0, 0, 0, 0); // SHN_UNDEF
     shdr(n_text, 1, 0b110, load, text_offset, text_size, 0, 0, 4, 0);
     if has_data {
-        let addr = load + data_offset - text_offset;
-        shdr(n_data, 1, 0b011, addr, data_offset, data_size, 0, 0, 8, 0);
+        shdr(
+            n_data,
+            1,
+            0b011,
+            data_addr,
+            data_offset,
+            data_size,
+            0,
+            0,
+            8,
+            0,
+        );
     }
     if has_bss {
-        let addr = load + load_span.next_multiple_of(8);
+        let addr = data_addr + data_size.next_multiple_of(8);
         // SHT_NOBITS: it occupies no file space, so its offset is only where
         // it would have been.
         shdr(

@@ -147,8 +147,8 @@
 
 ॰ ══════════════════ types ══════════════════
 ॰ Type nodes live in अभिव्यञ्जककोश with their OWN kind numbering
-॰ (मूलप्रकारभेद १ … दोषयुक्तप्रकारभेद ५), which collides with the expression
-॰ kinds; whether an index is a type is known from where it was read —
+॰ (मूलप्रकारभेद १०१ … दोषयुक्तप्रकारभेद १०५ — disjoint from the expression
+॰ kinds since W-171); whether an index is a type is known from where it was read —
 ॰ प्रकारसूचकाङ्क of a चर, a प्राचल, a घोषणा — so types have a walker of
 ॰ their own, exactly as `प्रकारपठनम्` is its own reader.
 
@@ -252,7 +252,13 @@
         यदि अन्तः समम् ० आदि
             प्रत्यागमनम् निषेधः आरभ्य उक्तान्ताभावकारणम् ऽ सूचकाङ्क समाप्तम् ।
         इति
-        चरः अवगणना ॱॱ न६४ भवति पदलेखनम् उक्तम् उक्तम् इति ।
+        ॰ ADR-0044: `व्याकर` marks a `वर्णाष्टकम्` literal with द्विकर्म १, and
+        ॰ the printer writes back the opener the source wrote.
+        यदि अभि ॱ द्विकर्म समम् १ आदि
+            चरः अवगणनवर्ण ॱॱ न६४ भवति पदलेखनम् उक्तम् वर्णाष्टकम् इति ।
+        इति अन्यथा आदि
+            चरः अवगणना ॱॱ न६४ भवति पदलेखनम् उक्तम् उक्तम् इति ।
+        इति
         चरः क्रमः ॱॱ न६४ भवति अभि ॱ मूल्यसूचकाङ्क ।
         यावत् क्रमः न्यूनम् अन्तः आदि
             चरः अवगणनद्वि ॱॱ न६४ भवति चिह्नकलेखनम् क्रमः ।

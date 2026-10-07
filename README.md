@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v0.4.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v0.4.0"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.0.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.0.0"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-A63A21?style=flat-square&labelColor=2B2521" alt="licence MIT"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -23,6 +23,7 @@
 <p align="center">
   <a href="https://paramtatv.github.io/sassembly/">docs and playground</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
+  <a href="ANNOUNCEMENT-v1.0.0.md">v1.0.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.2.0.md">v0.2.0 announcement</a>
 </p>
@@ -36,35 +37,37 @@ Sassembly. That compiler, compiled by itself, produces a byte-identical copy of
 itself.
 
 > [!IMPORTANT]
-> This release is a **research artifact**. It is a compiler milestone, not an
-> application toolchain — see [What this cannot do](#what-this-cannot-do), which
-> is deliberately placed before the tutorial.
+> This release completes the language and its self-hosting compiler. It is still
+> a **research artifact**, not an application toolchain — see
+> [What this cannot do](#what-this-cannot-do), which is deliberately placed
+> before the tutorial.
 
 ### At a glance
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical, `1,399,434` octets |
-| **the compiler** | 21 `.t1` sources, 39,775 lines, written in Sassembly |
+| **Stage 2 == Stage 1** | byte-identical, `922,146` octets |
+| **the compiler** | 21 `.t1` sources, 46,794 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — 476 KB of wasm, no server |
-| **measured** | 2026-09-25, in a fresh clone of this repository |
-| **status** | v0.4.0 — nothing is stable |
+| **measured** | 2026-10-07, from this repository |
+| **status** | v1.0.0 — the language and its compiler are complete |
 
 ### Contents
 
 1. [The claim, and how to check it](#the-claim-and-how-to-check-it)
-2. [What this cannot do](#what-this-cannot-do)
-3. [What a program can do today](#what-a-program-can-do-today)
-4. [It runs in a browser](#it-runs-in-a-browser)
-5. [A first look at the language](#a-first-look-at-the-language)
-6. [The heap already exists](#the-heap-already-exists)
-7. [Verification](#verification)
-8. [Reading the source](#reading-the-source)
-9. [Two things a reader will notice](#two-things-a-reader-will-notice)
-10. [Status and stability](#status-and-stability)
-11. [The study group](#the-study-group)
-12. [Licence](#licence)
+2. [What is new since v0.4.0](#what-is-new-since-v040)
+3. [What this cannot do](#what-this-cannot-do)
+4. [What a program can do today](#what-a-program-can-do-today)
+5. [It runs in a browser](#it-runs-in-a-browser)
+6. [A first look at the language](#a-first-look-at-the-language)
+7. [The heap already exists](#the-heap-already-exists)
+8. [Verification](#verification)
+9. [Reading the source](#reading-the-source)
+10. [Two things a reader will notice](#two-things-a-reader-will-notice)
+11. [Status and stability](#status-and-stability)
+12. [The study group](#the-study-group)
+13. [Licence](#licence)
 
 ---
 
@@ -79,33 +82,35 @@ Stage 1   the compiler's 21 sources, compiled by the interpreted compiler
 Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 ```
 
-**Measured 2026-09-30, `tools/fixpoint.sh`, in a fresh clone of THIS
-repository** — not inherited from the tree it was extracted from:
+**Measured 2026-10-07, `tools/fixpoint.sh`, in a copy of THIS repository's
+tree** — not inherited from the tree it was extracted from:
 
 ```console
 fixpoint: packing the corpus from crates/sadhana-t1/src
-packed 21 source(s), 4375038 octets
-fixpoint: Stage 1  1399434 octets
-fixpoint: Stage 2  1399434 octets
-  status:  1200 — BUILT (shrinkhala.t1:3528)
-FIXPOINT HOLDS: 1399434 octets, byte-identical
+packed 21 source(s), 5040596 octets
+fixpoint: Stage 1  922146 octets
+fixpoint: Stage 2  922146 octets
+  status:  1200 — BUILT (shrinkhala.t1:3551)
+FIXPOINT HOLDS: 922146 octets, byte-identical
 ```
 
-Stage 1 took 23m46s and Stage 2 41m57s on an Apple Silicon Mac, with a high
-water of 1,602,481,536 octets of the 2,684,354,560 the run is given. The
-figures below are that run.
+Stage 1 took about 26 minutes and Stage 2 about 16, on a Linux x86-64 host with
+20 cores (a release build, with the test suite running alongside). Stage 2 ran
+**55,385,359,354** executed instructions to a finisher with status 1200, with a
+high water of 1,049,907,192 octets of the 2,684,354,560 the run is given. The
+sha256 of `stage1.elf` is
+`71d06d6649a861c1c6205c95a59fd362f48914b377c6ace9e612bef827415480`.
 
 Stage 1's own controls — `build: 0 source(s) failed to compile, 1 declared
-nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 27807029110`** — are
-identical to the development tree's. That last figure is the interpreted
-compiler's instruction count for the whole build, and it moves if any byte of any
-source or spec table differs.
+nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 22192201700`** — are the
+interpreted compiler's instruction count for the whole build. It moves if any
+byte of any source or spec table differs.
 
 | quantity | value |
 |---|---|
 | Stage 2 == Stage 1 | **byte-identical** |
-| image size | **1,399,434 octets** |
-| sources | **21** `.t1` files, 40,542 lines |
+| image size | **922,146 octets** (v0.4.0: 1,399,434) |
+| sources | **21** `.t1` files, 46,794 lines |
 
 Reproduce it:
 
@@ -138,8 +143,41 @@ confused:
 Some(0) }`, 1,763 s.
 
 > [!WARNING]
-> That is a different artifact from the 1,399,434-octet fixpoint image, built on
+> That is a different artifact from the fixpoint image (1,399,434 octets in v0.4.0, 922,146 now), built on
 > a different date. **Neither number is a typo for the other.**
+
+---
+
+## What is new since v0.4.0
+
+`v1.0.0` completes the language. For a reader new to the project, the short
+version is that a Sassembly program can now do arithmetic safely, use vectors,
+read and write files, and talk over a socket, and the compiler that makes all of
+that possible still compiles itself to the same bytes.
+
+* **Vectors and matrices.** The RISC-V V extension runs in `yantra`, the compiler
+  lowers vector operations to it, and there is matrix and tensor syntax. The
+  vector words are call forms, not keywords (ADR-0043), so no existing program
+  changed meaning.
+* **One integer meaning on every engine.** The interpreter and the native engines
+  agree on integer semantics. *Checked* operators (`अष्टकॱसुरक्षितयोगः` and its
+  siblings) halt with a named refusal instead of an opaque fault: `0x355`
+  out-of-bounds read, `0x35b` aliasing, `0x35c` overflow, `0x35d` out-of-bounds
+  write, `0x35e` division by zero. Unsigned runs (`न३२`) load zero-extended.
+* **Devanagari-8 (ADR-0044).** A data literal (`वर्णाष्टकम्`) stores one octet per
+  letter: 35% smaller on the measured data.
+* **Symbol lookup.** The linker keeps a hashed name table.
+* **The same answer everywhere.** One image executes the same instruction count on
+  x86-64, on aarch64 and in the browser through `yantra-wasm`.
+* **Devices.** A file window (`पत्रम्`), threads, sockets and virtio-gpu 2D, all
+  on `yantra`. The fixpoint script refuses any compiler image that touches the
+  socket, reads the retired-instruction counter or declares threads, so none of
+  them can make the fixpoint a statement about its environment.
+* **A smaller image.** The fixpoint image is **922,146 octets**, 34.1% smaller than
+  v0.4.0's 1,399,434.
+
+Not in this release: compiling Sanskrit to web pages, and a GPU compute path
+(ADR-0045 is a design only). See the [v1.0.0 announcement](ANNOUNCEMENT-v1.0.0.md).
 
 ---
 
@@ -150,6 +188,21 @@ assumption that a general-purpose toolchain comes with it. It does not.
 
 | capability | available today |
 |---|---|
+| **open and read a file** | yes, on `yantra`, through the file window (`पत्रम्`) |
+| **write a file** | no |
+| **command-line arguments** | no |
+| **network** | sockets exist on `yantra`; there is no TLS, no DNS, no HTTP |
+| **threads** | yes, on `yantra`; a fixpoint image may not use them |
+| **clock** | no |
+| **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it |
+
+These are `yantra` features: the device windows are part of the emulator, and
+the same program on bare metal has none of them. The question of how a program
+that cannot wait could ever use a network is recorded in
+[WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040). That document is kept as
+the history of the question; the socket and thread work above is its answer.
+
+---|---|
 | **name or open a file** | no |
 | **write a file** | no |
 | **command-line arguments** | no |
@@ -256,7 +309,7 @@ addresses.
 
 ## It computes with real numbers
 
-`v0.4.0` gives the language floating point: the `प्लव` type, F and D in the
+`v0.4.0` gave the language floating point: the `प्लव` type, F and D in the
 machine, and — the part that is worth a section — **arithmetic that a machine this
 project did not write agrees with.**
 
@@ -393,16 +446,30 @@ needs no new linker symbols.
 ## Verification
 
 ```sh
-cargo test -p sadhana-t1 -p sanskrit-text -p yantra --no-fail-fast
+cargo test --workspace --release --no-fail-fast
 ```
 
-**Measured 2026-09-25: 129 targets, 1,151 passed, 0 failed, 56 ignored, exit 0.**
+**Measured 2026-10-07, on a Linux x86-64 host: 260 test binaries, 2,431 passed,
+56 failed, 68 ignored.**
 
-That figure is the three crates this release is built from. It does not include
-the wider project's hourly gate, which checks an operating system this repository
-is not.
+The 56 failures are in 24 binaries, and every one is the same kind: a test that
+measures the *whole development repository* and so cannot run on this one. They
+read `research/` (the Unicode data files and design notes), `docs/adr`,
+`tests/corpus/`, `tests/levels/`, `fuzz/corpus/`, `BACKLOG.tsv`, a tree-sitter
+grammar crate, or they count every `.t1`/`.sas` file in a repository that has
+more of them than this one. None of those ship here. Nothing that fails is a test
+of the compiler, the machine or the fixpoint, and a failing test here says "the
+file is not in this repository", never "the answer is wrong". This is the same
+position as v0.3.0 and v0.4.0, which left 61 such failures; this release has 56
+and 2,431 passes (v0.4.0: 1,634).
 
-`GATE_STRICT=1` is armed on that wider runner: a check that *cannot run* fails
+Two test groups from earlier releases are not in this repository at all because
+they depend on code that does not ship here: a test comparing two renderer types,
+two text-kernel timing tests, and the tests of an archive format owned by another
+project.
+
+The wider project this was extracted from also runs a stricter gate, with
+`GATE_STRICT=1` armed: a check that *cannot run* fails
 rather than passing quietly. It is distinguished from a check that has *no
 subject* — those two conditions shared an exit code until 2026-09-24, and while
 they did, arming strictness would have failed every commit that touched no `.t1`
@@ -442,17 +509,18 @@ to misread:
 
 <br>
 
-Twenty-three of them reference `.loop/STATE.md`, `.loop/ASSUMPTIONS.md` or
+A few comments reference `.loop/STATE.md`, `.loop/ASSUMPTIONS.md` or
 `.loop/METRICS.tsv` — the private project's decision log, where a measurement or
-a ruling was recorded. They are provenance markers, not broken code, and they are
-left exactly as written for a specific reason: one of them is inside
-`crates/sadhana-t1/src/encode.t1`, and **editing any `.t1` file changes the
-1,399,434-octet image**. The fixpoint number above is the claim of this
-repository, so the sources are published byte-for-byte as measured rather than
-tidied.
+a ruling was recorded. They are provenance markers, not broken code.
 
 The same goes for margins citing "doc 03 §6" or "doc 18 §0" — internal design
-documents. Nothing in the code depends on reading them.
+documents — and for row ids such as `W-381`. Nothing in the code depends on
+reading them.
+
+Some margins in the `.t1` sources named hosts, sessions and sibling projects;
+those names were reworded for this release. A margin is not code, and
+the fixpoint figures above were measured on the sources exactly as published
+here.
 
 </details>
 
@@ -471,8 +539,8 @@ the 21 Sassembly sources that are the compiler.
 
 ## Status and stability
 
-This is version **v0.4.0**. Nothing here is stable: not the surface syntax, not
-the object format, not the tool names. The fixpoint is the result; the interfaces
+This is version **v1.0.0**: the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
+the object format. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
 The compiler is two stages —
@@ -517,6 +585,7 @@ fixpoint — and nothing else.
   <a href="https://paramtatv.github.io/sassembly/">docs</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
   <a href="WHY-NO-NETWORKING.md">ADR-0040</a> ·
+  <a href="ANNOUNCEMENT-v1.0.0.md">v1.0.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.2.0.md">v0.2.0 announcement</a>
   <br><br>

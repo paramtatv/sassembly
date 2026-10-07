@@ -15,11 +15,15 @@ devanagari	english	category	source	notes
 अज्ञातनाम	undefined symbol	error	derived	
 अज्ञातसंज्ञा	unknown mnemonic	error	derived	
 अतिप्रवाहः	overflow	error	derived	
+अतिप्रवाहनिषेधः	overflow (checked-arithmetic refusal 0x35c)	error	owner-2026-10-06	W-381 stage 3: the refusal of a checked built-in whose result does not fit 64 signed bits, or of a checked shift by 64 or more, code 0x35c in FAIL form.
+अदेवनागरीवर्णप्रतिषेधः	non-Devanagari character refusal	error	ADR-0044	ADR-0044 D2: the owner-named compile-time refusal of a code point outside U+0900–U+097F inside a वर्णाष्टकम् … इति literal, naming the letter and its column.
 अधिकम्	greater than	operator	doc15	
 अधिकार	capability	concept	attested	
 अधिकाराभावः	capability denied	error	derived	
 अधिष्ठाता	supervisor	name	doc17	
 अधिष्ठापनम्	deployment	storage	doc08	
+अध्यासप्रतिषेधः	aliased result (matrix refusal 0x35b)	error	owner-2026-10-06	V-009 (ii): the refusal of a matrix built-in whose result run is one of its operand runs, code 0x35b in FAIL form (docs/v009-matrix-design.md, names table).
+सीमातीतलेखननिषेधः	out-of-bounds store (refusal 0x35d)	error	owner-2026-10-06	W-381 stage 4: the refusal of an indexed store the native bounds check refuses (a negative index), code 0x35d in FAIL form; split from the read's 0x355 (owner ruling 2026-10-06).
 अनपेक्षितचिह्नम्	unexpected token	error	derived	
 अनिश्चितमूल्यम्	uninitialized	error	derived	
 अनुक्रम	sequence	concept	attested	
@@ -69,6 +73,7 @@ devanagari	english	category	source	notes
 आरभ्य	group open	keyword	attested	
 आरम्भकः	bootloader	name	doc17	
 आवण्टकः	allocator	kernel	doc11	
+आव्यूहगुणनम्	matrix multiplication	concept	ADR-0043	V-009 (ii): the member `व्यूहॱआव्यूहगुणनम्` of the matrix product, a call-form member, never a keyword (ADR-0043 D1, R1, R3); also the name of a module's synthesised product kernel routine.
 आहारः	load	mnemonic	dhatu	
 आह्वानम्	call	mnemonic	dhatu	
 इति	end, thus	keyword	attested	
@@ -113,6 +118,7 @@ devanagari	english	category	source	notes
 गोवर्धनः	Govardhan	name	doc17	
 ग्रहणम्	receive	network+kernel	doc06	
 घटना	event	concept	attested	
+घटनाप्रतीक्षा	wait for an event	concept	ADR-0040	The member of W-373's wait intrinsic, `अष्टकॱघटनाप्रतीक्षा` (one argument, reserved; one token only); a call-form member declared nowhere, never a keyword. Not the bare `प्रतीक्षा`, which is the record type at `encode.t1` and kernel `wait` (doc11).
 च	and	operator	doc15	
 चतुरष्टकाः	word data	directive	attested	
 चर	variable	concept	attested	
@@ -172,7 +178,9 @@ devanagari	english	category	source	notes
 नियन्त्रणम्	playback control	media	doc10	
 निर्गमः	port out	mnemonic	dhatu	
 आगमः	device input domain	mnemonic	derived	आ+√गम् (coming in); the fence domain RISC-V spells `i` (B-045)
+पङ्क्तिप्रधानम्	row-major (layout)	concept	owner-2026-10-06	V-009 (ii): the layout constant `व्यूहॱपङ्क्तिप्रधानम्`, read as text in a matrix call's last argument (docs/v009-matrix-design.md, names table).
 पठनम्	memory read domain	mnemonic	derived	√पठ् (to read) + अनम्; the fence domain RISC-V spells `r` (B-045)
+परिवर्तितम्	transposed (layout: the first operand read as Aᵀ)	concept	owner-2026-10-06	V-009 (ii): the layout constant `व्यूहॱपरिवर्तितम्`, a product's first operand with its row and column strides swapped (owner ruling 2026-10-06, docs/v009-matrix-design.md).
 लेखनम्	memory write domain	mnemonic	derived	√लिख् (to write) + अनम्; the fence domain RISC-V spells `w` (B-045)
 निर्गमद्वारम्	sink, output	media	doc10	
 निर्देश	directive	concept	attested	
@@ -206,8 +214,6 @@ devanagari	english	category	source	notes
 परमाणुलेखनम्	atomic store	mnemonic	dhatu	
 परमाणुविनिमयः	atomic exchange	mnemonic	dhatu	
 परिमाण	size	concept	attested	
-परिवृत्तअधि	wrapping plus	concept	doc15	
-परिवृत्तयोगः	wrapping add	mnemonic	dhatu	
 परिवेष्टन	sandbox	concept	attested	
 परिष्कारः	post-process	media	doc10	
 परीक्षा	test	keyword+name	attested	
@@ -302,6 +308,7 @@ devanagari	english	category	source	notes
 प्लववर्गमूलम्	square root	mnemonic	dhatu	
 वर्णः	text shaper	name	doc17	
 वर्णपटलम्	palette	graphics	doc05	
+वर्णाष्टकम्	Devanagari-8 data literal open	keyword	ADR-0044	ADR-0044 D2: the owner-ruled second string opener, under the owner's exemption to the frozen T1 lexical grammar (2026-10-06). Mirrors उक्तम् exactly (same इति close, same इति इति escape, one line); its value is one octet per letter, 0x80 + (code point − 0x0900) over U+0900–U+097F. Literally "the octet of letters".
 वर्तिका	brush	graphics	doc05	
 वा	or	operator	doc15	
 वामभ्रमणम्	rotate left	mnemonic	dhatu	
@@ -339,10 +346,13 @@ devanagari	english	category	source	notes
 वैषम्यम्	bitwise xor (T0 mnemonic)	mnemonic	dhatu	
 व्यत्यय	bitwise not (T1 operator)	operator	doc15	
 व्यत्ययः	bitwise not (T0 mnemonic)	mnemonic	dhatu	
+व्युत्क्रमः	transpose	concept	ADR-0043	V-009 (ii): the member `व्यूहॱव्युत्क्रमः`, a call-form member, never a keyword (ADR-0043 D1, R1); also the name of a module's transpose kernel routine.
+व्यूह	vector	concept	ADR-0043	The qualifier of V-008's elementwise vector built-ins, `व्यूहॱ` + a V-005 float name (`व्यूहॱप्लवयोगः`); a call-form member, never a keyword (ADR-0043 D1, R3). Not `आव्यूह`, which is matrix.
+व्यूहदैर्घ्यम्	set vector length (vsetvli)	mnemonic	owner-2026-10-05	V-008 part 2: the T0 mnemonic of `vsetvli`, confirmed by the owner 2026-10-05 (docs/v008-vector-lowering-design.md); built from ADR-0043's `व्यूह` and this lexicon's `दैर्घ्य`.
 शीर्षकम्	header	network	doc06	
 शून्यः	hardwired zero	register	derived	
 शून्यम्	void	keyword	attested	
-शून्येनभागः	division by zero	error	derived	
+शून्यविभाजननिषेधः	division by zero (refusal 0x35e)	error	owner-2026-10-06	W-381 stage 3: the refusal of a division or remainder by zero, on the interpreter and natively (a zero test before the div/rem), code 0x35e in FAIL form. Not RV64's all-ones / dividend.
 शेषः	remainder	mnemonic+operator	dhatu	T0 rem, and since ADR-0037 T1’s modulo operator — encode.t1:647, :676 write it between two operands. Replaces doc 15’s proposed `शेष`, which no source writes. The corpus writes `शेषम्` far more often, but every one of those is a local variable holding a remainder, not the operator.
 श्रोता	listener	network	doc06	
 संकलन	compilation	concept	attested	
@@ -375,6 +385,7 @@ devanagari	english	category	source	notes
 समानम्	equ directive	directive	attested	
 समाप्तम्	group close	keyword	attested	
 समावेशः	include	directive	attested	
+समासः	tensor (multidimensional mathematical array; non-grammatical compound)	concept	ADR-0043	V-009 (ii): the member `व्यूहॱसमासः`, the rank-3 batched product (owner ruling 2026-10-06, design Q4 (a)); gloss exactly as ADR-0043 R4 rules.
 समूह	set	concept	attested	
 सम्बन्धः	link layer	network	doc06	
 सम्भाव्य	optional	type	derived	
@@ -386,9 +397,14 @@ devanagari	english	category	source	notes
 सार्वजनिक	pub	keyword	attested	
 सीमा	limit	concept	attested	
 सीमातिक्रमः	index out of bounds	error	derived	
+सुरक्षितगुणनम्	checked multiply	concept	owner-2026-10-06	W-381 stage 3: the member `अष्टकॱसुरक्षितगुणनम्`, a × b, refused on signed 64-bit overflow, as `अतिप्रवाहनिषेधः` (0x35c); a call-form member, never a keyword (ADR-0043 D1). Plain arithmetic wraps (P1); the checked forms retired `परिवृत्तयोगः` and `परिवृत्तअधि`.
+सुरक्षितयोगः	checked add	concept	owner-2026-10-06	W-381 stage 3: the member `अष्टकॱसुरक्षितयोगः`, a + b, refused on signed 64-bit overflow, as `अतिप्रवाहनिषेधः` (0x35c); a call-form member, never a keyword (ADR-0043 D1). Plain arithmetic wraps (P1); the checked forms retired `परिवृत्तयोगः` and `परिवृत्तअधि`.
+सुरक्षितवामसरणम्	checked shift left	concept	owner-2026-10-06	W-381 stage 3: the member `अष्टकॱसुरक्षितवामसरणम्`, a << n, refused only for a count n of 64 or more (ruling (a)); bits shifted out are not refused, as `अतिप्रवाहनिषेधः` (0x35c); a call-form member, never a keyword (ADR-0043 D1). Plain arithmetic wraps (P1); the checked forms retired `परिवृत्तयोगः` and `परिवृत्तअधि`.
+सुरक्षितवियोगः	checked subtract	concept	owner-2026-10-06	W-381 stage 3: the member `अष्टकॱसुरक्षितवियोगः`, a − b, refused on signed 64-bit overflow, as `अतिप्रवाहनिषेधः` (0x35c); a call-form member, never a keyword (ADR-0043 D1). Plain arithmetic wraps (P1); the checked forms retired `परिवृत्तयोगः` and `परिवृत्तअधि`.
 सूचक	pointer	concept	attested	
 सूचना	notification	kernel	doc11	
 सूची	list	concept	attested	
+स्तम्भप्रधानम्	column-major (layout)	concept	owner-2026-10-06	V-009 (ii): the layout constant `व्यूहॱस्तम्भप्रधानम्`, resolved at compile time as a permutation (docs/v009-matrix-design.md, names table).
 स्तूप	stack	concept	attested	
 स्तूपसूचकः	stack pointer	register	derived	
 स्तूपापहारः	pop	mnemonic	dhatu	

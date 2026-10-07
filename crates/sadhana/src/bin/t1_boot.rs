@@ -8,7 +8,7 @@
 //! tool that is load-bearing for numbers in the record and cannot be rebuilt at
 //! a commit makes "measured at X" a sentence nobody can say: one `git clean`
 //! would have deleted the source, and no second reader could reproduce a
-//! figure. sansos-c1 found it while rebuilding tools for a sweep, having caught
+//! figure. A peer session found it while rebuilding tools for a sweep, having caught
 //! themselves checking the inputs and not the instrument.
 //! The objects are byte-identical to the .t1 assembler's (twin AGREE, every source).
 //!   t1_boot --object <out.o> <a.t1>

@@ -2,7 +2,7 @@
 
 ॰ THE ANSWER IS ५. `पञ्च` returns ५ and `नमस्कारः` hands it back.
 ॰
-॰ THIS LINE IS READ BY A MACHINE, not only by a person: `pradarshana`'s
+॰ THIS LINE IS READ BY A MACHINE, not only by a person: `frontend`'s
 ॰ demonstration parses `THE ANSWER IS <numeral>` out of every file in this
 ॰ directory, runs the file, and REFUSES if the two disagree. The other five
 ॰ sources already carried the sentence in this form; this one stated its answer

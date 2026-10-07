@@ -31,7 +31,7 @@
 //!
 //! `crates/sadhana-t1/src/samyojana.t1:74` is `सारणी ॱॱ अङ्कः अन्तः कोशॱसंज्ञा`
 //! — the FIELD `सारणी` and ADR-0003's annotation mark — and `सारणी` is *also* a
-//! declared module (`crates/sankriti/src/text/tables.t1:1`). A reader that takes
+//! declared module (`crates/textapp/src/text/tables.t1:1`). A reader that takes
 //! the first half of `ॱॱ` for a member mark turns that field into a qualified
 //! name reaching a module `samyojana.t1` never imports, and reports a fourth
 //! missing import that is a colon.
@@ -96,7 +96,7 @@ pub struct Import {
     /// The module named.
     pub name: Name,
     /// Whether a `।` closed it, as `import` requires. Recorded rather than
-    /// enforced here: `crates/sankriti/src/text/*.t1` write the whole statement
+    /// enforced here: `crates/textapp/src/text/*.t1` write the whole statement
     /// wrapped as `॥ आयातः … ॥`, and a reader that silently dropped those would
     /// under-report their imports and invent missing ones.
     pub danda_terminated: bool,
@@ -262,7 +262,7 @@ pub fn read(source: &str) -> Result<Unit, Vec<LexError>> {
 /// # Why this exists, and why it is not a weakening
 ///
 /// Five `.t1` sources in the tree do not lex as T1 at all — four of
-/// `crates/sankriti/src/text/` are machine transliterations that still hold
+/// `crates/textapp/src/text/` are machine transliterations that still hold
 /// `( ) = ::` and Latin digits, and `crates/sadhana-t1/src/parse.t1:198` writes
 /// ADR-0011's escape one `इति` short. [`read`] gives up on all five, and giving
 /// up is corrosive HERE in a way it is not elsewhere: a module the set no longer
@@ -457,7 +457,7 @@ mod tests {
 
     #[test]
     fn an_import_closed_with_the_double_danda_is_read_and_marked() {
-        // `crates/sankriti/src/text/ident.t1:2` is `॥ आयातः सअरणई ॥`.
+        // `crates/textapp/src/text/ident.t1:2` is `॥ आयातः सअरणई ॥`.
         let u = unit("॥ मण्डलम् इडएनट ॥\n॥ आयातः सारणी ॥\n");
         assert_eq!(u.module.unwrap().text, "इडएनट");
         assert_eq!(u.imports.len(), 1);
@@ -606,7 +606,7 @@ mod tests {
 
     #[test]
     fn the_lossy_reader_keeps_the_lines_that_lex_and_names_the_one_that_does_not() {
-        // Line 3 is `crates/sankriti/src/text/nfc.t1:5`'s shape: a machine
+        // Line 3 is `crates/textapp/src/text/nfc.t1:5`'s shape: a machine
         // transliteration that still holds `( ) ऽ` and Latin digits, outside the
         // doc 15 repertoire. `read` gives up on the whole file; this keeps the
         // module declaration, which is what the rest of the tree needs from it.

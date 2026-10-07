@@ -404,9 +404,12 @@ fn exactly_one_program_is_an_application() {
     assert_eq!(table.len(), 48, "the count of programs moved");
 
     let by_clause = |c: &str| table.values().filter(|r| r.clause == c).count();
-    assert_eq!(by_clause("A2"), 18, "programs that ARE the supervisor");
+    // A2 18 -> 19 and A4 14 -> 13 on 2026-10-06: the virtio-sound driver program gained a play-out
+    // wait that reads the `time` CSR (a Zicsr family), so it is privileged and its first
+    // failed clause is A2, by the derived-column rule above (agent/0c-dg-ubuntu).
+    assert_eq!(by_clause("A2"), 19, "programs that ARE the supervisor");
     assert_eq!(by_clause("A3"), 15, "programs that call SBI from S-mode");
-    assert_eq!(by_clause("A4"), 14, "programs that write a device address");
+    assert_eq!(by_clause("A4"), 13, "programs that write a device address");
     assert_eq!(by_clause("-"), 1, "programs that fail no clause");
 }
 
@@ -491,11 +494,13 @@ fn build(source: &str, load: u64) -> (Vec<u8>, Vec<u8>) {
 /// that forgets to clear it returns to S-mode and this test says so instead of passing.
 fn machine() -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -507,6 +512,8 @@ fn machine() -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.csr.sstatus = 1 << 8;
     install(&mut m, BASE).expect("the supervisor's word is inside RAM");

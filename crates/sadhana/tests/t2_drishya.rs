@@ -30,11 +30,11 @@
 //!
 //! # "EQUAL to the one `F-004a`'s test builds" is equality by observation
 //!
-//! `F-004a`'s `Rupa` lives in `crates/darshana/src/vastu/rupa.rs`, and **there
+//! `F-004a`'s `Rupa` lives in `crates/renderer/src/vastu/rupa.rs`, and **there
 //! is no dependency edge in either direction**: `cargo tree -e normal` gives
-//! `sadhana -> sanskrit-text` and nothing else, `darshana` has no runtime
+//! `sadhana -> sanskrit-text` and nothing else, `renderer` has no runtime
 //! dependencies and no runtime dependents at all, and `gavaksha` does not link
-//! `darshana` either. `sadhana` cannot name darshana's type, so `==` between
+//! `renderer` either. `sadhana` cannot name renderer's type, so `==` between
 //! the two values is not a comparison any code in this tree can currently
 //! write. What is asserted instead is every observable `F-004a`'s own test
 //! asserts of the tree it builds — `node_count`, `depth`, `text`, `events` and

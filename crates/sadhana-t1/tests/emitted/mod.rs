@@ -573,7 +573,15 @@ impl SlotBand {
 #[must_use]
 pub fn slot_band(off: u64, frame: &sadhana::t1::riscv64::Frame) -> SlotBand {
     let k = off / 8;
-    let (spills, locals) = (frame.num_spills as u64, frame.num_locals as u64);
+    // `V-004` PART 4: TWO SPILL REGIONS, and `Spill(k)` counts frame WORDS
+    // across both rather than one file's slot numbers — the two files each
+    // number their own slots from zero (`regalloc.rs:54`), so a per-file number
+    // would not identify a word. `num_float_spills` is ० for every routine the
+    // tree can build today, so every band below is where it was.
+    let (spills, locals) = (
+        (frame.num_spills + frame.num_float_spills) as u64,
+        frame.num_locals as u64,
+    );
     if !off.is_multiple_of(8) {
         return SlotBand::Unaccounted;
     }
@@ -590,7 +598,7 @@ pub fn slot_band(off: u64, frame: &sadhana::t1::riscv64::Frame) -> SlotBand {
     if signed == frame.ra_offset {
         return SlotBand::ReturnAddress;
     }
-    if frame.saved.iter().any(|(_, at)| *at == signed) {
+    if frame.saved.iter().any(|(_, _, at)| *at == signed) {
         return SlotBand::Saved;
     }
     SlotBand::Unaccounted

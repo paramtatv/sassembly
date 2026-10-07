@@ -458,3 +458,119 @@ fn the_pairs_tested_here_are_the_pairs_the_tables_name() {
     }
     let _ = Octets::new(b"");
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// `inverse_condition ↔ यन्त्रविपरीततुलनाभेदः` — the half of the far-conditional
+// relaxation that moves no address (`W-306`'s `Next`). Landed as a pair before
+// either emitter calls it, because the census asserts the twins write IDENTICAL
+// octets and a table that exists on one side only cannot be compared later.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// `inverse_condition ↔ यन्त्रविपरीततुलनाभेदः` over ALL SIX conditions, and over
+/// the ordinals that are NOT conditions.
+///
+/// All six and not a sample: the defect a smaller reading cannot see is the
+/// CROSSED table — `Lt → Geu`, `Ltu → Ge` — which pairs the words in the order
+/// they are declared and inverts the signedness along with the comparison. It
+/// agrees with the right answer on nothing, but a test over `Eq`/`Ne` alone
+/// never reaches it. The involution is checked too, on both halves: `inverse`
+/// twice is the identity, and no condition is its own inverse.
+#[test]
+fn every_condition_is_inverted_the_same_by_both_halves() {
+    use sadhana::t1::ir::CmpOp;
+    let mut it = emitter();
+    let six: [(i128, CmpOp); 6] = [
+        (1, CmpOp::Eq),
+        (2, CmpOp::Ne),
+        (3, CmpOp::Lt),
+        (4, CmpOp::Ge),
+        (5, CmpOp::Ltu),
+        (6, CmpOp::Geu),
+    ];
+    // The ordinals are `ir.t1`'s and not this test's opinion of them.
+    for (n, op) in six {
+        let name = match op {
+            CmpOp::Eq => "समतुलनाभेद",
+            CmpOp::Ne => "विषमतुलनाभेद",
+            CmpOp::Lt => "न्यूनतुलनाभेद",
+            CmpOp::Ge => "अन्यूनतुलनाभेद",
+            CmpOp::Ltu => "अचिह्नन्यूनतुलनाभेद",
+            CmpOp::Geu => "अचिह्नान्यूनतुलनाभेद",
+        };
+        assert_eq!(
+            global_int(&it, name),
+            n,
+            "`{name}` is `{op:?}`'s ordinal; the table below is written on it"
+        );
+    }
+
+    let mut bad: Vec<String> = Vec::new();
+    for (n, op) in six {
+        let theirs = riscv64::inverse_condition(op);
+        let want = six
+            .iter()
+            .find(|(_, o)| *o == theirs)
+            .expect("a condition")
+            .0;
+        let ours = call(
+            &mut it,
+            "यन्त्रोत्सर्जनॱयन्त्रविपरीततुलनाभेदः",
+            vec![Value::Int(n)],
+            1_000_000,
+        )
+        .as_int()
+        .expect("the inverse is numeric");
+        if ours != want {
+            bad.push(format!(
+                "{op:?} ({n}): the T1 twin answered {ours} where riscv64.rs answered {want} ({theirs:?})"
+            ));
+        }
+        // The involution, on the Rust half, and the fact that no condition is
+        // its own inverse — a table with a fixed point would relax a branch
+        // into one that takes the SAME arm.
+        assert_eq!(
+            riscv64::inverse_condition(theirs),
+            op,
+            "{op:?} inverts twice to itself"
+        );
+        assert_ne!(theirs, op, "{op:?} is not its own inverse");
+        // The signedness family is preserved: the unsigned pair inverts within
+        // itself and so does the signed one.
+        let unsigned = |o: CmpOp| matches!(o, CmpOp::Ltu | CmpOp::Geu);
+        assert_eq!(
+            unsigned(theirs),
+            unsigned(op),
+            "{op:?} keeps its signedness under inversion; {theirs:?} does not"
+        );
+    }
+    assert!(
+        bad.is_empty(),
+        "the two halves invert {} of 6 conditions differently:\n  {}",
+        bad.len(),
+        bad.join("\n  ")
+    );
+
+    // ── THE CASE THAT MUST STILL BE REFUSED ─────────────────────────────────
+    //
+    // An ordinal that is not one of the six has NO inverse, and the T1 half
+    // answers ० — not a condition — rather than falling through to a real one.
+    // `यन्त्रशाखापदम्`'s last arm is a MNEMONIC, which is the shape this one
+    // deliberately does not copy: there, a caller cannot tell `अचिह्नान्यून`
+    // from garbage. Rust cannot have the case at all — `CmpOp` is exhaustive —
+    // so this is the one reading the twins do not share, and it is asserted on
+    // the half that can reach it.
+    for n in [0_i128, 7, 99, -1] {
+        let ours = call(
+            &mut it,
+            "यन्त्रोत्सर्जनॱयन्त्रविपरीततुलनाभेदः",
+            vec![Value::Int(n)],
+            1_000_000,
+        )
+        .as_int()
+        .expect("the inverse is numeric");
+        assert_eq!(
+            ours, 0,
+            "{n} is not a condition, so it has no inverse and must not answer one"
+        );
+    }
+}

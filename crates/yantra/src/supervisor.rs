@@ -171,6 +171,12 @@ pub enum Ended {
     /// interpreter lacks — `spec/fdt-header.sas` reaches an RV64M `divu` under the kernel
     /// (`W-212`'s census). That is the host's gap and not the program's request, and it is
     /// reported as the machine's rather than dressed as the program's fault.
+    ///
+    /// **A [`Halt::Wait`] comes out here too, and is NOT resumed** (`W-370`). Only S-mode
+    /// can reach the `WAIT` address — an application's tables do not map a device — and
+    /// neither this supervisor nor the kernel has an event source to deliver from, so
+    /// resuming would invent one. The machine's `pc` is already past the store, so a host
+    /// that does have a world to deliver can call [`Machine::run`] itself.
     Stopped(Halt),
     /// `budget` steps went by and the program neither exited nor faulted.
     OutOfBudget,

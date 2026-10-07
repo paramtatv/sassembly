@@ -1043,7 +1043,7 @@ fn probe_a_local_slice_element_store() {
 ///
 /// Both fixtures below declare their run with `चरः`: a LOCAL. That is the shape
 /// that was easiest to write and it is **not** the shape the corpus mostly uses.
-/// Measured by `sansos-30` while sizing an unrelated change: of the `ॱ दैर्घ्य`
+/// Measured by a peer session while sizing an unrelated change: of the `ॱ दैर्घ्य`
 /// reads in the corpus, **143 have a PARAMETER base and 38 a true local**. A run
 /// reaches a routine as an argument far more often than it is declared in one.
 ///

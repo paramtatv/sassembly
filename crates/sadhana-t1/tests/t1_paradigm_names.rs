@@ -13,9 +13,11 @@
 //!
 //! 1. **A primitive TYPE node is shaped exactly like an Identifier node.**
 //!    `व्याकरॱप्रकारपठनम्` stores every type with `अभिव्यञ्जकयोजनम्`, and
-//!    `मूलप्रकारभेद` is १ — the same number as `नामाभिव्यञ्जकभेद`. A census that
-//!    counted kind-१ nodes would count `अ६४` in `ददाति अ६४` as an unresolved
-//!    name. So nodes are classified by REACHABILITY: from a routine body along
+//!    `मूलप्रकारभेद` was १ — the same number as `नामाभिव्यञ्जकभेद` — until
+//!    `W-171` moved the type kinds to १०१..१०५. A census that counted by kind
+//!    alone would still conflate families that later share a value, so the
+//!    classification stays structural: nodes are classified by REACHABILITY —
+//!    from a routine body along
 //!    the resolver's own walk (a use), from a `प्रकारसूचकाङ्क` (a type), from a
 //!    module-level `चरः`'s initializer, or from nothing at all.
 //! 2. **Which nodes the resolver reaches is decided by the parser, not the
@@ -56,7 +58,13 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
 // ── kinds, read off ast.t1 and parse.t1 ─────────────────────────────────
-const EXPR_NAME: i128 = 1; // नामाभिव्यञ्जकभेद — and मूलप्रकारभेद in a type position
+const EXPR_NAME: i128 = 1; // नामाभिव्यञ्जकभेद (मूलप्रकारभेद is १०१ since W-171)
+/// `मूलप्रकारभेद` — a type position's name-bearing node, Identifier-shaped
+/// (its `मूल्यसूचकाङ्क` is the token), in its own range since `W-171`.
+const T_PRIM: i128 = 101;
+/// `खण्डप्रकारभेद`..`दोषयुक्तप्रकारभेद` — the four wrappers over `वामसूचकाङ्क`.
+const T_WRAP_FIRST: i128 = 102;
+const T_WRAP_LAST: i128 = 105;
 const EXPR_NUMERAL: i128 = 2;
 const EXPR_STRING: i128 = 3;
 const EXPR_BOOL: i128 = 9;
@@ -775,13 +783,13 @@ impl Walk {
     }
 }
 
-/// Every expression node under a type: kinds २–५ wrap `वामसूचकाङ्क`.
+/// Every expression node under a type: the wrapper kinds wrap `वामसूचकाङ्क`.
 fn mark_type(prog: &Program, i: usize, out: &mut BTreeSet<usize>) {
     if i == 0 || !out.insert(i) {
         return;
     }
     if let Some(e) = prog.expr(i)
-        && (2..=5).contains(&e.kind)
+        && (T_WRAP_FIRST..=T_WRAP_LAST).contains(&e.kind)
     {
         mark_type(prog, e.left, out);
     }
@@ -834,7 +842,7 @@ impl Walk {
     fn type_references(&mut self, prog: &Program, types: &BTreeSet<usize>) {
         for &i in types {
             let Some(e) = prog.expr(i) else { continue };
-            if e.kind != EXPR_NAME {
+            if e.kind != T_PRIM && e.kind != EXPR_NAME {
                 continue;
             }
             let name = prog.tok_text(e.value);
@@ -864,7 +872,7 @@ fn place_nodes(prog: &Program, w: &Walk, types: &BTreeSet<usize>) -> NodePlaces 
     let mut p = NodePlaces::default();
     for (i, e) in prog.exprs.iter().enumerate() {
         let Some(e) = e else { continue };
-        if e.kind != EXPR_NAME {
+        if e.kind != EXPR_NAME && e.kind != T_PRIM {
             continue;
         }
         if w.reached_exprs.contains(&i) {
@@ -2396,7 +2404,7 @@ fn the_replica_walk_agrees_with_the_resolver_and_counts_what_it_skips() {
     assert_eq!(places.orphan, 0, "the else body is no longer orphaned");
     assert_eq!(places.orphan_resolved, 0, "an orphan is never written to");
     // `अ६४` six times as a type: three parameters (`अ`, `निष्फलम्`, `ग`), two
-    // returns, one `चरः`. None is a use, and each is a kind-१ node.
+    // returns, one `चरः`. None is a use, and each is a kind-१०१ node (W-171).
     assert_eq!(places.type_position, 6, "type-position nodes are not uses");
 
     let q: Vec<&Use> = w.uses.iter().filter(|u| u.qualified).collect();
@@ -2548,7 +2556,7 @@ fn forward_references(prog: &Program, w: &Walk) -> Vec<String> {
 /// `spec/grammar-t1.ebnf`'s scope note states them. A CEILING: the count may
 /// fall — a source may be reordered — and a rise means a rule this file
 /// pins has changed, or the instrument has.
-const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
+const FORWARD_REFERENCES_CEILING: [(&str, usize); 13] = [
     // 25 -> 37 on 2026-09-04: `W-202`'s else-walk (ee0251d7) added twelve forward
     // references in `artha.t1` and landed without raising this pin (the ratchet is
     // `#[ignore]`d and the peer's gate did not run the light gate); found RED on
@@ -2654,7 +2662,38 @@ const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
     // NOT a new convention: every one is a global declared in the trailing
     // block and used by a routine above it, which is what the existing 96
     // already counted.
-    ("artha.t1", 119),
+    //
+    // 119 -> 120 on 2026-10-06, and THIS RAISE AND THE FOUR BELOW IT WERE
+    // HIDDEN BEHIND ANOTHER RED. From `b5c45a07` (W-355 step 2, 2026-10-03: a
+    // fresh run has length ०) the resolver refused `lib.t1` — an empty program
+    // over an EMPTY `घोषणाकोश` read as past the end — so this test died at
+    // "every source resolves" and never reached the ceilings. Fixed in
+    // `artha.t1` by W-381's paradigm branch; the ceilings were then red in five
+    // files at once.
+    //
+    // HOW ALL FIVE WERE ATTRIBUTED, so the next raise can repeat it. The test
+    // passed WHOLE at `4ebfcf22`, b5c45a07's parent, with every count at its
+    // pin. For each file, every non-merge commit since then that touched it was
+    // measured against its own parent, the FILE'S TEXT varied and the lexer,
+    // parser and resolver held at the fixed tree — so a delta is that commit's
+    // content and not the instrument. The instrument did not move: `4ebfcf22`'s
+    // texts read exactly the old pins under the new chain. Every delta below
+    // is a measured step and they sum to the rise; sites are named by
+    // `git blame` at the raise.
+    //
+    // The one: `9c84b715` (2026-10-04, W-359 final ruling) — `:2943` calls
+    // `आह्वानतर्कगणना`, declared at `:2968`. A helper below its caller.
+    // 120 -> 122 on 2026-10-06, V-009 (ii) (matrix and tensor built-ins): `782a719c` +1
+    // and `ecf53307` +1 (the size reductions' looped name match), sites named by
+    // `git blame` on the landing stack 5ed936f1. RAISED, NOT MOVED, because a forward
+    // reference here COSTS NOTHING in octets or instructions: module names are
+    // order-free (`spec/grammar-t1.ebnf`:1434), `कार्यक्रमनिर्णयः` always runs its two
+    // passes whatever the count, and routine labels and globals are symbolic in the
+    // emitted text, resolved by the assembler over the whole module in any order — the
+    // only order-sensitive cost in the chain, W-306's relaxation, follows a branch's
+    // DISTANCE, not its direction. This ceiling is the paradigm's readability ratchet;
+    // the coordinator reports every raise to the owner.
+    ("artha.t1", 122),
     // 9 -> 10 on 2026-09-07, the object builder. PERMITTED AND SAID SO, as this
     // pin's own message asks. `वस्तुसंज्ञासारणी` (:5676) calls
     // `संज्ञासूचकाङ्कः` (:5732) — the table builder asking whether a name is
@@ -2673,7 +2712,24 @@ const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
     // `d920a18b` (families grouped once) owns `:3333 कुलस्मरणम्` and
     // `:3339 सूचितांशसाम्यम्`. Each is a caching or grouping helper placed with
     // the stage it serves, above the predicate it shares. Permitted, and said.
-    ("encode.t1", 15),
+    //
+    // 15 -> 23 on 2026-10-06, hidden behind `lib.t1`'s refusal and measured by
+    // the method at `artha.t1`'s row. Two commits, steps 15 -> 20 -> 23:
+    //   5 from `3e2952ed` (2026-10-03, W-302: operand-less instructions
+    //     encode) — `अवकाशसंख्या` at `:1300`, `:1320`, `:1345`, `:1365` and
+    //     `:2508`, declared at `:3874`. Five sites, one name.
+    //   3 from `f7e100ee` (2026-10-05, V-009 (i): one register-table walk per
+    //     operand) — `:2667 कोष्ठसूचीक्रमः`, `:2712 कोष्ठसूच्यङ्कः`,
+    //     `:2772 कोष्ठसूचीव्यूहः`, each called a few lines above its own
+    //     declaration (`:2686`, `:2720`, `:2777`).
+    // The shape this row already pins: a helper written below its caller.
+    // 23 -> 27 on 2026-10-06, N-001 (the pratyāhāra-mask encoder, landed aec74822 by the
+    // coordinator without this raise — the ratchet is `#[ignore]`d and runs only in
+    // `tools/check-t1-ratchets.sh`): `34346bb9` +2 (`:3536` and `:3549`) and `de091c72` +2
+    // (`:3614`, `:3617`), each site blamed on ADR-0044's landing tree 352caeef; the other 23
+    // sites predate this ceiling. Re-pinned in ADR-0044's landing at the coordinator's
+    // request. No octet or instruction cost (see `artha.t1`'s row).
+    ("encode.t1", 27),
     // 7 -> 9 on 2026-09-04, MEASURED by this ratchet on the trunk's merged tree at W-239's
     // merge (W-215's printer arms, W-236's twin and W-239's wiring all landed on `parse.t1`'s
     // callers/callees the same night, each lane gating on its own base); the sites are printed
@@ -2702,7 +2758,48 @@ const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
     // appender — declared below the arms that append through it. That is the
     // shape of a helper written once and used by every arm above it, which is
     // exactly what top-level order-freedom is for; it is not 24 separate debts.
-    ("ir.t1", 27),
+    //
+    // 27 -> 47 on 2026-10-06, hidden behind `lib.t1`'s refusal and measured by
+    // the method at `artha.t1`'s row. NINE STEPS, each a commit against its own
+    // parent, summing to +20:
+    //   +1 `b5c45a07` (W-355 step 2)      +7 `6e3986aa` (W-359 option 4)
+    //   +1 `9c84b715` (W-359 final)       +3 `e0e05765` (V-005 part 4)
+    //   +4 `6d37eb1c` (V-005 review)      +4 `c2363781` (V-008 part 1, प६४)
+    //   -2 `306ddc46` (V-008 part 1)      +4 `414ade95` (V-008 part 2 (2/4))
+    //   -2 `de270bc0` (W-381 refusal codes)
+    // The twenty new sites, by `git blame` at the raise (a later commit that
+    // rewrote a site's line owns it there, so blame and the steps differ in
+    // the detail and agree in the sum):
+    //   the FileMismatch recorders, `:1239 वर्गविरोधमस्ति`, `:1240
+    //   वर्गविरोधभेद`, `:1242 वर्गविरोधचिह्नकाङ्क`, `:1243 वर्गविरोधपङ्क्तिः`, and
+    //   `:1751 अङ्कमूल्यम्` (`6d37eb1c`); `:1241 स्मृतिप्लवम्` (`306ddc46`);
+    //   `:1245 प्राचलरक्षादोषसंख्या` (`9c84b715`); `:1246 निषेधपर्वविस्मरणम्`
+    //   and `:2509 पर्वस्थापनम्` (`41fdfb88`); `:1462 प्लवसदस्यभेदः` and
+    //   `:1913 प्लवाज्ञायोजनम्` (`e0e05765`); `:1618 प्लवार्थाङ्कः`, `:1647
+    //   वर्गविरोधलेखः`, `:1647 तर्कवर्गविरोधभेद`, `:1660 व्यूहाज्ञायोजनम्`
+    //   (`414ade95`); `:1715 वर्गविरोधलेखः` (`c2363781`); `:2608`, `:2609
+    //   अभिव्यञ्जकरचना` and `:2628`, `:2634 पर्वस्थापनम्` (`6e3986aa`).
+    // One shape throughout, the one this row already pins: a recorder global or
+    // a helper declared below the arm that uses it (the recorders at
+    // `:1685`-`:1707`, `वर्गविरोधलेखः` at `:1720`, `पर्वस्थापनम्` at `:3120`).
+    // Permitted, and said.
+    // 47 -> 69 on 2026-10-06, V-009 (ii): `782a719c` +7 (the matrix arm and kernel
+    // synthesis), `ecf53307` +14 (the size reductions: the call builder's in-place
+    // helpers and the looped matcher, written below their callers), `1cd5d0f4` +1 (the
+    // Transposed layout). Blamed on the stack 5ed936f1; no octet or instruction cost
+    // (see `artha.t1`'s row).
+    // 69 -> 46 on 2026-10-06 by `W-381` stage 4: `पर्वस्थापनम्` moved above its
+    // first caller (the run routines near `खण्डदैर्घ्यरचना`), which stage 4's two
+    // new block placements would otherwise have made 71; the 23 other uses it
+    // had ahead of its declaration went with it.
+    // 46 -> 48 on 2026-10-07, `W-381` stage 3 MERGED WITH STAGE 4, RE-DERIVED on the
+    // merged tree (66097a96): stage 3's 72 counted `पर्वस्थापनम्` (`:2817`) and the
+    // 72 -> 46 above removed it, since main's placement now sits above every caller
+    // (`:2637`); two of stage 3's three stay forward: `:2172` `सुरक्षितान्तर्निहितरचना`
+    // (the checked built-ins' hand-off, inside the float lowering it is entered
+    // through and declared below it) and `:2894` `अङ्कमूल्यम्` (the zero test, a use
+    // of the numeral reader the file declares near its foot). 46 + 2 = 48.
+    ("ir.t1", 48),
     // `W-215`: the printer's expression arm calls `आह्वानादानलेखनम्`, which
     // calls it back for each argument — a mutual recursion, so one direction
     // is forward whichever is written first. Every other helper is written
@@ -2742,7 +2839,12 @@ const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
     // count to tell a START query from a LENGTH query, and `वस्तुसंख्या` is
     // declared at :1015 with the other readers. Two sites, one name, one
     // commit — the whole rise.
-    ("samyojana.t1", 3),
+    // 3 -> 4 on 2026-10-07. PERMITTED AND SAID SO. `नामस्थानयोजनम्` (the
+    // symbol-lookup step 2 insert, ~:470) refuses an index with no slot left
+    // through `संयोजनदोषयोजनम्`, declared with the rest of the refusal path at
+    // ~:1075. Moving that path above the name tables would move ~200 lines to
+    // save one count. One site, one name — the whole rise.
+    ("samyojana.t1", 4),
     // ── THE THREE THAT HAD NO ROW AT ALL ─────────────────────────────────────
     //
     // These joined the corpus after this table was written and `ceiling.get(f)
@@ -2791,13 +2893,56 @@ const FORWARD_REFERENCES_CEILING: [(&str, usize); 12] = [
     // 4, all `यन्त्रवैश्विकचिह्नम्` from `cd8e1877` (2026-09-17, the gate was one
     // missing label). FOUR SITES, ONE NAME: the global-symbol emitter is
     // declared below the four arms that emit through it.
-    ("yantrotsarjana.t1", 4),
+    //
+    // RAISED 4 -> 5 ON 2026-10-01, AND THE FIFTH IS NAMED RATHER THAN ABSORBED.
+    // `यन्त्रनिर्गमस्थानम्` at `yantrotsarjana.t1:827`, `यन्त्रनिर्गमस्थानम् भवति
+    // यन्त्राज्ञागणना ।`, added by `08dfdcdf` (2026-09-30 11:16, "W-306: the .t1
+    // twin raises यन्त्रदूरलङ्घननिषेधभेद, by label and not by block"). Same shape
+    // as the other four and as `shrinkhala.t1`'s: a driver global declared below
+    // the routine that writes it. Not a new kind of thing, so the pin rises.
+    //
+    // **IT WAS RED FOR TWO DAYS AND NO GATE SAW IT, WHICH IS THE PART WORTH
+    // FIXING LATER.** This test is `#[ignore]`d, so `cargo test -p sadhana-t1`
+    // reports it as `1 ignored` and a whole-crate run never reaches it — the
+    // ratchet can therefore go stale invisibly, which is exactly the failure
+    // mode a ratchet exists to prevent. It was found only because the W-304
+    // replay ran `tools/gate.sh`, which does pass `--ignored`, and the peer
+    // carrying that branch asked whether the red was theirs or the base's. It
+    // was the base's: reproduced here on `origin/main` with their files absent,
+    // exit 101, `paradigm_name_global_uses_before_declaration_yantrotsarjana 5`.
+    //
+    // 5 -> 8 on 2026-10-06, hidden behind `lib.t1`'s refusal and measured by
+    // the method at `artha.t1`'s row. Two commits, steps 5 -> 7 -> 8:
+    //   2 from `a669d18b` (2026-10-04, V-005 part 3: the emitter's float file)
+    //     — `यन्त्रप्लववर्गः` at `:782` and `:2311`, declared at `:2669`.
+    //   1 from `414ade95` (2026-10-05, V-008 part 2 (2/4)) —
+    //     `:2595 यन्त्रप्लवक्रियापदम्`, declared at `:2677`.
+    // Helpers declared below their callers, as the five above are.
+    // 8 -> 11 on 2026-10-06, SAS-011 (c)'s .t1 half `f5941e29` +3: the text-form
+    // predicate calls its keyword-compare helper, declared below it. Landed in 6c7e72a9
+    // without this raise (the ratchet is `#[ignore]`d and runs only in
+    // `tools/check-t1-ratchets.sh`, which that landing did not run — the lane's miss;
+    // found by the ADR-0044 prototype). No octet or instruction cost (see `artha.t1`'s row).
+    ("yantrotsarjana.t1", 11),
     // `yantrotsarjana.t1` (W-236, 2026-09-04) read ० here for thirteen days:
     // its three would-be forward references were reordered above their first
     // use, so the new file needed no pin. THAT SENTENCE IS NOW HISTORY AND IS
     // KEPT AS HISTORY — `cd8e1877` (2026-09-17) added four, the row is above,
     // and a margin that still said "needs no pin" would be the dated claim this
     // ratchet exists to catch.
+    //
+    // ── `sanchaya.t1`: NO ROW UNTIL 2026-10-06 ──────────────────────────────
+    // 0 at `4ebfcf22`, which is why it had no row; 4 now, and refused as
+    // UNPINNED while `lib.t1`'s refusal hid it. Measured by the method at
+    // `artha.t1`'s row, steps 0 -> 2 -> 4, both W-359 (2026-10-04):
+    //   2 from `6e3986aa` (option 4: a run parameter grows only in a routine
+    //     that returns it) — `खण्डप्राचलम्` at `:472` and `:525`, declared at
+    //     `:538`.
+    //   2 from `9c84b715` (final ruling: results assigned back or
+    //     tail-returned) — `वर्धकप्राचलगहनम्` at `:288` and `:441`, declared at
+    //     `:448`.
+    // Two names, each a helper declared just below its last caller.
+    ("sanchaya.t1", 4),
 ];
 
 /// Where one measured file stands against the pinned table.
@@ -3283,10 +3428,14 @@ const KEPT_PUBLIC_NAMES_REFERENCED_NOWHERE: &[(&str, &str)] = &[
     // DIFFERENT exit had silently inherited this one's case, which is exactly
     // how a premise-less constant misleads. If a future row gives it a meaning,
     // give it a caller in the same commit or strike it.
-    (
-        "shrinkhala.t1 चरः सङ्कलनावृत्तिभेद",
-        "W-279: the routine-less exit, in-degree 1 -> 0 when the guard that refused data-only modules was removed; kept as the record that they used to be refused, not because anything reaches it",
-    ),
+    // 2026-10-05, the batch W-366 + W-346 + W-363 on V-005: `shrinkhala.t1 चरः
+    // सङ्कलनावृत्तिभेद` LEFT this list. Nothing in the corpus reaches it yet; it is
+    // NAMED by crates/sadhana-t1/tests/refusal_cause_witnesses.rs (W-366), which
+    // enumerates every compile verdict as a refusal cause and counts this one
+    // UNCOVERED with the reason "data only, no routines, not an error" — and the
+    // census counts a Rust mention as a reference (tools/unreferenced-publics.py's
+    // header names that trap). It is still at in-degree 0 in the corpus: the
+    // witness test is now where that fact is kept.
     // THE INPUT CHANNEL'S THREE TAGS — read by the HOST, by VALUE (2026-09-21).
     //
     // `yantra-run` places a file in RAM before the first instruction, and the
@@ -3490,7 +3639,7 @@ fn every_public_name_referenced_nowhere_is_adjudicated_and_the_list_is_exact() {
     // what it measures: rung 76 cost +12,911,498 steps over rung 73e, 0.05%,
     // beside the 6.6% the index-read guard cost.
     // **COUNTED FROM THE DECLARATIONS, NOT FROM THE UNREFERENCED SET
-    // (2026-09-14, after sansos-c1 measured it falling the wrong way).** This
+    // (2026-09-14, after a peer session measured it falling the wrong way).** This
     // used to count rungs inside `flagged`, which is the set NOTHING NAMES — so
     // when `t1_output_channel.rs` named rung 73, the rung left the set and the
     // number FELL from 77 to 76 while the ladder GREW from 79 to 80. A fall then
@@ -3684,7 +3833,9 @@ fn every_public_name_referenced_nowhere_is_adjudicated_and_the_list_is_exact() {
         // consumer is `yantra-run`, which finds them by VALUE because the image
         // has no symbol table. A `.t1` caller would be wrong. So the row to watch
         // is the opposite of the one above: they should STILL be here in a week.
-        19,
+        // 19 -> 18 on 2026-10-05: `सङ्कलनावृत्तिभेद` left the list (see its
+        // dated note in the list): the W-366 witness test names it.
+        18,
         "W-225 left 23, one of which (`यन्त्रघोषणाभेद`) a Rust margin had named all \
          along — 22 since W-226's rebase and W-224's gate (W-215's printer references the \
          same name); D-002a2 19 — असम्बन्धः, अपाकर्तव्यम् and सङ्कोचनिषेधः gained callers with \

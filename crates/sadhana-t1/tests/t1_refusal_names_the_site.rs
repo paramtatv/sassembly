@@ -19,7 +19,7 @@
 //! `Front::resolve` has rendered them as `` `X` at line N has no declaration``
 //! since W-223. Both drivers call `शृङ्खलाॱमण्डलसङ्कलनम्` — the `.t1` chain's own
 //! driver — and never construct a `Front`, so neither ever saw that sentence.
-//! The rendering additionally existed in `pradarshana/src/lib.rs:634` and
+//! The rendering additionally existed in `frontend/src/lib.rs:634` and
 //! `yantra/tests/paradigm_encode.rs:2136`: three copies, and none in a driver.
 //!
 //! **WHAT THIS TEST PINS IS THE STAGE GATE, WHICH IS THE PART THAT CAN BE WRONG

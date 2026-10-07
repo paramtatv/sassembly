@@ -1,0 +1,22 @@
+मण्डलम् शून्यप्रतिफलपरीक्षण ॥
+
+॰ W-359, the nil path: `योजकः` grows its parameter and then answers
+॰ `शून्यम्` on one path. Under the final ruling a nil return does NOT count as
+॰ returning the parameter, so `योजकः` is not grow-and-return and its
+॰ parameter is GUARDED: the growing store is refused at run time by both
+॰ engines. (Admitted, the nil would have been assigned back and the run lost
+॰ on both engines — a loss, not a divergence.)
+वृत्तिः योजकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ऽ मानम् ॱॱ न६४ ददाति अङ्कः अन्तः न६४ आदि
+    सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति मानम् ।
+    यदि मानम् अधिकम् १०० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    प्रत्यागमनम् सूची ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    सूची अङ्कः ० अन्तः भवति ३ ।
+    सूची भवति योजकः सूची ७ ।
+    प्रत्यागमनम् सूची ॱ दैर्घ्य ।
+इति

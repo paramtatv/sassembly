@@ -23,7 +23,7 @@ fn repo_root() -> PathBuf {
 
 /// Every `.t1` source under `crates/`, from every crate, sorted — the same set
 /// `no_t1_source_binds_a_frozen_keyword_as_a_name` guards, for the same reason:
-/// `crates/sankriti/src/text/*.t1` are T1 sources and declare modules too.
+/// `crates/textapp/src/text/*.t1` are T1 sources and declare modules too.
 fn every_t1_source() -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
         let Ok(entries) = std::fs::read_dir(dir) else {
@@ -72,7 +72,7 @@ fn rel(p: &Path) -> String {
 ///   short. A doubled close is the WORD, so the literal string `इति` is
 ///   `उक्तम् इति इति इति`; the line writes `उक्तम् इति इति समाप्तम्`, which opens
 ///   a string, spends the escape and runs off the end of the line.
-/// - the four `crates/sankriti/src/text/` files are machine transliterations
+/// - the four `crates/textapp/src/text/` files are machine transliterations
 ///   that still carry `( ) = :: ऽ` and LATIN digits (`उ32`), none of which is in
 ///   the doc 15 repertoire.
 ///
@@ -85,10 +85,10 @@ const SOURCES_THE_T1_LEXER_CANNOT_READ_WHOLE: &[(&str, usize, usize)] = &[
     // is what made the line lex. The list is a RATCHET on the wrong side —
     // a T1 source the T1 lexer cannot read is the thing self-hosting cannot
     // survive — so every removal is progress and every addition is a defect.
-    ("crates/sankriti/src/text/nfc.t1", 1, 5),
-    ("crates/sankriti/src/text/numeral.t1", 4, 4),
-    ("crates/sankriti/src/text/segment.t1", 4, 5),
-    ("crates/sankriti/src/text/tables.t1", 5607, 32),
+    ("crates/textapp/src/text/nfc.t1", 1, 5),
+    ("crates/textapp/src/text/numeral.t1", 4, 4),
+    ("crates/textapp/src/text/segment.t1", 4, 5),
+    ("crates/textapp/src/text/tables.t1", 5607, 32),
 ];
 
 /// Every `.t1` source read into a [`Unit`], keyed by its repo-relative path,
@@ -731,7 +731,7 @@ fn the_import_keyword_inside_a_string_is_not_an_import() {
 /// The other half of the same question, reported rather than fixed: these are
 /// spelling drifts in files this row does not own. `कोश` is imported twice while
 /// `crates/sadhana-t1/src/kosha.t1:1` declares `कओश`; `सअरणई` is imported three
-/// times while `crates/sankriti/src/text/tables.t1:1` declares `सारणी`; and
+/// times while `crates/textapp/src/text/tables.t1:1` declares `सारणी`; and
 /// `पद` is imported by `lib.t1`, which declares no module at all.
 ///
 /// EXACT, not a ceiling — a sixth would slip past a `<=`.
@@ -748,9 +748,9 @@ const IMPORTS_NAMING_NO_DECLARED_MODULE: &[(&str, &str, usize)] = &[
     // name had been transcribed out of English one letter at a time, so the
     // module every caller correctly asked for did not exist under that spelling.
     // Rewritten 2026-08-30 as `मण्डलम् कोश`, and the two imports now resolve.
-    ("crates/sankriti/src/text/ident.t1", "सअरणई", 2),
-    ("crates/sankriti/src/text/nfc.t1", "सअरणई", 2),
-    ("crates/sankriti/src/text/segment.t1", "सअरणई", 2),
+    ("crates/textapp/src/text/ident.t1", "सअरणई", 2),
+    ("crates/textapp/src/text/nfc.t1", "सअरणई", 2),
+    ("crates/textapp/src/text/segment.t1", "सअरणई", 2),
 ];
 
 #[test]
@@ -779,7 +779,7 @@ fn every_import_that_names_no_declared_module_is_recorded() {
 
 /// Three imports are written `॥ आयातः … ॥` rather than `आयातः … ।`.
 ///
-/// `import` in `spec/grammar-t1.ebnf` ends in the daṇḍa. `crates/sankriti/src/
+/// `import` in `spec/grammar-t1.ebnf` ends in the daṇḍa. `crates/textapp/src/
 /// text/*.t1` wrap the whole statement in the DOUBLE daṇḍa instead — ADR-0012's
 /// T0 directive shape, in a T1 source. Recorded, not fixed: those files are not
 /// this row's, and `mandala::Import::danda_terminated` is the field that makes
@@ -801,9 +801,9 @@ fn the_imports_that_do_not_close_with_the_danda_are_named() {
     assert_eq!(
         odd,
         vec![
-            "crates/sankriti/src/text/ident.t1:2",
-            "crates/sankriti/src/text/nfc.t1:2",
-            "crates/sankriti/src/text/segment.t1:2",
+            "crates/textapp/src/text/ident.t1:2",
+            "crates/textapp/src/text/nfc.t1:2",
+            "crates/textapp/src/text/segment.t1:2",
         ],
         "the set of imports not closed by `।` changed"
     );
@@ -843,7 +843,7 @@ const THIS_CRATE: &str = "crates/sadhana-t1/src/";
 /// and all three of `lib.t1`'s (`पद`, which no source declares, `व्याकर`,
 /// `वास्तु`) — and two live ones reached only in type positions. The seven
 /// are removed with a dated note at each site; this holds the count there.
-/// `crates/sankriti/src/text/` is outside this lane and is reported, not
+/// `crates/textapp/src/text/` is outside this lane and is reported, not
 /// pinned.
 #[test]
 fn no_import_in_this_crate_is_dead_or_names_an_undeclared_module() {
@@ -886,7 +886,7 @@ fn no_import_in_this_crate_is_dead_or_names_an_undeclared_module() {
     );
 
     // And no import in this crate names a module no source declares. The
-    // exact table above still records the three in `crates/sankriti/`.
+    // exact table above still records the three in `crates/textapp/`.
     let unknown: Vec<String> = mandala::unknown_imports(&units)
         .iter()
         .filter(|u| u.unit.starts_with(THIS_CRATE))

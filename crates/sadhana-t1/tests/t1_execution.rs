@@ -692,7 +692,7 @@ fn breaking_the_registry_row_filter_changes_the_row_count() {
 ///
 /// Two rows went when `lex.t1` joined this load, and I then wrote that the
 /// three that remained were "`.t1` parse gaps and not module faults", renaming
-/// the constant on that reasoning. That was FALSE, and sansos-c1 refuted it
+/// the constant on that reasoning. That was FALSE, and a peer session refuted it
 /// with a measurement and with a discriminator already sitting in this file.
 ///
 /// THE READING ERROR, because it is the transferable part: the reason string
@@ -793,7 +793,7 @@ fn with_every_module_loaded_every_routine_of_vakyavibhaga_parses() {
     // kind in the tree and it looked at 92 routines of 801 — so a routine that
     // stopped parsing anywhere else in the corpus was reported by nothing. The
     // loader already carries every source; only the two filters were narrow.
-    // Widened by sansos-c1's measurement, which found exactly one in the other
+    // Widened by a peer session's measurement, which found exactly one in the other
     // 709 and would have named it the day it landed.
     let total = it.routines().count();
     let stuck: Vec<String> = it
@@ -1309,6 +1309,8 @@ fn kind_number(it: &Interpreter, kind: &str) -> i128 {
         "label" => "नामाङ्कभेद",
         "fixed" => "स्थिरभेद",
         "disp" => "अन्तरभेद",
+        // `V-008` part 2.
+        "vreg" => "व्यूहकोष्ठभेद",
         other => panic!(
             "spec/encodings-riscv64.tsv carries a slot kind `{other}` that सङ्केतन does not number"
         ),
@@ -2409,8 +2411,15 @@ const EMITTER_MUTATIONS: &[(&str, &str, &str, &str)] = &[
         "यत्यष्टकम्",
         "the line end stops being a LINE FEED and becomes a space — the exact \
          defect a `contains` assertion cannot see",
-        "सार्वजनिक चरः यत्यष्टकम् ॱॱ अ६४ भवति यतिः अङ्कः ० अन्तः ।",
-        "सार्वजनिक चरः यत्यष्टकम् ॱॱ अ६४ भवति विवरम् अङ्कः ० अन्तः ।",
+        // `न६४`, NOT `अ६४`: `8bf56a15` ("W-180 cluster 1: utsarjana's
+        // output-buffer subsystem goes न६४ — 71 sites") retyped this global on
+        // 2026-10-02 and left this needle quoting the signed spelling it had
+        // carried since `24419174` on 08-30. `mutate()`'s count guard caught it
+        // — `left 0, right 1` — which is the guard doing its job, not a defect
+        // in it. The mutation is still `यतिः` -> `विवरम्`; only the TYPE moved,
+        // and `अ`/`न` differ by one glyph (अंश signed, निर्ऋण unsigned).
+        "सार्वजनिक चरः यत्यष्टकम् ॱॱ न६४ भवति यतिः अङ्कः ० अन्तः ।",
+        "सार्वजनिक चरः यत्यष्टकम् ॱॱ न६४ भवति विवरम् अङ्कः ० अन्तः ।",
     ),
     (
         "अष्टकयोजनम्",
@@ -2926,6 +2935,13 @@ fn numeral_disagreements(text: &str) -> Vec<String> {
         check("मानदोषः", read(&mut it, "मानदोषः", &token), want.value_code);
         if want.value_code == OK {
             check("मानम्", read(&mut it, "मानम्", &token), want.magnitude);
+        } else {
+            // The REFUSED half of `मानम्`'s contract: a token `मानदोषः`
+            // refuses answers ० — a value, not a claim. Since SAS-011 fix 2
+            // the refusals are `मानम्`'s own arms rather than a delegated
+            // `मानदोषः` call, so a wrong arm would be invisible to the OK-only
+            // check above.
+            check("मानम्", read(&mut it, "मानम्", &token), 0);
         }
         check("अंशदोषः", read(&mut it, "अंशदोषः", &token), want.bits_code);
         if want.bits_code == OK {
@@ -3212,6 +3228,14 @@ const NUMERAL_MUTANTS: &[(&str, &str, &str, &str)] = &[
         "the radix prefix is measured at four akṣaras instead of five",
         "प्रत्यागमनम् आरभ्य स्थानम् योगः १५ समाप्तम् ।",
         "प्रत्यागमनम् आरभ्य स्थानम् योगः १२ समाप्तम् ।",
+    ),
+    (
+        "सङ्ख्यामूलम्",
+        "the leading-० test misreads ०'s third octet, so no word ever tries \
+         the radix prefixes and ०द्वि१ classifies as decimal — the exact \
+         defect the class-order margin warns of (SAS-011 fix 3)",
+        "यदि पाठ अङ्कः आरभ्य स्थानम् योगः २ समाप्तम् अन्तः असमम् १६६ आदि",
+        "यदि पाठ अङ्कः आरभ्य स्थानम् योगः २ समाप्तम् अन्तः असमम् १६७ आदि",
     ),
     (
         "मानदोषः",
@@ -3589,12 +3613,25 @@ fn the_sema_loads_and_every_routine_in_it_is_runnable() {
     // and calls nothing outside the modules this loader carries, so every
     // routine it declares must be runnable. A routine that stops being runnable is a
     // regression this crate has no other way to see.
+    //
+    // W-358: a red NAMES its routines — `module:line name — why`, `why` being
+    // the parse error the loader stored instead of a body, which since W-358
+    // also names any qualified call whose module the load lacks. A count alone
+    // could not be reproduced from.
+    let unrunnable: Vec<String> = it
+        .routines()
+        .filter_map(|rt| {
+            rt.why_not()
+                .map(|why| format!("{}:{} {} — {why}", rt.module, rt.line, rt.name))
+        })
+        .collect();
     assert_eq!(
         r.runnable,
         r.routines,
-        "{} of {} sema routines have a body this interpreter cannot run",
+        "{} of {} sema routines have a body this interpreter cannot run:\n  {}",
         r.routines - r.runnable,
-        r.routines
+        r.routines,
+        unrunnable.join("\n  ")
     );
 }
 
@@ -3744,7 +3781,8 @@ fn a_resolver_starts_with_exactly_one_scope_and_it_is_empty() {
         );
         s[1].clone()
     };
-    // And that one scope is empty — likewise a length of १.
+    // And that one scope is empty — a FRESH arena, length ० since `W-355`
+    // (it was १, the old zero run of one nil, before).
     let Value::Record(inner) = inner else {
         panic!("the global scope is not a परिसर")
     };
@@ -3754,8 +3792,8 @@ fn a_resolver_starts_with_exactly_one_scope_and_it_is_empty() {
     };
     assert_eq!(
         entries.borrow().len(),
-        1,
-        "the global scope must start with no bindings"
+        0,
+        "the global scope must start with no bindings — a fresh run, length ०"
     );
 }
 
@@ -3847,9 +3885,14 @@ const SEMA_MUTATIONS: &[(&str, &str, &str, &str)] = &[
     ),
     (
         "पुनरुक्तघोषणम्",
-        "the empty-stack guard tests ० again, so it never fires",
+        // WAS `समम् ०` ("tests ० again, so it never fires"), and `W-355` made
+        // that mutant EQUIVALENT: a resolver with no scope now has length ०,
+        // never १, so `समम् ०` and `न्यूनम् २` fire on exactly the same stacks.
+        // `न्यूनम् ०` is the guard that can never fire, which is what the old
+        // mutant stood for.
+        "the empty-stack guard can never fire",
         "यदि दैर्घ्य न्यूनम् २ आदि\n        प्रत्यागमनम् असत्यम् ।",
-        "यदि दैर्घ्य समम् ० आदि\n        प्रत्यागमनम् असत्यम् ।",
+        "यदि दैर्घ्य न्यूनम् ० आदि\n        प्रत्यागमनम् असत्यम् ।",
     ),
     (
         "नामनिर्णयः",
@@ -3981,6 +4024,12 @@ fn push_expression(it: &Interpreter, kind: i128, left: i128) -> i128 {
     m.insert("दक्षिणसूचकाङ्क".to_string(), Value::Int(0));
     m.insert("द्विकर्म".to_string(), Value::Int(0));
     let mut a = a.borrow_mut();
+    // ONE-BASED, as the corpus's own appender writes it: a fresh arena is
+    // EMPTY since `W-355`, and the first write at index १ grows it past slot
+    // ०, leaving a `Nil` there. `push` alone would land the first at ०.
+    if a.is_empty() {
+        a.push(Value::Nil);
+    }
     a.push(Value::Record(Rc::new(RefCell::new(m))));
     i128::try_from(a.len() - 1).expect("an arena index fits")
 }
@@ -5486,6 +5535,66 @@ fn an_extent_outside_the_arena_is_refused_and_names_which_way_it_was_wrong() {
         Some(&Value::Bool(false)),
         "and ० must not raise the extent flag"
     );
+
+    // ── ० IN A FRESH INTERPRETER, WHERE THE ARENA ITSELF IS EMPTY ─────────
+    // The case above runs AFTER a one-routine parse, so `घोषणाकोश` already
+    // holds slot ० and slot १ and `० बृहत्समम् दैर्घ्य` is false for a reason
+    // that has nothing to do with the rule. A source that declares nothing —
+    // `lib.t1` — parsed into a FRESH interpreter leaves the arena at length ०,
+    // and since W-355 step 2 (`b5c45a07`, a fresh run has length ० and not one
+    // nil) the past-the-end test read `० बृहत्समम् ०` and REFUSED it as
+    // `परिधिबाह्यभेद`. `t1_paradigm_names`'s hoisting ratchet ran red on that
+    // from 2026-10-03, reporting "lib.t1: refused with no name recorded".
+    // Both walkers carry the guard, so both are held here.
+    let mut fresh = load_sema_with_parser();
+    let nothing = "॰ a source that declares nothing, as `lib.t1` does\n";
+    let toks = fresh
+        .call("पदविभागॱपदविभाग", vec![octets(nothing)], 50_000_000)
+        .expect("पदविभाग runs")
+        .as_int()
+        .expect("a token count");
+    let parsed = fresh
+        .call("व्याकरॱकार्यक्रमपठनम्", vec![Value::Int(toks)], 200_000_000)
+        .expect("कार्यक्रमपठनम् runs")
+        .as_int()
+        .expect("a declaration count");
+    assert_eq!(parsed, 0, "the fixture declares nothing");
+    assert!(
+        matches!(fresh.global("घोषणाकोश"), Some(Value::Arena(a)) if a.borrow().is_empty()),
+        "the fixture's premise: a fresh interpreter's `घोषणाकोश` is EMPTY after \
+         parsing nothing — else this case tests the one above again"
+    );
+    let r = fresh
+        .call("अर्थॱनिर्णायकारम्भः", vec![], 5_000_000)
+        .expect("निर्णायकारम्भः runs");
+    let verdict = fresh
+        .call(
+            "अर्थॱकार्यक्रमनिर्णयः",
+            vec![r.clone(), Value::Int(parsed)],
+            200_000_000,
+        )
+        .expect("कार्यक्रमनिर्णयः runs");
+    assert_eq!(
+        (verdict, fresh.global("परिधिदोषमस्ति").cloned()),
+        (Value::Bool(true), Some(Value::Bool(false))),
+        "a program with no declarations, over an EMPTY arena, resolves \
+         vacuously — an extent of ० is never past the end"
+    );
+    fresh
+        .call("अर्थॱप्रकारपरीक्षकारम्भः", vec![r], 5_000_000)
+        .expect("checker starts");
+    let typed = fresh
+        .call(
+            "अर्थॱकार्यक्रमप्रकारपरीक्षा",
+            vec![Value::Int(parsed)],
+            200_000_000,
+        )
+        .expect("typecheck runs");
+    assert_eq!(
+        (typed, fresh.global("परिधिदोषमस्ति").cloned()),
+        (Value::Bool(true), Some(Value::Bool(false))),
+        "the typechecker carries the same range test and must accept ० the same way"
+    );
 }
 
 /// Collect the named sources into one interpreter and raise the flag.
@@ -6259,8 +6368,8 @@ fn the_type_evaluator_names_a_primitive_and_shapes_a_wrapper() {
     // A test can only be as true as the shape it constructs. Using the
     // appender the parser itself uses is what makes this one true.
     let t_u8 = tok(&mut it, "अ३२");
-    let prim_idx = push_expr(&mut it, 1, t_u8, 0, 0); // मूलप्रकारभेद
-    let slice_idx = push_expr(&mut it, 2, 0, prim_idx, 0); // खण्डप्रकारभेद
+    let prim_idx = push_expr(&mut it, 101, t_u8, 0, 0); // मूलप्रकारभेद, १०१ since W-171
+    let slice_idx = push_expr(&mut it, 102, 0, prim_idx, 0); // खण्डप्रकारभेद
     let nodes = it
         .global("अभिव्यञ्जककोश")
         .expect("the expression arena is a name in scope")
@@ -8638,6 +8747,182 @@ fn load_ir_chain() -> Interpreter {
 /// build that runs but produces NO INSTRUCTIONS is not a build that worked.
 /// All three are reported separately, and the instruction count is printed for
 /// every file so a zero cannot hide inside a success.
+/// **THE STUB ARENA'S THREE STATES — AND THE TWO THE OLD GUARD RAN TOGETHER.**
+///
+/// `measure_corpus_ir` asserted `total > 0` and its message said why: *"a zero
+/// here is a broken census, not a clean corpus — the corpus has never had zero
+/// stubs and the day it does, this assertion is the one to revisit
+/// deliberately."* **2026-10-01 IS THAT DAY.** The census ran on 18 built
+/// sources, printed every lowered shape with live counts (`local_load` 12501,
+/// `global_load` 3719, `field_load` 1617, `assign_index_grown` 667) and summed
+/// the stub arena to ZERO — and the guard reported that as its own breakage.
+///
+/// Two truths wore one state. A sum of zero means EITHER that the reader saw
+/// nothing — no such global, not an arena, or an arena too short for the causes
+/// `अपूर्णहेतुसीमा` bounds — OR that the builder raised no stub, which after
+/// `W-283`, `W-284`, `W-287` and `W-306` lowered the global, field, index and
+/// grown-index writes is a result the corpus can now actually produce. The old
+/// guard could not tell them apart, so it answered the first on evidence that
+/// supports either.
+///
+/// # The guard keeps its teeth, and they move to the READER
+///
+/// Dropping `total > 0` and asserting nothing would make the census vacuous
+/// again — which is the failure its own margin was written against. So the
+/// non-vacuity claim becomes a claim about the READ and not about the CORPUS:
+/// the global exists, it IS an arena, and it is long enough that every cause
+/// `१..=अपूर्णहेतुसीमा−१` is addressable. A reader that sees nothing cannot
+/// pass that, and a corpus that raises nothing can.
+///
+/// The bound is read FROM THE INTERPRETER rather than written here, so the
+/// length claim tracks `ir.t1`'s own constant instead of a copy of it that
+/// stops agreeing — the pin tax the owner's ruling 1 of 2026-09-13 took off the
+/// landing path.
+#[derive(Debug, PartialEq, Eq)]
+enum StubArenaState {
+    /// No global of that name, or the global is not an arena. The reader saw
+    /// nothing and ANY sum it reports is an artefact.
+    Absent,
+    /// An arena, but shorter than the cause bound — the tail of the cause space
+    /// is unreadable, so a zero there is the length and not the builder.
+    Short { len: usize, bound: i128 },
+    /// Present, an arena, long enough for every cause. A zero sum read through
+    /// this state is a MEASUREMENT.
+    Live { len: usize, bound: i128 },
+}
+
+/// How a `सीमा` constant names the last entry of the arena it bounds.
+///
+/// **THE TWO ARENAS THIS CENSUS READS THROUGH ONE LOOP ARE BOUNDED BY
+/// CONSTANTS WITH OPPOSITE CONVENTIONS, AND A CLASSIFIER WRITTEN FOR ONE
+/// MISREPORTS THE OTHER.** Measured 2026-10-01: a length test using
+/// `अपूर्णहेतुसीमा`'s convention called `रचितगणनाकोश` `Short { len: 36, bound: 46 }`
+/// when 36 is exactly right for it.
+///
+/// `अपूर्णहेतुसीमा` is EXCLUSIVE by `ir.t1`'s own ruling of 2026-09-18 — ४६
+/// bounds causes १..४५ — and its reset walks `१ ..< सीमा`. `रचितशेषसीमा` is
+/// INCLUSIVE and its reset walks `१ ..= सीमा`; `ir.t1:753` calls it "the highest
+/// shape number" in as many words. Both resets are the only thing that sizes
+/// their arena, so the minimum live length differs by one between them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BoundReading {
+    /// The bound is the first value that is NOT an entry — `अपूर्णहेतुसीमा`.
+    Exclusive,
+    /// The bound IS the highest entry — `रचितशेषसीमा`.
+    Inclusive,
+}
+
+/// Classify a census arena as [`StubArenaState`].
+///
+/// `bound_name` is the `ir.t1` constant whose reset loop sizes `arena_name`,
+/// read FROM THE INTERPRETER rather than copied here so the length claim tracks
+/// the source instead of a pin that stops agreeing. `reading` says which
+/// convention that constant uses; the arena must hold the highest entry at its
+/// own index, so the minimum length is `bound` under
+/// [`BoundReading::Exclusive`] and `bound + 1` under
+/// [`BoundReading::Inclusive`]. Entry ० is the 1-based arena's unused slot and
+/// is counted in both.
+///
+/// A bound the interpreter does not expose is itself a broken read, reported as
+/// [`StubArenaState::Absent`] rather than defaulted — a default would let the
+/// length test pass on a bound of zero.
+fn stub_arena_state(
+    it: &Interpreter,
+    arena_name: &str,
+    bound_name: &str,
+    reading: BoundReading,
+) -> StubArenaState {
+    let bound = match it.global(bound_name).and_then(Value::as_int) {
+        Some(b) if b > 0 => b,
+        _ => return StubArenaState::Absent,
+    };
+    let need = match reading {
+        BoundReading::Exclusive => bound,
+        BoundReading::Inclusive => bound + 1,
+    };
+    let len = match it.global(arena_name) {
+        Some(Value::Arena(a)) => a.borrow().len(),
+        _ => return StubArenaState::Absent,
+    };
+    if i128::try_from(len).unwrap_or(0) < need {
+        return StubArenaState::Short { len, bound };
+    }
+    StubArenaState::Live { len, bound }
+}
+
+/// **ALL THREE STATES, WITNESSED FROM ONE LOADED CHAIN — AND THE MIDDLE ONE IS
+/// REACHABLE, WHICH IS WHY THE SPLIT IS NOT BOOKKEEPING.**
+///
+/// A freshly loaded chain answers `Short { len: 0, bound: 47 }`: the declaration
+/// `सार्वजनिक चरः अपूर्णगणनाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।` gives an EMPTY
+/// arena (`W-355`; it was ONE slot, `len: 1`, before), and `मध्यरूपॱआरम्भः`'s reset loop — walking `१ ..< अपूर्णहेतुसीमा` — is
+/// the only thing that grows it to the cause space. So a reader that classifies
+/// before calling `आरम्भः` sees no slot, sums it to zero, and reports a clean
+/// corpus. That is the third truth the old `total > 0` guard folded into its own
+/// breakage, and it is measured here rather than argued.
+///
+/// # The case that must still be refused
+///
+/// Splitting a guard is only an improvement if the BROKEN state is still
+/// caught, so both failing states are asserted and not just the passing one: a
+/// name no global of this chain carries classifies [`StubArenaState::Absent`],
+/// and the unsized arena classifies [`StubArenaState::Short`]. Without those
+/// two halves the split would have traded a false red for a blind green.
+///
+/// `रचितगणनाकोश` is checked alongside it because the census reads BOTH arenas
+/// through one loop and the lowered-shape half is the one that read non-zero —
+/// asserting it `Live` is the control the stub half's zero needs.
+#[test]
+fn the_stub_cause_arena_is_live_only_after_arambhah_sizes_it() {
+    let mut it = load_ir_chain();
+
+    // (1) SHORT — the arena exists and `आरम्भः` has not sized it. `len: 0` is
+    // the fresh declaration — EMPTY since `W-355`; it was `len: 1`, the old
+    // zero run's one nil slot — so a sum taken here is the LENGTH speaking.
+    let unsized_state = stub_arena_state(&it, "अपूर्णगणनाकोश", "अपूर्णहेतुसीमा", BoundReading::Exclusive);
+    println!("METRIC t1_stub_arena_state_before_arambhah {unsized_state:?}");
+    assert!(
+        matches!(unsized_state, StubArenaState::Short { len: 0, .. }),
+        "before `मध्यरूपॱआरम्भः` the stub arena classified {unsized_state:?} — this test \
+         claims the reset loop is the only thing that sizes it, and that claim is wrong"
+    );
+
+    it.call("मध्यरूपॱआरम्भः", vec![], 5_000_000)
+        .expect("मध्यरूपॱआरम्भः runs on a loaded ir chain");
+
+    // (2) LIVE — every cause `१..=अपूर्णहेतुसीमा−१` is now addressable, so a
+    // zero read through this state is the builder and not the reader.
+    let live = stub_arena_state(&it, "अपूर्णगणनाकोश", "अपूर्णहेतुसीमा", BoundReading::Exclusive);
+    println!("METRIC t1_stub_arena_state {live:?}");
+    assert!(
+        matches!(live, StubArenaState::Live { .. }),
+        "`अपूर्णगणनाकोश` classified {live:?} after `आरम्भः` — the stub census's reader \
+         is broken, and every zero it reports is an artefact of that"
+    );
+
+    // THE CONTROL IS READ WITH ITS OWN CONVENTION — see [`BoundReading`].
+    // `रचितशेषसीमा` IS the highest shape, so a live arena holds ३६ slots, and
+    // reading it against the stub arena's exclusive bound calls that `Short`.
+    let control = stub_arena_state(&it, "रचितगणनाकोश", "रचितशेषसीमा", BoundReading::Inclusive);
+    println!("METRIC t1_shape_arena_state {control:?}");
+    assert!(
+        matches!(control, StubArenaState::Live { .. }),
+        "`रचितगणनाकोश` classified {control:?} — the lowered-shape half of the same \
+         read is broken too, so the stub half's zero has no control"
+    );
+
+    // (3) ABSENT — `अपूर्णगणनाकोशः` with a visarga is not a global of this
+    // chain. A classifier that answered `Live` for it would accept exactly the
+    // broken read the old guard existed to catch.
+    let missing = stub_arena_state(&it, "अपूर्णगणनाकोशः", "अपूर्णहेतुसीमा", BoundReading::Exclusive);
+    assert_eq!(
+        missing,
+        StubArenaState::Absent,
+        "a name no global carries classified {missing:?} — the classifier accepts a \
+         read that sees nothing, which is the state it was split to refuse"
+    );
+}
+
 #[test]
 #[ignore = "measurement"]
 fn measure_corpus_ir() {
@@ -8892,11 +9177,28 @@ fn measure_corpus_ir() {
         "only {built} of {} sources built IR — this census is broken, not the builder",
         names.len()
     );
+    // THE NON-VACUITY CLAIM IS ABOUT THE READER, NOT THE CORPUS — see
+    // [`StubArenaState`]. `total > 0` stood here until 2026-10-01, when the
+    // corpus first summed to zero with every lowered-shape count live, and the
+    // guard reported a result it could not distinguish from its own breakage.
+    let state = stub_arena_state(&it, "अपूर्णगणनाकोश", "अपूर्णहेतुसीमा", BoundReading::Exclusive);
+    println!("METRIC paradigm_ir_stub_arena_state {state:?}");
     assert!(
-        total > 0,
-        "the stub arena summed to ZERO over {built} built sources; \
-         `अपूर्णगणनाकोश` was not read, not that the corpus has no stubs"
+        matches!(state, StubArenaState::Live { .. }),
+        "`अपूर्णगणनाकोश` classified {state:?} after {built} built sources — the stub \
+         census was not read, so its sum of {total} is an artefact and not a count"
     );
+    if total == 0 {
+        // NOT A RED, AND SAID LOUDLY. The arena is proven readable above, so a
+        // zero here is the builder raising no stub on these sources. Printed
+        // because a figure this large a change in has to be visible in the log
+        // rather than inferred from the absence of `paradigm_ir_stub_cause_*`
+        // rows — absence is exactly what this census keeps mistaking for work.
+        eprintln!(
+            "  NOTE the stub arena is {state:?} and summed to ZERO over {built} built \
+             sources — a MEASURED clean corpus, not an unread arena"
+        );
+    }
 }
 
 /// A BARE CALL MUST MEAN THE CALLER'S OWN MODULE — parse-time arity and

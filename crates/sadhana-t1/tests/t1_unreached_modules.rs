@@ -3,7 +3,7 @@
 //!
 //! `W-311` measured `repertoire_violations` at 15,166 and found 88% of the
 //! figure — 13,346 characters — in ONE file,
-//! `crates/sankriti/src/text/tables.t1`, a letter-by-letter transliteration of
+//! `crates/textapp/src/text/tables.t1`, a letter-by-letter transliteration of
 //! English identifiers (`grapheme_break` spelled `गरअपहएमएबरएअक`). Its `Next:`
 //! refused to edit that file and named the prior question instead: **is it
 //! generated, hand-ported, or dead?** — warning that "rename it" would be the
@@ -81,7 +81,7 @@ fn rel(p: &Path) -> String {
         .join("/")
 }
 
-/// `read_lossy`, not `read` — four of the five `crates/sankriti/src/text/*.t1`
+/// `read_lossy`, not `read` — four of the five `crates/textapp/src/text/*.t1`
 /// carry lines the T1 lexer refuses (5,607 of them in `tables.t1` alone, pinned
 /// in `t1_modules.rs`). Dropping a whole file over one bad line would delete its
 /// DECLARATION from the set, and the module it declares would then vanish from
@@ -264,11 +264,11 @@ fn classify(units: &[(String, Unit)], calls: &[String]) -> Vec<Module> {
 /// one. **That is `W-311`'s answer for `tables.t1`: not generated (no banner,
 /// no generator names it — asserted below), hand-ported, and DEAD.**
 const UNASKED_MODULES: &[(&str, &str, State, usize)] = &[
-    ("इडएनट", "crates/sankriti/src/text/ident.t1", State::Dead, 0),
-    ("एनएफसइ", "crates/sankriti/src/text/nfc.t1", State::Dead, 0),
+    ("इडएनट", "crates/textapp/src/text/ident.t1", State::Dead, 0),
+    ("एनएफसइ", "crates/textapp/src/text/nfc.t1", State::Dead, 0),
     (
         "नउमएरअल",
-        "crates/sankriti/src/text/numeral.t1",
+        "crates/textapp/src/text/numeral.t1",
         State::Dead,
         0,
     ),
@@ -286,13 +286,13 @@ const UNASKED_MODULES: &[(&str, &str, State, usize)] = &[
     ),
     (
         "सएगमएनट",
-        "crates/sankriti/src/text/segment.t1",
+        "crates/textapp/src/text/segment.t1",
         State::Dead,
         0,
     ),
     (
         "सारणी",
-        "crates/sankriti/src/text/tables.t1",
+        "crates/textapp/src/text/tables.t1",
         State::Dead,
         0,
     ),
@@ -494,7 +494,7 @@ fn neither_a_longer_name_nor_a_field_of_the_same_spelling_rescues_a_dead_module(
 /// a check that could not find a banner or a generator anywhere fails here
 /// first.
 #[test]
-fn the_sankriti_text_sources_are_neither_bannered_nor_named_by_any_generator() {
+fn the_textapp_text_sources_are_neither_bannered_nor_named_by_any_generator() {
     let banner = |p: &str| -> bool {
         let text = std::fs::read_to_string(repo_root().join(p))
             .unwrap_or_else(|e| panic!("{p} must be readable: {e}"));
@@ -529,12 +529,12 @@ fn the_sankriti_text_sources_are_neither_bannered_nor_named_by_any_generator() {
     let mut findings: Vec<(String, bool, bool)> = Vec::new();
     for p in every_source("t1") {
         let r = rel(&p);
-        if r.starts_with("crates/sankriti/src/text/") {
+        if r.starts_with("crates/textapp/src/text/") {
             findings.push((r.clone(), banner(&r), named_by_a_generator(&r)));
         }
     }
     findings.sort();
-    println!("METRIC sankriti_text_sources {}", findings.len());
+    println!("METRIC textapp_text_sources {}", findings.len());
     for (p, b, g) in &findings {
         println!("NOTE  provenance {p} banner {b} generator {g}");
     }
@@ -542,7 +542,7 @@ fn the_sankriti_text_sources_are_neither_bannered_nor_named_by_any_generator() {
     assert_eq!(
         findings.len(),
         5,
-        "crates/sankriti/src/text/ is no longer five .t1 sources"
+        "crates/textapp/src/text/ is no longer five .t1 sources"
     );
     let claimed: Vec<&String> = findings
         .iter()
@@ -551,7 +551,7 @@ fn the_sankriti_text_sources_are_neither_bannered_nor_named_by_any_generator() {
         .collect();
     assert!(
         claimed.is_empty(),
-        "a crates/sankriti/src/text/ source now claims a generator: {claimed:?} — \
+        "a crates/textapp/src/text/ source now claims a generator: {claimed:?} — \
          it is no longer hand-ported and the margin above must be re-taken"
     );
 }
@@ -687,7 +687,7 @@ fn a_module_that_only_its_own_files_name_is_still_unasked() {
 
 /// **HAND-PORTED FROM WHERE**, measured rather than inferred.
 ///
-/// The row above says `crates/sankriti/src/text/*.t1` carry no generator. This
+/// The row above says `crates/textapp/src/text/*.t1` carry no generator. This
 /// one says what they are a port OF, and it is not a guess: four of the five
 /// stems — `ident`, `numeral`, `segment`, `tables` — are ALSO the stems of
 /// `crates/sanskrit-text/src/*.rs`, and the fifth, `nfc.t1`, is that crate's
@@ -707,7 +707,7 @@ fn a_module_that_only_its_own_files_name_is_still_unasked() {
 /// check. A dead module is one thing; a dead module whose routines are stubs of
 /// live ones is not a port anybody is midway through.
 #[test]
-fn each_dead_sankriti_source_is_a_transliteration_of_a_live_sanskrit_text_module() {
+fn each_dead_textapp_source_is_a_transliteration_of_a_live_sanskrit_text_module() {
     let rust_stem = |stem: &str| -> bool {
         repo_root()
             .join("crates/sanskrit-text/src")
@@ -729,7 +729,7 @@ fn each_dead_sankriti_source_is_a_transliteration_of_a_live_sanskrit_text_module
     let mut paired: Vec<(String, bool)> = Vec::new();
     for p in every_source("t1") {
         let r = rel(&p);
-        if !r.starts_with("crates/sankriti/src/text/") {
+        if !r.starts_with("crates/textapp/src/text/") {
             continue;
         }
         let stem = p.file_stem().unwrap().to_string_lossy().into_owned();
@@ -755,7 +755,7 @@ fn each_dead_sankriti_source_is_a_transliteration_of_a_live_sanskrit_text_module
     );
 
     // `numeral.t1`'s transliterated type names are `numeral.rs`'s own.
-    let t1 = std::fs::read_to_string(repo_root().join("crates/sankriti/src/text/numeral.t1"))
+    let t1 = std::fs::read_to_string(repo_root().join("crates/textapp/src/text/numeral.t1"))
         .expect("numeral.t1 must be readable");
     let rs = std::fs::read_to_string(repo_root().join("crates/sanskrit-text/src/numeral.rs"))
         .expect("numeral.rs must be readable");
@@ -775,7 +775,7 @@ fn each_dead_sankriti_source_is_a_transliteration_of_a_live_sanskrit_text_module
     }
 
     // The port is incomplete: `is_nfc` is a stub that answers true for anything.
-    let nfc = std::fs::read_to_string(repo_root().join("crates/sankriti/src/text/nfc.t1"))
+    let nfc = std::fs::read_to_string(repo_root().join("crates/textapp/src/text/nfc.t1"))
         .expect("nfc.t1 must be readable");
     assert!(
         nfc.contains("इसऽएनएफसइ") && nfc.contains("TODO") && nfc.contains("सत्यम्"),

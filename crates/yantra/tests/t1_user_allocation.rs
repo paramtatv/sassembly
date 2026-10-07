@@ -132,7 +132,7 @@ fn a_program_grows_a_run_to_five_thousand_and_every_element_survives() {
     let status = match m.run(200_000_000, &mut out) {
         yantra::Halt::Finisher {
             status: Some(s), ..
-        } => u64::from(s),
+        } => s,
         other => panic!("the fixture did not finish: {other:?}"),
     };
 
@@ -149,22 +149,21 @@ fn a_program_grows_a_run_to_five_thousand_and_every_element_survives() {
          is wrong before either engine is in question"
     );
     assert_eq!(
-        interp % 65536,
-        status,
-        "the two engines DISAGREE: interpreted {interp} (= {} in sixteen bits), \
-         native {status}. This is the class every defect in this corpus has \
-         been — invisible to the interpreter, visible when the compiled code \
-         runs — so it is asserted separately from the arithmetic below",
-        interp % 65536
+        interp, status,
+        "the two engines DISAGREE: interpreted {interp}, native {status}. This \
+         is the class every defect in this corpus has been — invisible to the \
+         interpreter, visible when the compiled code runs — so it is asserted \
+         separately from the arithmetic below"
     );
+    // WHOLE, not `% 65536`: until `W-341` the finisher status was sixteen bits
+    // and this test compared residues. The full value asserts more — a run that
+    // stopped growing early or lost elements on reallocation cannot hide in a
+    // matching residue.
     assert_eq!(
-        status,
-        want % 65536,
-        "summed {status}; 0..{N} is {want}, which is {} in the sixteen bits a \
-         finisher status carries. A run that stopped growing early, or that \
-         lost its earlier elements when it reallocated, lands on a different \
-         residue — this is not a length check",
-        want % 65536
+        status, want,
+        "summed {status}; 0..{N} is {want}. A run that stopped growing early, \
+         or that lost its earlier elements when it reallocated, lands on a \
+         different sum — this is not a length check"
     );
 }
 

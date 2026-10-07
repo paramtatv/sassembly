@@ -340,9 +340,34 @@ fn compile(src: &str) -> Object {
         riscv64::emit_module(&module).map_err(|e| format!("{e:?}"))
     })();
     match text {
-        Ok(t) => Object::Emitted(t),
+        Ok(t) => Object::Emitted(fold_signedness(&t)),
         Err(e) => Object::Refused(e),
     }
+}
+
+/// **`W-381` STAGE 3: THE UNSIGNED BRANCHES READ AS THEIR SIGNED TWINS.**
+///
+/// Since owner ruling P1, an ordering comparison with a name declared unsigned
+/// on either side lowers to `Ltu`/`Geu` (`bltu`/`bgeu`), not `Lt`/`Ge`. Every
+/// census in this file is about WHICH OPERAND STANDS WHERE — the exchange
+/// `अधिकम्` makes and the slots each side reads — and signedness changes
+/// neither, so the object is read with each unsigned word replaced by its
+/// signed twin (`riscv64::branch_word`, never retyped). The compiler's own
+/// unsigned branches (its bounds checks) are folded too; they compare
+/// temporaries, which every census here already names or drops.
+fn fold_signedness(text: &str) -> String {
+    use sadhana::t1::ir::CmpOp;
+    let pairs = [(CmpOp::Ltu, CmpOp::Lt), (CmpOp::Geu, CmpOp::Ge)]
+        .map(|(u, s)| (riscv64::branch_word(u), riscv64::branch_word(s)));
+    text.split_inclusive('\n')
+        .map(|l| {
+            let first = l.split_whitespace().next().unwrap_or("");
+            match pairs.iter().find(|(u, _)| *u == first) {
+                Some((u, s)) => l.replacen(u, s, 1),
+                None => l.to_string(),
+            }
+        })
+        .collect()
 }
 
 /// THE SECOND COUNT, KEYED ON THE MNEMONIC WHERE
@@ -1428,7 +1453,7 @@ fn compile_framed(src: &str) -> Framed {
         let mut frames = Frames::new();
         for f in &module.functions {
             let alloc = allocate_registers(f, riscv64::ALLOCATABLE);
-            let frame = riscv64::frame_layout(&alloc, riscv64::count_locals(f));
+            let frame = riscv64::frame_layout(&alloc, None, riscv64::count_locals(f));
             let label =
                 riscv64::routine_label(&module.names, f.name).map_err(|e| format!("{e:?}"))?;
             windows.insert(
@@ -1446,7 +1471,7 @@ fn compile_framed(src: &str) -> Framed {
         Ok((text, windows, frames))
     })();
     match built {
-        Ok((t, w, f)) => Framed::Emitted(t, w, f),
+        Ok((t, w, f)) => Framed::Emitted(fold_signedness(&t), w, f),
         Err(e) => Framed::Refused(e),
     }
 }
@@ -4938,16 +4963,34 @@ fn every_adhikam_between_two_names_puts_the_second_name_in_the_karana() {
          and {routines_predicted}, which means the HARVESTER broke, not that \
          the corpus stopped comparing"
     );
+    // `W-381` STAGE 4 MOVED ROUTINES FROM THE RESIDUE AND CUT CLAIMS INTO THE
+    // EXACT PAIR (measured 2026-10-06, b119383b against 258abf6f). A run read no
+    // longer parks its value in the anonymous scratch slot ६ (every refusal now
+    // spins, so there is no join to reload at), and `pairable` accepts exactly
+    // the routines with NO anonymous slot: 51 routines / 66 sites paired became
+    // 102 / 137, the residue's 124 / 182 became 73 / 111, the cut's 35 / 43
+    // became 18 / 23 and the folded extra pairs 36 became 16 — every routine
+    // still under one claim (175 = 51 + 124 = 102 + 73), each now under the
+    // STRONGER one where it moved. So the pair floor RISES with them, the two
+    // weaker floors fall by what moved and no further, and the sum is pinned
+    // too: a routine can leave the residue only by being paired.
     assert!(
-        paired_routines >= 40 && paired_sites >= 55,
-        "61 of those sites, in 48 routines, have NO anonymous slot and so a \
+        paired_routines >= 95 && paired_sites >= 130,
+        "137 of those sites, in 102 routines, have NO anonymous slot and so a \
          recovered slot numbering; this sweep paired {paired_sites} in \
          {paired_routines}, which means `pairable` broke and the per-site \
          claim went quiet rather than the corpus losing the routines"
     );
     assert!(
-        residue_routines >= 100 && residue_sites >= 140,
-        "the residue claim reaches 153 sites in 108 routines — every routine \
+        paired_routines + residue_routines >= 170,
+        "EVERY TWO-NAME ROUTINE IS UNDER THE PAIR OR THE RESIDUE: 102 + 73 = 175 \
+         at 258abf6f (51 + 124 before `W-381` stage 4 moved routines from one to \
+         the other); this sweep has {paired_routines} + {residue_routines}"
+    );
+    assert!(
+        residue_routines >= 65 && residue_sites >= 100,
+        "the residue claim reaches 111 sites in 73 routines (182 in 124 before \
+         `W-381` stage 4 paired 51 of them) — every routine \
          `pairable` refuses, less the sites whose two ranks are congruent \
          modulo eight; this sweep reached {residue_sites} in \
          {residue_routines}, which means `residues` went quiet rather than the \
@@ -4962,9 +5005,10 @@ fn every_adhikam_between_two_names_puts_the_second_name_in_the_karana() {
         only_residue.len()
     );
     assert!(
-        cut_recovered >= 25 && cut_sites >= 30,
+        cut_recovered >= 15 && cut_sites >= 20,
         "THE POOL'S POSITION IS RECOVERED WHERE THE OBJECT DETERMINES IT. Today \
-         exactly one of the `names + १` candidate cut positions fits in 31 of \
+         (18 routines / 23 sites at 258abf6f; 35 / 43 before `W-381` stage 4 \
+         moved the rest into `pairable`) exactly one of the `names + १` candidate cut positions fits in 31 of \
          the 108 routines `pairable` refuses, carrying 36 sites — so those \
          routines DO have an exact `(करण, अपादान)` pair after all, taken from \
          the object by exhaustion and not from a global the builder clobbers. \
@@ -5000,13 +5044,14 @@ fn every_adhikam_between_two_names_puts_the_second_name_in_the_karana() {
         reached_further.join("\n  ")
     );
     assert!(
-        cut_extra_sites >= 25 && extra_refused.len() >= 8,
+        cut_extra_sites >= 14 && extra_refused.len() >= 8,
         "THE OTHER THREE `compare_op`s ARE THE EVIDENCE THE CUT RECOVERY WAS \
          SHORT OF. The corpus writes 80 five-token heads comparing two names \
          under `समम्`/`असमम्`/`बृहत्समम्`; eleven are REFUSED — ten between two \
          RUNS, which become a CALL (`ir.t1:2200`), and one against a \
          `सम्भाव्य` — and 28 fall in a routine the cut recovery actually \
-         visits. This sweep folded {cut_extra_sites} and refused {}, which \
+         visits (16 folded at 258abf6f, 36 before `W-381` stage 4 paired those \
+         routines: they now count under `unused_already_paired`, 17 -> 37). This sweep folded {cut_extra_sites} and refused {}, which \
          means `extra_pairs` went quiet rather than the corpus losing them",
         extra_refused.len()
     );
@@ -5438,13 +5483,17 @@ fn every_adhikam_between_two_names_puts_the_second_name_in_the_karana() {
          sweep narrowed {cut_narrowed} routine(s) and brought {cut_by_extra} \
          down to exactly one"
     );
+    // `W-381` stage 4: 124 -> 73 unpaired routines (the rest became `pairable`,
+    // see the pair floor above); the claim still bites EVERY one of them, which
+    // is now asserted outright rather than read off a floor.
     assert!(
-        cut_sensitive >= 100,
+        cut_sensitive >= 65 && cut_sensitive == residue_routines,
         "THE CUT CLAIM IS THE RESIDUE AGAIN unless it bites where the residue \
          cannot. The residue is a claim PER SITE and lets every site fall on \
          whichever side of the cut suits it; this one asks ONE base to explain \
          a routine's sites AT ONCE, and under the dropped exchange it leaves \
-         all 108 unpaired routines with NO base at all. It bit {cut_sensitive} \
+         every unpaired routine ({residue_routines} here; 73 at 258abf6f, 124 \
+         before `W-381` stage 4) with NO base at all. It bit {cut_sensitive} \
          here"
     );
     assert!(
@@ -8649,14 +8698,40 @@ fn every_offset_the_corpus_addresses_off_sp_falls_in_a_region_its_frame_declares
     // attempt starts from a measurement. `W-330` must RAISE this bound to 6 when
     // it lands, deliberately and with its own justification — which is the point
     // of a bound over an equality: coming down is free, going up is a decision.
+    // ── RAISED 1 → 6 BY `W-330`, 2026-09-30, WHICH IS THE DECISION THE MARGIN
+    //    ABOVE DEMANDED BE MADE OUT LOUD ────────────────────────────────────
+    //
+    // `W-330` landed: `ir.t1`'s 51 lines are back, the 21-source build links all
+    // 21 objects, and the fixpoint holds byte-identical at 1,457,146 octets. The
+    // depth went 1 → 6 in the same motion, exactly as predicted five lines up.
+    //
+    // **THE BOUND OF 1 WAS A METRIC THAT IMPROVED BECAUSE SOMETHING STOPPED
+    // BEING MEASURED.** It was taken on a corpus with `ir.t1`'s deeper code
+    // absent — `24d9bb58` had reverted it to keep the trunk buildable — so
+    // `deepest ≤ 1` was true of that tree and said nothing about the
+    // displacement arithmetic. Raising it to 6 does not weaken this pin; it
+    // restores the population the pin is supposed to be about.
+    //
+    // MEASURED ON THIS TREE, so the number is a reading and not the old one
+    // copied forward: 20 modules, 18,281 SP accesses, 881 routines addressed off
+    // SP, 26 of them spilling, depths {0: 855, 1: 17, 2: 1, 5: 6, 6: 2}. The
+    // deepest is `encode.त१`'s `सङ्केतनसङ्केतसूचीरचना`. Bands:
+    // local 13,129 · saved 4,126 · return-address 881 · spill 144 ·
+    // incoming-argument 1.
+    //
+    // WHY 6 AND NOT THE 2 ROUTINES' WORTH OF HEADROOM: 6 is what the corpus
+    // reaches, and a bound set above what is reached would admit a rise without
+    // naming it, which is the whole failure this form exists to prevent. Coming
+    // down stays free; the next rise is the next decision.
     assert!(
-        deepest_spill <= 1,
+        deepest_spill <= 6,
         "the deepest frame in the corpus uses {deepest_spill} spill slots, above \
-         the bound of 1. Some routine now needs a deeper spill region and the \
+         the bound of 6. Some routine now needs a deeper spill region and the \
          `8·(num_spills + k)` displacement is being exercised past where it has \
          ever been checked — read the histogram above for WHICH routines moved, \
-         then raise this bound NAMING the change that raised it. It came down \
-         from 6 when `W-330` restored `ir.t1`; 6 is what the merge measured"
+         then raise this bound NAMING the change that raised it. 6 is what the \
+         corpus reaches with `ir.t1` present (`W-330`, fixpoint 1,457,146); the \
+         bound was 1 only while those 51 lines were reverted"
     );
 
     for band in POPULATED_BANDS {
@@ -11730,9 +11805,10 @@ fn each_frame_region_is_refused_on_a_frame_that_really_has_one() {
     //   ५६          पुनःस्थानम्   (bytes = ६४, so ४८ is the rounding pad)
     let frame = riscv64::Frame {
         bytes: 64,
-        saved: vec![(0, 40)],
+        saved: vec![(sadhana::t1::regalloc::RegClass::Int, 0, 40)],
         ra_offset: 56,
         num_spills: 2,
+        num_float_spills: 0,
         num_locals: 3,
     };
 
@@ -11786,9 +11862,10 @@ fn each_frame_region_is_refused_on_a_frame_that_really_has_one() {
     // the confidence of a right one.
     let unspilled = riscv64::Frame {
         bytes: 48,
-        saved: vec![(0, 24)],
+        saved: vec![(sadhana::t1::regalloc::RegClass::Int, 0, 24)],
         ra_offset: 40,
         num_spills: 0,
+        num_float_spills: 0,
         num_locals: 3,
     };
     assert_eq!(slot_band(0, &unspilled), SlotBand::Local(0));
@@ -11803,6 +11880,7 @@ fn each_frame_region_is_refused_on_a_frame_that_really_has_one() {
         saved: vec![],
         ra_offset: 8,
         num_spills: 0,
+        num_float_spills: 0,
         num_locals: 0,
     };
     assert_eq!(slot_band(0, &no_locals), SlotBand::Unaccounted);

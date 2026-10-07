@@ -1833,7 +1833,15 @@ fn the_corpus_reads_no_slice_as_a_call_and_no_spaced_qualifier_as_a_field() {
         // `slices_read_as_calls` and `spaced_qualifier_read_as_field` BOTH
         // STILL ZERO on all 49, which is the half of this ratchet that is about
         // correctness rather than about census.
-        49,
+        //
+        // 49 -> 48 on 2026-10-06, symbol-lookup step 1 (d0): ONE SLICE GONE,
+        // NAMED, by diffing the printed sites against `e4ce6430`: `encode.t1:7139`,
+        // in `वैश्विकत्वम्` — the 2026-09-07 global-name slice above. It now
+        // compares the candidate IN PLACE through `परिधिसाम्यम्`, because the
+        // slice copied every candidate's octets (6.12G of Stage 2). The only
+        // other movement is `वस्तुसंज्ञासङ्ग्रहः`'s slice, :7165 -> :7168, moved
+        // by the margin above `वैश्विकत्वम्`, not changed.
+        48,
         "the corpus's slices, all read as slices: 20 W-208 counted, 15 of W-227's \
          16 standing (one became W-239's arena call), 1 W-239 wrote, 3 W-223's \
          store wrote, 3 the 2026-09-18 native-lowering probes wrote. A rise is a \

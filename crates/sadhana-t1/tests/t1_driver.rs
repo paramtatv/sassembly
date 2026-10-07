@@ -419,17 +419,27 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     // rather than a call, and the second to keep a body that answers its own
     // device address when no interception fires. ELEVEN -> TWELVE the same day:
     // `पत्रलेखनम्`, the WRITE, which differs from `पत्रम्` only in which address
-    // its third store names. So thirteen built: twelve declared plus the
-    // synthesised `खण्डवृद्धिः`.
+    // its third store names.
     //
-    // This pin firing on a deliberate addition is what it is for, and it fired
-    // on exactly that — it was the ONLY red in a 130-target run. It is the
-    // reason the count is asserted TOGETHER WITH the growth flag: a bare number
-    // would not say which of the two moved.
+    // TWELVE -> FOURTEEN ON 2026-10-02, `W-350`: `उपकरणचतुरष्टकाहारः` and
+    // `उपकरणचतुरष्टकनिधानम्`, the four-octet device READ and WRITE. They are the
+    // same shape as `पत्रम्`/`पत्रलेखनम्` one layer down — a pair differing only
+    // in which address the store names, each keeping a sentinel body that answers
+    // its own device address when no interception fires. So fifteen built:
+    // fourteen declared plus the synthesised `खण्डवृद्धिः`.
+    //
+    // This pin firing on a deliberate addition is what it is for, and it has now
+    // done so twice. On 2026-09-26 it was the ONLY red in a 130-target run; on
+    // 2026-10-02 it was the ONLY red in the first 88 targets of the gate for this
+    // branch, naming a file only `W-350` touches — which is also what made three
+    // branches gated in one tree attributable. It is the reason the count is
+    // asserted TOGETHER WITH the growth flag: a bare number would not say which
+    // of the two moved, and here the flag stayed true while the count moved by
+    // exactly the two routines added.
     assert_eq!(
         (routines, grew),
-        (13, true),
-        "ashtaka.t1 declares twelve routines and needs the synthesised खण्डवृद्धिः"
+        (15, true),
+        "ashtaka.t1 declares fourteen routines and needs the synthesised खण्डवृद्धिः"
     );
 
     let named = it
@@ -521,6 +531,8 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     // keys satisfies every membership check below. Sorted because the two
     // populations are appended in two passes and their ORDER is not the claim.
     // १-१५ → २-१६ → २-१७ (2026-09-14, twice in one day) → २-१८ → २-१९
+    // → २-२१ (2026-10-02, `W-350`'s `उपकरणचतुरष्टकाहारः` and
+    // `उपकरणचतुरष्टकनिधानम्`, two at once)
     // (2026-09-26, `पत्रम्` then `पत्रलेखनम्`, ADR-0041): the module's own ordinals still run contiguous, one
     // per declaration; `मुद्रणम्` is the sixteenth and `पत्रम्` the seventeenth.
     // The first move was the gather reserving a leading symbol, the rest are
@@ -539,7 +551,7 @@ fn the_driver_names_every_symbol_of_ashtaka() {
     ks.sort_unstable();
     assert_eq!(
         ks,
-        (2..=19).collect::<Vec<i128>>(),
+        (2..=21).collect::<Vec<i128>>(),
         "symbols २-१९ contiguous, one per declaration after the module: {keys:?}"
     );
 
@@ -574,6 +586,13 @@ fn the_driver_names_every_symbol_of_ashtaka() {
         // remembered stores; only the third address differs, which is why it is
         // a separate declaration rather than a flag on the first.
         "पत्रलेखनम्",
+        // W-350's device register window, 2026-10-02 — the two routines that
+        // made the ordinal range above २-२१. THEY BELONG HERE AND NOT IN A
+        // COUNT, which is this list's whole reason: a count cannot say WHICH
+        // two joined, and the range assertion above cannot say what they are
+        // called.
+        "उपकरणचतुरष्टकाहारः",
+        "उपकरणचतुरष्टकनिधानम्",
         // The six globals, `ashtaka.t1:41-50`, symbols २-७ (१-६ before the
         // 2026-09-14 shift). `अष्टकदोषमस्ति`, symbol ५ today and ४ then, is the
         // one the emitter named in its refusal.
@@ -1368,7 +1387,9 @@ fn the_driver_names_every_symbol_of_kosha() {
         .expect("रचना")
         .as_int()
         .unwrap_or(0);
-    assert_eq!(routines, 4, "kosha declares four routines");
+    // FIVE SINCE W-302: `प्रतिबिम्बध्वजाः` derives e_flags from the text.
+    // SIX SINCE W-363: `दत्तपृष्ठाधारः` places the writable segment.
+    assert_eq!(routines, 6, "kosha declares six routines");
 
     let named = it
         .call(
@@ -1409,9 +1430,10 @@ fn the_driver_names_every_symbol_of_kosha() {
     shown.sort();
     println!("  {}", shown.join(" "));
 
-    // Four globals and four routines. The gap at 1 is `संरचना संज्ञा` — types
-    // take a symbol and are named by neither emitter, as `lex` established and
-    // the twin comparison confirmed from both sides.
+    // Six globals and five routines since W-302 (four and four before). The
+    // gap at 1 is `संरचना संज्ञा` — types take a symbol and are named by neither
+    // emitter, as `lex` established and the twin comparison confirmed from both
+    // sides.
     // **14, AND I PREDICTED 8.** The miss was a declaration form my enumeration
     // did not list: `kosha.t1:20` is `सार्वजनिक गणना संज्ञाखण्ड`, an ENUM whose
     // six variants take symbols २-७. I had grepped for `चरः|वृत्तिः|संरचना` and
@@ -1462,15 +1484,22 @@ fn the_driver_names_every_symbol_of_kosha() {
         "अनिर्दिष्टम्",
         "शोधनपङ्क्तिखण्डः",
         "पाठ्यखण्डः",
-        // the four globals
+        // the six globals — the two flag values arrived with W-302
         "भारस्थानम्",
         "शीर्षमानम्",
         "कार्यक्रमशीर्षमानम्",
         "यन्त्रभेदः",
-        // the four routines
+        "प्लवध्वजाः",
+        "सङ्कुचितप्लवध्वजाः",
+        // W-363: the page the writable segment begins at
+        "पृष्ठमानम्",
+        // the five routines — `प्रतिबिम्बध्वजाः` arrived with W-302, and a
+        // sixth, `दत्तपृष्ठाधारः`, with W-363
+        "दत्तपृष्ठाधारः",
         "प्रतिबिम्बद्व्यष्टकम्",
         "प्रतिबिम्बचतुरष्टकम्",
         "प्रतिबिम्बाष्टाष्टकम्",
+        "प्रतिबिम्बध्वजाः",
         "प्रतिबिम्बलेखनम्",
         // synthesised, module-less, owned by ir.t1 rather than by kosha.t1
         "रचनासूचकः",
@@ -1479,7 +1508,7 @@ fn the_driver_names_every_symbol_of_kosha() {
     want_names.sort_unstable();
     assert_eq!(
         names, want_names,
-        "kosha's sixteen declarations plus the two module-less synthesised globals"
+        "kosha's twenty-one declarations plus the two module-less synthesised globals"
     );
     assert_eq!(named as usize, entries.len(), "count agrees with the table");
     let mut keys: Vec<i128> = entries.iter().map(|(s, _)| *s).collect();
@@ -1518,8 +1547,8 @@ fn the_driver_names_every_symbol_of_kosha() {
     distinct.dedup();
     assert_eq!(
         distinct.len(),
-        16,
-        "kosha's own symbols are sixteen, distinct"
+        21,
+        "kosha's own symbols are twenty-one, distinct (nineteen before W-363, sixteen before W-302)"
     );
 
     // **THE CROSS-MODULE QUESTION, PUT TO THE EMITTER.**

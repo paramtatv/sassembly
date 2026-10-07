@@ -44,7 +44,7 @@
 //! # What that cost
 //!
 //! When `ir.t1` gained eleven instruction kinds, three copies were updated by
-//! whoever's tests went red. The fourth — `crates/pradarshana/src/pathana.rs`,
+//! whoever's tests went red. The fourth — `crates/frontend/src/pathana.rs`,
 //! the demonstration's own reader — stayed at five kinds, because nothing runs
 //! it over the demonstration programs. So `tools/demo.sh` refused five of its
 //! six programs while the compiler computed all six. The copy that went stale
@@ -592,7 +592,7 @@ fn g() { match k { 5 => Instruction::Param(i), _ => () } }"###;
 // `crates/yantra/src/bin/yantra-run.rs` decides how much memory a program gets
 // and how many steps it may take. Four other files declare `const`s holding
 // those numbers, and EACH ONE CARRIES A DOC COMMENT SAYING IT MIRRORS THE
-// RUNNER — a claim in prose, checked by nothing. Found by sansos-30 auditing
+// RUNNER — a claim in prose, checked by nothing. Found by a peer session auditing
 // `W-262`, and it is the kind-table defect in a second place: one original,
 // four transcriptions, every one asserting it matches.
 //
@@ -3389,4 +3389,63 @@ fn an_index_at_or_past_a_pools_bound_is_refused() {
     );
     assert_eq!(devanagari_numerals("१० slots"), ["१०"]);
     assert!(devanagari_numerals("the margin at ir.t1:1176 records").is_empty());
+}
+
+/// **`W-333` — KIND १० IS TWO INSTRUCTIONS, AND THE GUARD ABOVE CANNOT SAY SO.**
+///
+/// `ir.t1` numbers १० as `Instruction::Shr`, and since `W-333` the SAME kind
+/// with `ध्रुवमूल्यम्` १ is `Instruction::ShrL`. The table guard reads one
+/// variant per number — the first in the arm — so a copy whose arm for १०
+/// builds `Shr` and never mentions `ShrL` passes it. That is `W-306c`'s hazard
+/// exactly: a decoder that reads the kind and drops the field compiles, stays
+/// green, and answers a different shift from its siblings.
+///
+/// So every copy of the `Instruction` table that has an arm for १० must name
+/// BOTH variants inside that arm. This is a check on the TEXT, as the guard
+/// above is: it shows the arm knows there are two, not that it picks the
+/// right one — `w333_shift_mark.rs` executes that for `chain.rs`, and `W-368`
+/// is the row for feeding the other three a marked instruction.
+///
+/// THE COUNT IS ASSERTED TOO. Four copies exist; a scan that found fewer has
+/// stopped matching the arms' shape, and its silence would read as agreement.
+///
+/// AND THE SHAPE OF THE ARM IS CONSTRAINED BY THE GUARD ABOVE, WHICH IS HOW
+/// THIS TEST CAME TO EXIST: the first version of those four arms was a nested
+/// `match mark { 0 => Instruction::Shr(..), 1 => Instruction::ShrL(..), .. }`,
+/// and `numeric_arms` read the nested arms as rows ० and १ of the kind table —
+/// "Instruction 1 decodes to `ShrL`; ir.t1 numbers 1 as `ConstInt`", six
+/// disagreements in four files, found by the gate and not by me. They are
+/// written with `if` now, `Shr` first.
+#[test]
+fn every_copy_of_the_instruction_table_names_both_shifts_under_kind_ten() {
+    let mut seen = Vec::new();
+    let mut silent = Vec::new();
+    for (path, text) in rust_sources() {
+        // This file quotes the arms it checks.
+        if path.ends_with("t1_transcriptions.rs") {
+            continue;
+        }
+        let code = strip_comments_and_raw_strings(&text);
+        for (number, body) in numeric_arms(&code) {
+            if number != 10 || !body.contains("Instruction::Shr") {
+                continue;
+            }
+            seen.push(path.clone());
+            if !body.contains("Instruction::ShrL") {
+                silent.push(path.clone());
+            }
+        }
+    }
+    println!("METRIC sadhana_t1_kind_ten_decoders {}", seen.len());
+    assert_eq!(
+        seen.len(),
+        4,
+        "the four hand-written decoders of kind १० (chain.rs, pathana.rs, \
+         t1_exec_riscv.rs, paradigm_encode.rs); found {seen:?}"
+    );
+    assert!(
+        silent.is_empty(),
+        "kind १० is `Shr` or `ShrL` by `ध्रुवमूल्यम्`, and these copies build `Shr` \
+         without naming `ShrL`: {silent:?}"
+    );
 }

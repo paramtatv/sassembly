@@ -63,15 +63,39 @@ pub enum Instruction {
     /// line announcing that it can, would have talked the next reader out of a
     /// lowering that works.**
     ///
-    /// `Shr` is the LOGICAL shift `दक्षिणसरणम्` (`srl`), the lexicon twin of
-    /// the operator `दक्षिणसृ`; the interpreter shifts its `i128` arithmetically,
-    /// and the two differ only on a negative `अ६४` — said here, not found in a
-    /// twin diff.
+    /// **`Shr` IS THE ARITHMETIC SHIFT `सचिह्नदक्षिणसरणम्` (`sra`) AND `ShrL` THE
+    /// LOGICAL ONE `दक्षिणसरणम्` (`srl`)** — `W-333`. The source spells one
+    /// operator, `दक्षिणसृ`, and the lowering chooses: `ShrL` when its left
+    /// operand is a NAME declared unsigned, `Shr` for everything else. Both
+    /// verbs are quoted from `riscv64.rs`'s `binary_verb`, which is what
+    /// emits them; read that arm before believing this paragraph.
+    ///
+    /// THIS PARAGRAPH REPLACES ONE THAT SAID THE OPPOSITE OF WHAT SHIPPED, kept
+    /// here so a reader can tell a correction from an original: *"`Shr` is the
+    /// LOGICAL shift `दक्षिणसरणम्` (`srl`), the lexicon twin of the operator
+    /// `दक्षिणसृ`; the interpreter shifts its `i128` arithmetically, and the two
+    /// differ only on a negative `अ६४` — said here, not found in a twin
+    /// diff."* It was true when written and false from 2026-09-14, when both
+    /// emitters moved to `sra`; nothing could contradict it because it placed
+    /// its own claim beyond the twin comparison.
+    ///
+    /// IN THE `.t1` IR THIS IS ONE KIND, NOT TWO: `दक्षिणसरणाज्ञाभेद` (१०) with
+    /// `ध्रुवमूल्यम्` ० for `Shr` and १ for `ShrL`. A decoder that reads the
+    /// kind and drops the field builds `Shr` for both and compiles — the four
+    /// hand-written ones are `chain.rs`, `frontend/pathana.rs`,
+    /// `t1_exec_riscv.rs` and `yantra`'s `paradigm_encode.rs`.
     Mul(ValueId, ValueId),
     Div(ValueId, ValueId),
+    /// `W-381` stage 3 (owner ruling (b), 2026-10-06): `विभाजनम्` with a NAME
+    /// declared unsigned on either side — `divu`. In the `.t1` IR it is kind ७
+    /// with `ध्रुवमूल्यम्` १, as `ShrL` is kind १० with १.
+    DivU(ValueId, ValueId),
     Rem(ValueId, ValueId),
+    /// `remu`, kind ८ with `ध्रुवमूल्यम्` १ (ruling (b)).
+    RemU(ValueId, ValueId),
     Shl(ValueId, ValueId),
     Shr(ValueId, ValueId),
+    ShrL(ValueId, ValueId),
     And(ValueId, ValueId),
     Or(ValueId, ValueId),
     Xor(ValueId, ValueId),
@@ -79,10 +103,11 @@ pub enum Instruction {
     /// conditions, and the value is १ when `subject <op> standard` holds, ० when
     /// not. The grammar's five `compare_op`s lower to four of the six —
     /// `समम्` Eq, `असमम्` Ne, `न्यूनम्` Lt, `बृहत्समम्` Ge — and `अधिकम्` is
-    /// `Lt` with its operands exchanged; the SIGNED pair is chosen because the
-    /// reference interpreter compares `i128`s (`nirvahana.rs`, `binop`). `Ltu`
-    /// and `Geu` are the ISA's other two, declared so the six are six; the
-    /// builder writes neither until a type reaches it.
+    /// `Lt` with its operands exchanged. The SIGNED pair is the default; since
+    /// `W-381` stage 3 (owner ruling P1, 2026-10-05) `ir.t1` builds `Ltu`/`Geu`
+    /// for an ordering comparison with a NAME declared unsigned on either side
+    /// (`W-333`'s rule, `अचिह्नितनामसरणम्`), and the reference interpreter marks
+    /// the same comparisons at load (`nirvahana.rs`, `mark_unsigned_operators`).
     ///
     /// Used ONCE, by the `CondBranch` that ends its block, it never becomes a
     /// value: `riscv64::lower_cond_branch` fuses the pair to the condition's
@@ -204,7 +229,7 @@ pub enum Instruction {
     /// AND THE KIND MUST BE ADDED TO ALL FOUR DECODERS IN THE SAME LANDING.
     /// Four copies of that table exist — `sadhana/src/t1/chain.rs`,
     /// `yantra/tests/paradigm_encode.rs`, `sadhana-t1/tests/t1_exec_riscv.rs`
-    /// and `pradarshana/src/pathana.rs` — each refusing an unknown kind.
+    /// and `frontend/src/pathana.rs` — each refusing an unknown kind.
     ///
     /// THEY ARE GUARDED, and a partial landing is therefore impossible rather
     /// than merely unwise: `sadhana-t1/tests/t1_transcriptions.rs`'s
@@ -230,6 +255,10 @@ pub enum Instruction {
     /// an IR-built source — so a shape only `riscv64.rs` could emit would go red
     /// the moment `ir.t1` built it. This side lands first and waits, as `Call`
     /// and `CondBranch` did.
+    ///
+    /// `W-381` stage 4: the offset is an `i64`'s two's-complement bits — the
+    /// bound check reads a run's length word at `base − 8` as offset `−8`
+    /// (`chain.rs` decodes it so, `riscv64.rs` prints it signed).
     LoadField(ValueId, u64),
     /// A RUN'S ELEMENT — `आधारः अङ्कः सूचकः अन्तः`, instruction kind २०.
     ///
@@ -290,7 +319,37 @@ pub enum Instruction {
     /// from it is deleted as dead code with no diagnostic, so the acceptance
     /// test for this variant asserts a write SURVIVES OPTIMISATION rather than
     /// that it emits.
-    StoreAt(ValueId, ValueId),
+    ///
+    /// **THE THIRD FIELD IS THE WIDTH IN OCTETS, `W-306c`, AND IT IS THE SAME
+    /// FIELD `LoadIndex` TOOK IN `W-294` — FOR THE SAME REASON AND NOT BY
+    /// ANALOGY.** `ir.t1:1819` argued it in those words: the T0 store family is
+    /// ALREADY width-selected — `निधानम्ॱअ८` / `ॱअ१६` / `ॱअ३२` / `ॱअ६४` all sit
+    /// in `spec/conformance-t0.tsv` — so a narrow store is a WIDTH ON THIS KIND
+    /// and a suffix at the emitter, not a new instruction. `ir.t1`'s
+    /// `सङ्कीर्णनिधानरचना` spends SIXTEEN instructions on a masked
+    /// read-modify-write to say what this field plus a suffix says in one.
+    ///
+    /// **NOTHING READS IT YET, DELIBERATELY, AND THAT IS WHY THE SHAPE LANDS
+    /// ALONE.** The guard
+    /// `every_copy_of_a_kind_table_decodes_what_ir_t1_defines` refuses a
+    /// partial landing BY NAME across four decode tables, so the field and all
+    /// four decoders have to move in ONE commit or the tree is red — while the
+    /// emitter suffix and `सङ्कीर्णनिधानरचना`'s deletion are separable and come
+    /// after. Deleting the sixteen-instruction ladder before the suffix emits
+    /// would take `रचितगणनम् ३६`'s only witness down with it mid-flight.
+    ///
+    /// **EIGHT IS A WHOLE WORD AND IS WHAT EVERY SITE IN THE TREE PASSES
+    /// TODAY**, so `riscv64.rs` emits the bare `निधानम्`, character for
+    /// character as before, and every image in the corpus stays octet-identical
+    /// under `measure_corpus_twin_emit`. `०` IS NOT A WIDTH — it is what a
+    /// `.t1` half that has not learned to write `ध्रुवमूल्यम्` leaves in the
+    /// field, and all four decoders map it to `८` rather than carrying it. That
+    /// mapping is COPIED between the decoders and not re-derived: two decoders
+    /// that default differently are worse than two that default wrongly
+    /// together, because only the first kind of disagreement is invisible to a
+    /// twin comparison. The same sentence is in `chain.rs`'s kind-20 arm and it
+    /// is the one `W-294` paid for.
+    StoreAt(ValueId, ValueId, u64),
 
     /// A RECORD ALLOCATION — `चरः X ॱॱ <a struct> भवति ० ।`, kind २४. `W-284`.
     ///
@@ -375,6 +434,148 @@ pub enum Instruction {
     /// and `Load` did before it. `ir.t1`'s `अभिव्यञ्जकरचना` is what lowers a
     /// real one, and the shape is pinned here by hand.
     ConstStr(Vec<u8>),
+    /// `V-005` — A FLOAT OPERATION, `(op, operands)`: one of the thirteen
+    /// RV64D forms the call-form built-ins lower to (`FloatOp`). ONE kind with
+    /// a sub-kind, as `Cmp` is: `ir.t1`'s `प्लवाज्ञाभेद` (२७) carries the op in
+    /// `उपभेद`, the first two operands in `वाम`/`दक्षिण` and `fmadd`'s third as
+    /// a one-entry run of `आदानकोश`.
+    ///
+    /// WHETHER THE RESULT IS A FLOAT IS THE OP'S, not the kind's: a compare, a
+    /// conversion to an integer and a bit move out define an INTEGER value
+    /// ([`FloatOp::defines_float`]), which is what puts them in the `x` file.
+    Float(FloatOp, Vec<ValueId>),
+    /// `V-005` — A `प६४` LOCAL'S READ: `Load` from a slot whose declaration is
+    /// a float, so the value it defines lives in the FLOAT file and is read with
+    /// `प्लवाहारः` (`fld`). `ir.t1` writes it as kind १५ with `उपभेद` १. A
+    /// decoder that reads the kind and drops the field builds `Load` and loads a
+    /// float into an `x` register — the shape `W-333`'s margin above names.
+    ///
+    /// THE STORE NEEDS NO TWIN: `Store(k, v)` picks `निधानम्`/`प्लवनिधानम्` by
+    /// the class of `v`, so an integer written into a float slot (`भवति ०`)
+    /// stores its bits and the next `LoadFloat` reads them as the float.
+    LoadFloat(usize),
+    /// `V-005` — A CALL WHOSE CALLEE ANSWERS A `प६४`: `Call` with its result in
+    /// the FLOAT file, taken from `fa0` (`abi.rs`). `ir.t1` writes it as kind २
+    /// with `उपभेद` १, read from the callee's signature in the declaration
+    /// store. A decoder that drops the mark reads `fa0`'s result from `अर्थ०`.
+    CallFloat(SymbolId, Vec<ValueId>),
+    /// `V-005` — A `प६४` PARAMETER: `Param` whose value arrives in the float
+    /// file — `fa<n>` by the float count of the parameters before it, or the
+    /// shared stack past eight (`abi.rs`). `ir.t1` writes kind ५ with `उपभेद` १.
+    ParamFloat(usize),
+    /// `V-008` — A `प६४` READ FROM MEMORY: `LoadAt` whose slot (a run element,
+    /// a record field or a module global DECLARED `प६४`) holds a float, so the
+    /// value it defines lives in the FLOAT file and is read with `प्लवाहारः`
+    /// (`fld`) from the same 64-bit word an integer load would read. `ir.t1`
+    /// writes kind २२ with `उपभेद` १, after forming the address with the
+    /// ordinary `AddrOfGlobal`/`AddrOfField`/`AddrOfIndex` — one address model
+    /// for both files, which is why ONE variant covers all three shapes.
+    ///
+    /// THE STORE NEEDS NO TWIN, as `Store` needs none: `StoreAt(a, v, ८)` picks
+    /// `निधानम्`/`प्लवनिधानम्` by the class of `v`. A float stored at any other
+    /// width is refused by the emitters' `FileMismatch`; `ir.t1` refuses a float
+    /// into a slot not declared `प६४` (and the reverse) before either sees it.
+    LoadAtFloat(ValueId),
+    /// `V-008` PART 2 — AN ELEMENTWISE VECTOR OPERATION, `(op, [dst, a, b])`:
+    /// `व्यूहॱप्लवयोगः ( फल , क , ख )` sets `फल[i] = क[i] op ख[i]` for every
+    /// `i` below the common length and DEFINES the element count, an integer.
+    /// `op` is one of [`FloatOp::Add`]/`Sub`/`Mul`/`Div`; the three operands are
+    /// the RUN BASES. `ir.t1` writes it as kind २८ (`व्यूहाज्ञाभेद`) with the op
+    /// in `उपभेद`, `dst` in `वाम`, `a` in `दक्षिण` and `b` as a one-entry run of
+    /// `आदानकोश`. The emitters expand it in place into the strip-mined loop —
+    /// the length test and its refusal included — so no vector value outlives
+    /// it and no vector register is allocated (design D3, owner ruling Q1).
+    ///
+    /// IT WRITES MEMORY, so [`Instruction::is_side_effecting`] names it.
+    Vector(FloatOp, Vec<ValueId>),
+}
+
+/// `V-005` — the float operations, numbered as `ir.t1`'s `प्लव…उपभेद` sub-kinds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FloatOp {
+    /// `fadd.d` — `प्लवयोगः`
+    Add,
+    /// `fsub.d` — `प्लववियोगः`
+    Sub,
+    /// `fmul.d` — `प्लवगुणनम्`
+    Mul,
+    /// `fdiv.d` — `प्लवभागः`
+    Div,
+    /// `fsqrt.d` — `प्लववर्गमूलम्`, one operand
+    Sqrt,
+    /// `fmadd.d` — `प्लवगुणयोगः`, three operands, `a × b + c` rounded once
+    MulAdd,
+    /// `feq.d` — `प्लवसमम्`, an integer result
+    Eq,
+    /// `flt.d` — `प्लवन्यूनम्`, an integer result
+    Lt,
+    /// `fle.d` — `प्लवानधिकम्`, an integer result
+    Le,
+    /// `fcvt.d.l` — `प्लवरूपान्तरम्ॱप६४ॱअ६४`, integer to float
+    FromInt,
+    /// `fcvt.l.d` — `प्लवरूपान्तरम्ॱअ६४ॱप६४`, float to integer
+    ToInt,
+    /// `fmv.d.x` — `प्लवसंचारः`, an integer's bits into the float file
+    FromBits,
+    /// `fmv.x.d` — `प्लवसंचारः`, a float's bits into the integer file
+    ToBits,
+}
+
+impl FloatOp {
+    /// Every op, in sub-kind order: `ALL[k - 1]` is sub-kind `k`.
+    pub const ALL: [FloatOp; 13] = [
+        FloatOp::Add,
+        FloatOp::Sub,
+        FloatOp::Mul,
+        FloatOp::Div,
+        FloatOp::Sqrt,
+        FloatOp::MulAdd,
+        FloatOp::Eq,
+        FloatOp::Lt,
+        FloatOp::Le,
+        FloatOp::FromInt,
+        FloatOp::ToInt,
+        FloatOp::FromBits,
+        FloatOp::ToBits,
+    ];
+
+    /// The op `ir.t1` writes as sub-kind `k` (from १), or `None`.
+    #[must_use]
+    pub fn from_code(k: i128) -> Option<FloatOp> {
+        usize::try_from(k)
+            .ok()
+            .and_then(|k| k.checked_sub(1))
+            .and_then(|i| Self::ALL.get(i).copied())
+    }
+
+    /// How many value operands the op reads.
+    #[must_use]
+    pub fn arity(self) -> usize {
+        match self {
+            FloatOp::Sqrt
+            | FloatOp::FromInt
+            | FloatOp::ToInt
+            | FloatOp::FromBits
+            | FloatOp::ToBits => 1,
+            FloatOp::MulAdd => 3,
+            _ => 2,
+        }
+    }
+
+    /// Whether the value the op DEFINES is a float (lives in the `f` file).
+    #[must_use]
+    pub fn defines_float(self) -> bool {
+        !matches!(
+            self,
+            FloatOp::Eq | FloatOp::Lt | FloatOp::Le | FloatOp::ToInt | FloatOp::ToBits
+        )
+    }
+
+    /// Whether operand `i` the op READS is a float.
+    #[must_use]
+    pub fn reads_float(self, _i: usize) -> bool {
+        !matches!(self, FloatOp::FromInt | FloatOp::FromBits)
+    }
 }
 
 /// The six branch conditions of ADR-0008, in that ADR's order.
@@ -401,14 +602,21 @@ impl Instruction {
     #[must_use]
     pub fn operands(&self) -> Vec<ValueId> {
         match self {
-            Instruction::Call(_, args) => args.clone(),
+            Instruction::Call(_, args) | Instruction::CallFloat(_, args) => args.clone(),
+            // `V-005`: every operand of a float op is a value.
+            Instruction::Float(_, args) => args.clone(),
+            // `V-008` part 2: the three run bases are all READ.
+            Instruction::Vector(_, args) => args.clone(),
             Instruction::Add(l, r)
             | Instruction::Sub(l, r)
             | Instruction::Mul(l, r)
             | Instruction::Div(l, r)
+            | Instruction::DivU(l, r)
             | Instruction::Rem(l, r)
+            | Instruction::RemU(l, r)
             | Instruction::Shl(l, r)
             | Instruction::Shr(l, r)
+            | Instruction::ShrL(l, r)
             | Instruction::And(l, r)
             | Instruction::Or(l, r)
             | Instruction::Xor(l, r)
@@ -426,11 +634,11 @@ impl Instruction {
             Instruction::LoadIndex(b, o, _) => vec![*b, *o],
             // `W-283`. The address is a real use in both: DCE dropping what
             // formed it leaves a load or a store through an undefined register.
-            Instruction::LoadAt(a) => vec![*a],
+            Instruction::LoadAt(a) | Instruction::LoadAtFloat(a) => vec![*a],
             // BOTH are uses — the address AND the value written. Listing only
             // the address would let DCE delete whatever computed the value while
             // keeping the store that writes it.
-            Instruction::StoreAt(a, v) => vec![*a, *v],
+            Instruction::StoreAt(a, v, _) => vec![*a, *v],
             // `W-284`. The base is a real use in both: DCE dropping what formed
             // it leaves an address computed from an undefined register. The
             // field's offset is a constant and so is not an operand; the
@@ -441,13 +649,15 @@ impl Instruction {
             Instruction::ConstInt(_)
             | Instruction::ConstStr(_)
             | Instruction::Param(_)
+            | Instruction::ParamFloat(_)
             // A global read takes no value operand: its address is a label.
             | Instruction::LoadGlobal(_)
             // Nor does forming that address — same reason, one step earlier.
             | Instruction::AddrOfGlobal(_)
             // Nor an allocation: its size is a build-time constant. `W-284`.
             | Instruction::AllocRecord(_)
-            | Instruction::Load(_) => Vec::new(),
+            | Instruction::Load(_)
+            | Instruction::LoadFloat(_) => Vec::new(),
         }
     }
 
@@ -468,7 +678,14 @@ impl Instruction {
     pub fn is_side_effecting(&self) -> bool {
         matches!(
             self,
-            Instruction::Call(..) | Instruction::Store(..) | Instruction::StoreAt(..)
+            Instruction::Call(..)
+                | Instruction::CallFloat(..)
+                | Instruction::Store(..)
+                | Instruction::StoreAt(..)
+                // `V-008` part 2: a vector op writes its result RUN, and a
+                // program that ignores the element count it answers still
+                // wants the elements written.
+                | Instruction::Vector(..)
         )
     }
 }
@@ -668,6 +885,42 @@ impl IrBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `V-008` part 2 — A VECTOR OP IS A DCE ROOT. Nothing reads its count
+    /// here, and it writes its result run; if `Vector` were absent from
+    /// `is_side_effecting`, `optimize_function` would delete it — and then the
+    /// three bases as newly dead — leaving an empty block.
+    #[test]
+    fn a_vector_op_survives_dead_code_elimination() {
+        use crate::t1::opt::optimize_function;
+        let entry = BlockId(0);
+        let (d, a, b, op) = (ValueId(0), ValueId(1), ValueId(2), ValueId(3));
+        let mut blocks = HashMap::new();
+        blocks.insert(
+            entry,
+            Block {
+                id: entry,
+                insts: vec![
+                    (d, Instruction::Param(0)),
+                    (a, Instruction::Param(1)),
+                    (b, Instruction::Param(2)),
+                    (op, Instruction::Vector(FloatOp::Add, vec![d, a, b])),
+                ],
+                terminator: Some(Terminator::Return(None)),
+            },
+        );
+        let mut func = Function {
+            name: SymbolId(0),
+            blocks,
+            entry_block: entry,
+        };
+        optimize_function(&mut func).expect("well-formed");
+        let kept: Vec<ValueId> = func.blocks[&entry].insts.iter().map(|(v, _)| *v).collect();
+        assert!(
+            kept.contains(&op),
+            "the vector op was deleted as dead: {kept:?} — it writes memory"
+        );
+    }
 
     #[test]
     fn test_build_simple_function() {

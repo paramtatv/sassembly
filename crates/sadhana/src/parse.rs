@@ -448,6 +448,81 @@ fn string_body(args: &[&str]) -> Option<(String, usize)> {
     None
 }
 
+/// The `उक्तम् … इति` spelling of a run of data octets, if that spelling reads
+/// back as **exactly** these octets.
+///
+/// `SAS-011` fix (1), the writer's half of [`string_body`]. The assembler pays
+/// ~3,500 interpreter steps per octet emitted as its own numeral — ten
+/// characters of text each, every one classified by the tokeniser and read
+/// three times by the directive. The same octets as one text piece are read
+/// once, so the emitters should write that form wherever it is lossless.
+///
+/// # The predicate is the point, not the spelling
+///
+/// `None` is the safe answer and most of this function is about returning it.
+/// A literal is an arbitrary run of octets (`artha.t1:679` types it as unsigned
+/// octets, not characters), and the text form survives a round trip only when
+/// every stage between here and [`string_body`] leaves it alone:
+///
+/// * **Valid UTF-8, Devanagari base block only.** R-15-1 admits four blocks,
+///   but [`crate::lex`] is the gate the emitted object passes through and
+///   anything outside U+0900–U+097F buys no octets that the numeral form
+///   cannot carry.
+/// * **No `।`, `॥`, `॰`, `ॱ` or `ऽ`.** `॥` closes the directive, `॰` ends the line
+///   (ADR-0017 recognises a string first, but only in T1's lexer — an object is
+///   T0 text and the comment mark still cuts it), `।` ends the statement and
+///   `ॱॱ` is the label mark, and the lexer peels a trailing `ऽ` off a word.
+/// * **One word: no space at all** (the owner's NARROW RULE, 2026-10-06). The
+///   reader does rebuild single interior spaces, and the four spaced runs in
+///   `tests/sas011-string-payload.rs` round-trip — they are refused anyway, so
+///   the T1 twin (`यन्त्रपाठरूपयोग्यम्`, `yantrotsarjana.t1`) is an octet walk
+///   with no word splitting. It is what the ~1.5 KB of compiler image the
+///   owner accepted pays for, and it still carries 97.55% of the corpus's
+///   data octets.
+/// * **Not the word `इति`.** ADR-0011 spells a close inside a literal by doubling
+///   it and [`string_body`] reads the doubling back, so this case is
+///   expressible — it is refused anyway because the T1 twin of this routine has
+///   to agree octet for octet, and a conservative refusal costs one literal
+///   where a doubling mismatch costs the image.
+/// * **Not the word `आस्की` or `जाल`.** Those two words put [`crate::lex`]
+///   into its ASCII and markup modes for the rest of the file, and a literal
+///   that silently switches off the repertoire gate for everything after it is
+///   not a lossless spelling of anything.
+///
+/// An empty run is `None` rather than `Some("")`: `अष्टकाः` takes `1+` operands,
+/// so an empty literal gets its label and no directive at all.
+#[must_use]
+pub fn string_payload(bytes: &[u8]) -> Option<String> {
+    let text = core::str::from_utf8(bytes).ok()?;
+    // ONE WORD, NO SPACE (owner ruling, 2026-10-06). A space is not a payload
+    // character, so the character test refuses every spaced run; the empty run
+    // has no characters and is refused by name.
+    if text.is_empty() || !text.chars().all(devanagari_payload_char) {
+        return None;
+    }
+    // The literal rather than `lex`'s `STRING_CLOSE`, which is private to
+    // that module; `string_body` above writes it the same way.
+    if text == "इति" || text == "आस्की" || text == "जाल" {
+        return None;
+    }
+    Some(text.to_string())
+}
+
+/// Whether one character may stand in a `उक्तम् … इति` data literal.
+///
+/// The base block less the four marks [`string_payload`] names, and less the
+/// avagraha `ऽ` (U+093D): `lex.rs`'s `split_trailing_punct` peels a trailing
+/// one off a word as the separator token, and the reader rejoins the pieces
+/// with a space, so `कऽ` came back as `क ऽ` (`SAS-011` (b)). Refused in every
+/// position, not only the trailing one, so the T1 twin has one rule to match.
+fn devanagari_payload_char(ch: char) -> bool {
+    matches!(ch, '\u{0900}'..='\u{097F}')
+        && !matches!(
+            ch,
+            '\u{093D}' | '\u{0964}' | '\u{0965}' | '\u{0970}' | '\u{0971}'
+        )
+}
+
 /// Split a doc 02 §2.5 type name into its class letter and its digits.
 ///
 /// `अ` is a signed integer, `न` an unsigned one and `भ` a float. A bare width
@@ -878,7 +953,14 @@ fn apply_directive(
             // The bytes are the text's UTF-8, and nothing is appended: doc 02
             // §2.5 maps this to `.ascii` rather than `.asciz`, so a program
             // that wants a terminator writes `॥ अष्टकाः ० ॥` and can see it.
-            if args.first() == Some(&"उक्तम्") {
+            // ADR-0044 D3: `वर्णाष्टकम् … इति` is the same literal — the same
+            // close, the same doubling, the same P17/P22/P18 — and its datum
+            // is the letters packed ONE OCTET EACH (`devanagari8::pack`). The
+            // emitter writes it only where `devanagari8::payload` says it reads
+            // back exactly; a body that does not pack (a space between two
+            // words, a letter outside the block) is P19 naming it.
+            let devanagari8 = args.first() == Some(&crate::devanagari8::OPEN);
+            if args.first() == Some(&"उक्तम्") || devanagari8 {
                 if width != 1 {
                     return Err(err("P17", &[&head.text]));
                 }
@@ -891,9 +973,17 @@ fn apply_directive(
                 if used != args.len() - 1 {
                     return Err(err("P18", &[args[1 + used]]));
                 }
+                let bytes = if devanagari8 {
+                    match crate::devanagari8::pack(&text) {
+                        Ok(b) => b,
+                        Err(_) => return Err(err("P19", &[args[1]])),
+                    }
+                } else {
+                    text.into_bytes()
+                };
                 out.data.push(Datum {
                     section: *section,
-                    bytes: text.into_bytes(),
+                    bytes,
                     addresses: Vec::new(),
                     line: head.line,
                 });
@@ -1217,8 +1307,11 @@ mod tests {
         // and paging cannot be turned on without it.
         // 74: `C-001d2` added `sret`. A handler that cannot return can only shut
         // the machine down, which is why `C-001d1` had to.
-        assert_eq!(f.len(), 74, "registry should hold 74 families");
-        for ext in ["I", "M", "A", "FD", "Zicsr", "Zifencei"] {
+        // 75: `V-008` part 2 added `vsetvli` (`व्यूहदैर्घ्यम्`), the one vector
+        // family with no scalar twin; the other six vector forms joined the
+        // families they share a word with (owner ruling, option A).
+        assert_eq!(f.len(), 75, "registry should hold 75 families");
+        for ext in ["I", "M", "A", "FD", "Zicsr", "Zifencei", "V"] {
             assert!(f.iter().any(|x| x.ext == ext), "no family for {ext}");
         }
     }

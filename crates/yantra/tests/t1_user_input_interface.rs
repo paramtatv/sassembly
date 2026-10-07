@@ -144,7 +144,7 @@ fn a_program_declaring_the_interface_reads_the_octets_it_was_given() {
         other => panic!("the fixture did not finish: {other:?}"),
     };
     assert_eq!(
-        u64::from(status),
+        status,
         want,
         "the program summed {status} where the {} injected octets sum to {want}. \
          A length reader answers {}, an empty run answers 0 — neither is this",

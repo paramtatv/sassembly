@@ -451,3 +451,104 @@ fn the_built_object_links() {
     );
     println!("METRIC t1_linked_object_symbols {}", syms.len());
 }
+
+/// **`वैश्विकत्वम्` ANSWERS EXACTLY THE SAME FOR EVERY EDGE** (symbol-lookup step 1).
+///
+/// The routine compared each candidate global as a SLICE — a fresh block with
+/// its octets copied — and now compares it IN PLACE through `परिधिसाम्यम्`. The answer
+/// must not move: this pins it on an equal name (first and later in the
+/// arena), a name a global is a prefix of, a byte prefix of a global, a name
+/// that differs from a global in its LAST octet only (what a compare one octet
+/// short calls equal), the empty name (index ० and the section symbol are both
+/// nameless), and a label that is not pushed global. A characterisation test:
+/// it passed on the slice compare before the change and passes after it.
+#[test]
+fn the_global_test_answers_the_same_on_every_edge() {
+    let routine = "सङ्केतनॱवैश्विकत्वम्";
+    let built = |src: &str| -> (Interpreter, Value) {
+        let mut it = assembler();
+        let n = it
+            .call(
+                "वाक्यविभागॱसङ्कलनम्",
+                vec![Value::Octets(Octets::new(src.as_bytes()))],
+                8_000_000_000,
+            )
+            .expect("सङ्कलनम्")
+            .as_int()
+            .unwrap_or(0);
+        assert!(n > 0, "the assembler read no statements from:\n{src}");
+        let program = it
+            .call("वाक्यविभागॱकार्यक्रमरचना", vec![], 20_000_000)
+            .expect("कार्यक्रमरचना");
+        (it, program)
+    };
+    let ask = |it: &mut Interpreter, program: &Value, name: &[u8]| -> bool {
+        match it
+            .call(
+                routine,
+                vec![program.clone(), Value::Octets(Octets::new(name))],
+                200_000_000,
+            )
+            .unwrap_or_else(|e| panic!("{routine}: {e:?}"))
+        {
+            Value::Bool(b) => b,
+            other => panic!("{routine} answered {other:?}, not a बूल"),
+        }
+    };
+
+    let first = "मुख्यम्";
+    let second = "द्वितीयम्";
+    // One differing in its last octet only: same length, every octet but the last equal.
+    let mut last_off = first.as_bytes().to_vec();
+    *last_off.last_mut().unwrap() ^= 1;
+    let mut longer = first.as_bytes().to_vec();
+    longer.extend_from_slice(second.as_bytes());
+    let short = &second.as_bytes()[..second.len() - 1];
+
+    // (1) ONE GLOBAL, ONE LOCAL LABEL — the program of the test above.
+    let src1 = format!(
+        "॥ वैश्विकम् {first} ॥\n{first}ॱॱ\nयोगः अर्थ०म् शून्यःन १न ।\n{second}ॱॱ\nयोगः अर्थ०म् शून्यःन २न ।\n"
+    );
+    let (mut it, p) = built(&src1);
+    let mut answers = Vec::new();
+    for (what, name, want) in [
+        ("the global itself", first.as_bytes(), true),
+        ("a label not pushed global", second.as_bytes(), false),
+        ("the empty name", &b""[..], false),
+        ("the global then more octets", &longer[..], false),
+        (
+            "the global with its last octet changed",
+            &last_off[..],
+            false,
+        ),
+    ] {
+        let got = ask(&mut it, &p, name);
+        assert_eq!(got, want, "program 1, {what}: {routine} answered {got}");
+        answers.push(got);
+    }
+
+    // (2) TWO GLOBALS, the second label pushed FIRST, so a match on the first
+    // label is found only after the scan steps past a non-matching candidate.
+    let src2 = format!(
+        "॥ वैश्विकम् {second} ॥\n॥ वैश्विकम् {first} ॥\n{first}ॱॱ\nयोगः अर्थ०म् शून्यःन १न ।\n{second}ॱॱ\nयोगः अर्थ०म् शून्यःन २न ।\n"
+    );
+    let (mut it, p) = built(&src2);
+    for (what, name, want) in [
+        ("the global pushed second", first.as_bytes(), true),
+        ("the global pushed first", second.as_bytes(), true),
+        ("the empty name", &b""[..], false),
+        ("a byte prefix of a global", short, false),
+        ("one global then the other", &longer[..], false),
+        ("a global with its last octet changed", &last_off[..], false),
+    ] {
+        let got = ask(&mut it, &p, name);
+        assert_eq!(got, want, "program 2, {what}: {routine} answered {got}");
+        answers.push(got);
+    }
+    assert_eq!(answers.len(), 11, "every edge was asked");
+    println!(
+        "METRIC t1_global_test_edges {} true {}",
+        answers.len(),
+        answers.iter().filter(|b| **b).count()
+    );
+}

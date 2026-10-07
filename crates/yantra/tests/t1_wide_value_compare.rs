@@ -22,6 +22,15 @@
 //! २^६३, where the two readings agree. This guard is that rule, read from the
 //! source: a name bound to a wide literal, then used as an operand of an
 //! ordering comparison or a division inside the same routine.
+//!
+//! SINCE `W-381` STAGE 3 (owner ruling P1) THE TWO ENGINES NO LONGER PART HERE:
+//! the interpreter reads every operand as its 64-bit word, signed for a
+//! division and for a comparison with no unsigned NAME in it, and unsigned for
+//! a comparison over a name declared unsigned, exactly as the native code
+//! does (`w381_stage3_integer_semantics.rs`). The guard stays because the
+//! shape it finds is still a likely mistake — a wide value meeting the SIGNED
+//! reading — but a breach would now be wrong on both engines alike, not a
+//! fixpoint break.
 
 use std::path::Path;
 

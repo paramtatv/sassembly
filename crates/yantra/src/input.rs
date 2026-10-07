@@ -418,3 +418,417 @@ pub fn inject_arguments(mem: &mut Vec<u8>, base: u64, args: &[&[u8]]) -> Result<
         argc: args.len() as u64,
     })
 }
+
+/// The tag in front of the EVENT word: `"SASEVENT"` (`W-371`, ADR-0040 Option C R2).
+///
+/// At each [`crate::Halt::Wait`] the host writes ONE event record into the word at
+/// `tag + 8` and resumes — see [`find_event_slot`] and [`replay`]. Below 2⁶³ like the
+/// others, for the same reason.
+pub const EVENT_TAG: u64 = 0x544e_4556_4553_4153;
+// Below 2⁶³, checked when the crate compiles rather than when a test runs.
+const _: () = assert!(EVENT_TAG < 1 << 63);
+
+/// Find the event word: the offset of the ONE `SASEVENT` tag in `mem`.
+///
+/// Refuses on a missing tag, a tag found more than once, or a tag with no word after it —
+/// [`inject`]'s three refusals, for [`inject`]'s reasons. A missing tag is fatal ONLY when
+/// the host was given an event log: an image that never declared the interface would
+/// otherwise read whatever its own word held at every wait and replay a run that the log
+/// does not describe. Nothing is written here; [`replay`] writes at each wait.
+pub fn find_event_slot(mem: &[u8]) -> Result<usize, String> {
+    let word = EVENT_TAG.to_le_bytes();
+    // Every offset, not every eighth — the reason is at `inject`'s scan.
+    let hits: Vec<usize> = (0..mem.len().saturating_sub(7))
+        .filter(|&o| mem[o..o + 8] == word)
+        .collect();
+    match hits.as_slice() {
+        [] => Err(format!(
+            "no event interface in this image: the SASEVENT tag ({EVENT_TAG:#x}) appears at no \
+             word. It was built without the event global — declare it, or do not pass an event log"
+        )),
+        [one] if one + 16 <= mem.len() => Ok(*one),
+        [one] => Err(format!("the SASEVENT tag at {one:#x} has no word after it")),
+        many => Err(format!(
+            "the SASEVENT tag appears at {} words ({:x?}); the tag must be unique or the scan \
+             cannot tell which word the program reads",
+            many.len(),
+            many.iter().take(6).collect::<Vec<_>>()
+        )),
+    }
+}
+
+/// Read an event log. **THE FORMAT, AND THE ONLY ONE:**
+///
+/// ```text
+///   # a comment: any line whose first non-blank character is '#'
+///   3              one RECORD per line, one record per WAIT, in the order the waits happen
+///   0x10           a record is one 64-bit word: decimal, or hexadecimal after 0x
+///                  (blank lines are skipped)
+/// ```
+///
+/// A record is ONE WORD because the event global is one word: the host writes it at
+/// `SASEVENT + 8` and the program reads it with one `ld`. A wider record — octets that
+/// arrived, a run — is a later row's question; this one only has to make the count a
+/// function of `(program, log)`. Anything else on a line is refused naming the line, never
+/// read as zero: a typo'd record is a different log.
+///
+/// **THE CLOCK RECORD (`W-375`, ADR-0040 R6).** A line may instead read `t=<word>` (same
+/// number syntax): a record whose value is the HOST'S TIME at that wait, in NANOSECONDS
+/// SINCE THE UNIX EPOCH (1970-01-01T00:00:00Z), as [`stamp_event_time`] read it in live mode
+/// ([`record_live`], `yantra-run --record-events`). Replay delivers the LOGGED value into
+/// the same word, exactly as it delivers a plain record — the clock is never consulted.
+/// The extension is compatible both ways: every W-371 log still parses unchanged (a plain
+/// record is a record with no time field, delivered as before), and a `t=` record is
+/// delivered by the same [`replay`].
+///
+/// **A THREAD RECORD `@N` IS REFUSED HERE (`W-376`).** It is a line of a THREADED log,
+/// read by [`parse_thread_log`]; a single-thread consumer handed one is holding a log of
+/// some other kind of run, and reading past the line would deliver the next value to the
+/// wrong wait. So every single-thread consumer stays byte-unchanged on every log it could
+/// already read, and refuses, by name, the one line kind it cannot.
+///
+/// **A SOCKET RECORD `s=` IS REFUSED HERE TOO (`W-377`)** — see `refuse_socket_record`.
+pub fn parse_event_log(text: &str) -> Result<Vec<u64>, String> {
+    refuse_torn_final_record(text)?;
+    let mut records = Vec::new();
+    for (n, line) in text.lines().enumerate() {
+        let t = line.trim();
+        if t.is_empty() || t.starts_with('#') {
+            continue;
+        }
+        if t.starts_with('@') {
+            return Err(format!(
+                "line {}: {t:?} is a THREAD record (W-376: `@N` runs thread N) — this is a \
+                 threaded log, and a single-thread run has no thread to schedule; refused \
+                 rather than skipped",
+                n + 1
+            ));
+        }
+        refuse_socket_record(t, n)?;
+        records.push(parse_value_record(t, n)?);
+    }
+    Ok(records)
+}
+
+/// A TORN FINAL RECORD REFUSES (review, Naad lane): `lines()` accepts a last
+/// line with no newline, so a live run killed mid-write could leave
+/// `t=1791000000123456789` as `t=17` and replay a different clock silently.
+/// `record_live` always ends a record with `\n`, so a final RECORD line
+/// without one is a torn write, never a log someone meant.
+pub(crate) fn refuse_torn_final_record(text: &str) -> Result<(), String> {
+    if !text.is_empty() && !text.ends_with('\n') {
+        let last = text.rsplit('\n').next().unwrap_or("");
+        let t = last.trim();
+        if !t.is_empty() && !t.starts_with('#') {
+            return Err(format!(
+                "line {}: {t:?} has no terminating newline — a torn final record \
+                 (a live run stopped mid-write), refused rather than replayed",
+                text.lines().count()
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// **A SOCKET RECORD `s=` IS REFUSED BY NAME (`W-377`, addendum §2)**, by both readers
+/// here, as `@` is by [`parse_event_log`]: it is a line of a SOCKET log, read by
+/// [`crate::socket::parse_socket_log`], and a consumer of value records handed one holds a
+/// log of some other kind of run. So every existing consumer — `Interpreter::set_events`
+/// included — stays byte-unchanged on every log it could already read.
+fn refuse_socket_record(t: &str, n: usize) -> Result<(), String> {
+    if t.starts_with("s=") {
+        return Err(format!(
+            "line {}: {t:?} is a SOCKET record (W-377: `s=<hex>` or `s=end`) — this is a \
+             socket log, read only when its first record is one; refused rather than skipped",
+            n + 1
+        ));
+    }
+    Ok(())
+}
+
+/// One value record — a plain word or a `t=` clock record — on the trimmed line `t`, which
+/// is line `n` from 0. The one statement of the number syntax, shared by both log readers.
+fn parse_value_record(t: &str, n: usize) -> Result<u64, String> {
+    let word = t.strip_prefix("t=").unwrap_or(t);
+    let parsed = match word.strip_prefix("0x").or_else(|| word.strip_prefix("0X")) {
+        Some(hex) => u64::from_str_radix(&hex.replace('_', ""), 16),
+        None => word.replace('_', "").parse::<u64>(),
+    };
+    parsed.map_err(|e| {
+        format!(
+            "line {}: {t:?} is not a record — one unsigned 64-bit word per line, \
+             decimal or 0x-hex, optionally after `t=` for a clock record ({e})",
+            n + 1
+        )
+    })
+}
+
+/// One record of a THREADED event log (`W-376`, ADR-0040 addendum §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThreadRecord {
+    /// A value for the wait the resuming thread is in: a plain record or a `t=` clock
+    /// record, delivered into the `SASEVENT` word AT THE RESUME.
+    Value(u64),
+    /// `@N`: at this decision point, run thread `N`.
+    Run(u32),
+}
+
+/// Read a THREADED event log: [`parse_event_log`]'s format, plus the line kind `@N`
+/// ("run thread N", `N` decimal or 0x-hex, below 2³²). The order of the records is the
+/// schedule: at each decision point (the start, every wait, every thread's end) the host
+/// reads one `@N`, and when thread `N` is resuming from a wait, the value record after it.
+/// Whether the records fit the run is [`crate::threads::replay_threads`]'s to judge; this
+/// only reads them, refusing a line it cannot read by its number, never as zero.
+pub fn parse_thread_log(text: &str) -> Result<Vec<ThreadRecord>, String> {
+    refuse_torn_final_record(text)?;
+    let mut records = Vec::new();
+    for (n, line) in text.lines().enumerate() {
+        let t = line.trim();
+        if t.is_empty() || t.starts_with('#') {
+            continue;
+        }
+        refuse_socket_record(t, n)?;
+        let Some(thread) = t.strip_prefix('@') else {
+            records.push(ThreadRecord::Value(parse_value_record(t, n)?));
+            continue;
+        };
+        let parsed = match thread
+            .strip_prefix("0x")
+            .or_else(|| thread.strip_prefix("0X"))
+        {
+            Some(hex) => u32::from_str_radix(hex, 16),
+            None => thread.parse::<u32>(),
+        };
+        match parsed {
+            Ok(k) => records.push(ThreadRecord::Run(k)),
+            Err(e) => {
+                return Err(format!(
+                    "line {}: {t:?} is not a thread record — `@N` with N a thread number, \
+                     decimal or 0x-hex, below 2^32 ({e})",
+                    n + 1
+                ));
+            }
+        }
+    }
+    Ok(records)
+}
+
+/// How a replay ended.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Replayed {
+    /// The machine halted for a reason that is not a wait, after `delivered` records. A
+    /// caller holding a longer log has a log this run did not consume — see [`replay`].
+    Halted {
+        /// The halt.
+        halt: crate::Halt,
+        /// Records written, one per wait.
+        delivered: usize,
+    },
+    /// The program waited and the log had no record left for it. `index` counts waits
+    /// from 0 — it equals the number of records the log held — and `pc` is the store that
+    /// asked. The machine is left paused at that wait; nothing was written.
+    Short {
+        /// Which wait, from 0.
+        index: usize,
+        /// The wait store.
+        pc: u64,
+    },
+}
+
+/// Replay `log` against `m`: run; at each [`crate::Halt::Wait`] write the next record at
+/// `tag + 8` (`tag` from [`find_event_slot`]) and run again; stop at any other halt.
+///
+/// `budget` is the ceiling on the WHOLE replay, not on each segment: each resume gets what
+/// is left of it, measured by [`crate::Machine::time`], which accumulates across resumes.
+///
+/// **A SHORT LOG IS NEVER PADDED.** When the waits outnumber the records this returns
+/// [`Replayed::Short`] and does not resume — resuming would hand the program whatever its
+/// word last held, a zero or a stale record, and call that a replay.
+///
+/// A LONG LOG is the caller's to judge, from `delivered` against `log.len()`; `yantra-run`
+/// REFUSES it, because a log not consumed exactly is a log of some other run.
+pub fn replay(
+    m: &mut crate::Machine,
+    tag: usize,
+    log: &[u64],
+    budget: u64,
+    out: &mut impl crate::Output,
+) -> Replayed {
+    let start = m.time;
+    let mut delivered = 0;
+    loop {
+        let left = budget.saturating_sub(m.time - start);
+        match m.run(left, out) {
+            crate::Halt::Wait { pc } => {
+                let Some(&record) = log.get(delivered) else {
+                    return Replayed::Short {
+                        index: delivered,
+                        pc,
+                    };
+                };
+                put_word(&mut m.mem, tag + 8, record);
+                delivered += 1;
+            }
+            halt => return Replayed::Halted { halt, delivered },
+        }
+    }
+}
+
+/// **THE EVENT STAMPER — THE ONE PLACE `yantra` READS A WALL CLOCK (`W-375`, ADR-0040 R6).**
+///
+/// Answers the host's current time in NANOSECONDS SINCE THE UNIX EPOCH (1970-01-01T00:00:00Z,
+/// UTC), as one `u64` — enough until the year 2554. A host clock set before 1970 answers 0
+/// rather than panicking; the value is DATA delivered to a program, not a check.
+///
+/// It is called from exactly two sites, [`record_live`] at a [`crate::Halt::Wait`] and its
+/// threaded twin [`crate::threads::record_live_threads`] when a thread RESUMES from one
+/// (`W-376`) — so a program sees time only as a value delivered at a wait point it chose, never between two
+/// instructions, and the value is LOGGED, so a replay reproduces the run without asking the
+/// clock again. `tests/w375_clock.rs` holds a ratchet: no other line under `crates/yantra/src`
+/// may name a wall clock. Keep it that way; a second clock read is a run no log describes.
+pub fn stamp_event_time() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos() as u64)
+}
+
+/// The first line of a log [`record_live`] writes: a comment, so it carries no clock value
+/// (a time with no wait would be exactly what `W-375` forbids).
+pub const RECORDED_LOG_HEADER: &str = "# yantra-run --record-events (W-375): one clock record \
+     per wait, t=<host time in ns since the Unix epoch, UTC>; replay with --events";
+
+/// LIVE MODE: run `m`; at each [`crate::Halt::Wait`] stamp the host's time
+/// ([`stamp_event_time`]), write it at `tag + 8`, APPEND the record `t=<ns>` to `log` (flushed
+/// per record, so a run that dies mid-way leaves the log of what it was given), and resume.
+/// Stops at the first halt that is not a wait and answers it with the number of records
+/// written. `budget` covers the whole run, as in [`replay`].
+///
+/// The log is a valid input to [`parse_event_log`] and [`replay`], which deliver the same
+/// words to the same waits — so the replayed run retires the same count.
+pub fn record_live(
+    m: &mut crate::Machine,
+    tag: usize,
+    budget: u64,
+    out: &mut impl crate::Output,
+    log: &mut impl std::io::Write,
+) -> Result<(crate::Halt, usize), String> {
+    let io = |e: std::io::Error| format!("writing the event log: {e}");
+    writeln!(log, "{RECORDED_LOG_HEADER}").map_err(io)?;
+    log.flush().map_err(io)?;
+    let start = m.time;
+    let mut delivered = 0;
+    loop {
+        let left = budget.saturating_sub(m.time - start);
+        match m.run(left, out) {
+            crate::Halt::Wait { .. } => {
+                let now = stamp_event_time();
+                writeln!(log, "t={now}").map_err(io)?;
+                log.flush().map_err(io)?;
+                put_word(&mut m.mem, tag + 8, now);
+                delivered += 1;
+            }
+            halt => return Ok((halt, delivered)),
+        }
+    }
+}
+
+#[cfg(test)]
+mod event_tests {
+    #[test]
+    fn a_torn_final_record_is_refused_not_replayed() {
+        let e = super::parse_event_log("t=1\nt=17").unwrap_err();
+        assert!(e.contains("line 2") && e.contains("torn"), "{e}");
+        assert_eq!(super::parse_event_log("t=1\nt=17\n").unwrap(), vec![1, 17]);
+        assert_eq!(super::parse_event_log("t=1\n# note").unwrap(), vec![1]);
+    }
+
+    use super::*;
+
+    #[test]
+    fn the_log_format_reads_decimal_hex_comments_and_blanks() {
+        let log = "# header\n\n3\n  0x10 \n# mid\n1_000\n";
+        assert_eq!(parse_event_log(log).unwrap(), vec![3, 16, 1000]);
+        assert_eq!(parse_event_log("").unwrap(), Vec::<u64>::new());
+    }
+
+    #[test]
+    fn a_bad_record_is_refused_naming_its_line_never_read_as_zero() {
+        for bad in [
+            "3\nfive\n",
+            "3\n-1\n",
+            "3\n0xzz\n",
+            "3\n18446744073709551616\n",
+        ] {
+            let e = parse_event_log(bad).unwrap_err();
+            assert!(e.starts_with("line 2:"), "{bad:?}: {e}");
+        }
+    }
+
+    #[test]
+    fn the_event_tag_is_found_once_and_refused_missing_duplicated_or_truncated() {
+        let mut m = vec![0u8; 256];
+        assert!(find_event_slot(&m).unwrap_err().contains("SASEVENT"));
+        m[0x41..0x49].copy_from_slice(&EVENT_TAG.to_le_bytes());
+        assert_eq!(
+            find_event_slot(&m),
+            Ok(0x41),
+            "a misaligned tag is the interface"
+        );
+        m[0x80..0x88].copy_from_slice(&EVENT_TAG.to_le_bytes());
+        assert!(find_event_slot(&m).unwrap_err().contains("2 words"));
+        let mut t = vec![0u8; 16];
+        t[4..12].copy_from_slice(&EVENT_TAG.to_le_bytes());
+        assert!(
+            find_event_slot(&t)
+                .unwrap_err()
+                .contains("no word after it")
+        );
+    }
+
+    #[test]
+    fn a_clock_record_reads_as_its_logged_value_beside_plain_records() {
+        let log = format!("{RECORDED_LOG_HEADER}\nt=1791000000123456789\n7\nt=0x10\n");
+        assert_eq!(
+            parse_event_log(&log).unwrap(),
+            vec![1_791_000_000_123_456_789, 7, 16]
+        );
+        let e = parse_event_log("t=\n").unwrap_err();
+        assert!(e.starts_with("line 1:"), "{e}");
+        assert!(parse_event_log("t=-1\n").is_err());
+        assert!(parse_event_log("time=5\n").is_err());
+    }
+
+    #[test]
+    fn a_thread_record_is_refused_by_the_single_thread_reader_by_name() {
+        let e = parse_event_log("3\n@1\n5\n").unwrap_err();
+        assert!(
+            e.starts_with("line 2:") && e.contains("THREAD record"),
+            "{e}"
+        );
+    }
+
+    #[test]
+    fn the_thread_log_reads_runs_values_and_clock_records() {
+        let log = "# W-376\n@0\n@1\n@0x0\nt=7\n5\n";
+        assert_eq!(
+            parse_thread_log(log).unwrap(),
+            vec![
+                ThreadRecord::Run(0),
+                ThreadRecord::Run(1),
+                ThreadRecord::Run(0),
+                ThreadRecord::Value(7),
+                ThreadRecord::Value(5),
+            ]
+        );
+        for bad in ["@\n", "@-1\n", "@x\n", "@4294967296\n"] {
+            let e = parse_thread_log(bad).unwrap_err();
+            assert!(e.starts_with("line 1:"), "{bad:?}: {e}");
+        }
+        assert!(parse_thread_log("@0\n@1").unwrap_err().contains("torn"));
+    }
+
+    #[test]
+    fn the_tag_spells_sasevent() {
+        assert_eq!(&EVENT_TAG.to_le_bytes(), b"SASEVENT");
+    }
+}

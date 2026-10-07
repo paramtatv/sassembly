@@ -1,0 +1,42 @@
+मण्डलम् प्रथमबिन्दु ॥
+आयातः दर्शक ।
+
+॰ प्रथमबिन्दु — ROW C-015's PICTURE, C-009's OWN: a ६४ x ३२ frame of ०x११२२३३
+॰ with exactly one pixel of ०xc४७b२a at (१, १), carried to the screen by
+॰ spec/darshaka.t1 (the driver the GPU-driver project's v0.5.0 render also uses). The odd pixel's
+॰ place is what makes the pitch falsifiable: a wrong stride still paints a
+॰ screen, but paints that pixel somewhere else.
+॰
+॰ The picture is the same pixels C-009's driver paints, so the falsifier is a
+॰ BYTE comparison of the two screens, taken by tools/check-virtio-gpu-t1.sh on
+॰ QEMU's real virtio-gpu (and on yantra's model).
+॰
+॰ ARGUMENTS: none, or any one. The driver is reached only when the program is
+॰ given an argument, because the build-time interpreter (and t1_image's native
+॰ predict, which is handed none) must not touch a device; with none it returns
+॰ ० having drawn nothing. With one it prints the driver's "G <code>" and
+॰ "C <checksum>" lines and answers the code: ० drawn.
+
+॰ THE PROGRAM'S ARGUMENTS, found by their tags as yantra::input hands them over
+सार्वजनिक चरः आदेशसङ्केतः ॱॱ न६४ भवति २४२८५२६६६०५९८२०३५ ।
+सार्वजनिक चरः आदेशपङ्क्तिः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः आदेशसङ्ख्यासङ्केतः ॱॱ न६४ भवति १८९३७२४२०४८४७९५७१ ।
+सार्वजनिक चरः आदेशसङ्ख्या ॱॱ न६४ भवति ० ।
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    ॰ the frame, sized HERE (W-359): ६४ x ३२ = २०४८ words of ०x११२२३३, built
+    ॰ only when asked for the screen, so the build-time run does no work
+    चरः पटः ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः फलम् ॱॱ न६४ भवति ० ।
+    यदि आदेशसङ्ख्या अधिकम् १ आदि
+        चरः क्रमः ॱॱ न६४ भवति ० ।
+        यावत् क्रमः न्यूनम् २०४८ आदि
+            पटः अङ्कः क्रमः अन्तः भवति ११२२८६७ ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+        ॰ (१, १) is word १ · ६४ + १ = ६५; ०xc४७b२a = १२८७६५८६
+        पटः अङ्कः ६५ अन्तः भवति १२८७६५८६ ।
+        फलम् भवति दर्शकॱप्रदर्शनम् आरभ्य पटः ऽ ६४ ऽ ३२ समाप्तम् ।
+    इति
+    प्रत्यागमनम् फलम् ।
+इति

@@ -74,7 +74,9 @@
 //! is asserted beside the call instead of being dropped.
 
 use sadhana::t1::chain::CHAIN;
+use sadhana::t1::ir::CmpOp;
 use sadhana::t1::nirvahana::{Interpreter, Octets, Value};
+use sadhana::t1::riscv64::branch_word;
 use std::path::{Path, PathBuf};
 
 /// THE READER, SHARED WITH `t1_corpus_globals.rs`. See `emitted/mod.rs`: one
@@ -1226,11 +1228,20 @@ fn a_string_literal_addresses_its_own_label_and_not_the_pool() {
     // DERIVED from the source's own literal, so a chain that emitted a
     // different string fails by VALUE and not by a count.
     let literal = "अब";
-    let bytes: Vec<String> = literal.bytes().map(|b| devanagari(b as u64)).collect();
+    // `SAS-011` (c): ONE WORD IS WRITTEN AS TEXT, and which form a run takes is
+    // `parse::string_payload`'s answer — asked here rather than assumed, so a
+    // change of rule fails this by value too.
+    let operands = match sadhana::parse::string_payload(literal.as_bytes()) {
+        Some(text) => format!("उक्तम् {text} इति"),
+        None => literal
+            .bytes()
+            .map(|b| devanagari(b as u64))
+            .collect::<Vec<_>>()
+            .join(" "),
+    };
     let expected = format!(
-        "पाठ०शीर्षॱॱ\n॥ अष्टाष्टकाः {} ॥\nपाठ०ॱॱ\n॥ अष्टकाः {} ॥",
+        "पाठ०शीर्षॱॱ\n॥ अष्टाष्टकाः {} ॥\nपाठ०ॱॱ\n॥ अष्टकाः {operands} ॥",
         devanagari(literal.len() as u64),
-        bytes.join(" ")
     );
     println!("METRIC t1_emitted_string_octets {}", literal.len());
     assert!(
@@ -1760,7 +1771,8 @@ const RUNG_97_SOURCE: &str = "मण्डलम् क ॥ सार्वज�
 /// never closes.
 ///
 /// **AND IT IS REFUSED AT PARSE, NOT AT RESOLVE** — measured, not assumed:
-/// `सङ्कलनाघोषणाभेद` (१), "the source parsed to no declarations". Rungs 102 and
+/// `सङ्कलनव्याकरणभेद` (९), "the parser refused it" (it read `१`, "parsed to no
+/// declarations", until `W-342` gave the parser's refusal its own kind). Rungs 102 and
 /// 103 both reach their base-alone through RESOLVE (२); this is the second road
 /// to the same E02 shape, and a reader that knew only one would take a parse
 /// failure for a resolver doing its job.
@@ -1787,9 +1799,19 @@ const RUNG_99_BASE: u64 = 6_000;
 /// `प्रत्यागमनम् ३००० योगः अष्टकाः ॱ दैर्घ्य` (`shrinkhala.t1:3205`).
 const RUNG_97_BASE: u64 = 3_000;
 
-/// `सङ्कलनाघोषणाभेद` — `shrinkhala.t1:119`, "the source parsed to no
-/// declarations". NOT [`RESOLVE_REFUSED`]: see [`RUNG_99_NO_LOOP_END`].
-const PARSE_REFUSED: i128 = 1;
+/// `सङ्कलनव्याकरणभेद` (९) — "the parser refused it". NOT [`RESOLVE_REFUSED`]:
+/// see [`RUNG_99_NO_LOOP_END`].
+///
+/// **THIS WAS `1` UNTIL `W-342`, AND `1` WAS THE WRONG WITNESS FOR ITS OWN
+/// NAME.** `1` is `सङ्कलनाघोषणाभेद`, "the source parsed to no declarations",
+/// which a comment-only file answers too — so six tests named "refused at
+/// parse" were asserting a kind that a source with nothing to refuse shares.
+/// `मण्डलसङ्कलनम्` now asks the parser's own record and the struck-`इति`
+/// sources read ९. All six failed on `left: 9, right: 1` when the kind
+/// landed, which is the measurement that they ARE parse refusals: the parser
+/// recorded a diagnostic for each. What every one of them goes on to assert —
+/// empty text, zero instructions, the base alone — is unchanged.
+const PARSE_REFUSED: i128 = 9;
 
 /// **RUNG 99'S ६११६, DERIVED FROM THE TEXT, AND THE BACKWARD EDGE ITS STATUS
 /// CANNOT SEE.** Twenty-nine instructions, no line unaccounted for, and the
@@ -3479,7 +3501,7 @@ fn the_seven_answered_rungs_are_separated_by_their_readings_and_no_two_collide()
                 calls: 1,
                 call_dirs: vec![Dir::Forward],
                 conditional: 1,
-                conditional_mnemonics: vec!["न्यूनलङ्घनम्".to_string()],
+                conditional_mnemonics: vec![branch_word(CmpOp::Ltu).to_string()],
                 conditional_operands: vec![(Some(8), Some(0))],
             },
         ),
@@ -3493,7 +3515,7 @@ fn the_seven_answered_rungs_are_separated_by_their_readings_and_no_two_collide()
                 calls: 0,
                 call_dirs: vec![],
                 conditional: 1,
-                conditional_mnemonics: vec!["न्यूनलङ्घनम्".to_string()],
+                conditional_mnemonics: vec![branch_word(CmpOp::Ltu).to_string()],
                 conditional_operands: vec![(Some(8), None)],
             },
         ),
@@ -3507,7 +3529,7 @@ fn the_seven_answered_rungs_are_separated_by_their_readings_and_no_two_collide()
                 calls: 2,
                 call_dirs: vec![Dir::Forward, Dir::Backward],
                 conditional: 1,
-                conditional_mnemonics: vec!["न्यूनलङ्घनम्".to_string()],
+                conditional_mnemonics: vec![branch_word(CmpOp::Ltu).to_string()],
                 conditional_operands: vec![(Some(0), None)],
             },
         ),
@@ -3955,7 +3977,10 @@ fn striking_the_instruction_count_now_merges_no_pair_and_the_mnemonic_took_the_l
             r98.conditional_mnemonics.clone(),
             r101.conditional_mnemonics.clone()
         ),
-        (vec!["न्यूनलङ्घनम्".to_string()], vec!["समलङ्घनम्".to_string()]),
+        (
+            vec![branch_word(CmpOp::Ltu).to_string()],
+            vec!["समलङ्घनम्".to_string()]
+        ),
         "and the MNEMONIC is the whole of the separation: 98's `यदि` compares \
          with `<` and lowers to `न्यूनलङ्घनम्`, 101's with `समम्` and lowers to \
          `समलङ्घनम्`. An emitter that lowered one comparison through the other \
@@ -4016,7 +4041,11 @@ fn rung_98s_exchange_is_read_off_its_operands_and_a_refused_rung_answers_no_pair
             base.conditional_mnemonics.clone(),
             base.conditional_operands.clone()
         ),
-        (1, vec!["न्यूनलङ्घनम्".to_string()], vec![(Some(8), Some(0))]),
+        (
+            1,
+            vec![branch_word(CmpOp::Ltu).to_string()],
+            vec![(Some(8), Some(0))]
+        ),
         "rung 98's `यदि व अधिकम् द` lowers to ONE `न्यूनलङ्घनम्` comparing slot \
          ८ — `द` — AGAINST slot ० — `व`. The operands are EXCHANGED, which is \
          what makes `अधिकम्` and `न्यूनम्` one instruction\n{text}"
@@ -4028,7 +4057,7 @@ fn rung_98s_exchange_is_read_off_its_operands_and_a_refused_rung_answers_no_pair
     let branch = text
         .lines()
         .map(str::trim)
-        .filter(|l| l.starts_with("न्यूनलङ्घनम्"))
+        .filter(|l| l.starts_with(branch_word(CmpOp::Ltu)))
         .map(str::to_string)
         .collect::<Vec<_>>();
     assert_eq!(
@@ -5168,11 +5197,15 @@ fn parameter_slots(text: &str) -> Vec<u64> {
 /// the two agree exactly, which is why this reader resolves and why a reader
 /// comparing branch lines as TEXT would have called that pair a defect.
 ///
+/// **SINCE `W-381` STAGE 3 (owner ruling P1) THE TABLE ABOVE IS FOR SIGNED
+/// NAMES.** An ordering comparison with a name declared unsigned on either side
+/// takes the unsigned pair — `न्यूनम्` and `अधिकम्` the `Ltu` word, `बृहत्समम्` the
+/// `Geu` word — and this fixture's parameters are unsigned, so its five rows
+/// read those; the same source over signed parameters reads the signed words.
+///
 /// **THE MEASURED NEGATIVE, RECORDED AND NOT INVENTED.** The two unsigned
-/// `CmpOp`s are unreachable from the front end: `ir.t1:3148` builds
-/// `अचिह्नन्यूनतुलनाभेद` from inside the chain and no `compare_op` spells either,
-/// so this test does not synthesize a source for them — it asserts that the
-/// spellings one would write are REFUSED.
+/// `CmpOp`s have no SPELLING of their own: no `compare_op` names either, so this
+/// test asserts that the spellings one would write are REFUSED.
 #[test]
 fn each_comparison_the_front_end_has_lowers_to_its_own_mnemonic_and_adhikam_exchanges_its_operands()
 {
@@ -5191,11 +5224,11 @@ fn each_comparison_the_front_end_has_lowers_to_its_own_mnemonic_and_adhikam_exch
 
     // ── THE FIVE THE GRAMMAR HAS ────────────────────────────────────────────
     for (op, mnemonic, karana, apadana) in [
-        ("समम्", "समलङ्घनम्", 0, 8),
-        ("असमम्", "विषमलङ्घनम्", 0, 8),
-        ("न्यूनम्", "न्यूनलङ्घनम्", 0, 8),
-        ("बृहत्समम्", "अन्यूनलङ्घनम्", 0, 8),
-        ("अधिकम्", "न्यूनलङ्घनम्", 8, 0),
+        ("समम्", branch_word(CmpOp::Eq), 0, 8),
+        ("असमम्", branch_word(CmpOp::Ne), 0, 8),
+        ("न्यूनम्", branch_word(CmpOp::Ltu), 0, 8),
+        ("बृहत्समम्", branch_word(CmpOp::Geu), 0, 8),
+        ("अधिकम्", branch_word(CmpOp::Ltu), 8, 0),
     ] {
         let (text, exit) = compile(&mut it, &comparison_source("व", op, "द"), "क");
         assert_eq!(exit, EMITTED, "`व {op} द` emits\n{text}");
@@ -5211,6 +5244,27 @@ fn each_comparison_the_front_end_has_lowers_to_its_own_mnemonic_and_adhikam_exch
             "`व {op} द` compares slot {karana} AGAINST slot {apadana} — ० is \
              `व` and ८ is `द`, so a pair the other way round is the exchange \
              done wrong\n{text}"
+        );
+    }
+
+    // ── `W-381` STAGE 3: OVER SIGNED NAMES, THE SIGNED WORDS ───────────────
+    //
+    // The fixture's two parameters are `न६४`, so since owner ruling P1 its
+    // ordering comparisons are the UNSIGNED pair (a name declared unsigned on
+    // either side). The same source with both declared `अ६४` takes the signed
+    // pair, with the same slots and the same exchange.
+    for (op, mnemonic, karana, apadana) in [
+        ("न्यूनम्", branch_word(CmpOp::Lt), 0, 8),
+        ("बृहत्समम्", branch_word(CmpOp::Ge), 0, 8),
+        ("अधिकम्", branch_word(CmpOp::Lt), 8, 0),
+    ] {
+        let src = comparison_source("व", op, "द").replace("न६४", "अ६४");
+        let (text, exit) = compile(&mut it, &src, "क");
+        assert_eq!(exit, EMITTED, "signed `व {op} द` emits\n{text}");
+        assert_eq!(
+            conditional_operand_slots(&text),
+            vec![(mnemonic.to_string(), Some(karana), Some(apadana))],
+            "signed `व {op} द` is `{mnemonic}`, slot {karana} against slot {apadana}\n{text}"
         );
     }
 
@@ -5231,12 +5285,12 @@ fn each_comparison_the_front_end_has_lowers_to_its_own_mnemonic_and_adhikam_exch
         text_lines(&mirrored)
             .0
             .iter()
-            .filter(|l| l.starts_with("न्यूनलङ्घनम्"))
+            .filter(|l| l.starts_with(branch_word(CmpOp::Ltu)))
             .collect::<Vec<_>>(),
         text_lines(&baseline)
             .0
             .iter()
-            .filter(|l| l.starts_with("न्यूनलङ्घनम्"))
+            .filter(|l| l.starts_with(branch_word(CmpOp::Ltu)))
             .collect::<Vec<_>>(),
         "and the two branch LINES are apart, which is why this reading \
          resolves registers to slots instead of comparing text"
@@ -5275,15 +5329,52 @@ fn each_comparison_the_front_end_has_lowers_to_its_own_mnemonic_and_adhikam_exch
     // chain really emitted and exchange the two operands BY HAND. If the reader
     // reports the same pair for both, it is reading the mnemonic and calling it
     // an operand order, and every assertion above is vacuous.
-    let swapped = baseline.replace("न्यूनलङ्घनम् स्थिर०न स्थिर१त्", "न्यूनलङ्घनम् स्थिर१न स्थिर०त्");
+    let lt = branch_word(CmpOp::Ltu);
+    let swapped = baseline.replace(
+        &format!("{lt} स्थिर०न स्थिर१त्"),
+        &format!("{lt} स्थिर१न स्थिर०त्"),
+    );
     assert_ne!(
         swapped, baseline,
         "the mutation must actually bite\n{baseline}"
     );
     assert_eq!(
         conditional_operand_slots(&swapped),
-        vec![("न्यूनलङ्घनम्".to_string(), Some(8), Some(0))],
+        vec![(lt.to_string(), Some(8), Some(0))],
         "a hand-exchanged branch is reported EXCHANGED — the reading is about \
          operands and not about the mnemonic\n{swapped}"
+    );
+}
+
+/// `N-004` (owner rulings 2026-10-06: "names approved; chain.rs first;
+/// literal-only", "approve the साम्य locals") — **A COMPARE AGAINST A STRING
+/// LITERAL CALLS THE MODULE'S ONE RUN COMPARE; TWO VARIABLES STAY INLINE.**
+///
+/// Three run compares: a literal on the right, a GROUPED literal on the left
+/// (`आरभ्य उक्तम् … इति समाप्तम्`, the parser's keyword-table form — the group
+/// arm lowers to its inner literal, so it is the same site), and two variables.
+/// The first two must be calls to `कखण्डसाम्यम्`, exported once; the third must
+/// not, because the 27 variable sites of the corpus are 390M of its 391M Stage 2
+/// executions and a call there costs ~10% of Stage 2.
+#[test]
+fn a_literal_run_compare_calls_the_modules_run_compare_and_a_variable_one_does_not() {
+    const SRC: &str = "मण्डलम् क ॥ सार्वजनिक वृत्तिः ग आदाय प ॱॱ अङ्कः अन्तः अ८ ऽ फ ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि \
+चरः र ॱॱ न६४ भवति ० । \
+यदि प समम् उक्तम् अब इति आदि र भवति र योगः १ । इति \
+यदि आरभ्य उक्तम् अग इति समाप्तम् असमम् प आदि र भवति र योगः १० । इति \
+यदि प समम् फ आदि र भवति र योगः १०० । इति \
+प्रत्यागमनम् र । इति";
+    let mut it = load();
+    let (text, exit) = compile(&mut it, SRC, "क");
+    assert_eq!(exit, EMITTED, "the source compiles\n{text}");
+    let exported = exported_labels(&text);
+    assert!(
+        exported.contains(&"कखण्डसाम्यम्".to_string()),
+        "a literal compare drags in the module's run compare, exported once: {exported:?}\n{text}"
+    );
+    let calls = text.matches("कखण्डसाम्यम्य्").count();
+    assert_eq!(
+        calls, 2,
+        "the two LITERAL compares call it and the variable one stays inline\n{text}"
     );
 }

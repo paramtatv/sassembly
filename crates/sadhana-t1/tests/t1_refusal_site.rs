@@ -140,7 +140,14 @@ fn label_record(mutant: Option<(&str, &str)>) -> Record {
 fn callee_record(mutant: Option<(&str, &str)>) -> Record {
     refuse(
         CALLEE.0,
-        vec![Value::Int(0), Value::Int(0), Value::Int(0), Value::Int(0)],
+        // `V-005` added the fifth: whether the callee answers a `प६४` (० here).
+        vec![
+            Value::Int(0),
+            Value::Int(0),
+            Value::Int(0),
+            Value::Int(0),
+            Value::Int(0),
+        ],
         mutant,
     )
 }

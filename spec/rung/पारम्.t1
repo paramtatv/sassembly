@@ -13,7 +13,7 @@
 ॰
 ॰ WHY THIS PAIR IS NOT IN `spec/demo/`. The demonstration's third section runs
 ॰ EVERY `.t1` in that directory and compares what it answered with the
-॰ `THE ANSWER IS` line in its own margin (`pradarshana/src/lib.rs:1115`), and
+॰ `THE ANSWER IS` line in its own margin (`frontend/src/lib.rs:1115`), and
 ॰ `compile_and_run` (`:1079`) links ONE module object beside the startup. A
 ॰ program that spans two modules cannot run there — not because it is wrong,
 ॰ because that driver links one object. `t1_population.rs:100-114` also pins

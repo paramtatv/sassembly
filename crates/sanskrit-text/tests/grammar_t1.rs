@@ -824,17 +824,20 @@ fn the_string_type_is_written_patha_and_the_count_is_positional() {
     // branch's newer routines carry 54 in type position. The message below is
     // the rail's and describes ITS corpus; on the merged tree the number is a
     // ratchet that may only go DOWN. See `the_signed_half_of_adr_0030_is_a_ratchet`.
+    // 54 -> 0 ON 2026-10-02, `W-267`: the 54 the merge of 2026-09-03 brought
+    // back are respelled `अ६४` on THIS tree — `samyojana.t1` 41, `encode.t1`
+    // 8, `utsarjana.t1` 4, `vastu.t1` 1 by this census's own counting.
     pin_report!(
         i64_sites,
-        54,
+        0,
         "`इ६४`'s type-position sites are the divergence ADR-0029 measured and \
-         ADR-0030 ruled a port defect. It was 56, and IT IS NOW ZERO: \
-         `ir.t1`'s 4, `vishlesana.t1`'s 2, `samyojana.t1`'s 30, \
-         `utsarjana.t1`'s 4, `vastu.t1`'s 1 and finally `encode.t1`'s 15 are \
-         remediated. THE SIGNED HALF OF ADR-0030 IS FINISHED — every `इ६४` \
-         left under `crates/sadhana-t1/src/` is inside a `॰` comment about \
-         the repair, and this number can now only go UP, which would mean a \
-         new site spelled with a prefix ADR-0030 refused. The ledger is in \
+         ADR-0030 ruled a port defect. It was 56, fell to ZERO on the rail's \
+         corpus, came back as 54 with the merge of 2026-09-03, and W-267 \
+         closed it at ZERO on the merged tree (2026-10-02). THE SIGNED HALF \
+         OF ADR-0030 IS FINISHED — every `इ६४` left under \
+         `crates/sadhana-t1/src/` is inside a `॰` comment about the repair, \
+         and this number can now only go UP, which would mean a new site \
+         spelled with a prefix ADR-0030 refused. The ledger is in \
          `the_integer_prefixes_are_the_ones_doc_02_derives` below"
     );
     println!(
@@ -2439,7 +2442,44 @@ fn the_integer_prefixes_are_the_ones_doc_02_derives() {
         // (1358, 54, 2014) -> (1358, 54, 2018) on 2026-09-13, the self-image's entry (शृङ्खला: प्रवेशन्यासः, स्वपरीक्षा, four globals); MEASURED from this assertion's own failure.
         // (1358, 54, 2018) -> (1377, 54, 2028) on 2026-09-13, the encoder's table index (encode.t1 only): +19 `अ६४` — the encodings index's count global and answer, its builder's four locals, the two indexed tests' four parameters and three locals, and the rewritten walkers' index locals (सङ्केताः +3, कुलसङ्केतपङ्क्तिः +1, कुलक्षेत्रयोग्यम् +2); +10 `न६४` — परिधिसाम्यम्'s two bounds and counter, the register index's count global, its builder's answer and two locals, and कोष्ठपङ्क्तिः's three index locals. The seven `अङ्कः अन्तः अ६४` / four `अङ्कः अन्तः न६४` arenas are not bindings of the element type and do not count. MEASURED from this assertion's own failure.
         // (1377, 54, 2028) -> (1377, 54, 2031) on 2026-09-13, मण्डलानिप्रतिबिम्बम् collects every source before compiling any; MEASURED from this assertion's own failure.
-        (1377, 54, 2031),
+        // (1377, 54, 2031) -> (1431, 0, 2031) on 2026-10-02, `W-267`: the signed
+        // direction of ADR-0030 CLOSES. All 54 census-visible `इ६४` respelled
+        // `अ६४` (`samyojana.t1` 41, `encode.t1` 8, `utsarjana.t1` 4,
+        // `vastu.t1` 1), plus the ONE slice-element site this census cannot
+        // see (`samyojana.t1:1058`, `अङ्कः अन्तः इ६४`) — 55 tokens on 39 code
+        // lines, comments untouched. Every site spelled `i64`; `अ६४` IS the
+        // grammar's signed sixty-four, so the sense moved to the spelling the
+        // production can produce. 1431 + 0 + 2031 = 3462, the same sum.
+        // (1431, 0, 2031) -> (1450, 0, 2891) on 2026-10-02, the merge of
+        // origin/main (`43949dda`): the fork's corpus growth arrived whole —
+        // +19 `अ६४`, +860 `न६४` — and this crate was not in that landing's
+        // census, the same shape as the 5dd5def0 paragraph above. MEASURED
+        // from this pin's own NOTE on the merged tree, before W-345's edit,
+        // not attributed line-by-line here.
+        // (1450, 0, 2891) -> (1450, 0, 2892) on 2026-10-02, `W-345`: ONE
+        // `न६४` — `शृङ्खला`'s `सङ्कलनपरिधिभेद` (८), the repertoire exit kind,
+        // so a source refused before it lexed stops reading as "declared
+        // nothing". MEASURED by content: the pin's NOTE on HEAD read 2891 and
+        // 2892 with only this edit applied.
+        // (1450, 0, 2892) -> (1452, 0, 2900) between `W-345` and `b7e3e8c6`,
+        // NOT ATTRIBUTED HERE: landings whose census did not run this crate
+        // (the pin is report-only, so it went stale and not red). MEASURED from
+        // this pin's own NOTE on `b7e3e8c6` with no edit applied.
+        // (1452, 0, 2900) -> (1452, 0, 2901) on 2026-10-03, `W-342`: ONE
+        // `न६४`, DECLARED and none respelled — `शृङ्खला`'s `सङ्कलनव्याकरणभेद`
+        // (९), the parse-refusal exit kind, so a source the parser refused
+        // stops reading as "declared nothing". MEASURED by content: the NOTE
+        // read 2900 on the base and 2901 with only that edit applied.
+        // (1452, 0, 2901) -> (1455, 0, 2905) on 2026-10-03, `W-333`: SEVEN
+        // bindings DECLARED, none respelled. `ir.t1`'s `अचिह्नितनामसरणम्` — its
+        // `वामसूचकः` parameter and three locals (`स्थलम्`, `सरणनामसंज्ञा`,
+        // `सरणप्रकारसूचकः`) are `न६४`, and it answers `अ६४`; the binary arm's
+        // `सरणचिह्नम्` is `अ६४`; and `yantrotsarjana.t1`'s verb gained the
+        // parameter `तार्किकम् ॱॱ अ६४`. So +3 `अ६४` and +4 `न६४`. MEASURED from
+        // this pin's own NOTE on the tree that merges `W-333` with main
+        // `d8aeaf00` (which carries `W-342`'s 2901); the names are read off
+        // the diff and their count agrees with the NOTE's.
+        (1455, 0, 2905),
         "the ADR-0030 remediation ledger moved. Expected 1078 `अ६४` still to \
     // AND FROM THE OTHER LANE, whose bindings this tree also carries:
         // (1316, 54, 1528) -> (1322, 54, 1654) ON 2026-09-04, `W-245`, MEASURED on the
@@ -2905,7 +2945,23 @@ fn the_integer_prefixes_are_the_ones_doc_02_derives() {
         // 3426 -> 3430 on 2026-09-13, the self-image's entry (शृङ्खला: प्रवेशन्यासः, स्वपरीक्षा, four globals); MEASURED from this assertion's own failure.
         // 3430 -> 3459 on 2026-09-13, the encoder's table index: +29 typed 64-bit positions, the triple's own +19 `अ६४` and +10 `न६४` seen once more as a sum; nothing respelled, nothing lost. MEASURED from this assertion's own failure.
         // 3459 -> 3462 on 2026-09-13, मण्डलानिप्रतिबिम्बम् collects every source before compiling any; MEASURED from this assertion's own failure.
-        3462,
+        // 3462 UNMOVED on 2026-10-02, `W-267`: the triple moved (1377, 54, 2031)
+        // -> (1431, 0, 2031) — 54 `इ६४` respelled `अ६४` — and a respell is
+        // exactly what this sum exists to let through unchanged.
+        // 3462 -> 4341 on 2026-10-02, the merge of origin/main (`43949dda`):
+        // corpus growth, the triple's own +19 `अ६४` and +860 `न६४` seen once
+        // more as a sum. MEASURED from this pin's own NOTE on the merged tree.
+        // 4341 -> 4342 on 2026-10-02, `W-345`: the triple's third column moved
+        // by one, so this sum moves by one in the same edit.
+        // 4342 -> 4352 between `W-345` and `b7e3e8c6`, the triple's unattributed
+        // drift seen once more as a sum; MEASURED from this pin's own NOTE on
+        // `b7e3e8c6`.
+        // 4352 -> 4353 on 2026-10-03, `W-342`: one `न६४` DECLARED, so the sum
+        // RISES by one. Nothing was respelled; a conserved sum is the wrong
+        // expectation for a declaration.
+        // 4353 -> 4360 on 2026-10-03, `W-333`: seven declarations, so the sum
+        // rises by seven; nothing moved between spellings.
+        4360,
         // AND FROM THE OTHER LANE, whose bindings this tree also carries:
         // 2898 -> 3030 on 2026-09-04, `W-245`, said out loud: 1322 + 54 + 1654. Corpus
         // growth — the IR forms that make a program's status more than zero (eleven
@@ -2964,55 +3020,37 @@ fn a_negative_sentinel_is_what_keeps_a_site_signed() {
         );
     }
 
-    // MOVED BY THE MERGE OF 2026-09-02, 3 -> 13, AND THE NUMBER IS THE DEBT.
-    // `origin/main` remediated `nidana.t1` to `न६४` while this branch EXTENDED
-    // it. The merge carried their sweep across BY NAME — 396 sites over six
-    // files, conservation sum 2244 unchanged — and this branch's own additions
-    // came with no guidance from it.
-    //
-    // TEN OF THE EXTRA SITES ARE `अ६४` CORRECTLY, and that is why this is not
-    // a loosened floor. They are the bounds `शीर्षपङ्क्तिः` walks — `आरम्भः`,
-    // `कूटादिः`/`कूटसीमा` and their three siblings — every one an argument to
-    // or a result of `encode.t1`'s `क्षेत्रारम्भः`/`क्षेत्रसीमा`, which
-    // NEITHER side remediated and which still take and return `अ६४`.
-    // Respelling them here would be a type error, not progress. They become
-    // `न६४` on the day `encode.t1` is remediated and not before, which is
-    // `W-180`'s row and is ORDERED there: the signatures first, then these.
+    // MOVED TWICE, AND EACH MOVE IS ON THE RECORD. The merge of 2026-09-02
+    // took this 3 -> 13: `origin/main` remediated `nidana.t1` to `न६४` while
+    // this branch EXTENDED it, and ten of the branch's own sites — the bounds
+    // `शीर्षपङ्क्तिः` walks, every one an argument to or a result of
+    // `encode.t1`'s `क्षेत्रारम्भः`/`क्षेत्रसीमा` — were `अ६४` CORRECTLY,
+    // because those signatures were then still `अ६४` and respelling a bound
+    // ahead of the signature it answers to is a type error, not progress.
+    // `W-180` ORDERED it: the signatures first, then these. The signatures
+    // went first (`encode.t1`'s क्षेत्रारम्भः/क्षेत्रसीमा take and return
+    // `न६४`), and W-180's second step took this 13 -> 3: the ten bounds are
+    // `न६४` now, and only the `ऋण१` sentinel cluster is signed.
     assert_eq!(
         signed.len(),
-        13,
-        "`nidana.t1`'s signed sites moved. Three are the `ऋण१` sentinel's and \
-         ten are bounds that must stay `अ६४` until `encode.t1`'s \
-         `क्षेत्रारम्भः`/`क्षेत्रसीमा` are remediated. ABOVE 13 is a new \
-         un-remediated site; BELOW 13 means a bound was respelled ahead of the \
-         signature it answers to. Found: {signed:?}"
+        3,
+        "`nidana.t1`'s signed sites moved. The only signed sites left are the \
+         `ऋण१` sentinel's three; the ten `शीर्षपङ्क्तिः` bounds went `न६४` \
+         with `encode.t1`'s `क्षेत्रारम्भः`/`क्षेत्रसीमा` (W-180). ABOVE 3 is \
+         a new un-remediated site and wants a reason or a `न६४`. \
+         Found: {signed:?}"
     );
-    // EVERY signed site belongs to one of the two groups and neither is a
-    // catch-all. This replaced a `zip` against a three-name list, which read
-    // the FIRST three signed lines — fine when there were only three, and
-    // silently the wrong three once the bounds joined them ahead of the
-    // cluster in file order.
+    // EVERY signed site belongs to the sentinel cluster. This replaced a
+    // `zip` against a three-name list, which read the FIRST three signed
+    // lines — fine when there were only three, and silently the wrong three
+    // if a new signed site joined them ahead of the cluster in file order.
     const SENTINEL_CLUSTER: &[&str] = &["पदार्थाङ्कः", "पदार्थलेखनम्", "अङ्कम्"];
-    const ENCODE_BOUNDS: &[&str] = &[
-        "आरम्भ",
-        "अवसान",
-        "कूटादिः",
-        "कूटसीमा",
-        "पदादिः",
-        "पदसीमा",
-        "संस्कृतादिः",
-        "संस्कृतसीमा",
-        "आङ्ग्लादिः",
-        "आङ्ग्लसीमा",
-    ];
     for line in &signed {
         assert!(
-            SENTINEL_CLUSTER.iter().any(|o| line.contains(o))
-                || ENCODE_BOUNDS.iter().any(|o| line.contains(o)),
-            "a site in `nidana.t1` is spelled `अ६४` and belongs to NEITHER the \
-             `ऋण१` sentinel cluster nor the bounds that answer to `encode.t1`'s \
-             `क्षेत्रारम्भः`/`क्षेत्रसीमा`. It is a new un-remediated site and \
-             wants a reason or a `न६४`: {line}"
+            SENTINEL_CLUSTER.iter().any(|o| line.contains(o)),
+            "a site in `nidana.t1` is spelled `अ६४` and does not belong to the \
+             `ऋण१` sentinel cluster. It is a new un-remediated site and wants \
+             a reason or a `न६४`: {line}"
         );
     }
 }
@@ -3037,40 +3075,38 @@ fn the_codegens_signed_sites_are_the_numeral_formatters_and_its_twin_says_so() {
         .collect();
 
     let signed: Vec<&String> = code.iter().filter(|l| l.contains("अ६४")).collect();
-    // FOUR OF THE FIVE LEFT THIS LIST, AND ONLY ONE OF THE TWO REASONS IS A
-    // GOOD ONE. `अवशेषः` is not a declaration any more — the 2026-08-30
-    // appender rewrite inlined it into the `अङ्कावशेषकोश` store, so it is
-    // gone rather than respelled.
-    //
-    // THE OTHER THREE ARE `इ६४` IN THIS BRANCH, AND THAT IS DEBT, NOT A FIX.
-    // (A fourth, `विस्थापनम्` at :1238, is outside the formatter and is
-    // counted with them below; it is a stack displacement, genuinely signed,
-    // and equally unspellable in the frozen grammar.)
-    // ADR-0030 is explicit that `इ६४` is a TRANSLITERATION LEAK and not a
-    // type name: `integer_type = ( "अ" | "न" ) , type_width` cannot produce
-    // it. It is tempting to read `इ६४` as the honest spelling for a value the
-    // twin declares `i64` — that reading is wrong, and the ledger's `इ६४`
-    // count exists precisely because the frozen grammar has NO signed width
-    // and these sites are waiting on one.
-    //
-    // `अङ्कचिह्नम्`'s `अङ्कम्` is the one that stays `अ६४`, and the reason is
-    // unchanged: T1 has no cast and its one caller hands it that expression.
-    let expected = ["सार्वजनिक वृत्तिः अङ्कचिह्नम् आदाय अङ्कम् ॱॱ अ६४ ददाति पाठः आदि"];
+    // THE DEBT DISCHARGED ON 2026-10-02 (`W-267`), AND THE DISCHARGE IS THE
+    // ONE AN EARLIER VERSION OF THIS COMMENT RULED OUT. It read `इ६४` as
+    // unspellable because "the frozen grammar has NO signed width" — but the
+    // grammar's own line (`grammar-t1.ebnf:249`) glosses `अ` as SIGNED (अंश)
+    // and `न` as unsigned (निर्ऋण), ADR-0030 §"doc 02 §2.5" says `अ६४` IS
+    // `i64` in so many words, and `artha.t1`'s type resolver answers
+    // `चिह्नितम् सत्यम्` for every `अ`-width. The remediation ledger had
+    // already converted this very file's `इ६४` -> `अ६४` once (its item 9)
+    // before the 2026-09-03 merge brought the emitter rewrite's sites back.
+    // So the four sites below are SIGNED AND SPELLED: `देवनागराङ्कः`'s
+    // `मूल्यम्` (twin `devanagari(n: i64)`), its `शेषम्`/`भागः` locals, and
+    // `विस्थापनम्`, the stack displacement. They join the ratified parameter
+    // as the file's signed set, each asserted by exact text.
+    let expected = [
+        "सार्वजनिक वृत्तिः अङ्कचिह्नम् आदाय अङ्कम् ॱॱ अ६४ ददाति पाठः आदि",
+        "सार्वजनिक वृत्तिः देवनागराङ्कः आदाय मूल्यम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि",
+        "चरः शेषम् ॱॱ अ६४ भवति मूल्यम् ।",
+        "चरः भागः ॱॱ अ६४ भवति आरभ्य शेषम् विभाजनम् १० समाप्तम् ।",
+        "चरः विस्थापनम् ॱॱ अ६४ भवति आरभ्य आरभ्य अधिकरणम् ॱ निक्षेप योगः १ समाप्तम् गुणनम् ८ समाप्तम् ।",
+    ];
 
-    // The formatter's `इ६४` sites are PINNED AS DEBT: exactly three, so the
-    // count cannot grow quietly, and they are named so that discharging them
-    // — when the grammar gains a signed width, or when the callers are
-    // restructured to need none — is what makes this assertion fail.
+    // ZERO, THE ABSOLUTE THE PINNED-DEBT COUNT PROMISED TO BECOME. The pin
+    // below stood at 4 while the sites waited; W-267 respelled them `अ६४`
+    // (the grammar's signed sixty-four) and the count discharged.
     let leaked: Vec<&String> = code.iter().filter(|l| l.contains("इ६४")).collect();
     assert_eq!(
         leaked.len(),
-        4,
-        "`utsarjana.t1`'s `इ६४` sites moved. ADR-0030 calls `इ६४` a \
-         transliteration leak the frozen `integer_type` cannot produce, and \
-         these four — `देवनागराङ्कः`'s `मूल्यम्`, its `शेषम्`/`भागः` locals, \
-         and `विस्थापनम्`, the stack displacement at :1238 — are part of the \
-         ledger's acknowledged `इ६४` debt, NOT a correct spelling. More is a new leak; fewer means one was discharged \
-         and this number should come down with it. Found: {leaked:?}"
+        0,
+        "`utsarjana.t1` writes `इ६४`, a spelling ADR-0030 refused — the \
+         frozen `integer_type` cannot produce it. The file's `इ६४` debt \
+         discharged to zero on 2026-10-02 (W-267); a signed site is spelled \
+         `अ६४` (अंश, signed) and an unsigned one `न६४`. Found: {leaked:?}"
     );
     // THE FIVE ARE STILL ASSERTED BY THEIR EXACT TEXT, so respelling one
     // still fails by name. What the merge of 2026-09-02 changed is that they
@@ -3093,58 +3129,34 @@ fn the_codegens_signed_sites_are_the_numeral_formatters_and_its_twin_says_so() {
     // `*योजनम्` appenders, or the `लेख*` locals that hold their returns. The
     // merge ported 138 of its decisions here by name; these it could not.
     //
-    // EVERY ONE IS A BYTE OFFSET INTO THE OUTPUT BUFFER and belongs in `न६४`.
-    // They are NOT converted here because the cluster is only correct
-    // converted WHOLE — the cursor, the four appenders' parameters and
-    // returns, and every local that takes one — and doing that inside a merge
-    // is how a type error gets a merge's excuse. It is `D-002h`'s next unit.
-    const OUTPUT_BUFFER_CLUSTER: &[&str] = &[
-        "निर्गमसूचकाङ्क",
-        "निर्गमारम्भः",
-        "निर्गमांशः",
-        "अङ्कावशेषकोश",
-        "अष्टकयोजनम्",
-        "यतियोजनम्",
-        "विवरयोजनम्",
-        "पाठयोजनम्",
-        // `टिप्पनीचिह्नयोजनम्` was here: deleted with the retired T0 pair, `W-237`.
-        "विच्छेदयोजनम्",
-        // `त्रिपदवचनम्` was here: deleted with the retired T0 pair, `W-237`.
-        "अधिकरणग्रहणम्",
-        "अधिकरणसाम्यम्",
-        "यवनपर्वोत्सर्जनम्",
-        "यत्यष्टकम्",
-        "विवराष्टकम्",
-        "आदिस्थलम्",
-        "संख्यानम्",
-        "लेख",
-    ];
+    // EVERY ONE WAS A BYTE OFFSET INTO THE OUTPUT BUFFER and belonged in
+    // `न६४`, and `W-180` cluster 1 (2026-10-02) converted it WHOLE — the
+    // cursor, the four appenders' parameters and returns, and every local
+    // that takes one: 71 sites across `utsarjana.t1` and the three
+    // `उत्सर्जनॱनिर्गमसूचकाङ्क` binds in `yantrotsarjana.t1`. The 17-name
+    // allowance that stood here while the cluster waited is GONE on purpose:
+    // with the conversion landed, the only `अ६४` this file may carry is the
+    // formatter's ratified parameter, and a re-signed appender fails here by
+    // name rather than hiding under a cluster that no longer exists.
     for line in &signed {
-        let known = expected.contains(&line.as_str())
-            || OUTPUT_BUFFER_CLUSTER.iter().any(|o| line.contains(o));
         assert!(
-            known,
-            "a site in `utsarjana.t1` is spelled `अ६४` and is NEITHER one of \
-             the numeral formatter's five NOR part of the output-buffer \
-             cluster. Everything else in that file is an index, a count, a \
-             position, a register number or a spill slot, and is `न६४`: {line}"
+            expected.contains(&line.as_str()),
+            "a site in `utsarjana.t1` is spelled `अ६४` and is not the numeral \
+             formatter's ratified parameter. The output-buffer cluster went \
+             `न६४` with `W-180` cluster 1; everything else in that file is an \
+             index, a count, a position, a register number or a spill slot, \
+             and is `न६४`: {line}"
         );
     }
 
     // `इ६४` is not a spelling this grammar has, and the file was one of the
-    // four that wrote it. Asserted here as well as in the ledger so that the
-    // per-file claim above cannot pass on a file that still writes it.
-    // THIS GUARD CAME FROM `origin/main`, WHERE IT WAS TRUE, AND IT IS NOT
-    // TRUE HERE — `origin/main` swept this file's three `इ६४` sites while this
-    // branch rewrote the emitter around them. It is kept, inverted into the
-    // pinned count above rather than deleted, because deleting it would lose
-    // the claim entirely; the count discharges to zero and then this line can
-    // go back to being an absolute.
+    // four that wrote it. The guard above was `<= 4` while the debt stood;
+    // it discharged to zero on 2026-10-02 (W-267) and the pin above IS the
+    // absolute this comment always said it would go back to being.
     assert!(
-        leaked.len() <= 4,
-        "`utsarjana.t1` writes MORE `इ६४` than the three ADR-0030 already \
-         counts as debt; that spelling is refused and the file may not gain \
-         another. Found: {leaked:?}"
+        leaked.is_empty(),
+        "`utsarjana.t1` writes `इ६४`; that spelling is refused and the file \
+         may not gain a site. Found: {leaked:?}"
     );
 
     // The other side of the reading. If `regalloc.rs` or `x86_64.rs` ever
@@ -4792,18 +4804,20 @@ fn the_address_half_is_signed_by_its_consumer_and_not_by_being_a_difference() {
             }
         }
     }
-    // RATCHET, NOT ZERO, SINCE THE MERGE OF 2026-09-03. On the rail's corpus
-    // this was empty; the merged tree carries this branch's newer code, which
-    // still spells `इ६४` on 39 code lines — `encode.t1` 8, `samyojana.t1` 26,
-    // `utsarjana.t1` 4, `vastu.t1` 1 — measured by this test's own walk. Each
-    // is ADR-0030 debt to be read site by site, not renamed. The number may
-    // only go DOWN; going up means a new site spelled with the refused prefix.
+    // ZERO SINCE 2026-10-02 (`W-267`). The merge of 2026-09-03 had brought 39
+    // code lines back — `encode.t1` 8, `samyojana.t1` 26, `utsarjana.t1` 4,
+    // `vastu.t1` 1 — and every one was read: all 55 tokens on those lines
+    // were `i64` in type position (the margins beside them say so — `ConstInt's
+    // i64`, `value as i64` hoisted into a parameter), so all respelled to
+    // `अ६४`, the grammar's signed sixty-four. The ratchet is now a floor: any
+    // line here is a NEW site spelled with the prefix ADR-0030 refused.
     assert_eq!(
         offenders.len(),
-        39,
-        "`इ६४` is written in CODE at {offenders:?} — {} lines, not 39. The \
-         signed half of ADR-0030 closed at 0 on the rail's corpus; a merge on \
-         2026-09-03 brought 39 back in newer code, and this ratchet may only fall",
+        0,
+        "`इ६४` is written in CODE at {offenders:?} — {} lines, not 0. The \
+         signed half of ADR-0030 closed at 0 on 2026-10-02 (W-267); a new \
+         line means a new site spelled with the refused prefix — respell it \
+         `अ६४` (signed) or `न६४` (unsigned) by reading its twin, never admit it",
         offenders.len()
     );
 }
@@ -4836,7 +4850,7 @@ fn the_encoding_accessors_are_unsigned_because_a_length_is_the_not_found_answer(
         "वृत्तिः नियततत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत क्रमः ॱॱ न६४ ददाति न६४",
         "वृत्तिः तत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत ददाति न६४",
         "वृत्तिः कोष्ठसंख्यानम् आदाय सङ्केतः ॱॱ सङ्केत ददाति न६४",
-        "वृत्तिः अग्रिमतत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत पूरितानि ॱॱ अङ्कः अन्तः अ३२ ददाति न६४",
+        "वृत्तिः अग्रिमतत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत पूरितानि ॱॱ अङ्कः अन्तः न३२ ददाति न६४",
     ] {
         assert!(
             src.contains(sig),
@@ -5270,7 +5284,7 @@ fn the_slot_kind_is_unsigned_because_a_discriminant_has_no_sign_to_read() {
     //    `vakyavibhaga.t1`'s, and that file is unremediated entire.
     for (file, decl) in [
         ("artha.t1", "सार्वजनिक चरः पूर्णाङ्कार्थभेद ॱॱ न६४ भवति १ ।"),
-        ("ast.t1", "सार्वजनिक चरः मूलप्रकारभेद ॱॱ न६४ भवति १ ।"),
+        ("ast.t1", "सार्वजनिक चरः मूलप्रकारभेद ॱॱ न६४ भवति १०१ ।"),
         ("ir.t1", "सार्वजनिक चरः ध्रुवाज्ञाभेद ॱॱ न६४ भवति १ ।"),
         ("lex.t1", "सार्वजनिक चरः पदभेद ॱॱ न६४ भवति १ ।"),
         ("parse.t1", "सार्वजनिक चरः वृत्तिघोषणाभेद ॱॱ न६४ भवति १ ।"),
@@ -6575,6 +6589,10 @@ fn the_head_declarations_are_unsigned_because_a_limit_a_section_and_a_line_are()
     // भेदः`, and a relocation type is an ELF field of a fixed width rather
     // than a count.
     //
+    // (0, 19) -> (0, 20) on 2026-10-05, `V-008` part 2: the eighth slot kind,
+    // `vreg`'s `व्यूहकोष्ठभेद ॱॱ न६४ भवति ८`, joins the seven in the head
+    // block — a discriminant, unsigned for the slot kinds' own reason.
+    //
     // STILL 0 SIGNED, which is what this pin is for. The margin above warns
     // that "an `अ६४` back in it is a site moving the wrong way", and the same
     // claim is made independently by the ADR-0030 triple, which reads `अ६४`
@@ -6582,7 +6600,7 @@ fn the_head_declarations_are_unsigned_because_a_limit_a_section_and_a_line_are()
     // one answer.
     assert_eq!(
         (visible("अ६४"), visible("न६४")),
-        (0, 19),
+        (0, 20),
         "the head declarations hold ({}, {}) `अ६४`/`न६४` the ledger can see, \
          not (0, 18). This block is FINISHED: the seven slot kinds and \
          `अवकाश ॱ भेद` in the seventh part, and this unit's six. An `अ६४` \
@@ -7025,7 +7043,17 @@ fn a_line_number_is_unsigned_because_every_producer_of_one_already_is() {
         // this pair shows grew by one binding in repaired code and no old site
         // was migrated — said out loud, as the note above requires; the unit is
         // named in `crates/yantra/tests/t1_wide_value_compare.rs`.
-        (490, 28),
+        // (490, 28) -> (492, 40) on 2026-10-06, ADR-0044 D3 (a830a100, MEASURED
+        // on the merged tree): the `वर्णाष्टकम्` operand arm of
+        // `अष्टकनिर्देशकार्यम्`. The TWO `अ६४` are `बहुपदार्थः` and
+        // `अपूर्णपदार्थः`, the answers of `चिह्नकपदार्थः` (which answers `अ६४`)
+        // handed to P19's diagnostic. The TWELVE `न६४` are the packing walk's
+        // six octet offsets (`वर्णस्थितिः`, `वर्णसीमा`, `त्रिकान्तः`,
+        // `त्रिकमध्यस्थानम्`, `लेखमध्यस्थानम्`, `लेखान्तस्थानम्`), five octet
+        // values (`त्रिकप्रथमम्`, `त्रिकमध्यम्`, `त्रिकान्त्यम्`, `लेखमध्यम्`,
+        // `वर्णैकाष्टकम्`) and one arena index (`वर्णलिखितम्`). None is a
+        // line number, so no line-number site moved and none was repaired.
+        (492, 40),
         "`vakyavibhaga.t1` holds {} `अ६४` and {} `न६४`, not 478 and 14. This \
          file is ADR-0030's LAST and its remainder is the repair's whole \
          remaining work; a cycle that moves these numbers updates this pair \

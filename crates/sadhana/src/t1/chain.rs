@@ -19,10 +19,16 @@
 //!
 //! **What is carried and what is not.** The front end is EMBEDDED — seven `.t1`
 //! sources, ~700 KiB, compiled in — so the binary is one file and needs no
-//! `--t1-root`. It is NOT self-contained in one respect, and the flag says so:
-//! four of the seven embed `spec/*.tsv` through `समावेशः`, resolved at LOAD
-//! time against a root the caller states (ADR-0024 made that a flag rather than
-//! a guess, and `t1_parse`'s margin gives the argument).
+//! `--t1-root`. And it is self-contained in the one respect this margin denied
+//! until 2026-10-01: NO front-end source EXECUTES `समावेशः` — all 14 mentions
+//! across the seven are comments or string literals (`lex.t1:682` and kin
+//! IMPLEMENT the construct for the programs they compile) — so the root the
+//! caller states is never read on this path and the chain loads and emits with
+//! no `spec/` on disk at all. Measured corpus-wide, not argued:
+//! `crates/sadhana-t1/tests/d003_t1_emit_is_path_blind.rs` pins it, and the
+//! tables a compiled source embeds travel inside `sarani.t1`'s store (the
+//! margin on `CHAIN` below). The sentence that stood here — *"four of the
+//! seven embed `spec/*.tsv`, resolved at LOAD time"* — was stale.
 //!
 //! **One source.** [`Front::module`] reads ONE program's arenas. Nothing here
 //! collects a compilation set or links another module's object; a call to a
@@ -30,8 +36,8 @@
 //! LINKER refuses by name, which is the honest stop.
 
 use crate::t1::ast::SymbolId;
-use crate::t1::ir::{Block, BlockId, CmpOp, Function, Instruction, Terminator, ValueId};
-use crate::t1::nirvahana::{Interpreter, Octets, Value};
+use crate::t1::ir::{Block, BlockId, CmpOp, FloatOp, Function, Instruction, Terminator, ValueId};
+use crate::t1::nirvahana::{Interpreter, Octets, Value, kernel_member_of, kernel_name_reserved};
 use crate::t1::riscv64::{self, Module, Names};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -217,15 +223,61 @@ pub const CHAIN: &[(&str, &str)] = &[
 
 /// Fuel: a bound on interpreter steps, not a timeout. The corpus's own censuses
 /// use these numbers for these calls.
-/// The name the synthesised per-module run-growth routine is given. `W-295`.
+/// THE ROUTINES THE IR BUILDS, by symbol: `(the ir.t1 global that holds the
+/// symbol, the symbol, the routine's name)`. `W-295`, generalised by `N-004`.
 ///
-/// It has no declaration, so `वृत्तिनामचिह्नककोश` holds ० for it and there is no
-/// token to read the name from — both emitters spell it as a literal instead.
-/// The `.t1` half's is at `shrinkhala.t1:338`; **this is the same string and the
-/// twin check is what keeps it so**, since the two halves meet as a LABEL and a
-/// disagreement here would link a call in one object against a definition in
-/// another that does not answer to the same name.
-const GROWTH_ROUTINE: &str = "खण्डवृद्धिः";
+/// A built routine has no declaration, so `वृत्तिनामचिह्नककोश` holds ० for it
+/// and there is no token to read the name from — both emitters spell it as a
+/// literal instead. The `.t1` half's is at `shrinkhala.t1:440`; **these are the
+/// same strings and the twin check is what keeps them so**, since the two
+/// halves meet as a LABEL and a disagreement here would link a call in one
+/// object against a definition in another that does not answer to the same
+/// name.
+///
+/// IT WAS ONE CONSTANT, AND EVERY TOKEN-० ROUTINE GOT IT. With one built
+/// routine per module (`खण्डवृद्धिः`) that was the same thing as naming it by
+/// its symbol; a second built routine (`N-004`'s shared run compare,
+/// `खण्डसाम्यम्`) would have been labelled `खण्डवृद्धिः` too and refused by the
+/// emitter as a `LabelCollision`. So the name is now looked up by the symbol
+/// the IR already wrote into the routine's `नाम`, and a token-० routine whose
+/// symbol is in no row here is REFUSED by name rather than guessed.
+///
+/// The symbols are written twice — here and as the `ir.t1` globals the first
+/// column names — and
+/// `every_built_routine_symbol_agrees_with_the_global_ir_t1_declares` is what
+/// keeps the two equal.
+///
+/// `V-009` (ii) added the module's two matrix kernel routines the same way,
+/// named by their built-ins' members (`nirvahana.rs`'s `MATRIX_PRODUCT_MEMBER`
+/// and `MATRIX_TRANSPOSE_MEMBER`) and numbered `१००००००६`/`१००००००७` — which is
+/// why the run compare, approved at `१००००००६` against a tree that predated
+/// them, takes `१००००००८`, the first number neither tree uses.
+#[allow(clippy::cast_possible_wrap)]
+pub const BUILT_ROUTINES: &[(&str, i128, &str)] = &[
+    ("वृद्धिवृत्तिसंज्ञा", 10_000_005, "खण्डवृद्धिः"),
+    (
+        "आव्यूहवृत्तिसंज्ञा",
+        riscv64::MATRIX_PRODUCT_SYMBOL.0 as i128,
+        crate::t1::nirvahana::MATRIX_PRODUCT_MEMBER,
+    ),
+    (
+        "व्युत्क्रमवृत्तिसंज्ञा",
+        riscv64::MATRIX_TRANSPOSE_SYMBOL.0 as i128,
+        crate::t1::nirvahana::MATRIX_TRANSPOSE_MEMBER,
+    ),
+    ("साम्यवृत्तिसंज्ञा", 10_000_008, "खण्डसाम्यम्"),
+];
+
+/// The name of the built routine `symbol` stands for, if any (`BUILT_ROUTINES`).
+/// `paradigm_encode`'s own reader of the IR arenas names built routines by
+/// this too, so the two readers cannot disagree on the rule.
+#[must_use]
+pub fn built_routine_name(symbol: i128) -> Option<&'static str> {
+    BUILT_ROUTINES
+        .iter()
+        .find(|(_, s, _)| *s == symbol)
+        .map(|(_, _, name)| *name)
+}
 
 const FUEL_LEX: u64 = 2_000_000_000;
 const FUEL_PARSE: u64 = 4_000_000_000;
@@ -263,7 +315,11 @@ impl Front {
         })
     }
 
-    /// `पदविभागॱपदविभाग` — the source to tokens; how many.
+    /// `अक्षरकोशॱपरिधिपदविभाग` — the source to tokens; how many. That routine
+    /// is the ONE gated source entry (W-304): R-15-1 over the octets, then
+    /// `पदविभागॱपदविभाग`. A refusal answers ० tokens and [`refusal_site`] names
+    /// the octet. The gate is `.t1`, not Rust: this names the routine and nothing
+    /// else, so the product needs no Rust to refuse a foreign octet.
     ///
     /// # Errors
     /// The interpreter's reason.
@@ -271,13 +327,32 @@ impl Front {
         let v = self
             .it
             .call(
-                "पदविभागॱपदविभाग",
+                "अक्षरकोशॱपरिधिपदविभाग",
                 vec![Value::Octets(Octets::new(source.as_bytes()))],
                 FUEL_LEX,
             )
             .map_err(|e| e.reason)?;
         self.tokens = v.as_int().unwrap_or(0);
         usize::try_from(self.tokens).map_err(|_| "the token count does not fit".to_string())
+    }
+
+    /// **`V-005` — COLLECT FIRST, COMPILE SECOND, for a set of modules.** Lex
+    /// and parse `source` so its declarations enter the shared store, and
+    /// nothing more. A caller lowering several modules gathers EVERY one of
+    /// them first and only then lowers each (`lex` / `parse` / … / `build_ir`
+    /// again per module), exactly as the `.t1` product's
+    /// `मण्डलानिप्रतिबिम्बम्` does. Without it a call into a module not yet
+    /// gathered has no signature to read, so a float parameter or result in
+    /// it is invisible — measured: caller-first lowering answered `3ff8…`
+    /// twice where callee-first answered `4025…` and `4024c…`. Re-gathering a
+    /// module on its second parse adds identical entries, and lookups take the
+    /// first.
+    ///
+    /// # Errors
+    /// The lexer's or the parser's refusal.
+    pub fn gather(&mut self, source: &str) -> Result<usize, String> {
+        self.lex(source)?;
+        self.parse()
     }
 
     /// `व्याकरॱकार्यक्रमपठनम्` — the tokens to declarations; how many.
@@ -362,12 +437,12 @@ impl Front {
         // THE SAME TWO RECORDS A DRIVER READS, and this is now the one place
         // the sentence is written. `t1_boot` and `t1_image` never construct a
         // `Front`, so before SAS-013 this rendering stood here, in
-        // `pradarshana/src/lib.rs:634` and in `yantra/tests/paradigm_encode.rs`
+        // `frontend/src/lib.rs:634` and in `yantra/tests/paradigm_encode.rs`
         // — three copies — and in NEITHER driver, which is where a builder was
         // actually reading. Those two other copies are left standing: each
         // reads a different stage's globals for its own report and neither is
         // on the landing path of this row, so folding them in would buy a
-        // whole-crate rebuild of `pradarshana` and `yantra` for a string.
+        // whole-crate rebuild of `frontend` and `yantra` for a string.
         if let Some(site) = resolve_site(&self.it) {
             return Err(site);
         }
@@ -469,6 +544,11 @@ impl Front {
                 "a call's callee carries no symbol, at line {}",
                 self.token_line(tok)
             ));
+        }
+        // `V-005`: a value crossing into a declared file it is not in — a local,
+        // an argument, a returned value — refuses the program by name.
+        if let Some(why) = file_mismatch_site(&self.it) {
+            return Err(why);
         }
         let count = usize::try_from(self.global_int("वृत्तिसूचकाङ्क")).unwrap_or(0);
         // A SOURCE WITH NO ROUTINES BUT WITH GLOBALS HAS SOMETHING TO BUILD: its
@@ -707,9 +787,25 @@ impl Front {
             // The `1_000_000 + i` fallback is KEPT for a genuinely unnamed
             // routine, because it still numbers apart from the resolver's
             // symbols; what it must not do is claim this one.
-            let growth = idx == 0 && i < functions.borrow().len();
-            let name = if growth {
-                GROWTH_ROUTINE.to_string()
+            //
+            // `N-004`: NAMED BY THE SYMBOL, so a module may hold more than one
+            // built routine (`BUILT_ROUTINES`).
+            let built = if idx == 0 && i < functions.borrow().len() {
+                let symbol = int_of(&functions.borrow()[i], "नाम");
+                match built_routine_name(symbol) {
+                    Some(name) => Some((name, symbol)),
+                    None => {
+                        return Err(format!(
+                            "routine {i} of `{module}` has no declaration and its symbol {symbol} \
+                             names no built routine (chain.rs `BUILT_ROUTINES`)"
+                        ));
+                    }
+                }
+            } else {
+                None
+            };
+            let name = if let Some((name, _)) = built {
+                name.to_string()
             } else {
                 let name = self.token_text(idx);
                 if name.is_empty() {
@@ -718,13 +814,10 @@ impl Front {
                     name
                 }
             };
-            let sym = if growth {
-                // THE SYMBOL THE ARENA ALREADY HOLDS, not a constant written
-                // twice: `ir.t1` decides it and this reads it back, so the two
-                // cannot drift the way a duplicated `१००००००५` here would.
-                SymbolId(
-                    usize::try_from(int_of(&functions.borrow()[i], "नाम")).unwrap_or(1_000_000 + i),
-                )
+            let sym = if let Some((_, symbol)) = built {
+                // THE SYMBOL THE ARENA ALREADY HOLDS: `ir.t1` decides it and
+                // this reads it back; the table above only NAMES it.
+                SymbolId(usize::try_from(symbol).unwrap_or(1_000_000 + i))
             } else {
                 match entry_symbol.get(&name) {
                     Some(s) if arena_int(&kinds, *s as usize) == routine_kind => {
@@ -847,17 +940,110 @@ impl Front {
                                 )?;
                                 list.push(ValueId(k - 1));
                             }
-                            Instruction::Call(sym, list)
+                            // `V-005`: `उपभेद` १ is a callee answering `प६४` — `Call`
+                            // first, as kind २'s own (the transcription guard reads
+                            // the first variant an arm names).
+                            if int_of(&ins, "उपभेद") != 1 {
+                                Instruction::Call(sym, list)
+                            } else {
+                                Instruction::CallFloat(sym, list)
+                            }
                         }
                         5 => {
                             params += 1;
-                            Instruction::Param(
-                                usize::try_from(int_of(&ins, "प्राचलक्रम")).unwrap_or(0),
-                            )
+                            let k = usize::try_from(int_of(&ins, "प्राचलक्रम")).unwrap_or(0);
+                            // `V-005`: `उपभेद` १ is a `प६४` parameter, in the float file.
+                            if int_of(&ins, "उपभेद") != 1 {
+                                Instruction::Param(k)
+                            } else {
+                                Instruction::ParamFloat(k)
+                            }
                         }
                         // `W-245`: a local's slot, as the builder numbers it (from ०).
+                        //
+                        // `V-005`: `उपभेद` १ marks a `प६४` local's read, which loads
+                        // into the FLOAT file. Reading the kind and dropping the
+                        // field would decode it as `Load` and put a float in an `x`
+                        // register — so the field is read here, not defaulted.
                         15 => {
-                            Instruction::Load(usize::try_from(int_of(&ins, "स्थानक्रम")).unwrap_or(0))
+                            // An `if` and not a `match` on the mark: a numeric arm here
+                            // would read as a KIND row to `t1_transcriptions.rs`'s
+                            // guard, which finds the kind tables by their arms and
+                            // reads the FIRST variant an arm names — so `Load`,
+                            // kind १५'s own, is written first.
+                            let k = usize::try_from(int_of(&ins, "स्थानक्रम")).unwrap_or(0);
+                            let mark = int_of(&ins, "उपभेद");
+                            if mark == 0 {
+                                Instruction::Load(k)
+                            } else if mark == 1 {
+                                Instruction::LoadFloat(k)
+                            } else {
+                                return Err(format!(
+                                    "{at}: a local read marked {mark}, which is neither \
+                                     ० (an integer slot) nor १ (a float slot)"
+                                ));
+                            }
+                        }
+                        // `V-005` — a float op: `उपभेद` is the op (from १), `वाम` and
+                        // `दक्षिण` its first two operands, and `fmadd`'s third the
+                        // one entry of its `आदानकोश` run.
+                        27 => {
+                            let code = int_of(&ins, "उपभेद");
+                            let op = FloatOp::from_code(code).ok_or_else(|| {
+                                format!("{at}: float op {code} is not one of the thirteen")
+                            })?;
+                            let mut list = vec![ValueId(need(&ins, "वाम", &at)?)];
+                            if op.arity() >= 2 {
+                                list.push(ValueId(need(&ins, "दक्षिण", &at)?));
+                            }
+                            if op.arity() == 3 {
+                                let a0 = usize::try_from(int_of(&ins, "आदानारम्भ")).unwrap_or(0);
+                                let arg = args.borrow().get(a0).cloned().ok_or_else(|| {
+                                    format!("{at}: fmadd's third operand is past आदानकोश")
+                                })?;
+                                let k = int_of(&arg, "क्रमाङ्क");
+                                let k = usize::try_from(k).ok().filter(|k| *k > 0).ok_or_else(
+                                    || format!("{at}: fmadd's third operand is the absent value ०"),
+                                )?;
+                                list.push(ValueId(k - 1));
+                            }
+                            Instruction::Float(op, list)
+                        }
+                        // `V-008` part 2 — a vector op: `उपभेद` is the op (१..४, the float
+                        // sub-kinds add/sub/mul/div), `वाम` the result run, `दक्षिण` the
+                        // first operand run and the second the one entry of its
+                        // `आदानकोश` run.
+                        28 => {
+                            let code = int_of(&ins, "उपभेद");
+                            let op = FloatOp::from_code(code)
+                                .filter(|op| {
+                                    matches!(
+                                        op,
+                                        FloatOp::Add | FloatOp::Sub | FloatOp::Mul | FloatOp::Div
+                                    )
+                                })
+                                .ok_or_else(|| {
+                                    format!("{at}: vector op {code} is not add, sub, mul or div")
+                                })?;
+                            let a0 = usize::try_from(int_of(&ins, "आदानारम्भ")).unwrap_or(0);
+                            let arg = args.borrow().get(a0).cloned().ok_or_else(|| {
+                                format!("{at}: a vector op's second operand run is past आदानकोश")
+                            })?;
+                            let k = int_of(&arg, "क्रमाङ्क");
+                            let k =
+                                usize::try_from(k).ok().filter(|k| *k > 0).ok_or_else(|| {
+                                    format!(
+                                        "{at}: a vector op's second operand is the absent value ०"
+                                    )
+                                })?;
+                            Instruction::Vector(
+                                op,
+                                vec![
+                                    ValueId(need(&ins, "वाम", &at)?),
+                                    ValueId(need(&ins, "दक्षिण", &at)?),
+                                    ValueId(k - 1),
+                                ],
+                            )
                         }
                         // `W-278`: a module-level global read — the word at the
                         // global's own exported label, named by its symbol.
@@ -866,9 +1052,13 @@ impl Front {
                         // in `स्थानक्रम`, which is a FRAME INDEX the emitter scales by ८
                         // and the frame-sizing pass maxes over — a byte offset there is
                         // wrong twice and loud neither time.
+                        // `W-381` stage 4: the offset may be NEGATIVE — the bound
+                        // check reads a run's length word at base − 8 — so it is
+                        // carried as the i64's two's-complement bits. The old
+                        // `u64::try_from(..).unwrap_or(0)` turned −8 into a SILENT 0.
                         19 => Instruction::LoadField(
                             ValueId(need(&ins, "वाम", &at)?),
-                            u64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).unwrap_or(0),
+                            i64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).map_or(0, i64::cast_unsigned),
                         ),
                         // BOTH operands are values here, where the kind above takes one
                         // value and a constant. A decoder that read `ध्रुवमूल्यम्`
@@ -907,15 +1097,42 @@ impl Front {
                         21 => Instruction::AddrOfGlobal(SymbolId(
                             usize::try_from(int_of(&ins, "संज्ञा")).unwrap_or(0),
                         )),
-                        22 => Instruction::LoadAt(ValueId(need(&ins, "वाम", &at)?)),
+                        // `V-008`: `उपभेद` १ is a `प६४` slot's read (a run element, a field
+                        // or a global declared `प६४`), into the FLOAT file — `LoadAt` first,
+                        // as kind २२'s own (the transcription guard reads the first variant).
+                        22 => {
+                            let a = ValueId(need(&ins, "वाम", &at)?);
+                            if int_of(&ins, "उपभेद") != 1 {
+                                Instruction::LoadAt(a)
+                            } else {
+                                Instruction::LoadAtFloat(a)
+                            }
+                        }
                         // `वाम` is the ADDRESS and `दक्षिण` is the value stored. The
                         // order matters and is not recoverable from the decode: a
                         // decoder that swapped them would write the address into the
                         // value's storage and be silent about it, since both are
                         // words and both are live.
+                        // `W-306c` — AND `ध्रुवमूल्यम्` IS THE WIDTH IN OCTETS, a third
+                        // thing beside the two values, exactly as it is on kind 20. A
+                        // decoder that read it as an OPERAND would store at the
+                        // address held in value ०.
+                        //
+                        // THE ० -> ८ MAPPING IS COPIED FROM KIND 20 DELIBERATELY, not
+                        // re-derived: two decoders that default differently are worse
+                        // than two that default wrongly together, because only the
+                        // first kind of disagreement is invisible to a twin
+                        // comparison. `ir.t1` does not write this field yet, so every
+                        // instruction in the corpus arrives here as ० and leaves as ८
+                        // — a whole word, today's behaviour, and the bare `निधानम्`.
                         23 => Instruction::StoreAt(
                             ValueId(need(&ins, "वाम", &at)?),
                             ValueId(need(&ins, "दक्षिण", &at)?),
+                            match u64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).unwrap_or(0)
+                            {
+                                0 => 8,
+                                w => w,
+                            },
                         ),
                         // `W-284` — THE STORAGE THE OTHER FIVE KINDS ADDRESS. 24
                         // allocates it, 25 and 26 form addresses INTO it, and 22/23
@@ -964,6 +1181,7 @@ impl Front {
                             ValueId(need(&ins, "वाम", &at)?),
                             ValueId(need(&ins, "दक्षिण", &at)?),
                             int_of(&ins, "उपभेद"),
+                            int_of(&ins, "ध्रुवमूल्यम्"),
                         )
                         .ok_or_else(|| {
                             format!("{at}: instruction kind {kind} is not one of the seventeen")
@@ -1335,17 +1553,27 @@ pub fn typecheck_site(it: &Interpreter) -> Option<String> {
 #[must_use]
 pub fn refusal_site(it: &Interpreter) -> Option<String> {
     // R-15-1 FIRST, AND THE STAGE GATE'S OWN ARGUMENT IS WHY (W-304).
-    // `पठनम्` refuses a source whose octets leave the repertoire and returns
-    // BEFORE `निर्णयः` runs, so `निर्णयविरामभेद` still holds the PREVIOUS
-    // source's verdict on exactly that path — the stale-record failure this
-    // routine's contract test names, arriving from the other direction.
-    // `परिधिदोषस्थितम्` cannot go stale the same way: `पठनम्` is entered for
-    // every source and resets it on entry, so it is always this source's answer.
+    // `अक्षरकोशॱपरिधिपदविभाग` refuses a source whose octets leave the
+    // repertoire and `पठनम्` returns BEFORE `निर्णयः` runs, so
+    // `निर्णयविरामभेद` still holds the PREVIOUS source's verdict on exactly
+    // that path — the stale-record failure this routine's contract test names,
+    // arriving from the other direction. `परिधिदोषस्थितम्` cannot go stale the
+    // same way: every source is lexed through that one entry (both `पठनम्` and
+    // [`Front::lex`]) and it resets the record on entry.
     if g_bool(it, "परिधिदोषस्थितम्") {
         return Some(format!(
             "repertoire: octet {} is outside R-15-1",
             g_int(it, "परिधिदोषस्थानम्")
         ));
+    }
+    // THE PARSER SECOND, FOR THE GATE'S OWN REASON (W-342). A source the parser
+    // refused returns from `पठनम्` before `निर्णयः` runs too, so everything
+    // below this line would answer about the PREVIOUS source — and on
+    // `t1_image`'s isolated re-compile that answer was "RESOLVED AND
+    // TYPECHECKED when re-compiled ALONE … LOAD-DEPENDENT", a confident
+    // sentence about a source that never parsed.
+    if let Some(s) = parse_site(it) {
+        return Some(format!("parse: {s}"));
     }
     if let Some(s) = emit_site(it) {
         return Some(s);
@@ -1353,8 +1581,136 @@ pub fn refusal_site(it: &Interpreter) -> Option<String> {
     match g_int(it, "निर्णयविरामभेद") {
         1 => resolve_site(it).map(|s| format!("resolve: {s}")),
         2 => typecheck_site(it).map(|s| format!("typecheck: {s}")),
+        // Both decide stages passed, so the IR stage ran on THIS source and
+        // its record is this source's (`मध्यरूपॱआरम्भः` clears it per program).
+        0 => file_mismatch_site(it).map(|s| format!("ir: {s}")),
         _ => None,
     }
+}
+
+/// **`V-005` — THE ONE NAMED CAUSE A FILE MISMATCH IS REFUSED BY**, as `ir.t1`
+/// recorded it: a float bound or assigned to an integer local or the reverse
+/// (१), an argument against the callee's declared parameter type (२), a
+/// returned value against the declared return type (३), and — `V-008` — a
+/// value stored into a record field (४), a run element (५) or a module global
+/// (६) against the slot's declared type, a global's initialiser included. The
+/// interpreter refuses the same shapes with the same word (`nirvahana.rs`), and
+/// the emitters' `Refusal::FileMismatch` covers what the IR does not see
+/// (integer operators, addresses, branch conditions, a narrow float store).
+#[must_use]
+pub fn file_mismatch_site(it: &Interpreter) -> Option<String> {
+    if !g_bool(it, "वर्गविरोधमस्ति") {
+        return None;
+    }
+    let shape = match g_int(it, "वर्गविरोधभेद") {
+        1 => "a value stored into a local declared in the other register file",
+        2 => "an argument in the other register file from its declared parameter",
+        3 => "a returned value in the other register file from the declared return type",
+        // `V-008`: memory, the three shapes a `प६४` slot can be declared in.
+        4 => "a value stored into a record field declared in the other register file",
+        5 => "a value stored into a run element declared in the other register file",
+        6 => {
+            "a value stored into (or initialising) a module global declared in the other register file"
+        }
+        _ => "an unnumbered shape",
+    };
+    // The line `ir.t1` read AT THE REFUSAL: the token arena may hold another
+    // source by the time a driver asks.
+    let line = g_int(it, "वर्गविरोधपङ्क्तिः");
+    Some(format!(
+        "FileMismatch: {shape}, at line {line} — the explicit bit move \
+         `अष्टकॱप्लवसंचारः` is the way across"
+    ))
+}
+
+/// **WHERE THE PARSER REFUSED**, as `व्याकर` recorded it — `W-342`.
+///
+/// The record is `दोषकोश`, entries १ to `दोषसूचकाङ्क`, each a line, a column
+/// and a reason. It had readers in the tests and none in the drivers: a
+/// parse-refused source reached `t1_image` as "declared nothing" and
+/// `t1_boot` as a third-state line about the decide stage.
+///
+/// `दोषसूचकाङ्क` IS THE GUARD, NOT THE DRIVER'S EXIT KIND. `कार्यक्रमपठनम्`
+/// zeroes it on entry and `शृङ्खलाॱपठनम्` zeroes it before the repertoire gate,
+/// so a count above ० is the last source's own and that source got no
+/// further than the parser. Asking `सङ्कलनविरामभेद == ९` instead would answer
+/// `None` for the Rust front half, which parses without setting it.
+///
+/// THE FIRST ENTRY IS THE SITE. The parser recovers and may record more; the
+/// count is printed so a reader knows there is more to find, and the first is
+/// named because later ones are often its consequences.
+#[must_use]
+pub fn parse_site(it: &Interpreter) -> Option<String> {
+    let n = g_int(it, "दोषसूचकाङ्क");
+    if n <= 0 {
+        return None;
+    }
+    let first = match it.global("दोषकोश") {
+        Some(Value::Arena(a)) => a.borrow().get(1).cloned(),
+        _ => None,
+    }?;
+    let more = if n > 1 {
+        format!(" ({} more recorded after it)", n - 1)
+    } else {
+        String::new()
+    };
+    Some(format!(
+        "line {}, column {}: {}{more}",
+        int_of(&first, "पङ्क्ति"),
+        int_of(&first, "अक्षर"),
+        text_of(&member(&first, "कारण")),
+    ))
+}
+
+/// **THE LINKER'S REFUSALS OF THE LAST LINK, AS TEXT** — `W-342`.
+///
+/// `संयोजन` appends one record per problem to `संयोजनदोषकोश`: a code, the name
+/// it is about, a place and a number. `t1_image` printed the arena with
+/// `{:?}` cut at 1200 characters, so the name of the undefined symbol reached
+/// the operator as a list of octets, and usually not all of it.
+///
+/// WALKED TO THE CURSOR, NOT TO THE LENGTH. `स्थानसंयोजनम्` zeroes
+/// `संयोजनदोषसूचकाङ्क` on entry and does not clear the arena
+/// (`samyojana.t1:794-799`), so entries past the cursor are an EARLIER link's.
+///
+/// THE CODE IS PRINTED AS ITS NUMBER AND NOT AS PROSE. The meanings are
+/// `samyojana.t1`'s `*कूटः` constants; a second copy of that table here would
+/// be a twin that goes stale the first time a code is added.
+#[must_use]
+pub fn link_refusals(it: &Interpreter) -> Vec<String> {
+    let n = usize::try_from(g_int(it, "संयोजनदोषसूचकाङ्क")).unwrap_or(0);
+    let store = match it.global("संयोजनदोषकोश") {
+        Some(Value::Arena(a)) => a.borrow().clone(),
+        _ => return Vec::new(),
+    };
+    store
+        .iter()
+        .skip(1)
+        .take(n)
+        .map(|r| {
+            let name = text_of(&member(r, "नाम"));
+            let line = format!(
+                "code {} `{}` at {}, value {}",
+                int_of(r, "कूट"),
+                name,
+                int_of(r, "स्थानाङ्कः"),
+                int_of(r, "मूल्यम्"),
+            );
+            // `V-009` (ii): a duplicate (code २, `पुनरुक्तकूटः`) named
+            // `<module><member>` for a kernel member. The record holds only the
+            // name — not which objects defined it — so this half cannot see
+            // that one of them is the module's matrix kernel. It says ONLY the
+            // conditional: two modules whose labels concatenate, or one name in
+            // two sources of a module, are duplicates with no kernel at all.
+            match (int_of(r, "कूट"), kernel_member_of(&name)) {
+                (2, Some((_, member))) => format!(
+                    "{line}; if one definition is its module's matrix kernel: {}",
+                    kernel_name_reserved(member)
+                ),
+                _ => line,
+            }
+        })
+        .collect()
 }
 
 /// The EMITTER's refusal, which had a full record and no reader — `W-331`.
@@ -1398,6 +1754,9 @@ fn emit_site(it: &Interpreter) -> Option<String> {
         8 => "FrameTooLarge",
         9 => "EntryTakesParameters",
         10 => "BranchOutOfRange",
+        11 => "JumpOutOfRange",
+        12 => "StoreWidthUnnamed",
+        13 => "FileMismatch",
         _ => "an unnumbered variant",
     };
     let routine = match it.global("यन्त्रनिषेधवृत्ति") {
@@ -1426,14 +1785,53 @@ fn emit_site(it: &Interpreter) -> Option<String> {
         8 => ("-", "frame octets"),
         9 => ("-", "params"),
         10 => ("target", "bytes"),
+        13 => ("-", "value"),
         _ => ("target", "n"),
     };
-    Some(format!(
+    let site = format!(
         "emit: {name} ({kind}) in `{routine}`, block {}, {third} {}, {fourth} {}",
         g_int(it, "यन्त्रनिषेधपर्व"),
         g_int(it, "यन्त्रनिषेधलक्ष्य"),
         g_int(it, "यन्त्रनिषेधसंख्या"),
-    ))
+    );
+    match reserved_kernel_name(it, kind, &routine) {
+        Some(why) => Some(format!("{site}: {why}")),
+        None => Some(site),
+    }
+}
+
+/// `V-009` (ii): a `LabelCollision` whose label is one of the module's matrix
+/// kernel routines' — a user routine named by a kernel member in a module that
+/// makes a matrix call — said as the interpreter says it
+/// ([`crate::t1::nirvahana::kernel_name_refusal`]).
+///
+/// `यन्त्रचिह्नपरीक्षा` records the label as the routine (`यन्त्रनिषेधवृत्ति`),
+/// the second holder's routine index as the block and the first's as the
+/// target; a holder is the kernel when its `वृत्तिकोश` record carries the symbol
+/// `ir.t1` gave the kernel (`riscv64::MATRIX_PRODUCT_SYMBOL` /
+/// `MATRIX_TRANSPOSE_SYMBOL`), and the label is then `<module><member>`.
+fn reserved_kernel_name(it: &Interpreter, kind: i128, label: &str) -> Option<String> {
+    if kind != 5 {
+        return None;
+    }
+    let functions = match it.global("वृत्तिकोश") {
+        Some(Value::Arena(a)) => Rc::clone(a),
+        _ => return None,
+    };
+    let functions = functions.borrow();
+    let kernel = [g_int(it, "यन्त्रनिषेधपर्व"), g_int(it, "यन्त्रनिषेधलक्ष्य")]
+        .into_iter()
+        .filter_map(|i| functions.get(usize::try_from(i).ok()?))
+        .find_map(
+            |f| match usize::try_from(int_of(f, "नाम")).ok().map(SymbolId) {
+                Some(riscv64::MATRIX_PRODUCT_SYMBOL | riscv64::MATRIX_TRANSPOSE_SYMBOL) => {
+                    built_routine_name(int_of(f, "नाम"))
+                }
+                _ => None,
+            },
+        )?;
+    let module = label.strip_suffix(kernel)?;
+    Some(crate::t1::nirvahana::kernel_name_refusal(module, kernel))
 }
 
 /// What to print when [`refusal_site`] answers `None`, in ONE copy.
@@ -1542,7 +1940,7 @@ impl Built {
 /// `paradigm_encode.rs`'s "are ONE TABLE IN TWO PLACES". A search of the tree on
 /// 2026-09-05 found **FOUR** transcriptions of the instruction-kind reading —
 /// here, `yantra/tests/paradigm_encode.rs`, `sadhana-t1/tests/t1_exec_riscv.rs`
-/// and `pradarshana/src/pathana.rs` — with `ir.t1:88-114` the one definition
+/// and `frontend/src/pathana.rs` — with `ir.t1:88-114` the one definition
 /// they all copy. The TERMINATOR decode is in the same four; the COMPARE
 /// sub-kind is in three. Eleven hand transcriptions of three tables across four
 /// files, and nothing links any of them to the definition.
@@ -1553,15 +1951,54 @@ impl Built {
 /// demo refused five of its own six at IR, naming a kind rather than a fault,
 /// while the compiler emitted them correctly and the driver ran all six to their
 /// right answers. A table copied four times goes stale wherever no test looks.
-fn binary_kind(kind: i128, l: ValueId, r: ValueId, sub: i128) -> Option<Instruction> {
+fn binary_kind(kind: i128, l: ValueId, r: ValueId, sub: i128, mark: i128) -> Option<Instruction> {
     Some(match kind {
         3 => Instruction::Add(l, r),
         4 => Instruction::Sub(l, r),
         6 => Instruction::Mul(l, r),
-        7 => Instruction::Div(l, r),
-        8 => Instruction::Rem(l, r),
+        // `W-381` stage 3 (ruling (b)) — KINDS ७ AND ८ ARE TWO INSTRUCTIONS EACH,
+        // told apart by `ध्रुवमूल्यम्` as kind १० is: ० signed, १ unsigned (a name
+        // declared unsigned on either side). `if`, and the signed variant first,
+        // for the kind-table reader's reason given at kind १०.
+        7 => {
+            if mark == 0 {
+                Instruction::Div(l, r)
+            } else if mark == 1 {
+                Instruction::DivU(l, r)
+            } else {
+                return None;
+            }
+        }
+        8 => {
+            if mark == 0 {
+                Instruction::Rem(l, r)
+            } else if mark == 1 {
+                Instruction::RemU(l, r)
+            } else {
+                return None;
+            }
+        }
         9 => Instruction::Shl(l, r),
-        10 => Instruction::Shr(l, r),
+        // `W-333` — KIND १० IS TWO INSTRUCTIONS, TOLD APART BY `ध्रुवमूल्यम्`: ० the
+        // arithmetic shift, १ the logical one `मध्यरूप` builds for a left operand
+        // that is a name declared unsigned. Any other value is refused: a
+        // decoder that guessed would build `Shr` and compile.
+        //
+        // WRITTEN AS `if`, NOT AS A NESTED `match mark { 0 => …, 1 => … }`:
+        // `t1_transcriptions.rs` reads every `N => Family::Variant` arm in the
+        // tree as a row of a kind table, nested ones included, so a nested
+        // match here was scanned as "Instruction 0 is `Shr`, Instruction 1 is
+        // `ShrL`" and reddened the guard. `Shr` stays FIRST for the same
+        // reader: it takes the first variant in the arm as kind १०'s.
+        10 => {
+            if mark == 0 {
+                Instruction::Shr(l, r)
+            } else if mark == 1 {
+                Instruction::ShrL(l, r)
+            } else {
+                return None;
+            }
+        }
         11 => Instruction::And(l, r),
         12 => Instruction::Or(l, r),
         13 => Instruction::Xor(l, r),
@@ -1868,6 +2305,98 @@ mod tests {
         assert!(
             stop.contains("typecheck before resolve"),
             "the stop must name the order, not the interpreter: {stop}"
+        );
+    }
+
+    /// The two writings of each built routine's symbol agree: the number in
+    /// `BUILT_ROUTINES` is the value of the `ir.t1` global its row names. The
+    /// growth routine's global must exist; a row whose global `ir.t1` does not
+    /// declare yet (the run compare, before its `.t1` half lands) is skipped,
+    /// and is checked from the moment it is declared.
+    #[test]
+    fn every_built_routine_symbol_agrees_with_the_global_ir_t1_declares() {
+        let f = front();
+        let mut checked = 0;
+        for (global, symbol, name) in BUILT_ROUTINES {
+            match f.it.global(global) {
+                Some(v) => {
+                    assert_eq!(
+                        v.as_int(),
+                        Some(*symbol),
+                        "`{global}` and the `{name}` row of BUILT_ROUTINES disagree"
+                    );
+                    checked += 1;
+                }
+                None => assert_ne!(
+                    *name, "खण्डवृद्धिः",
+                    "`{global}` is the growth routine's symbol and ir.t1 must declare it"
+                ),
+            }
+        }
+        assert!(
+            checked >= 1,
+            "at least the growth routine's row was checked"
+        );
+    }
+
+    /// Put `v` at arena index `at`, growing the arena with ० where it is short.
+    fn place(arena: &Rc<RefCell<Vec<Value>>>, at: usize, v: Value) {
+        let mut a = arena.borrow_mut();
+        while a.len() <= at {
+            a.push(Value::Int(0));
+        }
+        a[at] = v;
+    }
+
+    /// `N-004` (owner ruling 2026-10-06: "chain.rs first") — **A SECOND BUILT
+    /// ROUTINE IS NAMED BY ITS SYMBOL, NOT AS THE GROWTH ROUTINE.**
+    ///
+    /// A routine the IR builds has no declaration, so its name token is ०.
+    /// Until this test, every token-० routine was given the growth routine's
+    /// name, so a module with TWO built routines emitted two identical labels
+    /// and the emitter refused it (`LabelCollision`). The second built routine
+    /// is made here by copying the growth routine's record under the next
+    /// built symbol, `१००००००८` — the module's shared run compare. No `.t1`
+    /// builds it yet; this pins the Rust half first.
+    #[test]
+    fn a_second_built_routine_is_named_by_its_symbol_not_as_the_growth_routine() {
+        const SRC: &str = "मण्डलम् क ॥ सार्वजनिक चरः ग ॱॱ अङ्कः अन्तः न६४ भवति ० । \
+सार्वजनिक वृत्तिः घ ददाति न६४ आदि ग अङ्कः १ अन्तः भवति ९ । \
+प्रत्यागमनम् ग अङ्कः १ अन्तः । इति";
+        let mut f = front();
+        f.lex(SRC).expect("lex");
+        f.parse().expect("parse");
+        f.resolve().expect("resolve");
+        f.typecheck().expect("typecheck");
+        f.build_ir().expect("the IR builds");
+        let functions = f.arena("वृत्तिकोश");
+        let names = f.arena("वृत्तिनामचिह्नककोश");
+        let count = usize::try_from(f.global_int("वृत्तिसूचकाङ्क")).expect("a count");
+        let growth = (1..=count)
+            .find(|&i| arena_int(&names, i) == 0)
+            .expect("a run global's store builds the module's growth routine");
+        assert_eq!(
+            int_of(&functions.borrow()[growth], "नाम"),
+            10_000_005,
+            "the growth routine carries `वृद्धिवृत्तिसंज्ञा`"
+        );
+        let copy = match &functions.borrow()[growth] {
+            Value::Record(r) => Value::Record(Rc::new(RefCell::new(r.borrow().clone()))),
+            other => panic!("a routine record, not {other:?}"),
+        };
+        set_int(&copy, "नाम", 10_000_008);
+        place(&functions, count + 1, copy);
+        place(&names, count + 1, Value::Int(0));
+        assert!(
+            f.it.set_global("वृत्तिसूचकाङ्क", Value::Int(i128::try_from(count + 1).unwrap())),
+            "the routine count is a declared global"
+        );
+        let module = f.module("क", None).expect("the module reads");
+        let text = riscv64::emit_module(&module)
+            .expect("two built routines emit, because each has its own label");
+        assert!(
+            text.contains("कखण्डवृद्धिः") && text.contains("कखण्डसाम्यम्"),
+            "the growth routine and the run compare are labelled apart\n{text}"
         );
     }
 }

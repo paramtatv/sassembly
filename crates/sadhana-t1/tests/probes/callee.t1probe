@@ -1,0 +1,15 @@
+मण्डलम् परकर्तृ ॥
+
+॰ A peer session's CORRECTED repro: the CALLEE writes past the end of an array it
+॰ received as a parameter. Interpreter should answer ९९, native ० if the
+॰ extending write is lost across the frame boundary.
+वृत्तिः ख आदाय क ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    क अङ्कः ५ अन्तः भवति ९९ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः क ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः उ ॱॱ न६४ भवति ख क ।
+    प्रत्यागमनम् क अङ्कः ५ अन्तः ।
+इति

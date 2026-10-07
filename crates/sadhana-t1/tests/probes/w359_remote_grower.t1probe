@@ -1,0 +1,10 @@
+मण्डलम् दूरवर्धक ॥
+
+॰ W-359 rule (3) ACROSS MODULES, the callee: a public grow-and-return routine.
+॰ Its grows flag reaches another module's checker only through the collected
+॰ declaration store (`घोषणासञ्चयॱप्रविष्टि ॱ वर्धकप्राचल`). Paired with
+॰ w359_remote_dropper.t1probe.
+सार्वजनिक वृत्तिः योजकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ऽ मानम् ॱॱ न६४ ददाति अङ्कः अन्तः न६४ आदि
+    सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति मानम् ।
+    प्रत्यागमनम् सूची ।
+इति

@@ -1,0 +1,16 @@
+मण्डलम् वृद्धिहानि३ ॥
+
+॰ A peer session's minimal reproduction, swept over N. Declare EMPTY, append N
+॰ values in a loop, read back the LAST. If native answers ० where the
+॰ interpreter answers the value, appends are losing writes.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः क ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+
+    यावत् सूचकाङ्क न्यूनम् ३ आदि
+        क अङ्कः सूचकाङ्क अन्तः भवति ७ ।
+        सूचकाङ्क भवति आरभ्य सूचकाङ्क योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् क अङ्कः २ अन्तः ।
+इति

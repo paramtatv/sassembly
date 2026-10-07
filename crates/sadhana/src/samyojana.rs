@@ -92,8 +92,8 @@ pub fn link(objects: &[Object]) -> Result<Linked, Vec<String>> {
 pub fn link_at(objects: &[Object], load: u64) -> Result<Linked, Vec<String>> {
     let mut errors = Vec::new();
 
-    // Where each object's text begins. Data follows all of it, eight-aligned,
-    // exactly as `kosha` lays an image out.
+    // Where each object's text begins. Data follows all of it, at the next page,
+    // exactly as `kosha` lays an image out (`kosha::data_base`, `W-363`).
     let mut text_at = Vec::with_capacity(objects.len());
     let mut data_at = Vec::with_capacity(objects.len());
     let mut bss_at = Vec::with_capacity(objects.len());
@@ -106,11 +106,20 @@ pub fn link_at(objects: &[Object], load: u64) -> Result<Linked, Vec<String>> {
         data_len += o.data.len() as u64;
         bss_len += o.bss;
     }
-    let data_base = text_len.next_multiple_of(8);
+    let data_base = crate::kosha::data_base(text_len);
     // `.bss` follows all of the data, exactly as `kosha` lays an image out: a
     // reservation that overlapped another object's data would be a buffer
     // writing over initialised bytes, which runs.
-    let bss_base = (data_base + data_len).next_multiple_of(8);
+    //
+    // ON SIXTEEN, NOT EIGHT (`V-009` part (i-b2)): the startup's stack is the
+    // first thing in `.bss`, and `sp` is its top, which the RISC-V ABI wants
+    // 16-aligned. In `.data` it was — the data starts on a page — but the data
+    // ends wherever its objects end. `kosha` places `.bss` at the data rounded
+    // to EIGHT, so the up-to-eight octets between that and this start are
+    // reported as `.bss` too ([`Linked::bss`] below): `p_memsz` still ends
+    // exactly at the last reservation. Twin: `samyojana.t1` `बीजाधारः`.
+    let bss_kosha = (data_base + data_len).next_multiple_of(8);
+    let bss_base = (data_base + data_len).next_multiple_of(16);
 
     // Every definition, with its final address.
     //
@@ -147,10 +156,44 @@ pub fn link_at(objects: &[Object], load: u64) -> Result<Linked, Vec<String>> {
             };
             let address = base + s.value;
             if s.global && exported.insert(s.name.clone(), address).is_some() {
-                errors.push(alloc::format!(
-                    "`{}` is defined by more than one object",
-                    s.name
-                ));
+                // `V-009` (ii): a name a module's matrix kernel also defines is
+                // RESERVED, and the refusal says so — but ONLY when the kernel is
+                // one of the definitions. The kernel is keyed on ITS OWN entry,
+                // not on the pair of names (a user object can export both): an
+                // object defining `<module><member>` in `.text` for BOTH kernel
+                // members WITHOUT their epilogue labels. Every compiled routine
+                // places `<label>निर्गम` (`riscv64::exit_label`, §2.2); the
+                // kernel is fixed text with no epilogue and places none.
+                let kernel = |module: &str| {
+                    objects.iter().any(|o| {
+                        // ANY definition in `.text`: a global of the same name
+                        // in the same object is a second, `.data`, definition.
+                        let in_text = |name: &str| {
+                            o.symbols.iter().any(|d| {
+                                !d.is_undefined()
+                                    && d.placement == Placement::Text
+                                    && d.name == name
+                            })
+                        };
+                        let placed = |name: &str| o.symbols.iter().any(|d| d.name == name);
+                        crate::t1::nirvahana::MATRIX_KERNEL_MEMBERS
+                            .iter()
+                            .all(|member| {
+                                let entry = alloc::format!("{module}{member}");
+                                in_text(&entry) && !placed(&crate::t1::riscv64::exit_label(&entry))
+                            })
+                    })
+                };
+                match crate::t1::nirvahana::kernel_name_duplicate(&s.name, kernel) {
+                    Some(why) => errors.push(alloc::format!(
+                        "`{}` is defined by more than one object: {why}",
+                        s.name
+                    )),
+                    None => errors.push(alloc::format!(
+                        "`{}` is defined by more than one object",
+                        s.name
+                    )),
+                }
             }
             scopes[n].insert(s.name.clone(), address);
             symbols.insert(s.name.clone(), address);
@@ -424,7 +467,13 @@ pub fn link_at(objects: &[Object], load: u64) -> Result<Linked, Vec<String>> {
         Ok(Linked {
             text,
             data,
-            bss: bss_len,
+            // The pad to the 16-aligned start counts only when there IS a
+            // `.bss`: an image with none keeps none, and its one header.
+            bss: if bss_len > 0 {
+                bss_len + (bss_base - bss_kosha)
+            } else {
+                0
+            },
             symbols,
             table,
             debug,

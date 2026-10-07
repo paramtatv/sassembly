@@ -40,11 +40,18 @@
 ॰ `is_public` field — three things `ast.rs` does not have. A file that does not
 ॰ build cannot say what a quantity's sign is.
 
-सार्वजनिक चरः मूलप्रकारभेद ॱॱ न६४ भवति १ ।  ॰ Type::Primitive(String)
-सार्वजनिक चरः खण्डप्रकारभेद ॱॱ न६४ भवति २ । ॰ Type::Slice(Box<Type>)
-सार्वजनिक चरः स्थानम्प्रकारभेद ॱॱ न६४ भवति ३ । ॰ Type::Pointer(Box<Type>)
-सार्वजनिक चरः सम्भाव्यप्रकारभेद ॱॱ न६४ भवति ४ । ॰ Type::Optional(Box<Type>)
-सार्वजनिक चरः दोषयुक्तप्रकारभेद ॱॱ न६४ भवति ५ । ॰ Type::ErrorUnion(Box<Type>)
+॰ ॥ १०१ AND NOT १ ॥ W-171, 2026-10-01. `प्रकारपठनम्` stores every type node
+॰ in `अभिव्यञ्जककोश`, so this family shares one `भेद` field with the
+॰ expression kinds below; at १..५ the two families collided and a kind-१
+॰ node was ambiguous. The base १०० keeps them disjoint with headroom — the
+॰ expression family is at १३ and growing. Disjoint ranges close the hazard;
+॰ the owner's 2026-09-01 decision (a separate arena behind `प्रकार`) is a
+॰ distinct, undelivered step and this renumbering does not pre-empt it.
+सार्वजनिक चरः मूलप्रकारभेद ॱॱ न६४ भवति १०१ ।  ॰ Type::Primitive(String)
+सार्वजनिक चरः खण्डप्रकारभेद ॱॱ न६४ भवति १०२ । ॰ Type::Slice(Box<Type>)
+सार्वजनिक चरः स्थानम्प्रकारभेद ॱॱ न६४ भवति १०३ । ॰ Type::Pointer(Box<Type>)
+सार्वजनिक चरः सम्भाव्यप्रकारभेद ॱॱ न६४ भवति १०४ । ॰ Type::Optional(Box<Type>)
+सार्वजनिक चरः दोषयुक्तप्रकारभेद ॱॱ न६४ भवति १०५ । ॰ Type::ErrorUnion(Box<Type>)
 
 सार्वजनिक संरचना प्रकार आरभ्य
     भेद ॱॱ न६४ ऽ                            ॰ which of the five kinds above
@@ -148,13 +155,13 @@
 सार्वजनिक चरः खण्डाभिव्यञ्जकभेद ॱॱ न६४ भवति १३ ।
 
 सार्वजनिक संरचना अभिव्यञ्जक आरभ्य
-    भेद ॱॱ न६४ ऽ                            ॰ which of the eight kinds above
+    भेद ॱॱ न६४ ऽ                            ॰ which of the thirteen kinds above
     मूल्यसूचकाङ्क ॱॱ न६४ ऽ                  ॰ Identifier/Numeral/StringLiteral's String, as an index
     वामसूचकाङ्क ॱॱ न६४ ऽ                    ॰ first operand: index into अभिव्यञ्जककोश
     ॰ FOR उक्ताभिव्यञ्जक, A TOKEN INDEX — `W-215`: the closing `इति`, so the
     ॰ content is the tokens मूल्यसूचकाङ्क..दक्षिणसूचकाङ्क exclusive.
     दक्षिणसूचकाङ्क ॱॱ न६४ ऽ                 ॰ second operand: index into अभिव्यञ्जककोश — and on a नामाभिव्यञ्जक, W-228 (b): the MEMBER TOKEN's index (exact, taken before अग्रिमम्) of a spaced qualifier `मण्डल ॱ नाम` folded into the name; ० otherwise
-    द्विकर्म ॱॱ न६४ ऽ                       ॰ which of the thirteen operator kinds
+    द्विकर्म ॱॱ न६४ ऽ                       ॰ which of the fifteen operator kinds
     ॰ W-183 (2026-09-03): the SymbolId the resolver found for an Identifier, PLUS ONE —
     ॰ symbols number from ० (`निर्णायकारम्भः`), so ० here means UNRESOLVED and n means
     ॰ symbol n-1. Written by `अर्थ ॱ अभिव्यञ्जकनिर्णयः`, read by `अभिव्यञ्जकप्रकारः`;

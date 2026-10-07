@@ -43,9 +43,9 @@
 //! Every arena is 1-based with slot ० reserved (`वास्तुॱवाक्य`'s margin), so a
 //! child index of ० means NO CHILD and every walk starts at १. And the parser's
 //! type reader pushes TYPE nodes into the EXPRESSION arena with
-//! `मूलप्रकारभेद`..`दोषयुक्तप्रकारभेद` = १..५, which collide with
-//! `नामाभिव्यञ्जकभेद`..`सूचकाङ्काभिव्यञ्जकभेद` = १..५ — a flat scan of
-//! `अभिव्यञ्जककोश` cannot tell a name from a primitive type. So expressions are
+//! `मूलप्रकारभेद`..`दोषयुक्तप्रकारभेद` = १०१..१०५ (disjoint from the
+//! expression kinds since `W-171`; they collided at १..५ before) — still one
+//! arena, so expressions are
 //! reached from their ROOTS (a statement's operands, a binding's initialiser)
 //! and types from THEIR roots (a `चरः`'s annotation, a parameter, a return
 //! type), and the census reports how many arena slots neither walk reached.
@@ -404,9 +404,11 @@ const D_IMPORT: i128 = 5;
 /// with the struct before); its variants follow it as bindings.
 const D_ENUM: i128 = 6;
 
-// Type kinds, `वास्तुॱ*प्रकारभेद` (ast.t1:25-29) — pushed into the EXPRESSION
-// arena by `प्रकारपठनम्`, which is why they need their own family here.
-const T_LAST: i128 = 5;
+// Type kinds, `वास्तुॱ*प्रकारभेद` — pushed into the EXPRESSION arena by
+// `प्रकारपठनम्`, which is why they need their own family here. At base १०१
+// since `W-171` renumbered them out of the expression kinds' range.
+const T_FIRST: i128 = 101;
+const T_LAST: i128 = 105;
 
 /// An AST node kind, by family. `Program` is the `मण्डलम्` header, which
 /// `व्याकर` reads and records nowhere (parse.t1:671), so the census takes it
@@ -508,7 +510,7 @@ fn place(kind: Kind) -> Result<Place, Unplaced> {
             _ => return Err(Unplaced::Unknown(kind)),
         },
 
-        Kind::Type(t) if (1..=T_LAST).contains(&t) => VOWELS,
+        Kind::Type(t) if (T_FIRST..=T_LAST).contains(&t) => VOWELS,
 
         _ => return Err(Unplaced::Unknown(kind)),
     })
@@ -851,7 +853,7 @@ fn walk_type(p: &Program, s: &mut Sites, i: i128) {
         *slot = true;
     }
     s.site(Kind::Type(t.kind));
-    if t.kind != 1 {
+    if t.kind != T_FIRST {
         walk_type(p, s, t.left);
     }
 }
@@ -2602,7 +2604,12 @@ fn the_map_refuses_what_it_cannot_place_and_places_every_corpus_kind() {
         // ६ is `गणनाघोषणाभेद` since `W-215`; the first unknown is ७.
         Kind::Declaration(7),
         Kind::Type(0),
-        Kind::Type(6),
+        // १ was `मूलप्रकारभेद` until `W-171` moved the family to १०१..१०५;
+        // the old range must now be refused, both ends of the new one too.
+        Kind::Type(1),
+        Kind::Type(5),
+        Kind::Type(100),
+        Kind::Type(106),
     ] {
         assert_eq!(
             place(k),
@@ -2625,7 +2632,7 @@ fn the_map_refuses_what_it_cannot_place_and_places_every_corpus_kind() {
     placed.extend((1..=12).filter(|k| *k != E_BINARY).map(Kind::Expression));
     placed.extend((1..=15).map(Kind::Operator));
     placed.extend([D_ROUTINE, D_TYPE, D_BINDING, D_IMPORT, D_ENUM].map(Kind::Declaration));
-    placed.extend((1..=T_LAST).map(Kind::Type));
+    placed.extend((T_FIRST..=T_LAST).map(Kind::Type));
     for k in &placed {
         let p = place(*k).unwrap_or_else(|e| panic!("{k:?} must be placed, got {e:?}"));
         // A place is on the model: a letter row, or a run 1..=14.

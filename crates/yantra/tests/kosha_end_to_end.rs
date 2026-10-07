@@ -499,7 +499,7 @@ fn the_assemblers_top_level_takes_a_source_and_the_image_runs() {
 /// Source octets to the finisher's status, through `.t1` alone — or `None` when
 /// any stage refuses. `nirvahana` interpreting the modules is the bootstrap and
 /// is not a Rust COMPILER stage: no Rust lexes, parses, encodes or links here.
-fn assemble_and_run(src: &str) -> Option<u32> {
+fn assemble_and_run(src: &str) -> Option<u64> {
     let mut it = assembler();
     call(&mut it, "वाक्यविभागॱआरम्भः", vec![], 200_000_000);
     call(&mut it, "वाक्यविभागॱसंज्ञाकुलपठनम्", vec![], 2_000_000_000);
@@ -675,7 +675,28 @@ fn the_driver_takes_a_source_to_an_image_that_loads() {
            encode.t1:5820, refusing R_RISCV_PCREL_LO12_I unconditionally; that site \
            now handles it in an अन्यथा branch and the claim is stale. Measured \
            2026-09-18: 21 sources, 21 objects linked, 1,373,231 octets, halt \
-           Finisher { value: 21845, status: Some(0) }, 1763s. THE OCTET COUNT \
+           Finisher { value: 21845, status: Some(0) }, 1763s. RE-TAKEN \
+           2026-10-01: 21 sources, 21 objects linked, 1,457,194 octets, halt \
+           Finisher { value: 21845, status: Some(0) }. THE PASS HELD AND THE \
+           SIZE MOVED +83,963 \
+           over thirteen days, measured on an x86_64 Linux host. THE FORM OF \
+           THAT SENTENCE IS LOAD-BEARING AND WAS WRONG ONCE: `loop-context.sh` \
+           greps `DATE: N sources, N objects linked` out of this very string, so \
+           a reading written as prose (`2026-10-01 at <sha> on a Linux host: 21 \
+           sources, Some(21) objects linked`) PARSES AS NOTHING and leaves the \
+           banner quoting the older figure while looking updated. Write the \
+           date, a colon, and bare integers. ADDED rather than substituted, \
+           because this \
+           reason's own instruction is to quote the size WITH its date or not \
+           at all, and a series of dated readings is what makes the drift \
+           legible. STAMPED WITH ITS COMMIT AND NOT ONLY ITS DATE: the trunk \
+           moved to a6fdd068 hours later and the image SHRANK to 1,441,546 \
+           there, because W-306c slice 3 made the narrow indexed store emit ONE \
+           width-bearing instruction where it had emitted a sequence. So \
+           1,457,194 is a reading of 68cdd66b, not of 2026-10-01. NO NEW \
+           RUNTIME IS CLAIMED: the 23m47s window that produced this figure \
+           covered the WHOLE `-p yantra -- --ignored` suite, not this test \
+           alone, so the 1763s above stands unchallenged. THE OCTET COUNT \
            TRACKS THE LIVE CORPUS AND IS STALE THE MOMENT A .t1 LANDS: it read \
            1,371,623 on 2026-09-16 and 1,372,743 earlier on 09-18, and the \
            differences are real work, not noise — 1cc531bd alone took 6 \

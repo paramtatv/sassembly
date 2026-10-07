@@ -1,5 +1,6 @@
 [package]
 name = "yantra-wasm"
+license = "AGPL-3.0-only"
 version = "0.0.1"
 # Spelled out rather than inherited with `.workspace = true`. This package is in the
 # workspace root's `exclude` list — see the note there — and an excluded package cannot
@@ -7,7 +8,7 @@ version = "0.0.1"
 # by hand; if those move, this must move with them.
 edition = "2024"
 rust-version = "1.94"
-repository = "https://github.com/paramtatv/sassembly"
+repository = "https://github.com/paramtatv/sansos"
 publish = false
 
 [lib]

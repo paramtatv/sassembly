@@ -26,7 +26,7 @@
 //! [`a_source_outside_a_text_directive_is_still_refused`] is the other 13,442,
 //! on real lines and not a fixture: the lexer reds on
 //! `crates/sadhana/src/t1/tests/repertoire.sas` and on
-//! `crates/sankriti/src/text/numeral.t1`. Two populations, one rule, opposite
+//! `crates/textapp/src/text/numeral.t1`. Two populations, one rule, opposite
 //! answers — which is exactly why one figure could not describe both.
 //!
 //! [`the_exemption_ends_at_the_bracket_and_the_web_list_is_partial`] pins the
@@ -187,7 +187,7 @@ fn a_source_outside_a_text_directive_is_still_refused() {
     let root = root();
     for path in [
         "crates/sadhana/src/t1/tests/repertoire.sas",
-        "crates/sankriti/src/text/numeral.t1",
+        "crates/textapp/src/text/numeral.t1",
     ] {
         let src = std::fs::read_to_string(root.join(path)).expect("tracked source");
         assert!(

@@ -50,7 +50,7 @@
 # the scanner, not evidence that nothing checks the program.
 program	class	clause	privileged	ecall	address	checks
 arena.sas	boot-proof	A3	no	yes	no	check-arena.sh,check-milestone-k1.sh,check-sanskriti-programs.sh
-atithi.sas	app	-	no	yes	no	check-roundtrip.sh,check-sanskriti-programs.sh,crates/yantra/tests/application.rs
+atithi.sas	app	-	no	yes	no	check-roundtrip.sh,check-sadhana-glue-live.sh,check-sanskriti-programs.sh,crates/yantra/tests/application.rs
 bare-metal.sas	boot-proof	A4	no	no	yes	check-bare-metal.sh,check-roundtrip.sh,check-sassembly-identity.sh
 boot-sbi.sas	boot-proof	A3	no	yes	no	check-sbi-boot.sh
 bootloader.sas	boot-proof	A2	yes	yes	no	check-bootloader.sh
@@ -59,7 +59,7 @@ capability.sas	boot-proof	A3	no	yes	no	check-capability.sh
 context.sas	boot-proof	A3	no	yes	no	check-context.sh
 crossing.sas	boot-proof	A2	yes	yes	no	check-crossing.sh
 fdt-header.sas	boot-proof	A3	no	yes	no	check-fdt.sh
-freelist.sas	boot-proof	A3	no	yes	no	check-freelist.sh
+freelist.sas	boot-proof	A3	no	yes	no	check-freelist.sh,check-yantra-glue-live.sh
 higher-half.sas	boot-proof	A2	yes	yes	no	check-higher-half.sh,check-kernel.sh,check-milestone-k1.sh
 irq.sas	boot-proof	A2	yes	yes	no	check-irq.sh,check-pager-handoff.sh
 jump-table.sas	boot-proof	A4	no	no	yes	check-jump-table.sh
@@ -70,7 +70,7 @@ merge.sas	boot-proof	A3	no	yes	no	check-merge.sh
 milestone-k1.sas	boot-proof	A2	yes	yes	no	check-milestone-k1.sh
 milestone-k2.sas	boot-proof	A2	yes	yes	no	check-milestone-k2.sh
 namaste-main.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-separate.sh
-namaste.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-namaste.sh,check-roundtrip.sh
+namaste.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-namaste.sh,check-roundtrip.sh,check-sadhana-glue-live.sh,check-sadhana-glue.sh,check-yantra-glue-live.sh
 notification.sas	boot-proof	A3	no	yes	no	check-notification.sh
 pager-handoff.sas	boot-proof	A2	yes	yes	no	check-pager-handoff.sh
 pager.sas	boot-proof	A2	yes	yes	no	check-pager.sh
@@ -91,9 +91,9 @@ virtio-console.sas	boot-proof	A4	no	no	yes	check-virtio-console.sh
 virtio-net.sas	boot-proof	A4	no	no	yes	check-virtio-net.sh
 pty.sas	boot-proof	A3	no	yes	no	check-pty.sh
 boot-counter.sas	boot-proof	A4	no	yes	yes	check-boot-counter.sh
-virtio-gpu.sas	boot-proof	A4	no	yes	yes	check-virtio-gpu.sh
+virtio-gpu.sas	boot-proof	A4	no	yes	yes	check-virtio-gpu-t1.sh,check-virtio-gpu.sh
 journal.sas	boot-proof	A4	no	yes	yes	check-journal.sh
-virtio-sound.sas	boot-proof	A4	no	yes	yes	check-virtio-sound.sh
+virtio-sound.sas	boot-proof	A2	yes	yes	yes	check-virtio-sound.sh
 powerbox.sas	boot-proof	A4	no	yes	yes	check-powerbox.sh
 network.sas	boot-proof	A4	no	yes	yes	check-network.sh
 compositor.sas	boot-proof	A2	yes	yes	yes	check-compositor.sh

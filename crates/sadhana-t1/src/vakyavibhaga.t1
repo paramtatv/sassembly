@@ -2701,6 +2701,20 @@
     अज्ञातकोष्ठककूटः अङ्कः ० अन्तः भवति ८० ।
     अज्ञातकोष्ठककूटः अङ्कः १ अन्तः भवति ४९ ।
     अज्ञातकोष्ठककूटः अङ्कः २ अन्तः भवति ५३ ।
+    ॰ W-302: P28 — a data directive in ॱपाठ was refused with an EMPTY code.
+    पाठक्षेत्रमूल्यकूटः अङ्कः ० अन्तः भवति ८० ।
+    पाठक्षेत्रमूल्यकूटः अङ्कः १ अन्तः भवति ५० ।
+    पाठक्षेत्रमूल्यकूटः अङ्कः २ अन्तः भवति ५६ ।
+    ॰ W-302: P30, P19, P20 — raised at the data-directive sites with an EMPTY code.
+    गणनाचिह्नकूटः अङ्कः ० अन्तः भवति ८० ।
+    गणनाचिह्नकूटः अङ्कः १ अन्तः भवति ५१ ।
+    गणनाचिह्नकूटः अङ्कः २ अन्तः भवति ४८ ।
+    असंख्याकूटः अङ्कः ० अन्तः भवति ८० ।
+    असंख्याकूटः अङ्कः १ अन्तः भवति ४९ ।
+    असंख्याकूटः अङ्कः २ अन्तः भवति ५७ ।
+    रिक्तक्षेत्रमूल्यकूटः अङ्कः ० अन्तः भवति ८० ।
+    रिक्तक्षेत्रमूल्यकूटः अङ्कः १ अन्तः भवति ५० ।
+    रिक्तक्षेत्रमूल्यकूटः अङ्कः २ अन्तः भवति ४८ ।
 
     प्रत्यागमनम् ० ।
 इति
@@ -3292,12 +3306,58 @@
 ॰ two's-complement range of न. अंशाः has already produced the 64-bit
 ॰ pattern, so both tests are on that pattern.
 ॰
-॰ THE SIGNED TEST IS WRITTEN WITHOUT AN ARITHMETIC SHIFT. Rust casts to
-॰ i64 so that >> sign-extends; T1's दक्षिणसृ on अ६४ does not, and no
-॰ signed shift is frozen, so the same question is asked as "are ALL the
-॰ bits from the sign upward set": मूल्यम् दक्षिणसृ (न वियोगः १) against
-॰ the ६५ वियोगः न ones such a value leaves. Same answer, and no reliance
-॰ on an operator whose signedness the grammar has not settled.
+॰ THE REASON THIS MARGIN ORIGINALLY GAVE FOR THE SIGNED TEST WAS FALSE, and
+॰ `W-333` recorded that before `W-367` repaired the test. It read: "Rust casts
+॰ to i64 so that >> sign-extends; T1's दक्षिणसृ on अ६४ does not, and no signed
+॰ shift is frozen". दक्षिणसृ over a name declared अ६४ IS the arithmetic shift, in
+॰ both engines (`w333_logical_shift.rs` pins it). What made the old test look
+॰ sound was the INTERPRETER's i128, where the 64-bit pattern of a negative
+॰ value is a POSITIVE number. The repair follows.
+॰
+॰ THE SIGNED TEST IS WRITTEN WITHOUT ANY RIGHT SHIFT OF THE DATUM — W-367.
+॰ It used to shift the sign bit DOWN and name the ६५ वियोगः न ones such a
+॰ value leaves. The old wording claimed that asked "the same answer … with
+॰ no reliance on an operator whose signedness the grammar has not settled",
+॰ and that was exactly backwards: it relied on दक्षिणसृ being LOGICAL. It is
+॰ logical in the interpreter, whose Value::Int is an i128 holding the 64-bit
+॰ pattern as a positive number, and ARITHMETIC in a register, where sra on a
+॰ top-bit-set pattern leaves ALL ones instead of ६५ वियोगः न of them. So the
+॰ two engines answered differently -- MEASURED, 14 of 84 pattern/width pairs
+॰ split, among them २⁶⁴−१ at width १, which is the datum `ऋण१` writes.
+॰
+॰ The question is now asked as a MASK: उच्चांशकम् is the bits at and above
+॰ the sign, and the datum fits signed iff it carries every one of them.
+॰ वामसृ, युक् and वियोगः have no signedness to disagree about on a 64-bit
+॰ pattern, and the subtrahend is at most २⁵⁵ वियोगः १ so the subtraction
+॰ never borrows.
+॰
+॰ THE SURVIVING दक्षिणसृ — the unsigned half — is safe for the reason below,
+॰ and `W-333` (2026-10-03) DID NOT CHANGE THAT REASON, which is worth saying
+॰ because it looks as though it should have. `W-333` rules दक्षिणसृ LOGICAL
+॰ over a name whose declared type is an unsigned integer and ARITHMETIC in
+॰ every other case. The left operand here is `मूल्यम्`, declared `अ६४` on this
+॰ routine's own parameter list, so the rule leaves this site exactly where it
+॰ was: the interpreter keeps its i128 shift, which does not sign-extend at bit
+॰ ६३ because the 64-bit pattern sits there as a POSITIVE number, while a
+॰ register performs sra. `W-333`'s own margin on this routine measured it and
+॰ said so — the pattern २⁶⁴−१ at व्याप्तिः १ reads "fits" interpreted and "does
+॰ not fit" natively, BEFORE AND AFTER `W-333`. So settling the operator's
+॰ classification did not make the engines agree on the OLD form, and the mask
+॰ repair above is still what fixes it.
+॰
+॰ WHY THE SURVIVOR IS NEVERTHELESS SAFE, and the reason the comparison is
+॰ against ० and not against a named value: a shift that is zero logically has
+॰ its top bit clear, where the two shifts agree, and a shift that is non-zero
+॰ under one is non-zero under the other. Compared against ०, this operator's
+॰ signedness cannot be read at all — which is why the shape, not the rule, is
+॰ what protects it. tests/w367_signed_fit.rs holds that shape.
+॰
+॰ THE ROUTINE IS ONLY EVER HANDED THE PATTERN, traced for W-367 because the
+॰ row left it open: :3514 is the one call site, it is in the अन्यथा of
+॰ व्याप्तिः समम् ०, and that branch takes मूल्यम् from अक्षरकोशॱअंशाः, the
+॰ BIT PATTERN reader, never from मानम्. So the negative `ऋण१२८` W-367 saw
+॰ refused was the routine called directly; given its PATTERN the mask form
+॰ accepts it, as one signed octet should.
 ॰
 ॰ WIDTH ८ IS SKIPPED because a 64-bit datum holds every अ६४ by
 ॰ construction — and because v >> 64 is not a shift Rust will perform.
@@ -3309,9 +3369,9 @@
     यदि आरभ्य मूल्यम् दक्षिणसृ अंशसंख्या समाप्तम् समम् ० आदि
         प्रत्यागमनम् सत्यम् ।
     इति
-    चरः उच्चांशाः ॱॱ अ६४ भवति आरभ्य मूल्यम् दक्षिणसृ आरभ्य अंशसंख्या वियोगः १ समाप्तम् समाप्तम् ।
-    चरः सर्वैकाः ॱॱ अ६४ भवति आरभ्य आरभ्य १ वामसृ आरभ्य ६५ वियोगः अंशसंख्या समाप्तम् समाप्तम् वियोगः १ समाप्तम् ।
-    यदि उच्चांशाः समम् सर्वैकाः आदि
+    चरः अधोन्यूनांशाः ॱॱ अ६४ भवति आरभ्य आरभ्य १ वामसृ आरभ्य अंशसंख्या वियोगः १ समाप्तम् समाप्तम् वियोगः १ समाप्तम् ।
+    चरः उच्चांशकम् ॱॱ अ६४ भवति आरभ्य १८४४६७४४०७३७०९५५१६१५ वियोगः अधोन्यूनांशाः समाप्तम् ।
+    यदि आरभ्य मूल्यम् युक् उच्चांशकम् समाप्तम् समम् उच्चांशकम् आदि
         प्रत्यागमनम् सत्यम् ।
     इति
     प्रत्यागमनम् असत्यम् ।
@@ -3354,7 +3414,21 @@
     ॰ mistaken for a label: falling through would read उक्तम् as a name
     ॰ and reserve eight octets for it. See (1) at the head of this block.
     चरः प्रथमपदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पदारम्भः अन्तः ।
-    यदि चिह्नकनामसाम्यम् आरभ्य प्रथमपदम् ऽ उक्तम् उक्तम् इति समाप्तम् आदि
+    ॰ ADR-0044 D3: `वर्णाष्टकम् … इति` is the same literal — the same close, the
+    ॰ same doubling, the same P17/P22/P18 — and its datum is the letters
+    ॰ PACKED, one octet each: a triple २२४ १६४|१६५ x is `x`, or `x योगः ६४`.
+    ॰ parse.rs's `devanagari8::pack`. A body of more than one piece holds a
+    ॰ space, and a piece with a triple outside the block does not pack: P19,
+    ॰ naming the piece, as Rust names args[1].
+    चरः उक्तिरूपम् ॱॱ बूल भवति चिह्नकनामसाम्यम् आरभ्य प्रथमपदम् ऽ उक्तम् उक्तम् इति समाप्तम् ।
+    चरः वर्णाष्टकोक्तिः ॱॱ बूल भवति असत्यम् ।
+    यदि उक्तिरूपम् समम् असत्यम् आदि
+        यदि चिह्नकनामसाम्यम् आरभ्य प्रथमपदम् ऽ उक्तम् वर्णाष्टकम् इति समाप्तम् आदि
+            उक्तिरूपम् भवति सत्यम् ।
+            वर्णाष्टकोक्तिः भवति सत्यम् ।
+        इति
+    इति
+    यदि उक्तिरूपम् समम् सत्यम् आदि
         ॰ W-239: D-002f7's row, WIRED — this arm returned ० and emitted nothing.
         ॰ Rust: P17 unless the width is one; string_body, else P22; P18 if a
         ॰ word follows the close (उक्तिपरीक्षा raises both of those); then the
@@ -3381,6 +3455,13 @@
         इति
         चरः प्रथमांशः ॱॱ अ६४ भवति उक्तिपाठः आरभ्य उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
         चरः समाप्तिः ॱॱ अ६४ भवति उक्तिसमाप्तिः आरभ्य उक्त्यारम्भः ऽ पदसीमा समाप्तम् ।
+        यदि वर्णाष्टकोक्तिः समम् सत्यम् आदि
+            यदि पदसंख्या अधिकम् १ आदि
+                चरः बहुपदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः उक्त्यारम्भः अन्तः ।
+                चरः बहुपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः बहुपदम् ।
+                प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ बहुपदार्थः ऽ १ समाप्तम् ।
+            इति
+        इति
         चरः उक्तिक्रमः ॱॱ अ६४ भवति उक्त्यारम्भः ।
         यावत् उक्तिक्रमः न्यूनम् समाप्तिः आदि
             चरः उक्तिपदम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः उक्तिक्रमः अन्तः ।
@@ -3388,8 +3469,52 @@
                 चरः अन्तरालम् ॱॱ न६४ भवति अष्टकॱअष्टकयोजनम् ३२ ।
                 उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः १ ।
             इति
-            चरः लिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य उक्तिपदम् ॱ पाठ ऽ उक्तिपदम् ॱ अष्टक ऽ उक्तिपदम् ॱ पाठसीमा समाप्तम् ।
-            उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः आरभ्य उक्तिपदम् ॱ पाठसीमा वियोगः उक्तिपदम् ॱ अष्टक समाप्तम् ।
+            यदि वर्णाष्टकोक्तिः समम् सत्यम् आदि
+                ॰ ADR-0044: the piece's triples, packed. The whole piece is
+                ॰ checked before an octet is written, so a refused piece
+                ॰ leaves the arena as it found it.
+                चरः वर्णस्थितिः ॱॱ न६४ भवति उक्तिपदम् ॱ अष्टक ।
+                चरः वर्णसीमा ॱॱ न६४ भवति उक्तिपदम् ॱ पाठसीमा ।
+                चरः वर्णपाठः ॱॱ अङ्कः अन्तः अ८ भवति उक्तिपदम् ॱ पाठ ।
+                चरः पूर्णत्रिकम् ॱॱ बूल भवति सत्यम् ।
+                यावत् वर्णस्थितिः न्यूनम् वर्णसीमा आदि
+                    चरः त्रिकान्तः ॱॱ न६४ भवति वर्णस्थितिः योगः २ ।
+                    यदि त्रिकान्तः बृहत्समम् वर्णसीमा आदि
+                        पूर्णत्रिकम् भवति असत्यम् ।
+                    इति अन्यथा आदि
+                        चरः त्रिकमध्यस्थानम् ॱॱ न६४ भवति वर्णस्थितिः योगः १ ।
+                        चरः त्रिकप्रथमम् ॱॱ न६४ भवति वर्णपाठः अङ्कः वर्णस्थितिः अन्तः ।
+                        चरः त्रिकमध्यम् ॱॱ न६४ भवति वर्णपाठः अङ्कः त्रिकमध्यस्थानम् अन्तः ।
+                        चरः त्रिकान्त्यम् ॱॱ न६४ भवति वर्णपाठः अङ्कः त्रिकान्तः अन्तः ।
+                        यदि त्रिकप्रथमम् असमम् २२४ आदि पूर्णत्रिकम् भवति असत्यम् । इति
+                        यदि त्रिकमध्यम् न्यूनम् १६४ आदि पूर्णत्रिकम् भवति असत्यम् । इति
+                        यदि त्रिकमध्यम् अधिकम् १६५ आदि पूर्णत्रिकम् भवति असत्यम् । इति
+                        यदि त्रिकान्त्यम् न्यूनम् १२८ आदि पूर्णत्रिकम् भवति असत्यम् । इति
+                        यदि त्रिकान्त्यम् अधिकम् १९१ आदि पूर्णत्रिकम् भवति असत्यम् । इति
+                    इति
+                    वर्णस्थितिः भवति वर्णस्थितिः योगः ३ ।
+                इति
+                यदि पूर्णत्रिकम् समम् असत्यम् आदि
+                    चरः अपूर्णपदार्थः ॱॱ अ६४ भवति चिह्नकपदार्थः उक्तिपदम् ।
+                    प्रत्यागमनम् दोषचिह्नकयोजनम् आरभ्य असङ्ख्यकूटः ऽ शिरःचिह्नकम् ऽ अपूर्णपदार्थः ऽ १ समाप्तम् ।
+                इति
+                वर्णस्थितिः भवति उक्तिपदम् ॱ अष्टक ।
+                यावत् वर्णस्थितिः न्यूनम् वर्णसीमा आदि
+                    चरः लेखमध्यस्थानम् ॱॱ न६४ भवति वर्णस्थितिः योगः १ ।
+                    चरः लेखान्तस्थानम् ॱॱ न६४ भवति वर्णस्थितिः योगः २ ।
+                    चरः लेखमध्यम् ॱॱ न६४ भवति वर्णपाठः अङ्कः लेखमध्यस्थानम् अन्तः ।
+                    चरः वर्णैकाष्टकम् ॱॱ न६४ भवति वर्णपाठः अङ्कः लेखान्तस्थानम् अन्तः ।
+                    यदि लेखमध्यम् समम् १६५ आदि
+                        वर्णैकाष्टकम् भवति वर्णैकाष्टकम् योगः ६४ ।
+                    इति
+                    चरः वर्णलिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकयोजनम् वर्णैकाष्टकम् ।
+                    उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः १ ।
+                    वर्णस्थितिः भवति वर्णस्थितिः योगः ३ ।
+                इति
+            इति अन्यथा आदि
+                चरः लिखितम् ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् आरभ्य उक्तिपदम् ॱ पाठ ऽ उक्तिपदम् ॱ अष्टक ऽ उक्तिपदम् ॱ पाठसीमा समाप्तम् ।
+                उक्त्यष्टकसंख्यानम् भवति उक्त्यष्टकसंख्यानम् योगः आरभ्य उक्तिपदम् ॱ पाठसीमा वियोगः उक्तिपदम् ॱ अष्टक समाप्तम् ।
+            इति
             यदि आरभ्य इतिपदम् उक्तिक्रमः समाप्तम् समम् सत्यम् आदि
                 उक्तिक्रमः भवति उक्तिक्रमः योगः २ ।
             इति अन्यथा आदि
@@ -3709,7 +3834,9 @@
 ॰ the row's own note said otherwise and was wrong. What was missing was
 ॰ never the reference, it was the DECLARATION half (`D-002l`).
 सार्वजनिक वृत्तिः सङ्कलनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
-    चरः चिह्नकसंख्या ॱॱ अ६४ भवति पदविभागॱपदविभाग मूल ।
+    ॰ T0 text, so Rust's `lex` and not `lex_t1`: the entry that never makes
+    ॰ `शब्दभेद` (ADR-0017 :206; W-366 (b)).
+    चरः चिह्नकसंख्या ॱॱ अ६४ भवति पदविभागॱवाक्यपदविभाग मूल ।
 
     यदि चिह्नकसंख्या समम् ० आदि
         प्रत्यागमनम् ० ।

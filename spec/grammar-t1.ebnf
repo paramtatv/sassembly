@@ -12,6 +12,10 @@
 (* AMENDED 2026-08-28 by ADR-0018: `keyword` gains `यतिः` and `विवरम्`,      *)
 (* two LAYOUT WORDS that are values. See the note in that production.      *)
 (*                                                                        *)
+(* AMENDED 2026-10-06 by ADR-0044 (D2), under the owner's exemption to the   *)
+(* freeze: `string_open` gains `वर्णाष्टकम्`, a Devanagari-8 data literal. See *)
+(* the note beside that production.                                       *)
+(*                                                                        *)
 (* ADDED 2026-08-28 by ADR-0019 (`D-002g`), OWNER-RATIFIED: the `embed`       *)
 (* production — a derived table brought in BY NAME at assembly time. It is    *)
 (* opened by `समावेशः`, WHICH THIS FILE ALREADY CARRIES as `include`. The      *)
@@ -149,8 +153,8 @@ keyword        = "वृत्तिः"        (* fn        *)
                   own_letters` AND NOTHING ELSE, not even ADR-0017's suite.
 
                   `यतिः` is prosody's caesura and is not coined here: doc 17a
-                  §3.3 already names darshana's line breaker `यतिः` for this
-                  concept and `crates/darshana/src/yati.rs` implements it.
+                  §3.3 already names renderer's line breaker `यतिः` for this
+                  concept and `crates/renderer/src/yati.rs` implements it.
                   `विवरम्` (वि+√वृ) is the interstice. `अवकाशः`, the obvious
                   word for a space, IS TAKEN — `संरचना अवकाश` is the linker's
                   `Slot`, written 14 times across `samyojana.t1` and
@@ -321,8 +325,19 @@ comment        = comment_mark , { non_newline } , newline ;
 string         = string_open ,
                  { aksara_word | string_close , string_close } ,
                  string_close ;
-string_open    = "उक्तम्" ;   (* spoken *)
+string_open    = "उक्तम्" | "वर्णाष्टकम्" ;   (* spoken · Devanagari-8 data *)
 string_close   = "इति"   ;   (* thus   *)
+
+(* AMENDED 2026-10-06 by ADR-0044 (D2), under the OWNER'S EXEMPTION to this
+ * frozen grammar, granted that day "specifically to register `वर्णाष्टकम्` as a
+ * valid data-literal string opener alongside `उक्तम्`". It mirrors `उक्तम्`
+ * EXACTLY: the same close, the same `इति इति` escape, the same one-line rule.
+ * What differs is the VALUE: the letters in Devanagari-8, ONE OCTET PER
+ * LETTER, `0x80 + (code point − 0x0900)` over U+0900–U+097F (D1), so the
+ * length is the letter count. A code point outside that block — a space, a
+ * digit, ASCII, another script — is refused at compile time by
+ * `अदेवनागरीवर्णप्रतिषेधः` (owner-named), naming the letter and its column. `उक्तम्` is
+ * untouched: every program without the new opener means what it meant. *)
 
 (* A string does not cross a newline: an unclosed one is an error at end of
    line, reported at the opener. Interior whitespace is the text's, taken from
@@ -452,7 +467,7 @@ qualified_name = identifier , member_mark , identifier ;
  * `ॱॱ` IS NOT `ॱ`, AND A READER MUST NOT TAKE THE FIRST HALF OF ONE FOR THE
  * OTHER. `crates/sadhana-t1/src/samyojana.t1:74` is `सारणी ॱॱ अङ्कः अन्तः
  * कोशॱसंज्ञा` — the FIELD `सारणी` and the annotation mark — and `सारणी` is also
- * a module, declared at `crates/sankriti/src/text/tables.t1:1`. A reader that
+ * a module, declared at `crates/textapp/src/text/tables.t1:1`. A reader that
  * splits `ॱॱ` reads that field as a qualified name into a module the file never
  * imports, and invents a fourth unimported module out of a colon.
  *
@@ -654,10 +669,13 @@ unary_op       = "ऋण" ;
    proposed `अधि`/`ऊन`/`गुण`/`भाग`/`विषमम्` from doc 15 for five of the senses
    above; no source writes any of them, so they are retired in favour of
    `योगः`/`वियोगः`/`गुणनम्`/`विभाजनम्`/`असमम्`. The first three are T0 mnemonic
-   rows that now serve both tiers rather than new operator rows. Nine lexicon
+   rows that now serve both tiers rather than new operator rows. Eight lexicon
    operators SURVIVE unattested — `शेष`, `च`, `वा`, `न`, `व्यत्यय`, `न्यूनसमम्`,
-   `अधिकसमम्`, `पूर्णक्रमेण`, `परिवृत्तअधि` — because this grammar has no
-   production for their senses at all, so nothing here contradicts them. *)
+   `अधिकसमम्`, `पूर्णक्रमेण` — because this grammar has no production for
+   their senses at all, so nothing here contradicts them. (2026-10-06, owner
+   ruling on W-381 stage 3 (f): a ninth, the wrapping-plus word, was RETIRED
+   from the lexicon when wrapping became the default arithmetic, and its
+   mention here is dropped. Comment only; no production changed.) *)
 
 (* --- the precedence ladder -------------------------------------------- *)
 

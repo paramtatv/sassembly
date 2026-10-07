@@ -24,11 +24,13 @@ use yantra::{FINISHER, Halt, Machine, Privilege, UART};
 /// A machine with `text` at `0x8000_0000` and nothing else. Registers zeroed.
 fn machine(text: &[u32]) -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -40,6 +42,8 @@ fn machine(text: &[u32]) -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     for (i, w) in text.iter().enumerate() {
         m.mem[i * 4..i * 4 + 4].copy_from_slice(&w.to_le_bytes());
@@ -221,11 +225,11 @@ fn a_store_to_the_uart_becomes_output_and_never_reaches_ram() {
 
 #[test]
 fn the_finisher_decodes_success_and_failure() {
-    for (value, status) in [(0x5555u32, Some(0)), (0x0003_3333, Some(3))] {
+    for (value, status) in [(0x5555u64, Some(0)), (0x0003_3333, Some(3))] {
         let mut out = Vec::new();
         let mut m = machine(&[
             u(0x37, 1, FINISHER as u32),
-            u(0x37, 2, value & 0xffff_f000),
+            u(0x37, 2, (value as u32) & 0xffff_f000),
             i(0x13, 2, 0x0, 2, (value & 0xfff) as i32),
             s(0x23, 0x2, 1, 2, 0), // SW
         ]);
@@ -241,6 +245,40 @@ fn the_finisher_decodes_success_and_failure() {
             "value {value:#x}"
         );
     }
+}
+
+/// `W-341` — THE STATUS FIELD IS WIDER THAN SIXTEEN BITS. Error 70000 is
+/// written as `0x3333 | (70000 << 16)` = `0x1_1170_3333`, a 33-bit word; the
+/// arm that read it through `as u32` and `>> 16` answered **4464**, exactly
+/// the figure a peer session measured. The green path (`0x5555` → `Some(0)`)
+/// could never show this, so only failure statuses lost information.
+#[test]
+fn the_finisher_carries_a_status_wider_than_sixteen_bits() {
+    let mut out = Vec::new();
+    let mut m = machine(&[
+        u(0x37, 1, FINISHER as u32), // LUI x1, finisher
+        u(0x37, 2, 0x0001_1000),     // LUI x2, 0x11000
+        i(0x13, 2, 0x0, 2, 0x170),   // ADDI x2, x2, 0x170 -> 70000
+        i(0x13, 2, 0x1, 2, 16),      // SLLI x2, x2, 16
+        u(0x37, 3, 0x0000_3000),     // LUI x3, 0x3000
+        i(0x13, 3, 0x0, 3, 0x333),   // ADDI x3, x3, 0x333 -> 0x3333
+        r(0x33, 2, 0x6, 2, 3, 0x00), // OR x2, x2, x3
+        s(0x23, 0x3, 1, 2, 0),       // SD x2, 0(x1)
+    ]);
+    let mut halt = None;
+    for _ in 0..8 {
+        if let Some(h) = m.step(&mut out) {
+            halt = Some(h);
+        }
+    }
+    let Some(Halt::Finisher { value, status }) = halt else {
+        panic!("expected a finisher halt, got {halt:?}");
+    };
+    assert_eq!(
+        value, 0x1_1170_3333,
+        "the raw written word must survive whole"
+    );
+    assert_eq!(status, Some(70_000), "error 70000 must not be read as 4464");
 }
 
 #[test]
@@ -282,15 +320,35 @@ fn an_unknown_instruction_stops_and_names_itself() {
     // `the_families_this_machine_does_not_have_still_stop` was retired on 2026-09-28, and
     // for the same stated reason: a test given a word it does not mean is worse than no
     // test. Do not weaken what it asks.
+    //
+    // 2026-10-04: IT MOVES THE SIXTH TIME, and the subject has NOT run out. `V-007` gave
+    // OP-V an arm — `0x0200_0057` is `vadd.vv v0, v0, v0`, unmasked and IN the executed
+    // subset, so on a reset machine it now traps illegal (`vtype.vill` is set until a
+    // `vsetvli`) and after one it adds — the same "no longer an absent family" fact that
+    // moved it off `0x53`. But the
+    // claim that OP-V was "the only major family left" with no arm was FALSE when written:
+    // OP-IMM-32 (`0x1b`) and OP-32 (`0x3b`), the RV64I `w` forms, have no arm either,
+    // although `spec/encodings-riscv64.tsv` lists `addiw` and its family. `V-007`'s oracle
+    // found it — its first run halted on the `addiw` inside a `li`. So the word is now
+    // `addiw a0, a0, 1`, `0x0015_051b`, assembled by `riscv64-elf-as`. When the `w` forms
+    // are implemented this moves again; custom-0 (`0x0b`) is the family the ISA promises
+    // will never be standard, if nothing well-formed is left by then.
+    //
+    // 2026-10-06: IT MOVES THE SEVENTH TIME, to custom-0, as the line above said it would.
+    // `V-009` part (i-d) implemented OP-IMM-32 and OP-32 against QEMU, and no standard
+    // major family is left without an arm. `0x0015_050b` is the same fields under opcode
+    // `0x0b`, the family the ISA reserves for custom extensions and promises never to
+    // standardise — so this word is unimplemented by construction, not by a gap, and the
+    // test cannot be moved again by an extension landing.
     let mut out = Vec::new();
-    let mut m = machine(&[0x0200_0057]);
+    let mut m = machine(&[0x0015_050b]);
     let halt = m.step(&mut out).expect("must halt");
     assert_eq!(
         halt,
         Halt::Unimplemented {
             pc: 0x8000_0000,
-            word: 0x0200_0057,
-            opcode: 0x57
+            word: 0x0015_050b,
+            opcode: 0x0b
         }
     );
 }
@@ -347,11 +405,13 @@ fn a_program_that_outgrows_its_ram_halts_naming_the_limit_not_the_address() {
     // `ld x5, 0(x6)` — a load whose address this machine does not have.
     let word: u32 = 0x0003_3283;
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -367,6 +427,8 @@ fn a_program_that_outgrows_its_ram_halts_naming_the_limit_not_the_address() {
         mode: yantra::Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.x[6] = BASE + ram as u64 + 8; // eight bytes past the end of this RAM
     let mut out = Vec::new();
@@ -548,4 +610,171 @@ fn an_unclaimed_funct7_still_halts_so_the_new_arms_did_not_widen_the_door() {
         matches!(halt, Some(yantra::Halt::Unimplemented { opcode: 0x33, .. })),
         "funct7 0x02 is not the M extension and must still halt, got {halt:?}"
     );
+}
+
+/// **W-363: A STORE STOPS AT THE BUDGET AND A LOAD DOES NOT** — the asymmetry that
+/// keeps a program from overwriting its own injected input.
+///
+/// `input::inject` takes `old_top = mem.len()` and then resizes, so the input slab
+/// sits ABOVE the RAM the caller asked for. The record allocator is a bump cursor
+/// with no upper bound, growing up from the file-backed extent, so with one bound
+/// for both directions the heap reaches the slab and the program overwrites the
+/// source it is still reading. A peer session bisected what that costs to the octet: at
+/// a 2,557,897-octet budget a ten-frame decode answered `Finisher` status 0 with
+/// EIGHT frames and a different digest, while 2,557,896 refused outright. Neither
+/// was `BeyondRam`. A wrong answer reported as success is the one outcome this VM's
+/// whole design refuses, so the bound is split.
+///
+/// Three parts, and the third is the one a careless fix would break. The refusal
+/// must happen; a store just below must still work, or the bound is simply broken
+/// rather than placed; and a LOAD above the bound must still succeed, because
+/// reading the injected input is the entire reason the slab is mapped at all.
+#[test]
+fn a_store_stops_at_the_store_limit_while_a_load_still_reaches_the_input_above_it() {
+    const BASE: u64 = 0x8000_0000;
+    const RAM: usize = 1 << 16;
+    const BUDGET: usize = 1 << 15; // the slab would live in [BUDGET, RAM)
+
+    // `sd x2, 0(x1)` and `ld x5, 0(x1)` over the same address register.
+    let build = |word: u32| Machine {
+        store_limit: BUDGET,
+        patra_root: None,
+        patra_path: None,
+        patra_buffer: None,
+        virtio: Default::default(),
+        x: [0; 32],
+        f: [0; 32],
+        fcsr: 0,
+        pc: BASE,
+        base: BASE,
+        mem: {
+            let mut v = vec![0u8; RAM];
+            v[..4].copy_from_slice(&word.to_le_bytes());
+            v
+        },
+        reservation: None,
+        csr: yantra::Csrs::default(),
+        mode: yantra::Privilege::Supervisor,
+        time: 0,
+        timecmp: None,
+        vec: Default::default(),
+        socket: None,
+    };
+    let store = s(0x23, 0x3, 1, 2, 0);
+    let load = i(0x03, 5, 0x3, 1, 0);
+
+    // (1) THE REFUSAL. The first octet above the budget, which is where the slab's
+    // first octet would be.
+    let mut m = build(store);
+    m.x[1] = BASE + BUDGET as u64;
+    m.x[2] = 0xDEAD_BEEF;
+    let mut out = Vec::new();
+    match m.step(&mut out) {
+        Some(Halt::BeyondRam { ram: reported, .. }) => assert_eq!(
+            reported, BUDGET,
+            "the halt must name the BUDGET it crossed, not the length of `mem` — a \
+             program told it ran out at {RAM} would raise the wrong number"
+        ),
+        other => panic!(
+            "a store at the first octet above the budget must halt `BeyondRam`; got \
+             {other:?}"
+        ),
+    }
+
+    // (2) THE REMOVAL CONTROL. Eight octets lower is inside the budget and must
+    // land, or part (1) proves only that stores are broken.
+    let mut m = build(store);
+    m.x[1] = BASE + BUDGET as u64 - 8;
+    m.x[2] = 0x0102_0304_0506_0708;
+    let mut out = Vec::new();
+    assert_eq!(
+        m.step(&mut out),
+        None,
+        "a store inside the budget must not halt"
+    );
+    assert_eq!(
+        &m.mem[BUDGET - 8..BUDGET],
+        &0x0102_0304_0506_0708u64.to_le_bytes(),
+        "and it must actually have been written"
+    );
+
+    // (3) THE ASYMMETRY. A load from above the budget must SUCCEED — this is the
+    // injected input, and a guard that walled it off for reads too would make the
+    // slab unreachable and break every program that takes an input.
+    let mut m = build(load);
+    m.mem[BUDGET..BUDGET + 8].copy_from_slice(&0x1122_3344_5566_7788u64.to_le_bytes());
+    m.x[1] = BASE + BUDGET as u64;
+    let mut out = Vec::new();
+    assert_eq!(
+        m.step(&mut out),
+        None,
+        "a LOAD above the store bound must be allowed — that region is the input"
+    );
+    assert_eq!(
+        m.x[5], 0x1122_3344_5566_7788,
+        "and it must have read the octets that are there"
+    );
+}
+
+/// **W-363's THIRD PIECE: THE STORE BOUND UNDER `Span::Declared` TOO.**
+///
+/// `load_elf` (the declared span, every caller but the browser walker) left
+/// `store_limit` at `usize::MAX`, so once input was injected above the RAM it
+/// asked for — `input::inject` RESIZES `mem` past it — a store could walk
+/// straight into the slab and overwrite the program's own input, silently: the
+/// 2026-09-21 self-image build grew to 559,504,480 octets over a 555,254,376 top,
+/// and `yantra-run.rs`'s advisory stderr line was the only witness. Now the same
+/// store halts `BeyondRam`, naming the RAM it was given. The resize here is the
+/// one `inject` performs; a load above the bound must still reach the slab.
+#[test]
+fn under_the_declared_span_a_store_stops_at_the_ram_it_was_loaded_with() {
+    const BASE: u64 = 0x8000_0000;
+    const RAM: usize = 1 << 16;
+    let store = s(0x23, 0x3, 1, 2, 0); // sd x2, 0(x1)
+    let load = i(0x03, 5, 0x3, 1, 0); //  ld x5, 0(x1)
+    let machine = |word: u32| {
+        let mut m = Machine::load_elf(&kosha::write(&word.to_le_bytes()), RAM)
+            .expect("a four-octet image loads at the declared span");
+        m.mem.resize(RAM + 4096, 0x5A); // the slab, as `input::inject` appends it
+        m
+    };
+
+    // (1) THE REFUSAL: the slab's first octet.
+    let mut m = machine(store);
+    m.x[1] = BASE + RAM as u64;
+    m.x[2] = 0xDEAD_BEEF;
+    match m.step(&mut Vec::new()) {
+        Some(Halt::BeyondRam { ram, .. }) => assert_eq!(ram, RAM, "names the RAM it was given"),
+        other => panic!(
+            "a store into the injected slab under `Span::Declared` must halt `BeyondRam`; \
+             got {other:?} and the slab now reads {:02x?}",
+            &m.mem[RAM..RAM + 8]
+        ),
+    }
+    assert_eq!(
+        &m.mem[RAM..RAM + 8],
+        &[0x5A; 8],
+        "and the input is untouched"
+    );
+
+    // (2) THE REMOVAL CONTROL: eight octets lower lands.
+    let mut m = machine(store);
+    m.x[1] = BASE + RAM as u64 - 8;
+    m.x[2] = 7;
+    assert_eq!(
+        m.step(&mut Vec::new()),
+        None,
+        "a store inside RAM must not halt"
+    );
+    assert_eq!(m.mem[RAM - 8], 7);
+
+    // (3) READING THE INPUT still works.
+    let mut m = machine(load);
+    m.x[1] = BASE + RAM as u64;
+    assert_eq!(
+        m.step(&mut Vec::new()),
+        None,
+        "a load above the bound reaches the slab"
+    );
+    assert_eq!(m.x[5], 0x5A5A_5A5A_5A5A_5A5A);
 }

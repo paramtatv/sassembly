@@ -3,7 +3,7 @@
 //!
 //! `W-313` split `repertoire_violations` into 13,442 the lexer refuses and
 //! 1,724 a text directive carries, and its `Next:` named the one part of the
-//! 13,442 that is **not** the `sankriti` decision: 82 characters in four
+//! 13,442 that is **not** the `textapp` decision: 82 characters in four
 //! `.sas` drafts under `crates/sadhana/src/t1/tests/` — `ident`, `lex`,
 //! `parse`, `repertoire` — written in Latin routine names (`in_repertoire`,
 //! `is_punctuation`, `validate`) and ASCII digits (`32`, `9`, `10`). The
@@ -42,7 +42,7 @@
 //! every site asserts that the lexer **refuses** it — twice by
 //! `repertoire_text_directive_boundary.rs` (the control that must stay red)
 //! and once in `repertoire_census.rs`'s prose. Not one of the four is read as
-//! SOURCE by anything. They join the `sankriti` question rather than being
+//! SOURCE by anything. They join the `textapp` question rather than being
 //! deleted here, which is `W-313`'s own instruction.
 //!
 //! Of 109 `.sas` in the tree: 82 `WALKED`, 3 `NAMED`, 17 `DEAD`, 7
@@ -54,7 +54,7 @@
 //!
 //! [`the_four_sas_under_crates_are_still_refused_by_the_real_lexer`] first
 //! reported **ten** where `W-313` reported **82**, and the gap was the unit,
-//! not the tree: `lex.rs:622-636` pushes **one `LexError` per WORD**, naming
+//! not the tree: `lex.rs:622-662` pushes **one `LexError` per WORD**, naming
 //! the first offending akṣara and putting the rest in the reason as
 //! `(N more in this word)`, while the census counts CHARACTERS. Reading the
 //! two side by side would have said the refusals fell 88% on a tree where
@@ -508,7 +508,7 @@ fn repertoire_errors(src: &str) -> Vec<LexError> {
 
 /// How many akṣaras one `LexError` stands for.
 ///
-/// `lex.rs:622-636` pushes **one error per WORD**, names the first offending
+/// `lex.rs:622-662` pushes **one error per WORD**, names the first offending
 /// akṣara in `aksara`, and puts the rest in the reason as
 /// `(N more in this word)`. The count is therefore `1 + N`, and the only
 /// channel the lexer offers for `N` is that sentence. Parsing a diagnostic is

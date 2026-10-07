@@ -1,5 +1,6 @@
 [package]
 name = "sadhana"
+license.workspace = true
 description = "साधनम् — the SANSOS toolchain (doc 17): assembler, linker and compiler as one instrument. T0 lexer for the frozen grammar in spec/grammar-t0.ebnf."
 version.workspace = true
 edition.workspace = true
@@ -16,10 +17,11 @@ default-run = "sadhana"
 sanskrit-text = { path = "../sanskrit-text" }
 
 # NOTE (public release): the upstream tree carries a dev-dependency on
-# `darshana`, the browser engine, used by ONE test that compares two `Rupa`
-# types with `==`. Neither that crate nor that test is part of this
-# repository. It was a dev-dependency upstream too, so nothing that ships
-# changes: it never linked into a binary and was never transitive.
+# `renderer`, the browser engine, used by ONE test that compares two `Rupa`
+# types with `==` (`tests/t2_rupa_equals_f_004a.rs`). Neither that crate nor that
+# test is part of this repository. It was a dev-dependency upstream too, so
+# nothing that ships changes: it never linked into a binary and was never
+# transitive.
 
 [lib]
 path = "src/lib.rs"

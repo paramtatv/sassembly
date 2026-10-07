@@ -37,11 +37,13 @@ const BASE: u64 = 0x8000_0000;
 /// `x11` holding the second operand.
 fn machine(word: u32, target: u64, width: usize, src: u64) -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -53,6 +55,8 @@ fn machine(word: u32, target: u64, width: usize, src: u64) -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.mem[0..4].copy_from_slice(&word.to_le_bytes());
     let at = (TARGET - BASE) as usize;
@@ -261,6 +265,9 @@ fn every_fence_in_the_encoding_table_executes_as_a_no_op() {
 // `an_unknown_instruction_stops_and_names_itself` carries the "an absent family stops and
 // names itself" claim instead, and it moved to opcode `0x57` (OP-V) for exactly this
 // reason. When row `V-007` implements V, that test moves again — and it says so.
+// 2026-10-04: `V-007` did, and it moved to `addiw` (OP-IMM-32, `0x1b`): "the only major
+// family the machine still lacks" above was not true when written — the RV64I `w` forms
+// (OP-IMM-32 and OP-32) have no arm either, though this file's `table()` lists them.
 
 // ---------------------------------------------------------------------------------------
 // The parts no single-instruction table row can express.

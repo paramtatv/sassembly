@@ -207,7 +207,7 @@ const STRING_CLOSE: &str = "इति";
 const COMMENT_MARK: char = '॰';
 
 /// `यतिः`, *"the caesura, the pause that divides a metrical line"* — LINE FEED
-/// (U+000A) as a value (ADR-0018). Doc 17a §3.3 already names `darshana`'s line
+/// (U+000A) as a value (ADR-0018). Doc 17a §3.3 already names `renderer`'s line
 /// breaker with this word, for the same concept.
 const NEWLINE_WORD: &str = "यतिः";
 /// `विवरम्`, *"an opening, an interstice"* — SPACE (U+0020) as a value
@@ -273,6 +273,11 @@ enum Piece<'a> {
         raw: &'a str,
         /// The text between them, doubling resolved.
         value: String,
+        /// ADR-0044: the source between the delimiters, unresolved — from the
+        /// first body word to the end of the last — and its offset within the
+        /// line, so a `वर्णाष्टकम्` refusal can name a column. Empty for an
+        /// empty literal.
+        body: (usize, &'a str),
     },
 }
 
@@ -344,7 +349,14 @@ fn pieces(line: &str, strings: Strings) -> Result<Vec<Piece<'_>>, usize> {
     // offsets it produces are load-bearing for every diagnostic.
     let mut words: Vec<(usize, &str)> = Vec::new();
     let mut cursor = 0usize;
-    for w in line.split_whitespace() {
+    // ADR-0044 review F1/F2: words are split on R-15-1's LAYOUT characters only
+    // (SPACE, TAB, and the CR a CRLF line leaves) — the `.t1` lexer's own set
+    // (`lex.t1`'s `अवकाशः`). `split_whitespace` also split on NBSP, NEL, the
+    // Unicode spaces and VT, so such a character was silently a separator here
+    // and never met the repertoire check, while the `.t1` lexer kept it inside
+    // a word: `॥ अष्टकाः वर्णाष्टकम् <NBSP>क इति ॥` assembled as [0x95] here and
+    // was P19 there. Now it is inside the word on both sides and refused.
+    for w in line.split(|c: char| is_layout(c)).filter(|w| !w.is_empty()) {
         let at = line[cursor..].find(w).map_or(cursor, |o| cursor + o);
         cursor = at + w.len();
         words.push((at, w));
@@ -355,16 +367,28 @@ fn pieces(line: &str, strings: Strings) -> Result<Vec<Piece<'_>>, usize> {
     while i < words.len() {
         let (at, w) = words[i];
 
-        if strings == Strings::Token && w == STRING_OPEN {
+        // ADR-0044 D2: `वर्णाष्टकम्` is a second opener and mirrors `उक्तम्`
+        // EXACTLY — the same close, the same doubling, the same one-line rule —
+        // so it takes the same path. What differs is its value, which
+        // `lex_with` checks and `devanagari8::literal_octets` packs.
+        if strings == Strings::Token && (w == STRING_OPEN || w == crate::devanagari8::OPEN) {
             let (value, close) = string_value(line, &words, i).ok_or(at)?;
             let (cat, cw) = words[close];
             // `इति ।` is how every source in the tree writes it, but `इति।`
             // must not silently fail to close.
             let (chead, ctail) = split_trailing_punct(cw);
+            let body = if close > i + 1 {
+                let (b0, _) = words[i + 1];
+                let (bl, blw) = words[close - 1];
+                (b0, &line[b0..bl + blw.len()])
+            } else {
+                (cat, "")
+            };
             out.push(Piece::Str {
                 at,
                 raw: &line[at..cat + chead.len()],
                 value,
+                body,
             });
             if let Some(p) = ctail {
                 out.push(Piece::Word {
@@ -393,6 +417,13 @@ fn pieces(line: &str, strings: Strings) -> Result<Vec<Piece<'_>>, usize> {
         i += 1;
     }
     Ok(out)
+}
+
+/// R-15-1's layout characters as a word separator: SPACE and TAB, and the CR a
+/// CRLF line ends with (`str::lines` leaves a lone `\r` mid-line). The `.t1`
+/// lexer's `अवकाशः` is the same set (it also lists LF, which `lines` consumes).
+fn is_layout(c: char) -> bool {
+    matches!(c, ' ' | '\t' | '\r')
 }
 
 fn punctuation(word: &str) -> Option<Kind> {
@@ -543,8 +574,14 @@ fn lex_with(source: &str, strings: Strings) -> Result<Vec<Token>, Vec<LexError>>
                 let byte = line_start + at;
                 current_akshara_count += aksharas(&source[prev_byte..byte]).count();
                 prev_byte = byte;
+                // ADR-0044: the opener that was left open, by name.
+                let opener = if line[at..].starts_with(crate::devanagari8::OPEN) {
+                    crate::devanagari8::OPEN
+                } else {
+                    STRING_OPEN
+                };
                 errors.push(LexError {
-                    aksara: STRING_OPEN.to_string(),
+                    aksara: opener.to_string(),
                     byte,
                     index: current_akshara_count,
                     line: line_no,
@@ -552,7 +589,7 @@ fn lex_with(source: &str, strings: Strings) -> Result<Vec<Token>, Vec<LexError>>
                     // file would turn one missing word into a diagnostic about
                     // the last line of the program.
                     reason: format!(
-                        "`{STRING_OPEN}` opens a string that no `{STRING_CLOSE}` closes on this line"
+                        "`{opener}` opens a string that no `{STRING_CLOSE}` closes on this line"
                     ),
                 });
                 continue;
@@ -568,6 +605,9 @@ fn lex_with(source: &str, strings: Strings) -> Result<Vec<Token>, Vec<LexError>>
                 // worse than the gap it filled.
                 Piece::Str { at, raw, .. } => (*at, *raw),
             };
+            let opener_is_d8 = matches!(&piece, Piece::Str { raw, .. }
+                if raw.strip_prefix(crate::devanagari8::OPEN)
+                    .is_some_and(|r| r.is_empty() || r.starts_with(is_layout)));
             let byte = line_start + at;
             if prev_byte > byte {
                 panic!(
@@ -579,6 +619,45 @@ fn lex_with(source: &str, strings: Strings) -> Result<Vec<Token>, Vec<LexError>>
             current_akshara_count += aksharas(&source[prev_byte..byte]).count();
             prev_byte = byte;
             let index = current_akshara_count;
+
+            // ADR-0044 D2: a `वर्णाष्टकम्` literal holds Devanagari letters and
+            // nothing else, and the refusal is the owner's, named — checked
+            // BEFORE the repertoire so a Latin letter or an ASCII digit is
+            // refused by this rule and not by doc 15's general one. The body is
+            // the source between the delimiters; the one body that is not its
+            // own letters is a lone `इति इति` pair, whose value is `इति`.
+            if opener_is_d8
+                && let Piece::Str {
+                    body: (body_at, body),
+                    ..
+                } = &piece
+            {
+                let pair = body
+                    .split(|c: char| is_layout(c))
+                    .filter(|w| !w.is_empty())
+                    .collect::<Vec<_>>()
+                    == ["इति", "इति"];
+                if !pair && let Some((off, ch)) = crate::devanagari8::first_outside(body) {
+                    let in_line = body_at + off;
+                    let column = line[..in_line].chars().count() + 1;
+                    errors.push(LexError {
+                        aksara: ch.to_string(),
+                        byte: line_start + in_line,
+                        index: index + aksharas(&line[at..in_line]).count(),
+                        line: line_no,
+                        reason: format!(
+                            "{}: `{}` (U+{:04X}) at column {column} is not a Devanagari \
+                             letter — a `{}` literal holds only U+0900–U+097F, one octet \
+                             per letter (ADR-0044)",
+                            crate::devanagari8::REFUSAL,
+                            ch.escape_debug(),
+                            u32::from(ch),
+                            crate::devanagari8::OPEN,
+                        ),
+                    });
+                    continue;
+                }
+            }
 
             if word == "आस्की" {
                 in_ascii = true;
@@ -621,16 +700,42 @@ fn lex_with(source: &str, strings: Strings) -> Result<Vec<Token>, Vec<LexError>>
 
                 if let Some(first) = violations.first() {
                     let more = violations.len() - 1;
+                    // W-349. The repertoire sentence is TRUE of a brace and is not
+                    // the diagnosis: an ASCII brace or bracket in a source is, in
+                    // practice, a template placeholder some generator did not
+                    // substitute (the report was an f-string split by an edit, and
+                    // a 268 s build to find it). So the word is refused exactly as
+                    // before and the refusal says where to look.
+                    //
+                    // THE HINT SITS BETWEEN THE SENTENCE AND THE COUNT, WITH NO
+                    // ` (` OF ITS OWN. Six test files filter on the sentence, and
+                    // `sas_reachability.rs` recovers the count by
+                    // `split_once(" (")` then `strip_suffix(" more in this word)")`
+                    // — a parenthesis here, or a hint after the count, would turn
+                    // every braced word's count into 1 without reddening anything.
+                    //
+                    // ANY violation in the word, not only the first: `x{0}` names
+                    // `x`, and the brace is still why the word exists.
+                    let placeholder = violations
+                        .iter()
+                        .any(|v| matches!(v.ch, '{' | '}' | '[' | ']'));
+                    let hint = if placeholder {
+                        "; an ASCII brace or bracket in a source is almost always a template \
+                         placeholder its generator did not substitute, so look at whatever \
+                         wrote this file"
+                    } else {
+                        ""
+                    };
                     errors.push(LexError {
                         aksara: first.ch.to_string(),
                         byte: byte + first.at,
                         index,
                         line: line_no,
                         reason: if more == 0 {
-                            format!("`{}` is outside the doc 15 repertoire", first.ch)
+                            format!("`{}` is outside the doc 15 repertoire{hint}", first.ch)
                         } else {
                             format!(
-                                "`{}` is outside the doc 15 repertoire ({more} more in this word)",
+                                "`{}` is outside the doc 15 repertoire{hint} ({more} more in this word)",
                                 first.ch
                             )
                         },

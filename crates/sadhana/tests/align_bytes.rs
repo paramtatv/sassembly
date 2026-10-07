@@ -3,7 +3,7 @@
 //! `W-071`'s seven tests all read one surface: `encode::layout_addresses`. That
 //! function is now very well tested and the bytes it is supposed to describe
 //! were not tested at all, so `W-071`'s fix could be reverted with all seventy
-//! green. `sansos-f0` found that cold, by mutation; an eighth test of the same
+//! green. a peer session found that cold, by mutation; an eighth test of the same
 //! kind would not have found it, which is the point.
 //!
 //! Every test here reads a byte or a recorded value that a PRODUCER wrote —

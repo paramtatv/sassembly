@@ -44,25 +44,16 @@
 आयातः अष्टक ।        ॰ the OUTPUT CHANNEL — `मुद्रणम्`, and nothing else here uses it
 आयातः समावेशसारणी ।   ॰ the generated spec-table store (tools/mkspectables.py)
 
-आयातः अक्षरकोश ।     ॰ R-15-1's repertoire — W-304, and `पठनम्` gates on it
+आयातः अक्षरकोश ।     ॰ R-15-1's repertoire — W-304: `पठनम्` lexes through `परिधिपदविभाग`
 
-॰ ॥ THE REPERTOIRE REFUSAL ॥ did the last `पठनम्` meet a code point outside
-॰ R-15-1, and at which octet. A reader asks the module that refused, exactly as
-॰ `निर्णयविरामभेद` is asked: `पठनम्` answers ० for this AND for "no
-॰ declarations", so the two cannot be told apart from the return alone.
-॰
-॰ `न६४` IS UNSIGNED, so there is no −१ to mean "none" — hence a बूल beside the
-॰ offset rather than a sentinel inside it.
-॰
-॰ THE GATE IS A PRE-PASS, NOT A CHECK INSIDE THE LEXER, AND THAT IS FORCED.
-॰ `lex.t1` imports NOTHING and the table lives in `अक्षरकोश`, so `पदविभाग`
-॰ cannot reach it; giving the lexer its first import to invert that edge is a
-॰ structural change this row does not need. `lex.rs:583-625` checks per WORD
-॰ while lexing; this refuses the source before `पदविभाग` sees it. The VERDICT is
-॰ identical — `t1_repertoire_twin` compares verdicts, not offsets, over 69
-॰ sources — and the diagnostic is ONE offset rather than one per offending word.
-सार्वजनिक चरः परिधिदोषस्थितम् ॱॱ बूल भवति असत्यम् ।
-सार्वजनिक चरः परिधिदोषस्थानम् ॱॱ न६४ भवति ० ।   ॰ the octet, meaningful only when the बूल above is सत्यम्
+॰ ॥ THE REPERTOIRE REFUSAL ॥ did the last SOURCE lexed meet a code point outside
+॰ R-15-1, and at which octet: `अक्षरकोशॱपरिधिदोषस्थितम्` and `परिधिदोषस्थानम्`.
+॰ They lived HERE until 2026-10-01 (W-304, a peer session's placement ruling), when
+॰ the gate moved out of `पठनम्` into `अक्षरकोशॱपरिधिपदविभाग` — the ONE gated
+॰ source entry, which `chain.rs`'s `Front::lex` also calls, so the driver that
+॰ never reaches `पठनम्` is gated too. `पठनम्` answers ० for this AND for "no
+॰ declarations", so a reader asks those two globals, exactly as
+॰ `निर्णयविरामभेद` is asked.
 
 ॰ How many objects the last `मण्डलानिप्रतिबिम्बम्` collected — the startup plus
 ॰ every source that produced one. A caller cannot recover this from the image,
@@ -183,13 +174,38 @@
 ॰ module that built routines and emitted zero octets, which until 2026-09-15
 ॰ reported `सङ्कलनसिद्धभेद` and was counted as a success by everything downstream.
 सार्वजनिक चरः सङ्कलनानुत्सर्जनभेद ॱॱ न६४ भवति ७ ।   ॰ built routines, emitted nothing
+॰ W-345 — THE SOURCE NEVER LEXED: an octet outside R-15-1, refused by
+॰ `अक्षरकोशॱपरिधिपदविभाग` before a single token was written. Until this value
+॰ existed the exit was recorded as `सङ्कलनाघोषणाभेद` (१), because `पठनम्`
+॰ answers ० tokens and ० declarations alike and the caller read only the
+॰ count — so a corpus walk filed a repertoire-refused source under "declared
+॰ nothing, not a failure" and `t1_boot --object` exited SUCCESS on it. The
+॰ octet is at `अक्षरकोशॱपरिधिदोषस्थानम्`, meaningful while `परिधिदोषस्थितम्`
+॰ stands; `chain::refusal_site` renders both.
+सार्वजनिक चरः सङ्कलनपरिधिभेद ॱॱ न६४ भवति ८ ।        ॰ an octet outside R-15-1 — never lexed
+॰ W-342 — THE PARSER REFUSED IT. The third cause behind `पठनम्`'s ०, and until
+॰ this value existed it too was recorded as `सङ्कलनाघोषणाभेद` (१): measured on
+॰ `393532c5`, a source refused at line ३ built with no entry printed "0
+॰ source(s) failed to compile, 1 declared nothing", wrote an image of the
+॰ startup alone and exited ZERO. The record is `व्याकरॱदोषकोश`, १ to
+॰ `व्याकरॱदोषसूचकाङ्क` — line, column and reason — and it is this source's
+॰ own because `पठनम्` resets the count before the gate.
+सार्वजनिक चरः सङ्कलनव्याकरणभेद ॱॱ न६४ भवति ९ ।      ॰ the parser refused it — tokens, no program
+
+॰ `W-359` — THE LOWERING COULD NOT BOUND A PARAMETER STORE. `मध्यरूप` counts a
+॰ store into a guarded run parameter it cannot bound (no element width, or a
+॰ slot past its mask) in `मध्यरूपॱप्राचलरक्षादोषसंख्या` instead of emitting the
+॰ unbounded store, and the module is refused here, after `रचना`.
+सार्वजनिक चरः सङ्कलनप्राचलरक्षाभेद ॱॱ न६४ भवति १० ।
+॰ `V-005`: `मध्यरूप` refused a value crossing into a declared file it is not in.
+सार्वजनिक चरः सङ्कलनवर्गविरोधभेद ॱॱ न६४ भवति ११ ।
 
 ॰ W-279 — WHICH EXIT `पाठवस्तुरचना` TOOK. The same defect as `सङ्कलनविरामभेद`
 ॰ one layer down: four ways out and `शून्यम्` from three of them, so a module
 ॰ that assembled nothing DELIBERATELY and a module whose reader failed were one
 ॰ answer. `मण्डलानिप्रतिबिम्बम्` reads that `शून्यम्` and cannot say which.
 ॰
-॰ FOUR EXITS, NOT SIX, and one of them is not constructible — see the test.
+॰ FOUR EXITS, NOT SIX; FIVE SINCE W-302 (५, the splitter refused). One is not constructible — see the test.
 ॰ THE SENTINEL IS THE DEFAULT, for the reason W-280's was: a return that
 ॰ forgets to record reports a value NO CALLER EXPECTS rather than "built".
 सार्वजनिक चरः वस्तुरचनाविरामभेद ॱॱ न६४ भवति ४ ।
@@ -199,6 +215,7 @@
 सार्वजनिक चरः वस्तुरचनारिक्तभेद ॱॱ न६४ भवति २ ।    ॰ statements, but NOTHING was built
 सार्वजनिक चरः वस्तुरचनाष्टकभेद ॱॱ न६४ भवति ३ ।     ॰ encoding refused — see सङ्केतनदोष
 सार्वजनिक चरः वस्तुरचनानारब्धभेद ॱॱ न६४ भवति ४ ।   ॰ no exit recorded — a defect
+सार्वजनिक चरः वस्तुरचनावाक्यदोषभेद ॱॱ न६४ भवति ५ ।  ॰ W-302: the splitter refused a statement — see वाक्यविभागदोषकोश
 
 ॰ THE RESOLVER, KEPT RATHER THAN DISCARDED — and this is the whole reason the
 ॰ `.t1` chain needed `chain.rs` to name its routines.
@@ -290,18 +307,17 @@
 
 ॰ ॥ पठनम् ॥ source octets to declarations — lex and parse.
 सार्वजनिक वृत्तिः पठनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
-    ॰ RESET FIRST, so a reader of a SECOND call never sees the first's exit.
-    परिधिदोषस्थितम् भवति असत्यम् ।
-    परिधिदोषस्थानम् भवति ० ।
-    ॰ R-15-1 BEFORE ANYTHING IS TOKENISED. `परिधिदोषः` answers the octet of the
-    ॰ first inadmissible code point, or `मूल ॱ दैर्घ्य` when the source is clean.
-    चरः परिधिस्थानम् ॱॱ न६४ भवति अक्षरकोशॱपरिधिदोषः मूल ।
-    यदि परिधिस्थानम् न्यूनम् मूल ॱ दैर्घ्य आदि
-        परिधिदोषस्थितम् भवति सत्यम् ।
-        परिधिदोषस्थानम् भवति परिधिस्थानम् ।
-        प्रत्यागमनम् ० ।
-    इति
-    चरः चिह्नकाः ॱॱ न६४ भवति पदविभागॱपदविभाग मूल ।
+    ॰ R-15-1 BEFORE ANYTHING IS TOKENISED, through the ONE gated source entry
+    ॰ (W-304): `परिधिपदविभाग` resets and sets `परिधिदोषस्थितम्`/`परिधिदोषस्थानम्`
+    ॰ and answers ० tokens on a refusal, which the test just below already stops on.
+    ॰ W-342 — THE PARSER'S COUNT IS RESET HERE, BEFORE THE GATE, AND NOT ONLY
+    ॰ WHERE THE PARSER RESETS IT. `कार्यक्रमपठनम्` zeroes `दोषसूचकाङ्क` on entry,
+    ॰ and the return just below leaves before it is called. Measured: a
+    ॰ comment-only source read right after a parse refusal still showed the
+    ॰ refusal's १. `मण्डलसङ्कलनम्` asks this count, so without this line it
+    ॰ would call the NEXT zero-token source — `lib.t1` — a parse refusal.
+    व्याकरॱदोषसूचकाङ्क भवति ० ।
+    चरः चिह्नकाः ॱॱ न६४ भवति अक्षरकोशॱपरिधिपदविभाग मूल ।
     यदि चिह्नकाः समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
@@ -421,8 +437,22 @@
         चरः नामचिह्नकाङ्कः ॱॱ न६४ भवति मध्यरूपॱवृत्तिनामचिह्नककोश अङ्कः क्रमः अन्तः ।
         ॰ Token ० is the module's synthesised growth routine (ir.t1's वृद्धिवृत्तिसंज्ञा):
         ॰ its symbol is already in कार्यम् ॱ नाम; name it (module, "खण्डवृद्धिः").
+        ॰ `V-009` (ii): token ० is also one of the two matrix kernel routines,
+        ॰ told apart by the symbol `ir.t1` gave them: (module, "आव्यूहगुणनम्") and
+        ॰ (module, "व्युत्क्रमः") — `chain.rs`'s twin reads the same symbols.
         यदि नामचिह्नकाङ्कः समम् ० आदि
-            चरः वृद्धिस्थलम् ॱॱ न६४ भवति यन्त्रोत्सर्जनॱयन्त्रनामयोजनम् आरभ्य कार्यम् ॱ नाम ऽ मण्डलनाम ऽ उक्तम् खण्डवृद्धिः इति समाप्तम् ।
+            चरः संश्लिष्टनाम ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् खण्डवृद्धिः इति ।
+            यदि कार्यम् ॱ नाम समम् मध्यरूपॱआव्यूहवृत्तिसंज्ञा आदि
+                संश्लिष्टनाम भवति उक्तम् आव्यूहगुणनम् इति ।
+            इति
+            यदि कार्यम् ॱ नाम समम् मध्यरूपॱव्युत्क्रमवृत्तिसंज्ञा आदि
+                संश्लिष्टनाम भवति उक्तम् व्युत्क्रमः इति ।
+            इति
+            ॰ `N-004`: the module's run compare (ir.t1's साम्यवृत्तिसंज्ञा).
+            यदि कार्यम् ॱ नाम समम् मध्यरूपॱसाम्यवृत्तिसंज्ञा आदि
+                संश्लिष्टनाम भवति उक्तम् खण्डसाम्यम् इति ।
+            इति
+            चरः वृद्धिस्थलम् ॱॱ न६४ भवति यन्त्रोत्सर्जनॱयन्त्रनामयोजनम् आरभ्य कार्यम् ॱ नाम ऽ मण्डलनाम ऽ संश्लिष्टनाम समाप्तम् ।
             नामसंख्या भवति नामसंख्या योगः १ ।
         इति अन्यथा आदि
         चरः नामचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः नामचिह्नकाङ्कः अन्तः ।
@@ -589,7 +619,23 @@
     चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
     चरः घोषणाः ॱॱ न६४ भवति पठनम् मूल ।
     यदि घोषणाः समम् ० आदि
-        सङ्कलनविरामभेद भवति सङ्कलनाघोषणाभेद ।
+        ॰ W-345 — TWO CAUSES BEHIND ONE ZERO. `पठनम्` answers ० both when the
+        ॰ gate refused an octet outside R-15-1 and when the source parsed to no
+        ॰ declarations; the gate's record is the discriminator, reset by
+        ॰ `परिधिपदविभाग` on entry so it is never a previous source's verdict.
+        ॰ W-342 — AND A THIRD. A source that lexed and that the PARSER refused
+        ॰ answers ० as well; `व्याकरॱदोषसूचकाङ्क` is its discriminator, zeroed
+        ॰ by `पठनम्` before the gate so it too is never a previous source's.
+        ॰ The gate is asked FIRST: a source it refused never reached the parser.
+        यदि अक्षरकोशॱपरिधिदोषस्थितम् समम् सत्यम् आदि
+            सङ्कलनविरामभेद भवति सङ्कलनपरिधिभेद ।
+        इति अन्यथा आदि
+            यदि व्याकरॱदोषसूचकाङ्क अधिकम् ० आदि
+                सङ्कलनविरामभेद भवति सङ्कलनव्याकरणभेद ।
+            इति अन्यथा आदि
+                सङ्कलनविरामभेद भवति सङ्कलनाघोषणाभेद ।
+            इति
+        इति
         प्रत्यागमनम् रिक्तम् ।
     इति
     यदि निर्णयः घोषणाः समम् असत्यम् आदि
@@ -597,6 +643,16 @@
         प्रत्यागमनम् रिक्तम् ।
     इति
     चरः वृत्तयः ॱॱ न६४ भवति रचना घोषणाः ।
+    यदि मध्यरूपॱप्राचलरक्षादोषसंख्या अधिकम् ० आदि
+        सङ्कलनविरामभेद भवति सङ्कलनप्राचलरक्षाभेद ।
+        प्रत्यागमनम् रिक्तम् ।
+    इति
+    ॰ `V-005`: a value crossing into a declared file it is not in refused the
+    ॰ program in `मध्यरूप` (`FileMismatch`); `chain.rs`'s `refusal_site` names it.
+    यदि मध्यरूपॱवर्गविरोधमस्ति समम् सत्यम् आदि
+        सङ्कलनविरामभेद भवति सङ्कलनवर्गविरोधभेद ।
+        प्रत्यागमनम् रिक्तम् ।
+    इति
     ॰ THE ROUTINE GUARD IS GONE, AND IT WAS NEVER A PROTECTION. Its own margin
     ॰ said so when W-280 landed it: *NOT AN ERROR: a module of pure data reaches
     ॰ here. It is still an early return, because emitting a routine-less module
@@ -806,6 +862,17 @@
     ॰ "built" to everyone.
     वस्तुरचनाविरामभेद भवति वस्तुरचनानारब्धभेद ।
     चरः वाक्यानि ॱॱ न६४ भवति वाक्यविभागॱसङ्कलनम् पाठ्यम् ।
+    ॰ W-302: A RECORDED REFUSAL IS A REFUSAL. Rust's parse() returns Err when its
+    ॰ error list is non-empty, and the whole file is refused. This read the
+    ॰ statement count only, so a data directive in ॱपाठ — P28, recorded by the
+    ॰ splitter and its statement skipped — built an object with that directive's
+    ॰ octets missing and said nothing. Asked FIRST, before the count, because a
+    ॰ file whose only statement was refused would otherwise read as "no
+    ॰ statements" or "nothing built" and hide the cause the record names.
+    यदि वाक्यविभागॱवाक्यविभागदोषसूचकाङ्क अधिकम् ० आदि
+        वस्तुरचनाविरामभेद भवति वस्तुरचनावाक्यदोषभेद ।
+        प्रत्यागमनम् शून्यम् ।
+    इति
     यदि वाक्यानि समम् ० आदि
         वस्तुरचनाविरामभेद भवति वस्तुरचनावाक्यभेद ।
         प्रत्यागमनम् शून्यम् ।
@@ -858,10 +925,10 @@
     ॰ — rung 73's exemplar among them — was reported as "encoding refused" for a
     ॰ compile that refused nothing. `encode.t1`'s own margin measured it: ० failing
     ॰ instructions of ० total, E22 not fired, the seeded diagnostic untouched.
-    ॰ Length cannot separate them either, and not for the reason it first looks:
-    ॰ `खण्डदैर्घ्यरचना`'s `+ (दैर्घ्यफलम् == ०)` guard sits inside
-    ॰ `यदि विस्तार समम् १`, so it never applies to an `अ८` run at all — nil and
-    ॰ empty simply both measure ०, by construction rather than by a guard.
+    ॰ Length cannot separate them either: nil and empty both measure ०, by
+    ॰ construction rather than by a guard — `खण्डदैर्घ्यरचना`'s old
+    ॰ `+ (दैर्घ्यफलम् == ०)` never applied to an `अ८` run, and since `W-355` it
+    ॰ applies to no run at all.
     ॰ `सङ्केतनसिद्धम्` is a verdict the emitter CARRIES instead.
     यदि सङ्केतनॱसङ्केतनसिद्धम् समम् असत्यम् आदि
         वस्तुरचनाविरामभेद भवति वस्तुरचनाष्टकभेद ।
@@ -1246,6 +1313,9 @@
     प्रत्यागमनम् प्रविष्टयः गुणनम् १० योगः ५०० ।
 इति
 ॰ Rungs 41–43: scope pushes on a fresh resolver — two, three, and one with element ० read.
+॰ UNCHANGED BY `W-355`: `परिसरप्रवेशः` writes at max(दैर्घ्य, १), so the first push still
+॰ lands at १ (६०३, ७०४), and that write grows the arena to two, leaving index ० nil
+॰ interpreted and a stored ० natively — so rung 43 still reads शून्यम् at ० (८००).
 सार्वजनिक वृत्तिः स्वपरीक्षैकचत्वारिंशी ददाति न६४ आदि
     चरः निर्णायकः ॱॱ अर्थॱनिर्णायक भवति अर्थॱनिर्णायकारम्भः ।
     चरः अवगणन० ॱॱ अर्थॱनिर्णायक भवति अर्थॱपरिसरप्रवेशः निर्णायकः ।
@@ -1268,7 +1338,8 @@
     इति
     प्रत्यागमनम् ८०१ ।
 इति
-॰ Rung 44: a fresh resolver's scope count with no push.
+॰ Rung 44: a fresh resolver's scope count with no push. ९०० since `W-355` (a fresh
+॰ arena is length ० on both engines); ९०१ before it, when the zero run held one nil.
 सार्वजनिक वृत्तिः स्वपरीक्षाचतुश्चत्वारिंशी ददाति न६४ आदि
     चरः निर्णायकः ॱॱ अर्थॱनिर्णायक भवति अर्थॱनिर्णायकारम्भः ।
     प्रत्यागमनम् निर्णायकः ॱ परिसराः ॱ दैर्घ्य योगः ९०० ।
@@ -2137,30 +2208,33 @@
     प्रत्यागमनम् ३००० योगः सङ्केतनॱअन्तिमसङ्केतनदोषः ॱ पङ्क्ति ।
 इति
 
-॰ SUPERSEDED, KEPT AS THE RECORD OF A BISECTION THAT FOUND NOTHING: E22 never
-॰ fired. The readings below are real and their PREMISE is not — see rung 79's
-॰ margin above and `82be3d5d`. Rung 73 answers `२०००` natively as of 2026-09-18.
-॰ ॥ RUNG 75 — DOES `भवति ०` GIVE ONE SLOT OR NONE? ॥ (2026-09-14)
-॰ Rung 74 answered ३००० exactly: `विन्याससाम्यम् स्थानानि पुनःस्थानानि` false,
-॰ E22, the two address-layout passes disagreeing. `स्थानविन्यासः`'s own margin
-॰ states the assumption the whole layout rests on: "An arena cannot be empty —
-॰ `भवति ०` gives one slot — and a program with no instruction wants exactly
-॰ that one slot holding ०, which is Rust's empty vector plus its `push(pc)`."
-॰ That is a claim about DECLARATION semantics, and declaration semantics are
-॰ exactly what the nil-word landing changed: a declared run is now the nil word
-॰ and its first block comes from the growth routine.
-॰ So this rung asks the assumption directly, with no assembler in the path:
-॰ two arenas declared `भवति ०`, one element copied from the first to the second,
-॰ and the corpus's own comparator run over them. ५००० plus the first length
-॰ ×१००, the second ×१०, and १ if they compare equal — so length and content
-॰ are separable in one number instead of needing three runs.
+॰ ॥ RUNG 75 — DOES `भवति ०` GIVE ONE SLOT OR NONE? ॥ (2026-09-14; REWRITTEN `W-355`)
+॰ NONE, since `W-355` (owner ruling 2026-10-03): a fresh run is EMPTY, length ०,
+॰ on both engines, and reading any index of it is REFUSED on both.
+॰ THE FIRST VERSION copied `क अङ्कः ० अन्तः` into `ख` — it read index ० of a
+॰ fresh run, the read `W-355` makes out of bounds — and answered ५१११ both ways
+॰ under the old rule (each length १, equal). Rung 74 had answered ३००० exactly:
+॰ `विन्याससाम्यम् स्थानानि पुनःस्थानानि` false, E22, the two address-layout
+॰ passes disagreeing, and `स्थानविन्यासः`'s margin then said "An arena cannot
+॰ be empty — `भवति ०` gives one slot". E22 never fired (see rung 79), and the
+॰ assumption is now false by ruling.
+॰ This rung asks the declaration semantics directly, with no assembler in the
+॰ path: two arenas declared `भवति ०`, their lengths, the corpus's own
+॰ comparator over the empty pair, then ONE element stored into each and the
+॰ comparator again. ५००० plus the fresh lengths ×१०००/×१०० (both ० now), १० if
+॰ the empty pair compares equal, १ if the one-element pair does: ५०११ on both
+॰ engines. A ६१११ is the old one-slot rule surviving.
 सार्वजनिक वृत्तिः स्वपरीक्षापञ्चसप्ततिः ददाति न६४ आदि
     चरः क ॱॱ अङ्कः अन्तः अ३२ भवति ० ।
     चरः ख ॱॱ अङ्कः अन्तः अ३२ भवति ० ।
-    ख अङ्कः ० अन्तः भवति क अङ्कः ० अन्तः ।
     चरः फलम् ॱॱ न६४ भवति ५००० ।
-    फलम् भवति फलम् योगः क ॱ दैर्घ्य गुणनम् १०० ।
-    फलम् भवति फलम् योगः ख ॱ दैर्घ्य गुणनम् १० ।
+    फलम् भवति फलम् योगः क ॱ दैर्घ्य गुणनम् १००० ।
+    फलम् भवति फलम् योगः ख ॱ दैर्घ्य गुणनम् १०० ।
+    यदि सङ्केतनॱविन्याससाम्यम् क ख समम् सत्यम् आदि
+        फलम् भवति फलम् योगः १० ।
+    इति
+    क अङ्कः ० अन्तः भवति ७ ।
+    ख अङ्कः ० अन्तः भवति ७ ।
     यदि सङ्केतनॱविन्याससाम्यम् क ख समम् सत्यम् आदि
         फलम् भवति फलम् योगः १ ।
     इति
@@ -2711,12 +2785,12 @@
 ॰
 ॰ WHY THIS SHAPE IS AVAILABLE ONLY NOW, STATED AS THE RECORD RATHER THAN AS
 ॰ CONVENIENCE. Until 2026-09-21 `tools/demo.sh` could not report this source's
-॰ counts at all: `crates/pradarshana/src/pathana.rs` passed `globals: Vec::new()`
+॰ counts at all: `crates/frontend/src/pathana.rs` passed `globals: Vec::new()`
 ॰ and entered no global's SYMBOL into `Names`, so the demo's stage 6 REFUSED
 ॰ ``symbol SymbolId(2) has no name`` and threw stages 7 and 8 away — *every*
 ॰ source in the language that reads one of its own module's globals stopped at
 ॰ stage six. `W-278`'s port opened it and
-॰ `crates/pradarshana/tests/module_globals.rs` is its witness. A rung cannot be
+॰ `crates/frontend/tests/module_globals.rs` is its witness. A rung cannot be
 ॰ PREDICTED from a stage that does not run, which is why this row is written now
 ॰ and not beside rung 102.
 ॰
@@ -2840,7 +2914,7 @@
 ॰ `W-279`'s previous cycle that counter read `0` for every input in the tree —
 ॰ `kosha.t1`'s forty cross-module calls included — so the five rows above were
 ॰ each written from an instrument with ONE reachable state.
-॰ `crates/pradarshana/tests/cross_module_calls.rs` holds the four properties
+॰ `crates/frontend/tests/cross_module_calls.rs` holds the four properties
 ॰ that made it two, and this literal is the shape its first property asserts.
 ॰
 ॰ AND THE ASSEMBLE COUNTS WERE UNOBTAINABLE UNTIL THIS CYCLE, WHICH IS WHY THIS

@@ -114,11 +114,13 @@ fn image(words: &[u32], at: u64) -> Vec<u8> {
 /// so a loader that forgets to clear it returns to S-mode and the test says so.
 fn supervisor() -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -130,6 +132,8 @@ fn supervisor() -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     let put = |m: &mut Machine, at: u64, w: u32| {
         let o = (at - BASE) as usize;
@@ -219,9 +223,8 @@ fn the_sret_is_what_enters_user_mode_and_the_loader_only_sets_it_up() {
 
 #[test]
 fn the_program_runs_on_the_stack_the_loader_chose_and_falls_off_neither_end() {
-    // `sd` below `sp` is the only writable memory an application gets from this toolchain
-    // (`kosha` emits one `PF_R | PF_X` segment), so this is also the test that the stack
-    // is real. The two faults on either side of it are what make it a *bounded* stack
+    // This fixture has no `.data`, so `sd` below `sp` is its only writable memory (the
+    // text segment is `PF_R | PF_X`), and this is also the test that the stack is real. The two faults on either side of it are what make it a *bounded* stack
     // rather than a permission to write wherever.
     let (mut m, _) = loaded(&[addi(5, 0, 42), sd(2, 5, -8), ld(6, 2, -8), SPIN], &[]);
     let halt = m.run(64, &mut Vec::new());
@@ -394,4 +397,157 @@ fn the_loader_refuses_what_it_cannot_honestly_place() {
     // the assertion that the application loader makes the same ones rather than fewer.
     let mut m = supervisor();
     assert!(load_application(&mut m, b"not an elf", FREE, &[]).is_err());
+}
+
+// ---------------------------------------------------------------------------------------
+// W-363: the image's own writable data, with permissions ENFORCED.
+//
+// Everything above hand-encodes text and passes no data, so it never asks whether a
+// program built by this toolchain can write its own `ॱदत्त`. This one is assembled and
+// LINKED by `sadhana` (so the data's address is the linker's, not the fixture's), placed
+// by `load_application` — which maps PTE R/W/X from `p_flags` and is the one loader in
+// this tree that enforces them — and run in U-mode through Sv39. `yantra`'s `load_elf`
+// and QEMU's `-kernel` path would both pass it whatever the flags said, which is exactly
+// why neither is the witness. Before W-363 the image had one `PF_R | PF_X` segment and
+// the store below faulted (scause 15 at the datum).
+
+/// Store 42 into a data word, read it back, spin.
+const STORES_ITS_OWN_DATA: &str = "\
+योगः क्षणिक०म् शून्यःन ४२न ।
+स्थानसापेक्षयोगः अर्थ०म् सङ्ख्याॱउपरिन ।
+योगः अर्थ०म् अर्थ०न सङ्ख्याॱअधःन ।
+निधानम्ॱअ६४ अर्थ०य् ०न क्षणिक०न ।
+आहारःॱअ६४ क्षणिक१म् अर्थ०त् ०न ।
+चक्रःॱॱ
+लङ्घनम् शून्यःम् चक्रःय् ।
+॥ कोष्ठकम् ॱदत्त ॥
+सङ्ख्याॱॱ
+॥ चतुरष्टकाः ० ० ॥
+";
+
+/// `STORES_ITS_OWN_DATA` with the store aimed at the program's OWN FIRST
+/// INSTRUCTION. Under enforced permissions this must fault: W^X at run time,
+/// not only in the header.
+const STORES_INTO_ITS_OWN_TEXT: &str = "\
+आदिःॱॱ
+योगः क्षणिक०म् शून्यःन ४२न ।
+स्थानसापेक्षयोगः अर्थ०म् आदिःॱउपरिन ।
+योगः अर्थ०म् अर्थ०न आदिःॱअधःन ।
+निधानम्ॱअ६४ अर्थ०य् ०न क्षणिक०न ।
+चक्रःॱॱ
+लङ्घनम् शून्यःम् चक्रःय् ।
+॥ कोष्ठकम् ॱदत्त ॥
+सङ्ख्याॱॱ
+॥ चतुरष्टकाः ० ० ॥
+";
+
+/// The Rust assembler's image of `source`, linked at [`APP`].
+fn rust_image(source: &str) -> Vec<u8> {
+    sadhana::assemble(
+        source,
+        sadhana::encode::Target::Uncompressed,
+        APP,
+        sadhana::nidana::Language::English,
+    )
+    .unwrap_or_else(|e| panic!("assembles: {e:?}"))
+}
+
+/// The SELF-HOSTED chain's image of `source`, linked at [`APP`] — the body of
+/// `w302_loaded_identity.rs`'s `t1_image`: an object from `पाठवस्तुरचना`, then
+/// `वस्तुप्रतिबिम्बम्` (the `.t1` linker and `कोशॱप्रतिबिम्बलेखनम्`), interpreted.
+fn t1_image(source: &str) -> Vec<u8> {
+    use sadhana::t1::nirvahana::{Interpreter, Octets, Value};
+    let fuel = 4_000_000_000_000u64;
+    let mut it = Interpreter::load(sadhana::t1::chain::CHAIN, &root().join("spec"))
+        .unwrap_or_else(|e| panic!("the chain loads: {e:?}"));
+    it.call("शृङ्खलाॱसङ्कलनारम्भः", vec![], fuel)
+        .expect("सङ्कलनारम्भः");
+    let object = it
+        .call(
+            "शृङ्खलाॱपाठवस्तुरचना",
+            vec![Value::Octets(Octets::new(source.as_bytes()))],
+            fuel,
+        )
+        .expect("पाठवस्तुरचना");
+    assert!(!object.is_nil(), "the .t1 chain refused the source");
+    for g in ["भारणस्थानम्", "भारस्थानम्"] {
+        assert!(
+            it.set_global(g, Value::Int(i128::from(APP))),
+            "`{g}` is a global"
+        );
+    }
+    let img = it
+        .call("शृङ्खलाॱवस्तुप्रतिबिम्बम्", vec![object], fuel)
+        .expect("वस्तुप्रतिबिम्बम्");
+    img.octets()
+        .map(|o| o.as_slice().to_vec())
+        .expect("the chain wrote an image")
+}
+
+/// Load `elf` with permissions enforced and run it to its self-jump or a trap.
+fn run_application(elf: &[u8]) -> (Machine, Halt, Vec<(u64, u32)>) {
+    let program = yantra::loader::Program::parse(elf).expect("parses");
+    // Every segment's permissions, as the writer labelled them.
+    let flags: Vec<(u64, u32)> = program
+        .segments
+        .iter()
+        .map(|s| (s.vaddr, s.flags))
+        .collect();
+    println!("segments (vaddr, p_flags): {flags:x?}");
+    // The TEXT stays unwritable: the fix is a writable DATA segment, not RWX.
+    for &(vaddr, f) in &flags {
+        assert!(
+            !(f & 2 != 0 && f & 1 != 0),
+            "segment at {vaddr:#x} is both writable and executable"
+        );
+    }
+    let mut m = supervisor();
+    load_application(&mut m, elf, FREE, &[]).expect("the image must load");
+    let halt = m.run(64, &mut Vec::new());
+    (m, halt, flags)
+}
+
+fn stores_into_data_and_reads_it_back(elf: &[u8], who: &str) {
+    let (m, halt, flags) = run_application(elf);
+    assert_ne!(
+        m.csr.scause, STORE_FAULT,
+        "{who}: the program's store into its own .data faulted at {:#x}: the segment \
+         holding `.data` is not writable (segments {flags:x?})",
+        m.csr.stval
+    );
+    assert_eq!(
+        halt,
+        Halt::SpinForever { pc: APP + 20 },
+        "{who}: five instructions in U-mode, then its own self-jump: {halt:?}"
+    );
+    assert_eq!(
+        m.x[6], 42,
+        "{who}: what it stored into .data is what it read back"
+    );
+}
+
+#[test]
+fn a_linked_program_stores_into_its_own_data_under_enforced_permissions() {
+    stores_into_data_and_reads_it_back(&rust_image(STORES_ITS_OWN_DATA), "sadhana");
+}
+
+#[test]
+fn a_store_into_its_own_text_faults_under_enforced_permissions() {
+    let (m, halt, _) = run_application(&rust_image(STORES_INTO_ITS_OWN_TEXT));
+    assert_eq!(halt, Halt::SpinForever { pc: HANDLER }, "{halt:?}");
+    assert_eq!(m.csr.scause, STORE_FAULT, "a store into R E text faults");
+    assert_eq!(m.csr.stval, APP, "at the instruction it aimed at");
+}
+
+/// The same two claims for an image the SELF-HOSTED chain wrote — interpreted,
+/// so seconds rather than milliseconds.
+#[test]
+fn a_t1_built_image_stores_into_data_and_not_into_text() {
+    stores_into_data_and_reads_it_back(&t1_image(STORES_ITS_OWN_DATA), "the .t1 chain");
+    let (m, _, _) = run_application(&t1_image(STORES_INTO_ITS_OWN_TEXT));
+    assert_eq!(
+        m.csr.scause, STORE_FAULT,
+        "the .t1 chain: a store into text faults"
+    );
+    assert_eq!(m.csr.stval, APP, "the .t1 chain: at its first instruction");
 }

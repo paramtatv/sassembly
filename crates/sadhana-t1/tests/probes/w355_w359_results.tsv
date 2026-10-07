@@ -1,0 +1,12 @@
+# W-355 / W-359 falsifier probes from a peer session (the GPU-driver project), measured 2026-10-02 ~00:50 EDT.
+# tree 096f46e9 (origin/main; --compiler/--spec-root from it), t1_image binary 2026-09-27 22:32:56,
+# yantra-run binary 2026-10-01 23:41:16 (64-bit status, W-341). Both sides: interpreted = the
+# build's predict (with --load), native = yantra-run status. grow*: callee appends N contiguously
+# to the caller's arena holding [5]; answer = callee length*1000 + caller length.
+probe	row	interpreted	native	reading
+w355_len.t1	W-355	1	1	a `भवति ०` non-octet arena starts at length one, both engines
+w355_read.t1	W-355	Nil	0	reading the hole: the interpreter refuses (Nil), native's null-arena guard answers 0 silently
+w359_two_levels.t1	W-359	222	222	one append two frames down, caller has storage, no reallocation: AGREE
+w359_grow127.t1	W-359	128128	128128	final length 128, within capacity: AGREE
+w359_grow128.t1	W-359	129129	129128	final length 129, callee reallocates: native caller stuck at 128, DIVERGE
+w359_grow129.t1	W-359	130130	130128	final length 130: DIVERGE, same shape

@@ -261,3 +261,48 @@
 सार्वजनिक वृत्तिः पत्रलेखनम् आदाय मार्गः ॱॱ अङ्कः अन्तः अ८ ऽ पात्रम् ॱॱ अङ्कः अन्तः अ८ ऽ स्थितिः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
     प्रत्यागमनम् २६८४४३६७२ ।
 इति
+
+॰ ॥ THE DEVICE REGISTER WINDOW (`W-350`) ॥ THE THIRD CHANNEL OUT OF A PROGRAM,
+॰ and the first one that READS. `मुद्रणम्` and `पत्रलेखनम्` above both only
+॰ write; `yantra::load` has no device arm at all, so a Sassembly program could
+॰ drive a device and never hear back from it. A driver cannot work that way: it
+॰ must read MagicValue to find the device, QueueNumMax to size its ring and
+॰ InterruptStatus to acknowledge.
+॰
+॰ THIRTY-TWO OCTET-WIDTHS AND NO OTHER, because the spec says so and not for
+॰ symmetry. virtio 1.2 §4.2.2 (`research/spec-extracts/virtio-1.2-csd01/`):
+॰ "The driver MUST only use 32 bit wide and aligned reads and writes to access
+॰ the control registers." A four-octet access is therefore the whole interface,
+॰ and the width is in the NAME rather than a parameter: the lowering puts it in
+॰ an IMMEDIATE field, so it has to be known at compile time, and a `मात्रा`
+॰ argument would be a runtime value the lowering cannot read.
+॰
+॰ AND SIXTEEN IS NOT NEEDED, which is worth saying because virtio's `used.idx`
+॰ is a `u16` and looks like a counter-example. It is not a register: the used
+॰ ring lives at `Q + ०x१०००` in GUEST RAM (`spec/virtio-gpu.sas:41`), so a
+॰ program reads it with ordinary indexing. Only the control registers are MMIO.
+॰
+॰ THE SENTINEL CANNOT BE A 32-BIT VALUE, and this is the one place these two
+॰ differ from the two channels above. `मुद्रणम्` can answer २६८४३५४५६ because
+॰ it returns an octet count and no legitimate answer resembles that. A REGISTER
+॰ READ MAY LEGITIMATELY RETURN ANY `u32`, including the window's own address, so
+॰ no 32-bit sentinel can be distinguished from a real reading. These answer
+॰ ४५६३४०६८४८ = ०x१_१०००_१०००, which is the virtio-mmio window base LIFTED
+॰ ABOVE 2^32 — it still names the window, and a four-octet load can never land
+॰ there. If one of these values ever appears in a driver, the lowering is gone.
+॰
+॰ WHAT THE LOWERING MUST ADD THAT THE CALLER CANNOT SEE: `आहारःॱअ३२` is `lw`
+॰ and SIGN-EXTENDS on RV64, so a register answering `>= ०x८०००_००००` would read
+॰ negative. The replacement masks to the low thirty-two bits, exactly as the
+॰ octet path masks to eight for the same reason one width down.
+सार्वजनिक वृत्तिः उपकरणचतुरष्टकाहारः आदाय स्थानम् ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् ४५६३४०६८४८ ।
+इति
+
+॰ The write half. Answers ० when the lowering replaced it — like `पत्रलेखनम्`,
+॰ and unlike the read above, a store has no value to report — and the sentinel
+॰ otherwise. A device write is fire-and-forget: the register takes the value and
+॰ there is no status to poll, which is why this returns nothing useful.
+सार्वजनिक वृत्तिः उपकरणचतुरष्टकनिधानम् आदाय स्थानम् ॱॱ न६४ ऽ मूल्यम् ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् ४५६३४०६८४८ ।
+इति

@@ -1,0 +1,18 @@
+मण्डलम् त्यक्तवर्धनपरीक्षण ॥
+
+॰ W-359 rule (3): `योजकः` GROWS AND RETURNS its parameter (it returns `सूची`
+॰ on its one path), and `मुख्यम्` calls it as a bare statement, DROPPING the
+॰ grown run. Refused STATICALLY by both front ends: the interpreter at load
+॰ ("… drops the result of … which grows its parameter `सूची` and returns it
+॰ …"), the .t1 checker by `त्यक्तवर्धनसंख्या`. w359_bound.t1probe binds the
+॰ same call and passes.
+वृत्तिः योजकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ऽ मानम् ॱॱ न६४ ददाति अङ्कः अन्तः न६४ आदि
+    सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति मानम् ।
+    प्रत्यागमनम् सूची ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    योजकः सूची ७ ।
+    प्रत्यागमनम् सूची ॱ दैर्घ्य ।
+इति

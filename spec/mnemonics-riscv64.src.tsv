@@ -49,9 +49,9 @@ bge	अन्यूनलङ्घनम्	branch if not less	I	bge		coined
 bltu	अचिह्नन्यूनलङ्घनम्	branch if less, unsigned	I	bltu		coined
 bgeu	अचिह्नान्यूनलङ्घनम्	branch if not less, unsigned	I	bgeu		coined
 # ---- RV64I: memory -------------------------------------------------------
-load	आहारः	load	I	lb,lh,lw,ld,c.lw,c.ld,c.lwsp,c.ldsp		lexicon
+load	आहारः	load	I	lb,lh,lw,ld,c.lw,c.ld,c.lwsp,c.ldsp,vle64.v,vlse64.v		lexicon
 loadu	अचिह्नाहारः	load without sign extension	I	lbu,lhu,lwu		lexicon
-store	निधानम्	store	I	sb,sh,sw,sd,c.sw,c.sd,c.swsp,c.sdsp		lexicon
+store	निधानम्	store	I	sb,sh,sw,sd,c.sw,c.sd,c.swsp,c.sdsp,vse64.v		lexicon
 # ---- RV64I: system and ordering ------------------------------------------
 fence	स्मृतिबन्धः	memory barrier	I	fence		lexicon
 ecall	आज्ञापनम्	environment call	I	ecall		lexicon
@@ -80,10 +80,10 @@ amominu	अचिह्नपरमाणुन्यूनतमम्	atomic m
 # ---- F and D: floating point ---------------------------------------------
 fload	प्लवाहारः	float load	FD	flw,fld,c.fld,c.fldsp		coined
 fstore	प्लवनिधानम्	float store	FD	fsw,fsd,c.fsd,c.fsdsp		coined
-fadd	प्लवयोगः	float add	FD	fadd.s,fadd.d		coined
-fsub	प्लववियोगः	float subtract	FD	fsub.s,fsub.d		coined
-fmul	प्लवगुणनम्	float multiply	FD	fmul.s,fmul.d		coined
-fdiv	प्लवभागः	float divide	FD	fdiv.s,fdiv.d		coined
+fadd	प्लवयोगः	float add	FD	fadd.s,fadd.d,vfadd.vv		coined
+fsub	प्लववियोगः	float subtract	FD	fsub.s,fsub.d,vfsub.vv		coined
+fmul	प्लवगुणनम्	float multiply	FD	fmul.s,fmul.d,vfmul.vv		coined
+fdiv	प्लवभागः	float divide	FD	fdiv.s,fdiv.d,vfdiv.vv		coined
 fsqrt	प्लववर्गमूलम्	square root	FD	fsqrt.s,fsqrt.d		lexicon
 fmadd	प्लवगुणयोगः	multiply then add	FD	fmadd.s,fmadd.d		coined
 fmsub	प्लवगुणवियोगः	multiply then subtract	FD	fmsub.s,fmsub.d		coined
@@ -121,3 +121,11 @@ sfence	स्मृतिक्षेत्रबन्धः	address-translatio
 # one word one sense, so inventing a second name for a sense the lexicon had
 # already settled would be the error, not the economy.
 sret	विघ्नप्रत्यागमः	return from interrupt	S	sret		lexicon
+# ---- V: vector (the subset yantra executes; V-008 part 2) ----------------
+# R-02-2 again: the four elementwise float operations and the unit-stride load
+# and store are NOT new families. They join `fadd`/`fsub`/`fmul`/`fdiv`/`load`/
+# `store` above, and the vector-register operands pick the encoding (owner
+# ruling, 2026-10-05, option A). `vsetvli` has no scalar twin and takes the
+# one new word, confirmed by the owner the same day (V-008 design doc). Its
+# vtype operand is a plain numeral: e64, m8, ta, ma is 219.
+vsetvli	व्यूहदैर्घ्यम्	set vector length and type	V	vsetvli		coined

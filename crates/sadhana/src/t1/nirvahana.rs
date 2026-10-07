@@ -86,11 +86,14 @@
 //!
 //! # What is deliberately NOT here
 //!
-//! * **Fixed-width arithmetic.** Values are [`i128`]; `अ८` and `अ६४` do not
-//!   wrap or trap. Every routine this module was written to run keeps its
-//!   arithmetic inside the range by its own guards, so nothing in the corpus
-//!   distinguishes the two yet — but a program that relies on wrapping would
-//!   read differently here, and that is a limitation and not a decision.
+//! * **Narrow widths.** Values are [`i128`] holding 64-bit WORDS: since `W-381`
+//!   stage 3 (owner ruling P1, 2026-10-05: "64-bit two's-complement WRAPPING is
+//!   the defined semantics") every operator wraps to 64 bits exactly as the RV64
+//!   instruction the native code uses (`binop`), and an ordering comparison
+//!   over a name declared unsigned compares unsigned. What is NOT modelled is a
+//!   width BELOW 64: a `न३२` or `अ८` local is a whole word here, as it is in a
+//!   native register, and a store into an octet run keeps the low eight bits
+//!   (owner ruling (a), 2026-10-06), as the native `sb` does.
 //! * **The type checker.** Declared types are read only far enough to decide
 //!   what a `भवति ०` initialiser MEANS: a fresh record for a `संरचना` type, an
 //!   empty arena for a slice of one, an empty octet run for `अङ्कः अन्तः अ८`,
@@ -151,6 +154,27 @@ const W_LEN: &str = "दैर्घ्य";
 
 /// The one octet type. A slice of it is a run of octets rather than an arena.
 const T_U8: &str = "अ८";
+/// `V-005`: the 64-bit float type, `grammar-t1.ebnf`'s `float_type` at width ६४.
+const T_F64: &str = "प६४";
+/// `W-373`: the 64-bit unsigned and signed integer types — the event slot's
+/// other two accepted types (`Interpreter::set_events`).
+const T_U64: &str = "न६४";
+const T_I64: &str = "अ६४";
+/// The text type, `grammar-t1.ebnf:226` — and the spelling ADR-0029 retired, which
+/// the corpus still writes in type position (`W-267`).
+const W_TEXT: &str = "पाठ";
+const W_TEXT_RETIRED: &str = "पाठः";
+
+/// A scalar `type_name` of `grammar-t1.ebnf:226`/`:248` other than text: `अ` or `न`
+/// with a width, `प३२`/`प६४`, `बूल`, `अक्षरम्`.
+fn is_scalar_type_name(n: &str) -> bool {
+    const WIDTHS: [&str; 5] = ["८", "१६", "३२", "६४", "१२८"];
+    // NOT an early return on the prefix: `अक्षरम्` begins with `अ` too.
+    let width = |w: &str| WIDTHS.contains(&w);
+    n.strip_prefix('अ').is_some_and(width)
+        || n.strip_prefix('न').is_some_and(width)
+        || matches!(n, "प३२" | "प६४" | "बूल" | "अक्षरम्")
+}
 
 // ── values ───────────────────────────────────────────────────────────────
 
@@ -208,13 +232,26 @@ pub enum Value {
     Octets(Octets),
     /// One `संरचना` record, shared by reference as the corpus's arenas need.
     Record(Rc<RefCell<HashMap<String, Value>>>),
-    /// `अङ्कः अन्तः <struct>` — a ONE-BASED growable arena. Index ० is never a
-    /// live entry, which is the convention every `…योजनम्` in `vakyavibhaga.t1`
-    /// states in its own margin: "advance the index, write at it, return it —
-    /// so the number returned is a live entry and ० never is".
+    /// `अङ्कः अन्तः <struct>` — a growable arena. A fresh one (`भवति ०`) is
+    /// EMPTY, length ०, with no slot at index ० (`W-355`, owner ruling
+    /// 2026-10-03); reading any index of it is refused. Most corpus arenas are
+    /// still filled ONE-BASED — every `…योजनम्` in `vakyavibhaga.t1` says
+    /// "advance the index, write at it, return it — so the number returned is a
+    /// live entry and ० never is" — and a first write at index १ grows the store
+    /// to two, leaving a `Nil` at ० that only that write created.
     Arena(Rc<RefCell<Vec<Value>>>),
     /// `शून्यम्` — the empty `सम्भाव्य`.
     Nil,
+    /// `प६४` — a 64-bit IEEE-754 double, CARRIED AS ITS BIT PATTERN (`V-005`).
+    ///
+    /// The bits and not an `f64`, because the bits are what the two engines are
+    /// compared on: natively the value lives in an `f` register and is read back
+    /// through `प्लवसंचारः` as sixty-four bits, so a NaN's payload and the sign of
+    /// a zero are part of the answer and an `f64` field would invite an `==` that
+    /// says `-0 == +0` and `NaN != NaN`. A variant of its own and not an `Int`, so
+    /// that an integer operator meeting a float REFUSES (as the native builder
+    /// does) instead of adding two bit patterns.
+    Float(u64),
 }
 
 impl Value {
@@ -255,16 +292,33 @@ impl Value {
     pub fn is_nil(&self) -> bool {
         matches!(self, Self::Nil)
     }
+    /// The bit pattern of a `प६४` value, for a caller reading a result back
+    /// (`V-005`).
+    #[must_use]
+    pub fn as_float_bits(&self) -> Option<u64> {
+        match self {
+            Self::Float(b) => Some(*b),
+            _ => None,
+        }
+    }
 }
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Int(a), Self::Int(b)) => a == b,
+            // `W-381` stage 3: an integer is a 64-bit WORD, and one word has two
+            // `i128` spellings when its top bit is set (`ऋण१` and २^६४−१, see
+            // [`wrap`]); equal words are equal values, as `beq` says natively.
+            (Self::Int(a), Self::Int(b)) => word(*a) == word(*b),
             (Self::Bool(a), Self::Bool(b)) => a == b,
-            (Self::Int(a), Self::Bool(b)) | (Self::Bool(b), Self::Int(a)) => *a == i128::from(*b),
+            (Self::Int(a), Self::Bool(b)) | (Self::Bool(b), Self::Int(a)) => {
+                word(*a) == u64::from(*b)
+            }
             (Self::Octets(a), Self::Octets(b)) => a.as_slice() == b.as_slice(),
             (Self::Nil, Self::Nil) => true,
+            // Bit identity, which is what the engines are compared on — NOT the
+            // IEEE comparison, which is `प्लवसमम्`'s and refuses here (`binop`).
+            (Self::Float(a), Self::Float(b)) => a == b,
             _ => false,
         }
     }
@@ -334,13 +388,30 @@ enum BinOp {
     Rem,
     Shl,
     Shr,
+    /// `दक्षिणसृ` over a NAME declared unsigned — `W-333`. The parser never
+    /// builds this; [`mark_unsigned_operators`] rewrites a `Shr` into it at load.
+    ShrL,
     And,
     Or,
+    Xor,
     Eq,
     Ne,
     Lt,
     Gt,
     Ge,
+    /// `W-381` stage 3 (owner ruling P1, 2026-10-05): the three ordering
+    /// comparisons when EITHER operand is a NAME declared unsigned, which compare
+    /// the two 64-bit words unsigned (`sltu`/`bltu`/`bgeu` natively). The parser
+    /// never builds these; [`mark_unsigned_operators`] rewrites `Lt`, `Gt`, `Ge`
+    /// into them at load, by `W-333`'s rule.
+    LtU,
+    GtU,
+    GeU,
+    /// `W-381` stage 3, owner ruling (b): `विभाजनम्` and `शेषः` with a NAME
+    /// declared unsigned on either side read both words unsigned (`divu`/`remu`),
+    /// marked at load by the compare's rule.
+    DivU,
+    RemU,
 }
 
 #[derive(Debug, Clone)]
@@ -354,6 +425,15 @@ enum Expr {
         module: Option<String>,
         name: String,
         args: Vec<Expr>,
+        /// `V-008` part 2: this call is the vector BUILT-IN — set ONLY by the
+        /// one-token `व्यूहॱ<member>` parse path. A flag and not a string in
+        /// `module`, because a module name can be anything a source declares:
+        /// a mark in `module` was forged by `मण्डलम् व्यूहॱ ॥`.
+        vector: bool,
+        /// `W-373`: this call is the WAIT intrinsic — set ONLY by the one-token
+        /// `अष्टकॱ<member>` parse path ([`WAIT_BUILTIN_MEMBER`]), for the vector
+        /// flag's reason: a flag on the node, never a mark forged into `module`.
+        wait: bool,
     },
     Bin(BinOp, Box<Expr>, Box<Expr>),
     Index(Box<Expr>, Box<Expr>),
@@ -403,6 +483,34 @@ pub struct Routine {
     /// be parsed still LOADS: it refuses when called, and is counted by
     /// [`Interpreter::report`].
     body: Result<Vec<Stmt>, String>,
+    /// `W-359`: the slice parameter this routine GROWS AND RETURNS, if any —
+    /// see [`Interpreter::grown_and_returned`]. A call to it whose result is
+    /// not assigned back to its own name, or tail-returned, is refused at load.
+    grows: Option<String>,
+    /// `W-359`: its OTHER slice parameters. A store into one of these at an
+    /// index at or past the parameter's length is refused at run time
+    /// ([`Interpreter::assign`]), as the native lowering refuses it.
+    guarded: Vec<String>,
+}
+
+/// `W-359` (coordinator's final ruling, 2026-10-04): the most calls deep a
+/// grow-and-return classification follows tail calls. The `.t1` twin is
+/// `घोषणासञ्चयॱवर्धकगहनसीमा`; past it a routine is not grow-and-return.
+const GROWTH_DEPTH: usize = 8;
+
+/// Every `प्रत्यागमनम्` of a body, at any depth.
+fn returns_of<'a>(stmts: &'a [Stmt], out: &mut Vec<Option<&'a Expr>>) {
+    for s in stmts {
+        match s {
+            Stmt::Return(e) => out.push(e.as_ref()),
+            Stmt::If { then, els, .. } => {
+                returns_of(then, out);
+                returns_of(els, out);
+            }
+            Stmt::While { body, .. } => returns_of(body, out),
+            Stmt::Let { .. } | Stmt::Assign { .. } | Stmt::Eval(_) => {}
+        }
+    }
 }
 
 impl Routine {
@@ -410,6 +518,11 @@ impl Routine {
     #[must_use]
     pub fn arity(&self) -> usize {
         self.params.len()
+    }
+    /// `W-359`: the run parameter this routine grows and returns, if it is one.
+    #[must_use]
+    pub fn grows(&self) -> Option<&str> {
+        self.grows.as_deref()
     }
     /// Whether the body parsed.
     #[must_use]
@@ -490,7 +603,51 @@ pub struct Interpreter {
     /// two sides can be compared on what they WROTE rather than on a number
     /// squeezed through sixteen bits.
     sink: Vec<u8>,
+    /// `W-359`: the routines being executed, innermost last — what an indexed
+    /// store asks to learn whether its target is a guarded parameter.
+    active: Vec<Rc<Routine>>,
+    /// `V-008` — THE RUNS DECLARED `अङ्कः अन्तः प६४`, by the address of their
+    /// shared storage. An arena carries no element type, and an EMPTY one
+    /// cannot show what it holds, so `zero_at` records each float run it makes
+    /// here and an indexed store asks: a float run takes only a float, any
+    /// other run never one (`FileMismatch`, as `ir.t1` refuses natively).
+    /// The `Weak` is what makes the key sound: it keeps the allocation — not
+    /// the elements — alive, so no later arena can be given the same address
+    /// while the entry stands.
+    ///
+    /// PRUNED, OR IT LEAKS (review note F1, 2026-10-05): every float run ever
+    /// made would hold its entry and its allocation for the whole run — this
+    /// interpreter runs the compiler in Stage 1, so ten million short-lived runs
+    /// would be ~700 MB. When the table reaches `float_runs_prune_at` the dead
+    /// entries are dropped and the threshold becomes twice what survived (never
+    /// below [`FLOAT_RUNS_PRUNE_FLOOR`]), so the table is bounded by twice the
+    /// LIVE float runs and the pruning is amortised O(1) per creation. The tag
+    /// was not moved onto `Value::Arena` itself: that variant is built at ~150
+    /// sites in 65 files.
+    float_runs: RefCell<HashMap<usize, std::rc::Weak<RefCell<Vec<Value>>>>>,
+    float_runs_prune_at: std::cell::Cell<usize>,
+    /// `W-381` stage 3 (owner rulings 2026-10-06) — THE NARROW INTEGER RUNS:
+    /// `अङ्कः अन्तः न८`/`न१६`/`अ१६`/`न३२`/`अ३२`, by the same address-and-`Weak`
+    /// key as `float_runs`, with the element's (bits, signed). A store into one
+    /// keeps the low `bits` (as `sb`/`sh`/`sw` do) and is held already EXTENDED
+    /// as the native load reads it back — zero for unsigned (`lbu`-like, `lhu`,
+    /// `lwu`), sign for signed (`lh`, `lw`) — so a read needs nothing. Pruned
+    /// with the float table's rule and threshold cell.
+    narrow_runs: RefCell<HashMap<usize, NarrowRun>>,
+    /// `W-373` — THE EVENT LOG, when [`Interpreter::set_events`] was given one.
+    /// `None` is a run with no event source: a wait then REFUSES, as
+    /// `yantra-run` with no `--events` ends the run at exit 75.
+    events: Option<EventReplay>,
+    /// `W-376` — THE SERIAL THREAD SCHEDULE, while [`Interpreter::run_threads`] runs.
+    /// `None` outside it: a wait then takes the event log, as before.
+    threads: Option<ThreadReplay>,
+    /// `W-377` — THE SOCKET LOG, when [`Interpreter::set_socket`] was given one (option
+    /// (b), owner ruling Q1). `None` keeps `W-350`'s refusal for every device address.
+    socket: Option<SocketReplay>,
 }
+
+/// `V-008` — the smallest size at which `float_runs` is pruned of dead entries.
+const FLOAT_RUNS_PRUNE_FLOOR: usize = 1024;
 
 /// What a load found — the numbers `report` prints.
 /// `W-223`: THE DECLARATION STORE'S RUST TWIN — what the loader knows of every
@@ -774,17 +931,21 @@ impl BinOp {
             Self::Add => "+",
             Self::Sub => "-",
             Self::Mul => "*",
-            Self::Div => "/",
-            Self::Rem => "%",
+            Self::Div | Self::DivU => "/",
+            Self::Rem | Self::RemU => "%",
             Self::Shl => "<<",
-            Self::Shr => ">>",
+            // One operator in the source, so one spelling here: the canon text
+            // is compared against the `.t1` parser's, which has no second kind.
+            Self::Shr | Self::ShrL => ">>",
             Self::And => "&",
             Self::Or => "|",
+            Self::Xor => "^",
             Self::Eq => "==",
             Self::Ne => "!=",
-            Self::Lt => "<",
-            Self::Gt => ">",
-            Self::Ge => ">=",
+            // One operator in the source each, as for `>>` above.
+            Self::Lt | Self::LtU => "<",
+            Self::Gt | Self::GtU => ">",
+            Self::Ge | Self::GeU => ">=",
         }
     }
 }
@@ -798,7 +959,9 @@ fn canon_expr(e: &Expr) -> CanonExpr {
         Expr::Bool(false) => CanonExpr::Leaf(W_FALSE.to_string()),
         Expr::Nil => CanonExpr::Leaf(W_NIL.to_string()),
         Expr::Var(n) => CanonExpr::Leaf(n.clone()),
-        Expr::Call { module, name, args } => {
+        Expr::Call {
+            module, name, args, ..
+        } => {
             let callee = match module {
                 Some(m) => format!("{m}\u{971}{name}"),
                 None => name.clone(),
@@ -877,6 +1040,20 @@ impl Interpreter {
                 sigs.insert(format!("{}\u{971}{}", head.module, f.name), f.params.len());
             }
         }
+        // `W-358`: every loaded module's GLOBALS and `गणना` variants,
+        // qualified — a qualified name the parser reads as a variable is a
+        // legitimate data read when it is one of these, and the diagnostic
+        // must not call it an unresolved routine.
+        let data: HashSet<String> = heads
+            .iter()
+            .flat_map(|(_, h)| {
+                h.globals
+                    .iter()
+                    .map(|(n, _, _)| n)
+                    .chain(h.enum_variants.iter().map(|(n, _)| n))
+                    .map(move |n| format!("{}\u{971}{n}", h.module))
+            })
+            .collect();
 
         let mut out = Vec::new();
         // Every `गणना` variant in every module, flat. Variants share one
@@ -885,16 +1062,32 @@ impl Interpreter {
         let mut enum_variants: Vec<(String, i128)> = Vec::new();
         for (label, head) in heads {
             let mut routines = Vec::new();
+            let global_names: Vec<String> =
+                head.globals.iter().map(|(n, _, _)| n.clone()).collect();
             for f in head.fns {
                 let ctx = ParseCtx {
                     sigs: &sigs,
                     modules: &modules,
                     module: &head.module,
+                    globals: &global_names,
+                    imports: &head.imports,
+                    data: &data,
                 };
                 let mut locals: Vec<String> = f.params.iter().map(|(n, _)| n.clone()).collect();
-                let body = Parser::new(&f.body, ctx)
-                    .block(&mut locals)
-                    .map_err(|e| format!("{label}:{}: `{}`: {}", f.line, f.name, e.reason));
+                let mut parser = Parser::new(&f.body, ctx);
+                let body = parser.block(&mut locals).map_err(|e| {
+                    format!(
+                        "{label}:{}: `{}`: {}{}",
+                        f.line,
+                        f.name,
+                        e.reason,
+                        parser.unresolved_note()
+                    )
+                });
+                // `W-359`: `grows` and `guarded` are filled after every
+                // module is loaded (`classify_growth`) — a tail call's callee
+                // may be declared further down the source.
+                let (grows, guarded) = (None, Vec::new());
                 routines.push(Rc::new(Routine {
                     name: f.name,
                     module: head.module.clone(),
@@ -903,6 +1096,8 @@ impl Interpreter {
                     returns: f.returns,
                     public: f.public,
                     body,
+                    grows,
+                    guarded,
                 }));
             }
             enum_variants.extend(head.enum_variants.iter().cloned());
@@ -920,6 +1115,9 @@ impl Interpreter {
                     sigs: &sigs,
                     modules: &modules,
                     module: &module_name,
+                    globals: &global_names,
+                    imports: &head.imports,
+                    data: &data,
                 };
                 let mut none = Vec::new();
                 let e = Parser::new(&toks, ctx).expression(&mut none).map_err(|e| {
@@ -966,7 +1164,15 @@ impl Interpreter {
                 merged.push(m);
             }
         }
-        let out = merged;
+        let mut out = merged;
+        // `V-009` (ii): THE NATIVE RULE ON THE KERNEL'S NAMES, MIRRORED EXACTLY
+        // (`W-381`: an engine does not run what the others refuse).
+        for m in &out {
+            refuse_a_kernel_name(m)?;
+        }
+        // `W-333`: after the merge, so a module declared by two sources is one
+        // table of globals, and before anything clones a routine.
+        mark_unsigned_operators(&mut out);
 
         let by_module = out
             .iter()
@@ -980,7 +1186,16 @@ impl Interpreter {
             fuel: 0,
             budget: 0,
             sink: Vec::new(),
+            active: Vec::new(),
+            float_runs: RefCell::new(HashMap::new()),
+            float_runs_prune_at: std::cell::Cell::new(FLOAT_RUNS_PRUNE_FLOOR),
+            narrow_runs: RefCell::new(HashMap::new()),
+            events: None,
+            threads: None,
+            socket: None,
         };
+        me.classify_growth();
+        me.refuse_unbound_growth()?;
         // Every global is initialised by EVALUATING its initialiser — the same
         // `eval` a routine body's `चरः` goes through — or the load is refused
         // by name. `भवति ०` alone is read through the declared type, because
@@ -1152,6 +1367,513 @@ impl Interpreter {
                 true
             }
             None => false,
+        }
+    }
+
+    /// **THE EVENT LOG, FOR THE INTERPRETED HALF OF A REPLAY (`W-373`).**
+    ///
+    /// LOG REPLAY ONLY (owner ruling 2026-10-05): at wait `k` the interpreter
+    /// writes `log[k]` into the program's event global and continues — the act
+    /// `yantra::input::replay` performs natively at each `Halt::Wait`. Hand
+    /// this the SAME `Vec<u64>` `yantra::input::parse_event_log` gave the
+    /// native replay; live mode stays native-only.
+    ///
+    /// THE SLOT IS FOUND BY THE TAG'S VALUE, as the host finds it in RAM: each
+    /// module's globals are scanned in declaration order for one holding
+    /// [`EVENT_TAG`], and the slot is the global declared next. Refused, and
+    /// nothing set, on `find_event_slot`'s three refusals for its reasons: no
+    /// tag, a tag found twice, a tag with no global after it.
+    ///
+    /// THE RECORD IS 64 BITS, AND THE SLOT'S DECLARED TYPE READS THEM (review
+    /// finding 1, 2026-10-05). Natively the host stores the word and the
+    /// program's type reinterprets it: a `न६४` slot reads it unsigned, an
+    /// `अ६४` slot as two's complement, a `प६४` slot as a double's bit pattern.
+    /// Those three are delivered that way here (`EventSlot`); a slot of any
+    /// other type is REFUSED, because this interpreter does not model a
+    /// narrower or a composite slot's native reading exactly, and a delivery
+    /// that only approximated it would be a two-engine green over a guess.
+    ///
+    /// # Errors
+    /// One of the three refusals above, or a slot of another type, at load —
+    /// before any wait runs.
+    pub fn set_events(&mut self, log: &[u64]) -> Result<(), RunError> {
+        let (slot, kind) = self.event_slot()?;
+        self.events = Some(EventReplay {
+            log: log.to_vec(),
+            slot,
+            kind,
+            delivered: 0,
+        });
+        Ok(())
+    }
+
+    /// The `SASEVENT` slot and how its type reads the host's word — [`Interpreter::set_events`]'s
+    /// checks, shared with [`Interpreter::set_socket`].
+    fn event_slot(&self) -> Result<(String, EventSlot), RunError> {
+        let hits = self.tagged_globals(EVENT_TAG);
+        let slot = match hits.as_slice() {
+            [] => {
+                return Err(RunError::new(format!(
+                    "no event interface in this program: the SASEVENT tag ({EVENT_TAG:#x}) is \
+                     held by no global. It was built without the event global — declare it, or \
+                     do not pass an event log"
+                )));
+            }
+            [(_, Some(next))] => next.clone(),
+            [(at, None)] => {
+                return Err(RunError::new(format!(
+                    "the SASEVENT tag at `{at}` has no global after it"
+                )));
+            }
+            many => {
+                return Err(RunError::new(format!(
+                    "the SASEVENT tag appears at {} globals ({:?}); the tag must be unique or \
+                     the scan cannot tell which global the program reads",
+                    many.len(),
+                    many.iter().map(|(at, _)| at).collect::<Vec<_>>()
+                )));
+            }
+        };
+        let (slot, ty) = slot;
+        let kind = match &ty {
+            Ty::Named(n) if n == T_U64 => EventSlot::Unsigned,
+            Ty::Named(n) if n == T_I64 => EventSlot::Signed,
+            Ty::Named(n) if n == T_F64 => EventSlot::Float,
+            other => {
+                return Err(RunError::new(format!(
+                    "the event global `{slot}` is declared {other:?}: the host writes a 64-bit \
+                     word there, and this interpreter delivers it only into a `{T_U64}`, `{T_I64}` \
+                     or `{T_F64}` slot, whose native reading of those bits it reproduces exactly"
+                )));
+            }
+        };
+        Ok((slot, kind))
+    }
+
+    /// **THE SOCKET LOG, FOR THE INTERPRETED HALF OF A SOCKET REPLAY (`W-377`, option
+    /// (b), owner ruling Q1).** The log IS the device model here, so nothing is invented:
+    /// this keeps the native device's queue, latch and counts (`yantra::socket`), and at
+    /// each wait applies ONE record and writes the octet count into the `SASEVENT` slot
+    /// (`0` for `s=end`) — what `yantra::socket::replay_socket` does at each `Halt::Wait`.
+    /// LOG REPLAY ONLY: live sockets stay native (W-373 Q4).
+    ///
+    /// With a socket log set — and only then — the device calls `अष्टकॱउपकरणचतुरष्टकाहारः`
+    /// and `अष्टकॱउपकरणचतुरष्टकनिधानम्` are answered at the FOUR SOCK addresses
+    /// ([`SOCK_NEXT`], [`SOCK_RX`], [`SOCK_TX`], [`SOCK_CLOSE`]), refusing by the native
+    /// device's own words; every other address keeps `W-350`'s refusal. TX octets go to
+    /// a second sink, [`Interpreter::socket_sent`].
+    ///
+    /// # Errors
+    /// [`Interpreter::set_events`]'s slot refusals, at load.
+    pub fn set_socket(&mut self, log: &[SockRecord]) -> Result<(), RunError> {
+        let (slot, kind) = self.event_slot()?;
+        self.socket = Some(SocketReplay {
+            log: log.to_vec(),
+            slot,
+            kind,
+            delivered: 0,
+            queue: std::collections::VecDeque::new(),
+            ended: false,
+            latch: SOCK_UNREAD,
+            received: 0,
+            sent: Vec::new(),
+        });
+        Ok(())
+    }
+
+    /// The octets the program sent through the socket's TX, in order (`W-377`).
+    #[must_use]
+    pub fn socket_sent(&self) -> &[u8] {
+        self.socket.as_ref().map_or(&[], |s| s.sent.as_slice())
+    }
+
+    /// Socket records the waits have taken, and octets received over them (`W-377`).
+    #[must_use]
+    pub fn socket_delivered(&self) -> (usize, u64) {
+        self.socket
+            .as_ref()
+            .map_or((0, 0), |s| (s.delivered, s.received))
+    }
+
+    /// Every global holding `tag`, in declaration order, as `(moduleॱname, the global
+    /// declared next)` — how the host's scan of RAM for a tag reads in this engine.
+    fn tagged_globals(&self, tag: u64) -> Vec<(String, Option<(String, Ty)>)> {
+        let tag = Value::Int(i128::from(tag));
+        let mut hits = Vec::new();
+        for m in &self.modules {
+            for (k, (name, ..)) in m.globals.iter().enumerate() {
+                if matches!(self.globals.get(name), Some(v) if *v == tag) {
+                    let next = m.globals.get(k + 1).map(|(n, t, _)| (n.clone(), t.clone()));
+                    hits.push((format!("{}\u{971}{name}", m.name), next));
+                }
+            }
+        }
+        hits
+    }
+
+    /// **`W-376`, OPTION (b): THREADS, AS A SERIAL SUBSET** (ADR-0040 addendum §4, owner
+    /// ruling "All as recommended", 2026-10-05).
+    ///
+    /// This interpreter is a recursive tree-walker: pausing one thread inside a call to
+    /// run another would mean suspending a Rust call stack. So it runs ONLY the schedules
+    /// in which every record after a wait names the waiting thread — each thread from its
+    /// start to its end, in `@` order — and REFUSES any other, naming the record index:
+    /// such a schedule is the native engine's alone.
+    ///
+    /// The interface is the native one, found the native way, by value: the global after
+    /// the `SASTHRDS` tag ([`THREADS_TAG`]) holds the count, 1 to [`MAX_THREADS`]; the
+    /// global after `SASTHRID` ([`THREAD_ID_TAG`]), a `न६४`, is the thread-id slot; the
+    /// `SASEVENT` interface must be declared too ([`Interpreter::set_events`]'s checks).
+    /// At each decision the next record must be `@N` for a thread that has not run; N is
+    /// written into the slot and `entry` is CALLED — its return is that thread's end and
+    /// its value the thread's status, as the startup's finisher reports it natively. At
+    /// each wait, the slot is written again (the host writes it at EVERY switch-in) and the
+    /// value record after `@N` is delivered, read through the event slot's type.
+    ///
+    /// Answers each thread's `(number, returned value)` in the order the threads ended.
+    ///
+    /// # Errors
+    /// Refused at load, before anything runs, on the native host's load refusals (a tag
+    /// without its partner, a duplicated tag, a count of 0 or above 64, no event interface)
+    /// or a slot that is not a `न६४`; refused while running on an interleaving schedule, a
+    /// record that does not fit (an ended or out-of-range thread, a value where `@N` is due
+    /// or the reverse), a short log, or — once every thread has ended — a long one; and on
+    /// anything `entry` itself does that [`Interpreter::call`] refuses.
+    pub fn run_threads(
+        &mut self,
+        entry: &str,
+        schedule: &[ThreadStep],
+        fuel: u64,
+    ) -> Result<Vec<(u32, Value)>, RunError> {
+        if self.socket.is_some() {
+            return Err(RunError::new(
+                "a threaded program with a socket log is refused in this row: the readiness \
+                 wake waits for a multi-connection row (W-377, addendum §3)"
+                    .to_string(),
+            ));
+        }
+        let counts = self.tagged_globals(THREADS_TAG);
+        let ids = self.tagged_globals(THREAD_ID_TAG);
+        match (counts.is_empty(), ids.is_empty()) {
+            (true, true) => {
+                return Err(RunError::new(format!(
+                    "no thread interface in this program: the SASTHRDS tag ({THREADS_TAG:#x}) is \
+                     held by no global — declare it and its count, or run the program unthreaded"
+                )));
+            }
+            (false, true) => {
+                return Err(RunError::new(format!(
+                    "the program declares SASTHRDS ({THREADS_TAG:#x}) without SASTHRID \
+                     ({THREAD_ID_TAG:#x}): a threaded program must declare both"
+                )));
+            }
+            (true, false) => {
+                return Err(RunError::new(format!(
+                    "the program declares SASTHRID ({THREAD_ID_TAG:#x}) without SASTHRDS \
+                     ({THREADS_TAG:#x}): a threaded program must declare both"
+                )));
+            }
+            (false, false) => {}
+        }
+        let one = |hits: &[(String, Option<(String, Ty)>)], what: &str| match hits {
+            [(_, Some(next))] => Ok(next.clone()),
+            [(at, None)] => Err(RunError::new(format!(
+                "the {what} tag at `{at}` has no global after it"
+            ))),
+            many => Err(RunError::new(format!(
+                "the {what} tag appears at {} globals ({:?}); the tag must be unique or the \
+                 scan cannot tell which global the program reads",
+                many.len(),
+                many.iter().map(|(at, _)| at).collect::<Vec<_>>()
+            ))),
+        };
+        let (count_global, _) = one(&counts, "SASTHRDS")?;
+        let (id_slot, id_ty) = one(&ids, "SASTHRID")?;
+        let count = match self.globals.get(&count_global) {
+            Some(Value::Int(n)) if (1..=i128::from(MAX_THREADS)).contains(n) => *n as usize,
+            other => {
+                return Err(RunError::new(format!(
+                    "the SASTHRDS count `{count_global}` is {other:?}: a program declares 1 to \
+                     {MAX_THREADS} threads"
+                )));
+            }
+        };
+        if !matches!(&id_ty, Ty::Named(n) if n == T_U64) {
+            return Err(RunError::new(format!(
+                "the thread-id global `{id_slot}` is declared {id_ty:?}: the host writes the \
+                 thread's number there as a `{T_U64}` word"
+            )));
+        }
+        // The event interface, by `set_events`'s own checks; its log is unused here. The
+        // state it replaces is RESTORED on return (review fix 7): a wait in a later call
+        // reads whatever log was set before, or has no event source — never this empty one.
+        let saved = self.events.take();
+        if let Err(e) = self.set_events(&[]) {
+            self.events = saved;
+            return Err(RunError::new(format!(
+                "a threaded program needs the event interface — {}",
+                e.reason
+            )));
+        }
+        self.threads = Some(ThreadReplay {
+            schedule: schedule.to_vec(),
+            cursor: 0,
+            current: 0,
+            id_slot: id_slot.clone(),
+        });
+        let result = self.run_serial(entry, count, fuel);
+        self.threads = None;
+        self.events = saved;
+        result
+    }
+
+    /// [`Interpreter::run_threads`]'s loop, once the interface is checked.
+    fn run_serial(
+        &mut self,
+        entry: &str,
+        count: usize,
+        fuel: u64,
+    ) -> Result<Vec<(u32, Value)>, RunError> {
+        let mut ended = vec![false; count];
+        let mut ends = Vec::new();
+        loop {
+            let tr = self.threads.as_mut().expect("set by run_threads");
+            let index = tr.cursor;
+            if ended.iter().all(|e| *e) {
+                if index < tr.schedule.len() {
+                    return Err(RunError::new(format!(
+                        "the log is LONGER than the run: every thread has ended and {} of {} \
+                         records are unconsumed, from record index {index}; this log does not \
+                         describe this run",
+                        tr.schedule.len() - index,
+                        tr.schedule.len()
+                    )));
+                }
+                return Ok(ends);
+            }
+            let k = match tr.schedule.get(index) {
+                None => {
+                    return Err(RunError::new(format!(
+                        "the log is SHORTER than the run: record index {index} is due at a \
+                         decision point and the log holds {}; nothing was run on a decision \
+                         nobody recorded",
+                        tr.schedule.len()
+                    )));
+                }
+                Some(ThreadStep::Value(v)) => {
+                    return Err(RunError::new(format!(
+                        "record index {index} is the value {v}, and a decision point is due: \
+                         the next record must be `@N`, the thread to run"
+                    )));
+                }
+                Some(ThreadStep::Run(k)) => *k,
+            };
+            if k as usize >= count {
+                return Err(RunError::new(format!(
+                    "record index {index} is `@{k}`, and the program declares {count} threads"
+                )));
+            }
+            if ended[k as usize] {
+                return Err(RunError::new(format!(
+                    "record index {index} is `@{k}`, and thread {k} has ended"
+                )));
+            }
+            tr.cursor += 1;
+            tr.current = k;
+            let slot = tr.id_slot.clone();
+            self.globals.insert(slot, Value::Int(i128::from(k)));
+            let v = self.call(entry, Vec::new(), fuel)?;
+            ended[k as usize] = true;
+            ends.push((k, v));
+        }
+    }
+
+    /// One wait under [`Interpreter::run_threads`]: the next record must name the waiting
+    /// thread, and a value must follow it.
+    fn eval_thread_wait(&mut self) -> Result<Value, RunError> {
+        let tr = self.threads.as_mut().expect("called under run_threads");
+        let index = tr.cursor;
+        let k = tr.current;
+        match tr.schedule.get(index) {
+            None => {
+                return Err(RunError::new(format!(
+                    "the log is SHORTER than the run: record index {index} is due at thread \
+                     {k}'s wait and the log holds {} — the thread was NOT resumed",
+                    tr.schedule.len()
+                )));
+            }
+            Some(ThreadStep::Run(j)) if *j == k => {}
+            Some(ThreadStep::Run(j)) => {
+                return Err(RunError::new(format!(
+                    "W-376: an INTERLEAVING schedule — record index {index} runs thread {j} \
+                     while thread {k} waits. This interpreter runs threads SERIALLY, each from \
+                     its start to its end (option (b), ADR-0040 addendum §4), and refuses a \
+                     schedule that switches at a wait; it is the native engine's to run"
+                )));
+            }
+            Some(ThreadStep::Value(v)) => {
+                return Err(RunError::new(format!(
+                    "record index {index} is the value {v}, and thread {k}'s wait is a \
+                     decision point: the next record must be `@{k}`"
+                )));
+            }
+        }
+        let record = match tr.schedule.get(index + 1) {
+            Some(ThreadStep::Value(v)) => *v,
+            None => {
+                return Err(RunError::new(format!(
+                    "the log is SHORTER than the run: record index {} is thread {k}'s value \
+                     and the log holds {} — the thread was NOT resumed",
+                    index + 1,
+                    tr.schedule.len()
+                )));
+            }
+            Some(ThreadStep::Run(j)) => {
+                return Err(RunError::new(format!(
+                    "record index {} is `@{j}`, and thread {k} is resuming from a wait: its \
+                     value record is due",
+                    index + 1
+                )));
+            }
+        };
+        tr.cursor += 2;
+        let id_slot = tr.id_slot.clone();
+        // EVERY SWITCH-IN WRITES THE SLOT, a resume included.
+        self.globals.insert(id_slot, Value::Int(i128::from(k)));
+        let ev = self.events.as_ref().expect("checked by run_threads");
+        let (slot, kind) = (ev.slot.clone(), ev.kind);
+        self.globals.insert(slot, event_value(kind, record));
+        Ok(Value::Int(0))
+    }
+
+    /// How many records the waits have taken — `Replayed::Halted`'s
+    /// `delivered`. A caller holding a longer log judges it from this, as
+    /// `yantra-run` does: a log not consumed exactly is a log of another run.
+    #[must_use]
+    pub fn events_delivered(&self) -> usize {
+        self.events.as_ref().map_or(0, |e| e.delivered)
+    }
+
+    /// One wait: the next record into the event global, or the refusal the
+    /// native runner gives in the same place.
+    fn eval_wait(&mut self) -> Result<Value, RunError> {
+        if self.threads.is_some() {
+            return self.eval_thread_wait();
+        }
+        if self.socket.is_some() {
+            return self.eval_socket_wait();
+        }
+        let Some(ev) = self.events.as_mut() else {
+            // `yantra-run`'s exit 75: paused, not finished, and never resumed
+            // onto an event nobody delivered.
+            return Err(RunError::new(format!(
+                "WAIT — `{WAIT_BUILTIN_MODULE}\u{971}{WAIT_BUILTIN_MEMBER}` asked the host to \
+                 wait for the world (ADR-0040), and this interpreter has no event source (no \
+                 log was set). The run is paused, not finished"
+            )));
+        };
+        let Some(&record) = ev.log.get(ev.delivered) else {
+            // `Replayed::Short`: never padded.
+            return Err(RunError::new(format!(
+                "the log is SHORTER than the run: wait index {} has no record; the log holds {} \
+                 — the program was NOT resumed, rather than let it read a word nobody delivered",
+                ev.delivered,
+                ev.log.len()
+            )));
+        };
+        ev.delivered += 1;
+        let slot = ev.slot.clone();
+        let v = event_value(ev.kind, record);
+        self.globals.insert(slot, v);
+        Ok(Value::Int(0))
+    }
+
+    /// One SOCKET wait (`W-377`): the next record applied to the queue and its octet count
+    /// into the event global — or the native replay's refusal in the same place: a wait
+    /// after END, or a short log (never padded).
+    fn eval_socket_wait(&mut self) -> Result<Value, RunError> {
+        let sock = self.socket.as_mut().expect("checked by eval_wait");
+        if sock.ended {
+            return Err(RunError::new(format!(
+                "a WAIT after END: wait index {} waited after the peer closed (s=end), and there                  is no other source to wait for (W-377)",
+                sock.delivered
+            )));
+        }
+        let Some(record) = sock.log.get(sock.delivered).cloned() else {
+            return Err(RunError::new(format!(
+                "the socket log is SHORTER than the run: wait index {} has no record; the log                  holds {} — the program was NOT resumed, rather than let it read octets nobody                  delivered",
+                sock.delivered,
+                sock.log.len()
+            )));
+        };
+        // THE SESSION CAP (`yantra::socket::check_cap`'s twin, in its words): the record that
+        // would pass it is refused at its wait and never applied.
+        if let SockRecord::Octets(o) = &record {
+            let total = sock.received + o.len() as u64;
+            if total > SOCK_SESSION_CAP {
+                let (index, octets) = (sock.delivered, o.len());
+                return Err(RunError::new(sock_over_cap(index, octets, total)));
+            }
+        }
+        sock.delivered += 1;
+        let n = match record {
+            SockRecord::Octets(o) => {
+                sock.queue.extend(o.iter().copied());
+                sock.received += o.len() as u64;
+                o.len() as u64
+            }
+            SockRecord::End => {
+                sock.ended = true;
+                0
+            }
+        };
+        let (slot, kind) = (sock.slot.clone(), sock.kind);
+        self.globals.insert(slot, event_value(kind, n));
+        Ok(Value::Int(0))
+    }
+
+    /// A device call at one of the four SOCK addresses, with a socket log set (`W-377`):
+    /// `store` is the write half. `None` for any other address — `W-350`'s refusal then
+    /// stands. The words of every refusal are the native device's (`yantra::socket`).
+    fn socket_call(&mut self, store: bool, vals: &[Value]) -> Option<Result<Value, RunError>> {
+        let sock = self.socket.as_mut()?;
+        let Some(Value::Int(addr)) = vals.first() else {
+            return None;
+        };
+        let addr = u64::try_from(*addr).ok()?;
+        if ![SOCK_NEXT, SOCK_RX, SOCK_TX, SOCK_CLOSE].contains(&addr) {
+            return None;
+        }
+        let refuse = |why: &str| Some(Err(RunError::new(why.to_string())));
+        if !store {
+            return match addr {
+                SOCK_RX => Some(Ok(Value::Int(i128::from(sock.latch)))),
+                SOCK_CLOSE => refuse(SOCK_WHY_CLOSE),
+                _ => refuse(SOCK_WHY_LOAD_STORE_ONLY),
+            };
+        }
+        // The store writes the register's LOW 32 BITS natively (`sw`), so those are judged.
+        let word = match vals.get(1) {
+            Some(Value::Int(v)) => (*v as u64) & 0xffff_ffff,
+            _ => return None,
+        };
+        match addr {
+            SOCK_NEXT if word != 0 => refuse(SOCK_WHY_NEXT_VALUE),
+            SOCK_NEXT => {
+                sock.latch = match sock.queue.pop_front() {
+                    Some(o) => u32::from(o),
+                    None if sock.ended => SOCK_END,
+                    None => SOCK_EMPTY,
+                };
+                Some(Ok(Value::Int(0)))
+            }
+            SOCK_TX if word > 0xff => refuse(SOCK_WHY_TX_VALUE),
+            SOCK_TX => {
+                sock.sent.push(word as u8);
+                Some(Ok(Value::Int(0)))
+            }
+            SOCK_CLOSE => refuse(SOCK_WHY_CLOSE),
+            _ => refuse(SOCK_WHY_STORE_LOAD_ONLY),
         }
     }
 
@@ -1414,12 +2136,30 @@ impl Interpreter {
             .as_ref()
             .map_err(|e| RunError::new(e.clone()))?;
         let mut scope: Vec<Frame> = vec![Frame::new()];
-        for ((n, _), v) in routine.params.iter().zip(args) {
+        // `V-005`: an argument in the other register file from its parameter's
+        // DECLARED type is refused, `FileMismatch` — as `ir.t1` refuses it at
+        // the native call site; never moved by its bits.
+        for ((n, ty), v) in routine.params.iter().zip(args) {
+            refuse_file_mismatch(
+                ty,
+                &v,
+                &format!("the argument for `{n}` of `{}`", routine.name),
+            )?;
             scope[0].push((n.clone(), v));
         }
         let module = self.module_index(&routine.module);
-        match self.block(body, &mut scope, module) {
-            Ok(Flow::Return(v)) => Ok(v),
+        self.active.push(Rc::clone(routine));
+        let ran = self.block(body, &mut scope, module);
+        self.active.pop();
+        match ran {
+            // `V-005`: and a result in the other file from the declared RETURN
+            // type is refused, `FileMismatch`.
+            Ok(Flow::Return(v)) => {
+                if let Some(ty) = &routine.returns {
+                    refuse_file_mismatch(ty, &v, &format!("the result of `{}`", routine.name))?;
+                }
+                Ok(v)
+            }
             Ok(Flow::Fall) => Ok(Value::Nil),
             // A `.t1` backtrace, innermost routine first: every frame the error
             // unwinds through appends its name, so a RunError names its site.
@@ -1429,6 +2169,254 @@ impl Interpreter {
                 Err(e)
             }
         }
+    }
+
+    /// `V-008` — how many entries the float-run table holds, live or not yet
+    /// pruned: what `v008_float_memory.rs` asserts stays bounded.
+    #[doc(hidden)]
+    #[must_use]
+    pub fn float_run_entries(&self) -> usize {
+        self.float_runs.borrow().len()
+    }
+
+    /// `W-381` stage 3 — `a`'s element (bits, signed) when `zero_at` made it as a
+    /// narrow integer run.
+    fn narrow_run(&self, a: &Rc<RefCell<Vec<Value>>>) -> Option<(u32, bool)> {
+        let table = self.narrow_runs.borrow();
+        let (w, bits, signed) = table.get(&(Rc::as_ptr(a) as usize))?;
+        let run = w.upgrade()?;
+        Rc::ptr_eq(&run, a).then_some((*bits, *signed))
+    }
+
+    /// `V-008` — whether `a` is a run `zero_at` made for an `अङ्कः अन्तः प६४`.
+    fn is_float_run(&self, a: &Rc<RefCell<Vec<Value>>>) -> bool {
+        self.float_runs
+            .borrow()
+            .get(&(Rc::as_ptr(a) as usize))
+            .and_then(std::rc::Weak::upgrade)
+            .is_some_and(|run| Rc::ptr_eq(&run, a))
+    }
+
+    /// `V-008` part 2 — `व्यूहॱ<op> ( फल , क , ख )`: `फल[i] = क[i] <op> ख[i]`
+    /// for every `i` below the length, answering the element count. The native
+    /// expansion's twin as a plain loop, with the same refusals in the same
+    /// order:
+    ///
+    /// 1. every argument must be a run of `प६४` (`is_float_run`), or the one
+    ///    named cause `FileMismatch` — `ir.t1` refuses the same call at build;
+    /// 2. the three lengths must be equal (a fresh run is length ०), or the
+    ///    call is refused with [`VECTOR_LENGTH_REFUSAL`] before any element is
+    ///    written — never truncated to the shortest.
+    ///
+    /// Each element is ONE binary64 operation under RNE with a NaN result
+    /// canonicalised — exactly the scalar built-in's (`eval_float_builtin`), so
+    /// a strip computes the bits the scalar loop would. The result run may be
+    /// an operand run (in place): element `i` is read before it is written, and
+    /// no other element is read after it.
+    fn eval_vector_builtin(
+        &self,
+        b: FloatBuiltin,
+        name: &str,
+        vals: &[Value],
+    ) -> Result<Value, RunError> {
+        let qualified = format!("{VECTOR_BUILTIN_MODULE}\u{971}{name}");
+        let mut runs: Vec<Rc<RefCell<Vec<Value>>>> = Vec::with_capacity(VECTOR_BUILTIN_ARITY);
+        for (k, v) in vals.iter().enumerate() {
+            match v {
+                Value::Arena(a) if self.is_float_run(a) => runs.push(Rc::clone(a)),
+                _ => {
+                    return Err(file_mismatch_error(&format!(
+                        "argument {} of `{qualified}`, a run of `{T_F64}`,",
+                        k + 1
+                    )));
+                }
+            }
+        }
+        if runs.len() != VECTOR_BUILTIN_ARITY {
+            return Err(RunError::new(format!(
+                "`{qualified}` takes {VECTOR_BUILTIN_ARITY} runs and was handed {}",
+                runs.len()
+            )));
+        }
+        let lens = [
+            runs[0].borrow().len(),
+            runs[1].borrow().len(),
+            runs[2].borrow().len(),
+        ];
+        if lens[0] != lens[1] || lens[0] != lens[2] {
+            return Err(vector_length_error(&qualified, lens));
+        }
+        let n = lens[0];
+        for i in 0..n {
+            // Both reads end before the write borrows: the result run may BE
+            // an operand run.
+            let x = runs[1].borrow()[i].clone();
+            let y = runs[2].borrow()[i].clone();
+            let r = eval_float_builtin(b, name, &[x, y])?;
+            runs[0].borrow_mut()[i] = r;
+        }
+        Ok(Value::Int(i128::try_from(n).unwrap_or(i128::MAX)))
+    }
+
+    /// `V-009` part (ii) — `व्यूहॱआव्यूहगुणनम् ( फल , क , ख , M , K , N , L )`,
+    /// `व्यूहॱव्युत्क्रमः ( फल , क , M , N , L )` and `व्यूहॱसमासः ( फल , क , ख , B ,
+    /// M , K , N , L )`: the native kernel's twin (docs/v009-matrix-design.md),
+    /// with the same refusals in the same order:
+    ///
+    /// 1. the last argument must be a layout constant (read as TEXT, never
+    ///    evaluated), the runs runs of `प६४` and the dimensions integers, or the
+    ///    one named cause `FileMismatch` — `ir.t1` refuses the same at build;
+    /// 2. COLUMN-MAJOR IS THE PERMUTATION `ir.t1` makes: the product swaps its
+    ///    operand runs and M with N, the transpose M with N; everything after
+    ///    is row-major;
+    /// 3. every dimension, and each product of two, must be below 2^32 (so no
+    ///    product wraps), and the three lengths must be what the shape says, or
+    ///    [`VECTOR_LENGTH_REFUSAL`];
+    /// 4. an empty result answers ० and writes nothing;
+    /// 5. a result run that IS an operand run is refused, [`REFUSAL_ADHYASA`].
+    ///
+    /// Each element of a product starts from +0.0 and adds `x · y` for `k` in
+    /// order — two roundings, no fused multiply-add — through the scalar
+    /// built-ins themselves (`eval_float_builtin`), exactly the kernel's
+    /// `vfmul.vv` then `vfadd.vv` per lane. A transpose moves the bits.
+    fn eval_matrix_builtin(
+        &mut self,
+        op: MatrixOp,
+        args: &[Expr],
+        scope: &mut Vec<Frame>,
+        module: usize,
+    ) -> Result<Value, RunError> {
+        let qualified = format!("{VECTOR_BUILTIN_MODULE}\u{971}{}", op.member());
+        let layout = match args.last() {
+            Some(Expr::Call {
+                module: m,
+                name,
+                args: none,
+                vector: true,
+                ..
+            }) if none.is_empty() => layout_constant(m.as_deref(), name),
+            _ => None,
+        };
+        // `परिवर्तितम्` reads a product's first operand transposed; a
+        // transpose takes no such layout (`ir.t1` refuses it the same way).
+        let layout = layout.filter(|l| op != MatrixOp::Transpose || *l != Layout::Transposed);
+        let Some(layout) = layout else {
+            return Err(file_mismatch_error(&format!(
+                "argument {} of `{qualified}`, a layout constant,",
+                args.len()
+            )));
+        };
+        let column_major = layout == Layout::ColumnMajor;
+        let run_count = if op == MatrixOp::Transpose { 2 } else { 3 };
+        let mut runs: Vec<Rc<RefCell<Vec<Value>>>> = Vec::with_capacity(run_count);
+        let mut dims: Vec<u64> = Vec::with_capacity(4);
+        for (k, a) in args[..args.len().saturating_sub(1)].iter().enumerate() {
+            let v = self.eval(a, scope, module)?;
+            match v {
+                Value::Arena(r) if k < run_count && self.is_float_run(&r) => runs.push(r),
+                // The register's sixty-four bits, as the kernel reads them.
+                Value::Int(i) if k >= run_count => dims.push(i as u64),
+                _ => {
+                    let what = if k < run_count {
+                        format!("a run of `{T_F64}`")
+                    } else {
+                        "an integer".to_string()
+                    };
+                    return Err(file_mismatch_error(&format!(
+                        "argument {} of `{qualified}`, {what},",
+                        k + 1
+                    )));
+                }
+            }
+        }
+        let len = |r: &Rc<RefCell<Vec<Value>>>| r.borrow().len() as u64;
+        let shape = |lens: &[u64]| {
+            RunError::new(format!(
+                "`{qualified}` over runs whose lengths {lens:?} disagree with its shape {dims:?}: \
+                 refused (V-009, finisher word {VECTOR_LENGTH_REFUSAL:#x})"
+            ))
+        };
+        let adhyasa = || {
+            RunError::new(format!(
+                "`{qualified}`'s result run is one of its operand runs: refused (V-009, \
+                 finisher word {REFUSAL_ADHYASA:#x})"
+            ))
+        };
+        const WIDE: u64 = 1 << 32;
+        if op == MatrixOp::Transpose {
+            let (c, a) = (&runs[0], &runs[1]);
+            let (mut m, mut n) = (dims[0], dims[1]);
+            if column_major {
+                std::mem::swap(&mut m, &mut n);
+            }
+            if (m | n) >= WIDE || m * n != len(c) || m * n != len(a) {
+                return Err(shape(&[len(c), len(a)]));
+            }
+            if m * n == 0 {
+                return Ok(Value::Int(0));
+            }
+            if Rc::ptr_eq(c, a) {
+                return Err(adhyasa());
+            }
+            let (m, n) = (m as usize, n as usize);
+            for j in 0..n {
+                for i in 0..m {
+                    let x = a.borrow()[i * n + j].clone();
+                    c.borrow_mut()[j * m + i] = x;
+                }
+            }
+            return Ok(Value::Int((m * n) as i128));
+        }
+        let (c, mut a, mut b) = (&runs[0], &runs[1], &runs[2]);
+        let (batch, rest) = if op == MatrixOp::Tensor {
+            (dims[0], &dims[1..])
+        } else {
+            (1, &dims[..])
+        };
+        let (mut m, k, mut n) = (rest[0], rest[1], rest[2]);
+        if column_major {
+            std::mem::swap(&mut a, &mut b);
+            std::mem::swap(&mut m, &mut n);
+        }
+        let lens = [len(c), len(a), len(b)];
+        if (batch | m | k | n) >= WIDE
+            || ((m * k) | (k * n) | (m * n)) >= WIDE
+            || m * k * batch != lens[1]
+            || k * n * batch != lens[2]
+            || m * n * batch != lens[0]
+        {
+            return Err(shape(&lens));
+        }
+        let count = m * n * batch;
+        if count == 0 {
+            return Ok(Value::Int(0));
+        }
+        if Rc::ptr_eq(c, a) || Rc::ptr_eq(c, b) {
+            return Err(adhyasa());
+        }
+        let (batch, m, k, n) = (batch as usize, m as usize, k as usize, n as usize);
+        let (mul, add) = (FloatBuiltin::Mul, FloatBuiltin::Add);
+        for t in 0..batch {
+            for i in 0..m {
+                for j in 0..n {
+                    let mut s = Value::Float(0);
+                    for kk in 0..k {
+                        // `परिवर्तितम्`: A is stored K×M, so A[i, k] is at k·M + i.
+                        let ai = if layout == Layout::Transposed {
+                            t * m * k + kk * m + i
+                        } else {
+                            (t * m + i) * k + kk
+                        };
+                        let x = a.borrow()[ai].clone();
+                        let y = b.borrow()[(t * k + kk) * n + j].clone();
+                        let p = eval_float_builtin(mul, &qualified, &[x, y])?;
+                        s = eval_float_builtin(add, &qualified, &[s, p])?;
+                    }
+                    c.borrow_mut()[(t * m + i) * n + j] = s;
+                }
+            }
+        }
+        Ok(Value::Int(i128::from(count)))
     }
 
     fn module_index(&self, name: &str) -> usize {
@@ -1441,7 +2429,7 @@ impl Interpreter {
     /// is what every arena and every record is written with — `सार्वजनिक चरः
     /// पाठांशकोश ॱॱ अङ्कः अन्तः पाठांश भवति ०` and `चरः नव ॱॱ पाठांश भवति ०`.
     /// The TYPE is what says which of the three it means.
-    fn zero_of(&self, ty: &Ty, module: usize) -> Value {
+    fn zero_of(&self, ty: &Ty, module: usize) -> Result<Value, RunError> {
         self.zero_at(ty, module, 0)
     }
 
@@ -1481,7 +2469,7 @@ impl Interpreter {
         module: usize,
     ) -> Result<Value, RunError> {
         if matches!(init, Expr::Num(0)) {
-            return Ok(self.zero_of(ty, module));
+            return self.zero_of(ty, module);
         }
         let label = format!("{}\u{971}{name}", self.modules[module].name);
         if let Some(why) = not_a_load_time_value(init) {
@@ -1492,32 +2480,72 @@ impl Interpreter {
             )));
         }
         let mut empty: Vec<Frame> = vec![Frame::new()];
-        self.eval(init, &mut empty, module).map_err(|e| {
+        let v = self.eval(init, &mut empty, module).map_err(|e| {
             RunError::new(format!(
                 "`{label}`: its initialiser could not be evaluated at load: {}",
                 e.reason
             ))
-        })
+        })?;
+        // `V-008`: AN INITIALISER IS A STORE INTO THE GLOBAL'S DECLARED FILE — a
+        // `प६४` global is never laid with an integer's bits (`भवति ०`, above, is
+        // its typed zero, +0.0), as `ir.t1` refuses the same declaration.
+        refuse_file_mismatch(ty, &v, &format!("the global `{label}`"))?;
+        Ok(v)
     }
 
-    fn zero_at(&self, ty: &Ty, module: usize, depth: usize) -> Value {
+    fn zero_at(&self, ty: &Ty, module: usize, depth: usize) -> Result<Value, RunError> {
         if depth > 8 {
             // A struct that contains itself is not writable in this language
             // and would be an infinite record here. Stop rather than hang.
-            return Value::Nil;
+            return Ok(Value::Nil);
         }
-        match ty {
+        Ok(match ty {
             Ty::Slice(inner) => match &**inner {
                 Ty::Named(n) if n == T_U8 => Value::Octets(Octets::new(&[])),
-                // One-based: slot ० is reserved and never a live entry, which
-                // is the convention every `…योजनम्` states in its own margin.
-                _ => Value::Arena(Rc::new(RefCell::new(vec![Value::Nil]))),
+                // EMPTY, length ० (`W-355`): until 2026-10-03 this was one
+                // `Nil` — a hole at index ० that the compiled side reproduced
+                // as a COUNT (`len + (len == ०)`) but not as a slot, so the two
+                // engines agreed on the loop bound and disagreed on whether
+                // index ० was readable. Native reads a fresh run as the nil
+                // word, length ०, and refuses an index into it; so does this.
+                // `V-008`: a run of `प६४` is recorded as one, so a store into it
+                // can be held to its declared file while it is still empty.
+                Ty::Named(n) if n == T_F64 => {
+                    let run = Rc::new(RefCell::new(vec![]));
+                    let mut table = self.float_runs.borrow_mut();
+                    table.insert(Rc::as_ptr(&run) as usize, Rc::downgrade(&run));
+                    if table.len() >= self.float_runs_prune_at.get() {
+                        table.retain(|_, w| w.strong_count() > 0);
+                        self.float_runs_prune_at
+                            .set((2 * table.len()).max(FLOAT_RUNS_PRUNE_FLOOR));
+                    }
+                    drop(table);
+                    Value::Arena(run)
+                }
+                // `W-381` stage 3: a narrow integer run is recorded with its
+                // element's width and signedness (`narrow_runs`).
+                Ty::Named(n) if narrow_width(n).is_some() => {
+                    let run = Rc::new(RefCell::new(vec![]));
+                    let (bits, signed) = narrow_width(n).expect("matched above");
+                    let mut table = self.narrow_runs.borrow_mut();
+                    if table.len() >= FLOAT_RUNS_PRUNE_FLOOR.max(2 * self.float_runs_prune_at.get())
+                    {
+                        table.retain(|_, (w, ..)| w.strong_count() > 0);
+                    }
+                    table.insert(
+                        Rc::as_ptr(&run) as usize,
+                        (Rc::downgrade(&run), bits, signed),
+                    );
+                    drop(table);
+                    Value::Arena(run)
+                }
+                _ => Value::Arena(Rc::new(RefCell::new(vec![]))),
             },
             Ty::Named(n) => match self.struct_fields(n, module) {
                 Some(fields) => {
                     let mut map = HashMap::new();
                     for (f, fty) in fields {
-                        map.insert(f.clone(), self.zero_at(fty, module, depth + 1));
+                        map.insert(f.clone(), self.zero_at(fty, module, depth + 1)?);
                     }
                     // Top-level only: natively a record-typed FIELD is nil until
                     // assigned, so the nested records this zero builds eagerly are
@@ -1528,11 +2556,66 @@ impl Interpreter {
                     }
                     Value::Record(Rc::new(RefCell::new(map)))
                 }
-                None => Value::Int(0),
+                None => self.zero_of_name(n, module)?,
             },
             Ty::Optional(_) => Value::Nil,
             _ => Value::Int(0),
+        })
+    }
+
+    /// `W-267`: THE ZERO OF A NAMED TYPE THAT IS NOT A `संरचना` — or a REFUSAL.
+    ///
+    /// Until 2026-10-03 every such name answered `Value::Int(0)`, so a typo'd type
+    /// in a `भवति ०` declaration bound an integer silently (the `वास्तुॱअभिव्यञ्जक`
+    /// failure was this shape) while the T1 twin refuses it (`artha.t1` seeds
+    /// `दोषार्थः`). Now a name is zeroed only if it is one of:
+    /// - a grammar scalar, `grammar-t1.ebnf:226`/`:248` — `Int(0)`, unchanged;
+    /// - TEXT, `पाठ` and the retired `पाठः` the corpus still writes 14 times — the
+    ///   EMPTY TEXT, exactly as `अङ्कः अन्तः अ८` is above, not `Int(0)`;
+    /// - a declared `गणना` — `Int(0)`, its FIRST variant, because ordinals are
+    ///   zero-based by position (where `enum_variants` are pushed). The row's first
+    ///   prescription left enums out, and three are written in type position in
+    ///   the corpus (`लक्ष्य`, `संज्ञाखण्ड`, `स्थापन`), one of them a field of the
+    ///   record the object reader zeroes for every symbol.
+    ///
+    /// Anything else is refused BY NAME.
+    fn zero_of_name(&self, n: &str, module: usize) -> Result<Value, RunError> {
+        if n == W_TEXT || n == W_TEXT_RETIRED {
+            return Ok(Value::Octets(Octets::new(&[])));
         }
+        // `V-005`: a fresh `प६४` is +0.0 — all sixty-four bits clear, which is
+        // also what the native frame slot holds after `भवति ०` stores the
+        // integer ० into it.
+        if n == T_F64 {
+            return Ok(Value::Float(0));
+        }
+        if is_scalar_type_name(n) || self.enum_declared(n, module) {
+            return Ok(Value::Int(0));
+        }
+        Err(RunError::new(format!(
+            "`{n}` is not a type: no `संरचना` or `गणना` declares it and it is not one of \
+             the language's own (`अ`/`न` with a width, `प३२`, `प६४`, `बूल`, `अक्षरम्`, \
+             `पाठ`) — so `भवति ०` has no zero to give it, and inventing `०` would bind \
+             a number where a typo was meant (W-267)"
+        )))
+    }
+
+    /// Whether `name` is a `गणना` — QUALIFIED OR NOT, resolved exactly as
+    /// [`Self::struct_fields`] resolves a struct.
+    fn enum_declared(&self, name: &str, module: usize) -> bool {
+        let has = |m: &Module, n: &str| m.enums.iter().any(|(e, _)| e == n);
+        if let Some(m) = self.modules.get(module)
+            && has(m, name)
+        {
+            return true;
+        }
+        if let Some((owner, bare)) = name.split_once('\u{971}')
+            && let Some(m) = self.modules.iter().find(|m| m.name == owner)
+            && has(m, bare)
+        {
+            return true;
+        }
+        self.modules.iter().any(|m| has(m, name))
     }
 
     /// The fields of a struct, by name — QUALIFIED OR NOT.
@@ -1607,7 +2690,252 @@ enum Flow {
 /// than walking six of them. `the_register_reader_answers_the_number_the_table_carries`
 /// — 67 calls of `कोष्ठाङ्कः` over the whole register table, `dev` profile —
 /// went from 9.09 s to 4.05 s on this change alone.
+/// The type names that are unsigned integers — `artha.t1`'s `मूलप्रकारार्थः`,
+/// the arms that set `पूर्णाङ्कार्थभेद` with `चिह्नितम्` `असत्यम्`.
+///
+/// A COPY OF THAT LIST, AND SAID TO BE ONE. The native side reads the bit off
+/// the checker's own record; this side has only the spelling. So
+/// `w333_shift_mark.rs` reads the names out of `artha.t1` and compares them
+/// with this array, and an unsigned type added there reds that test instead
+/// of making the two engines disagree about it.
+///
+/// **SEVEN, AND THE TEST IS WHY IT IS NOT FIVE.** This array was written as the
+/// five `न` widths, from the letter. The comparison's first run answered
+/// `["न८", "न१६", "न३२", "न६४", "न१२८", "बूल", "अक्षरम्"]`: `मूलप्रकारार्थः`
+/// also makes `बूल` and `अक्षरम्` integers with `चिह्नितम्` `असत्यम्`, so a name
+/// of either type is shifted LOGICALLY in the image. With five here the
+/// interpreter would have shifted those two arithmetically — the engines
+/// parting on a declared type, which is the defect `W-333` exists to remove.
+pub const UNSIGNED_INTEGER_TYPES: [&str; 7] = ["न८", "न१६", "न३२", "न६४", "न१२८", "बूल", "अक्षरम्"];
+
+fn declared_unsigned(ty: &Ty) -> bool {
+    matches!(ty, Ty::Named(n) if UNSIGNED_INTEGER_TYPES.contains(&n.as_str()))
+}
+
+/// What a load-time walk knows about the names in scope at a shift.
+struct ShiftScope<'a> {
+    /// Innermost last, and within a frame in declaration order — the shape of
+    /// the run-time `Vec<Frame>`, holding a signedness where that holds a value.
+    frames: Vec<Vec<(String, bool)>>,
+    /// The enclosing module's `गणना` variants: a variant is read BEFORE any
+    /// global (`lookup_global`) and is never an unsigned name.
+    variants: &'a HashMap<String, i128>,
+    /// This module's globals.
+    own: &'a HashMap<String, bool>,
+    /// Every module's globals, by module name, for `मॱग`.
+    by_module: &'a HashMap<String, HashMap<String, bool>>,
+    /// Every module's variants, by module name, for `मॱग`.
+    variants_of: &'a HashMap<String, HashMap<String, i128>>,
+    /// The flat table: a bare name some OTHER module declares. `None` when
+    /// two modules declare it with different signedness — the run-time store
+    /// has one slot for both (`global_key`'s KNOWN LIMIT), so neither
+    /// declaration can be called the name's.
+    flat: &'a HashMap<String, Option<bool>>,
+}
+
+impl ShiftScope<'_> {
+    /// Whether `name` is declared unsigned, by the rule `eval`'s `Expr::Var`
+    /// arm and `slot_mut` read a name with: the innermost frame that binds it,
+    /// the LAST declaration in that frame, and only then the module level.
+    fn unsigned(&self, name: &str) -> bool {
+        for frame in self.frames.iter().rev() {
+            if let Some((_, u)) = frame.iter().rev().find(|(n, _)| n == name) {
+                return *u;
+            }
+        }
+        if self.variants.contains_key(name) {
+            return false;
+        }
+        if let Some((m, n)) = name.split_once('\u{971}')
+            && let Some(globals) = self.by_module.get(m)
+        {
+            if self.variants_of.get(m).is_some_and(|v| v.contains_key(n)) {
+                return false;
+            }
+            return globals
+                .get(n)
+                .copied()
+                .unwrap_or_else(|| self.flat.get(n).copied().flatten().unwrap_or(false));
+        }
+        self.own
+            .get(name)
+            .copied()
+            .unwrap_or_else(|| self.flat.get(name).copied().flatten().unwrap_or(false))
+    }
+
+    fn expr(&self, e: &mut Expr) {
+        match e {
+            Expr::Bin(op, l, r) => {
+                self.expr(l);
+                self.expr(r);
+                // A NAME, and nothing else: not a call that returns unsigned,
+                // not a member, not an index. `ir.t1`'s `अचिह्नितनामसरणम्`
+                // answers the same question from the same fact. A grouped
+                // name needs no arm here — this tree has no group node, so
+                // `आरभ्य क समाप्तम्` is already `Var(क)`.
+                if *op == BinOp::Shr
+                    && let Expr::Var(name) = &**l
+                    && self.unsigned(name)
+                {
+                    *op = BinOp::ShrL;
+                }
+                // `W-381` stage 3: an ORDERING comparison with a NAME declared
+                // unsigned on EITHER side compares unsigned — `ir.t1` asks
+                // `अचिह्नितनामसरणम्` of both operands. Either side, because a
+                // comparison has no "left operand" in the shift's sense: `क
+                // न्यूनम् ०` and `० अधिकम् क` are one question.
+                let unsigned_name = |e: &Expr| matches!(e, Expr::Var(name) if self.unsigned(name));
+                // Ruling (b): division and remainder by the same rule.
+                if matches!(
+                    op,
+                    BinOp::Lt | BinOp::Gt | BinOp::Ge | BinOp::Div | BinOp::Rem
+                ) && (unsigned_name(l) || unsigned_name(r))
+                {
+                    *op = match op {
+                        BinOp::Lt => BinOp::LtU,
+                        BinOp::Gt => BinOp::GtU,
+                        BinOp::Ge => BinOp::GeU,
+                        BinOp::Div => BinOp::DivU,
+                        _ => BinOp::RemU,
+                    };
+                }
+            }
+            Expr::Call { args, .. } => {
+                for a in args {
+                    self.expr(a);
+                }
+            }
+            Expr::Index(a, b) => {
+                self.expr(a);
+                self.expr(b);
+            }
+            Expr::Slice(a, b, c) => {
+                self.expr(a);
+                self.expr(b);
+                self.expr(c);
+            }
+            Expr::Field(base, _) => self.expr(base),
+            Expr::Num(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Nil | Expr::Var(_) => {}
+        }
+    }
+
+    /// One block: a frame of its own, as `Interpreter::block` opens one.
+    fn block(&mut self, stmts: &mut [Stmt]) {
+        self.frames.push(Vec::new());
+        for s in stmts {
+            match s {
+                // The initialiser is read BEFORE the name is bound, as
+                // `statement` evaluates it before pushing — `चरः क ॱॱ न६४
+                // भवति क दक्षिणसृ १` shifts the OUTER `क`.
+                Stmt::Let { name, ty, init } => {
+                    self.expr(init);
+                    let unsigned = declared_unsigned(ty);
+                    self.frames
+                        .last_mut()
+                        .expect("a frame is open")
+                        .push((name.clone(), unsigned));
+                }
+                Stmt::Assign { target, value } => {
+                    self.expr(value);
+                    self.expr(target);
+                }
+                Stmt::If { cond, then, els } => {
+                    self.expr(cond);
+                    self.block(then);
+                    self.block(els);
+                }
+                Stmt::While { cond, body } => {
+                    self.expr(cond);
+                    self.block(body);
+                }
+                Stmt::Return(Some(e)) | Stmt::Eval(e) => self.expr(e),
+                Stmt::Return(None) => {}
+            }
+        }
+        self.frames.pop();
+    }
+}
+
+/// **`W-333` — MARK EVERY `दक्षिणसृ` WHOSE LEFT OPERAND IS A NAME DECLARED
+/// UNSIGNED, ONCE, AT LOAD** — and, since `W-381` stage 3, every ordering
+/// comparison with such a name on either side (`BinOp::LtU`, `GtU`, `GeU`).
+///
+/// `eval` has two integers and no types, so the choice between the arithmetic
+/// and the logical shift cannot be made there. It CAN be made here: a routine's
+/// parameters, every `चरः` in its body and every module's globals carry their
+/// declared type in the tree, and which declaration a name denotes at a given
+/// expression is fixed by the same scope rule the run-time lookup applies.
+///
+/// No `Frame` changes and nothing is consulted at run time: the mark is the
+/// operator itself, `BinOp::Shr` rewritten to `BinOp::ShrL` in place (and
+/// `Lt`/`Gt`/`Ge` to their unsigned three).
+///
+/// A routine whose body did not parse is left alone — it refuses when called.
+fn mark_unsigned_operators(modules: &mut [Module]) {
+    let by_module: HashMap<String, HashMap<String, bool>> = modules
+        .iter()
+        .map(|m| {
+            (
+                m.name.clone(),
+                m.globals
+                    .iter()
+                    .map(|(n, t, _)| (n.clone(), declared_unsigned(t)))
+                    .collect(),
+            )
+        })
+        .collect();
+    let variants_of: HashMap<String, HashMap<String, i128>> = modules
+        .iter()
+        .map(|m| (m.name.clone(), m.variants.clone()))
+        .collect();
+    let mut flat: HashMap<String, Option<bool>> = HashMap::new();
+    for globals in by_module.values() {
+        for (n, u) in globals {
+            flat.entry(n.clone())
+                .and_modify(|seen| {
+                    if *seen != Some(*u) {
+                        *seen = None;
+                    }
+                })
+                .or_insert(Some(*u));
+        }
+    }
+    for m in modules.iter_mut() {
+        let own = &by_module[&m.name];
+        let variants = &variants_of[&m.name];
+        let scope = |frames| ShiftScope {
+            frames,
+            variants,
+            own,
+            by_module: &by_module,
+            variants_of: &variants_of,
+            flat: &flat,
+        };
+        for (_, _, init) in &mut m.globals {
+            scope(Vec::new()).expr(init);
+        }
+        for r in &mut m.routines {
+            // Just built and not yet shared: `load` calls this before any
+            // clone of the `Rc`. A shared one is skipped rather than copied,
+            // and `w333` asserts the marks landed, so a skip cannot be silent.
+            let Some(r) = Rc::get_mut(r) else { continue };
+            let params = r
+                .params
+                .iter()
+                .map(|(n, t)| (n.clone(), declared_unsigned(t)))
+                .collect();
+            if let Ok(body) = &mut r.body {
+                scope(vec![params]).block(body);
+            }
+        }
+    }
+}
+
 type Frame = Vec<(String, Value)>;
+
+/// `W-381` stage 3: a narrow run's table entry — the run, its element's bits,
+/// and whether the element is signed.
+type NarrowRun = (std::rc::Weak<RefCell<Vec<Value>>>, u32, bool);
 
 /// `W-274`: UNUSED TODAY. It gives `Frame` — a type alias for `Vec<(String,
 /// Value)>` — a `new()` of its own, which every call site currently spells as
@@ -1660,7 +2988,7 @@ impl Interpreter {
                 // ० is not the number, it is "a fresh one". Same for an arena.
                 let v = match (ty, init) {
                     (Ty::Named(_) | Ty::Slice(_), Expr::Num(0)) => {
-                        let z = self.zero_of(ty, module);
+                        let z = self.zero_of(ty, module)?;
                         if matches!(z, Value::Int(_)) {
                             self.eval(init, scope, module)?
                         } else {
@@ -1669,6 +2997,12 @@ impl Interpreter {
                     }
                     _ => self.eval(init, scope, module)?,
                 };
+                // `V-005` — FAIL CLOSED (review ruling 2026-10-05): a value in the
+                // other register file from the local's DECLARED type is refused,
+                // `FileMismatch`, as `ir.t1` refuses it natively — never moved by
+                // its bits. `भवति ०` on a `प६४` is the typed zero above (+0.0),
+                // not an integer, on both engines.
+                refuse_file_mismatch(ty, &v, &format!("the local `{name}`"))?;
                 scope
                     .last_mut()
                     .expect("a scope is always open")
@@ -1785,12 +3119,24 @@ impl Interpreter {
             Expr::Var(name) => {
                 for frame in scope.iter_mut().rev() {
                     if let Some((_, slot)) = frame.iter_mut().rev().find(|(n, _)| n == name) {
+                        // `V-005`: an assignment obeys the local's DECLARED file
+                        // too — a `प६४` local holds a float from its binding on,
+                        // and any other local never does (`Stmt::Let`).
+                        if matches!(slot, Value::Float(_)) != matches!(v, Value::Float(_)) {
+                            return Err(file_mismatch_error(&format!("the local `{name}`")));
+                        }
                         *slot = v;
                         return Ok(());
                     }
                 }
                 let key = self.global_key(name).to_string();
                 if let Some(slot) = self.globals.get_mut(&key) {
+                    // `V-008`: a global obeys its DECLARED file as a local does —
+                    // a `प६४` global holds a float from its load on (`भवति ०` is
+                    // +0.0), and any other global never does.
+                    if matches!(slot, Value::Float(_)) != matches!(v, Value::Float(_)) {
+                        return Err(file_mismatch_error(&format!("the global `{name}`")));
+                    }
                     *slot = v;
                     return Ok(());
                 }
@@ -1798,6 +3144,14 @@ impl Interpreter {
             }
             Expr::Field(base, field) => match self.eval(base, scope, module)? {
                 Value::Record(r) => {
+                    // `V-008`: a field obeys its DECLARED file. Every field of a
+                    // record is built by `zero_at` from its declaration — a
+                    // `प६४` one as +0.0 — and every write since was held to the
+                    // same rule, so the value in the slot says the file.
+                    let float_field = matches!(r.borrow().get(field), Some(Value::Float(_)));
+                    if float_field != matches!(v, Value::Float(_)) {
+                        return Err(file_mismatch_error(&format!("the field `{field}`")));
+                    }
                     r.borrow_mut().insert(field.clone(), v);
                     Ok(())
                 }
@@ -1807,6 +3161,42 @@ impl Interpreter {
             },
             Expr::Index(base, idx) => {
                 let i = self.eval(idx, scope, module)?.int()?;
+                // `W-359` rule (2): A STORE PAST THE END OF A GUARDED PARAMETER
+                // IS REFUSED, BY NAME. In a routine that does not return a run
+                // parameter, growing it cannot reach the caller natively — the
+                // grown block's base is written back only into the callee's own
+                // slot — so the store is refused here exactly where the native
+                // lowering writes `प्राचलसीमानिषेधः` (`0x359`) to the finisher.
+                // Within the length the store is untouched; locals, globals and
+                // the parameter a routine grows and returns keep the old path.
+                if let Expr::Var(name) = &**base
+                    && let Some(r) = self.guarded_parameter(name, scope)
+                {
+                    let len = match self.slot_mut(name, scope) {
+                        Some(Value::Arena(a)) => a.borrow().len(),
+                        Some(Value::Octets(o)) => o.len(),
+                        _ => 0,
+                    };
+                    if !usize::try_from(i).is_ok_and(|i| i < len) {
+                        return Err(RunError::new(format!(
+                            "entry {i} is past the end of the parameter `{name}`, a run of \
+                             {len}, and `{}` does not return it (W-359)",
+                            r.name
+                        )));
+                    }
+                }
+                // `W-381` STAGE 4 (the review's finding 1): A STORE AT OR PAST
+                // THE LARGEST RUN IS REFUSED, BY NAME, before anything grows —
+                // `ir.t1`'s `खण्डप्रविष्टिसीमा`, the same 2^25 entries for every
+                // run, checked natively before the need is multiplied. Without it
+                // a store at 10^12 asked the HOST for terabytes and aborted it,
+                // while the native image faulted `BeyondRam`.
+                if i >= i128::from(MAX_RUN_ENTRIES) {
+                    return Err(RunError::new(format!(
+                        "entry {i} is past the largest run, {MAX_RUN_ENTRIES} entries \
+                         (W-381, finisher word {OUT_OF_BOUNDS_WRITE_REFUSAL:#x})"
+                    )));
+                }
                 // IN PLACE WHEN NOBODY ELSE HOLDS THE BUFFER. The copy-on-write
                 // arm below rebuilt the whole byte store on EVERY write, so an
                 // appender like `अष्टकयोजनम्` — one byte per call, 194,726 calls
@@ -1826,14 +3216,15 @@ impl Interpreter {
                     && o.start == 0
                     && o.end == o.data.len()
                 {
-                    let i = usize::try_from(i)
-                        .map_err(|_| RunError::new(format!("octet index {i} is not an index")))?;
-                    let byte = u8::try_from(*byte).map_err(|_| {
+                    let i = usize::try_from(i).map_err(|_| {
                         RunError::new(format!(
-                            "{byte} does not fit an octet, so it cannot be \
-                             written into a `अङ्कः अन्तः अ८`"
+                            "octet index {i} is not an index (W-381, finisher word \
+                                 {OUT_OF_BOUNDS_WRITE_REFUSAL:#x})"
                         ))
                     })?;
+                    // Owner ruling (a), 2026-10-06: the LOW EIGHT BITS, as the
+                    // native `sb` stores them — never a refusal.
+                    let byte = octet_of(*byte);
                     if *CALLS_ON.get_or_init(|| std::env::var_os("T1_CALLS").is_some()) {
                         let shared = Rc::strong_count(&o.data) > 1;
                         CALLS.with(|c| {
@@ -1858,12 +3249,57 @@ impl Interpreter {
                 match self.eval(base, scope, module)? {
                     Value::Arena(a) => {
                         let i = usize::try_from(i).map_err(|_| {
-                            RunError::new(format!("arena index {i} is not an index"))
+                            RunError::new(format!(
+                                "arena index {i} is not an index (W-381, finisher word \
+                                 {OUT_OF_BOUNDS_WRITE_REFUSAL:#x})"
+                            ))
                         })?;
+                        // `V-008`: an element obeys its run's DECLARED file — a
+                        // run of `प६४` takes only a float, any other run never
+                        // one — and a float run grows with +0.0, the sixty-four
+                        // clear bits the native block holds, not with `Nil`.
+                        let float_run = self.is_float_run(&a);
+                        // `W-381` stage 3 (owner rulings 2026-10-06): a narrow
+                        // run keeps the low bits, held as its load extends them.
+                        let v = match (&v, self.narrow_run(&a)) {
+                            (Value::Int(x), Some((bits, signed))) => {
+                                Value::Int(narrow_value(*x, bits, signed))
+                            }
+                            _ => v,
+                        };
+                        if float_run != matches!(v, Value::Float(_)) {
+                            return Err(file_mismatch_error(&format!(
+                                "an element of `{}`",
+                                match &**base {
+                                    Expr::Var(n) => n.as_str(),
+                                    _ => "<expression>",
+                                }
+                            )));
+                        }
+                        // `W-381` STAGE 4, OWNER RULING 2026-10-06 (gap reads,
+                        // option A): "Interpreter reads unwritten slots as 0.
+                        // Matches native execution behavior and avoids requiring
+                        // breaking source modifications across compiler tables."
+                        // So a run of INTEGERS grows with `Int(0)` — the clear
+                        // word the native block holds — as an octet run grows
+                        // with ० and a float run with +0.0. A gap slot is INSIDE
+                        // the length, so reading it is NOT refused: it reads ०.
+                        // An integer element being stored is what says the run
+                        // is one of integers; any other run (records, runs of
+                        // runs) still grows with `Nil`.
                         let mut a = a.borrow_mut();
                         if a.len() <= i {
                             bump_model(a.as_ptr() as usize, a.len(), i + 1, 8);
-                            a.resize(i + 1, Value::Nil);
+                            a.resize(
+                                i + 1,
+                                if float_run {
+                                    Value::Float(0)
+                                } else if matches!(v, Value::Int(_)) {
+                                    Value::Int(0)
+                                } else {
+                                    Value::Nil
+                                },
+                            );
                         }
                         a[i] = v;
                         Ok(())
@@ -1884,19 +3320,21 @@ impl Interpreter {
                     // else in this language.
                     Value::Octets(o) => {
                         let i = usize::try_from(i).map_err(|_| {
-                            RunError::new(format!("octet index {i} is not an index"))
+                            RunError::new(format!(
+                                "octet index {i} is not an index (W-381, finisher word \
+                                 {OUT_OF_BOUNDS_WRITE_REFUSAL:#x})"
+                            ))
                         })?;
+                        // `V-008`: an octet run is an integer run.
+                        if matches!(v, Value::Float(_)) {
+                            return Err(file_mismatch_error("an element of an octet run"));
+                        }
                         let mut bytes = o.as_slice().to_vec();
                         if bytes.len() <= i {
                             bytes.resize(i + 1, 0);
                         }
                         let byte = v.int()?;
-                        bytes[i] = u8::try_from(byte).map_err(|_| {
-                            RunError::new(format!(
-                                "{byte} does not fit an octet, so it cannot be \
-                                 written into a `अङ्कः अन्तः अ८`"
-                            ))
-                        })?;
+                        bytes[i] = octet_of(byte);
                         self.assign(base, Value::Octets(Octets::new(&bytes)), scope, module)
                     }
                     // NAME THE TARGET. Without it this says only that
@@ -1928,7 +3366,7 @@ impl Interpreter {
     ) -> Result<Value, RunError> {
         self.burn(1)?;
         match expr {
-            Expr::Num(n) => Ok(Value::Int(*n)),
+            Expr::Num(n) => Ok(Value::Int(wrap(*n))),
             Expr::Bool(b) => Ok(Value::Bool(*b)),
             Expr::Nil => Ok(Value::Nil),
             Expr::Str(s) => Ok(Value::Octets(Octets {
@@ -2025,10 +3463,29 @@ impl Interpreter {
                 module: m,
                 name,
                 args,
+                vector,
+                wait,
             } => {
+                // `V-009` (ii) — A MATRIX BUILT-IN, before its arguments are
+                // evaluated: the last is the layout constant, read as text.
+                if *vector && let Some(op) = matrix_builtin(m.as_deref(), name) {
+                    return self.eval_matrix_builtin(op, args, scope, module);
+                }
+                if *vector && layout_constant(m.as_deref(), name).is_some() {
+                    return Err(file_mismatch_error(&format!(
+                        "`{VECTOR_BUILTIN_MODULE}\u{971}{name}`, a layout constant read only as \
+                         a matrix built-in's last argument,"
+                    )));
+                }
                 let mut vals = Vec::with_capacity(args.len());
                 for a in args {
                     vals.push(self.eval(a, scope, module)?);
+                }
+                // `W-373` — THE WAIT, by the flag only its one-token parse path
+                // sets. The argument is evaluated (above) and ignored: it is the
+                // word the native lowering stores at WAIT, reserved for `W-377`.
+                if *wait {
+                    return self.eval_wait();
                 }
                 // THE OUTPUT INTRINSIC, INTERCEPTED BEFORE `resolve_call`.
                 //
@@ -2046,11 +3503,69 @@ impl Interpreter {
                 // would silently capture any same-named routine the module grew
                 // later. `m` is `None` for an unqualified call, so the pattern
                 // below simply never sees one.
+                // `V-005` — THE FLOAT BUILT-INS, by exact qualified name, before
+                // `resolve_call`: `ashtaka.t1` declares none of them, so there is
+                // no body to fall through to. `ir.t1` lowers the same calls to
+                // the D-extension instructions.
+                if let Some((b, _)) = float_builtin(m.as_deref(), name) {
+                    return eval_float_builtin(b, name, &vals);
+                }
+                // `W-381` stage 3 — THE CHECKED INTEGER BUILT-INS, the same way.
+                if let Some(b) = checked_builtin(m.as_deref(), name) {
+                    return eval_checked_builtin(b, name, &vals);
+                }
+                // `V-008` part 2 — THE VECTOR BUILT-INS, by exact qualified
+                // name, for the float built-ins' reason. Natively the call is
+                // one IR node the emitter expands into a strip-mined loop.
+                if *vector && let Some(b) = vector_builtin(m.as_deref(), name) {
+                    return self.eval_vector_builtin(b, name, &vals);
+                }
                 if m.as_deref() == Some("अष्टक") && name == "मुद्रणम्" {
                     if let Some(Value::Int(v)) = vals.first() {
                         self.sink.push((*v & 0xff) as u8);
                     }
                     return Ok(Value::Int(0));
+                }
+                // `W-350`'s DEVICE REGISTER WINDOW — AND THIS SIDE REFUSES
+                // RATHER THAN ANSWERING, which is the opposite of the three
+                // intrinsics above and is deliberate.
+                //
+                // `मुद्रणम्` can be interpreted because the interpreter can
+                // collect an octet, and the file window because the host can
+                // read a file. A DEVICE REGISTER HAS NO ANSWER HERE: there is no
+                // device model behind `0x1000_1000`, so any value this returned
+                // would be invented. Returning `Int(0)` would be the worst of
+                // the options — it is a plausible register reading, so a driver
+                // would take it for data and the predict would agree with a
+                // native run that read something else entirely. That is a
+                // both-engine green over an absence.
+                //
+                // SO IT RAISES, BY NAME. A source that touches a device cannot
+                // earn a predict, and it should not: it is verified natively and
+                // under QEMU against C-009's screendump. `W-340`'s rule is the
+                // one that applies — a predict whose refusal is invisible is
+                // worse than no predict — so the refusal says which intrinsic,
+                // and why, in the one place a reader will be looking.
+                // `W-377`'s CARVE-OUT, AND ONLY IT: with a socket log set, the four SOCK
+                // addresses are answered from the log's model (`socket_call`); every other
+                // address, and every call with no socket log, keeps the refusal below.
+                if m.as_deref() == Some("अष्टक")
+                    && (name == "उपकरणचतुरष्टकाहारः" || name == "उपकरणचतुरष्टकनिधानम्")
+                    && let Some(answer) = self.socket_call(name == "उपकरणचतुरष्टकनिधानम्", &vals)
+                {
+                    return answer;
+                }
+                if m.as_deref() == Some("अष्टक")
+                    && (name == "उपकरणचतुरष्टकाहारः" || name == "उपकरणचतुरष्टकनिधानम्")
+                {
+                    return Err(RunError::new(format!(
+                        "`अष्टकॱ{name}` reaches a DEVICE REGISTER, and this interpreter has no \
+                         device behind it — so there is no value to predict. Natively `ir.t1` \
+                         replaces the call with a four-octet load or store at the address; here \
+                         there is nothing to read and inventing a zero would be a plausible \
+                         register reading a driver would mistake for data. Verify a source that \
+                         touches a device NATIVELY and under QEMU, not by predict (`W-350`)."
+                    )));
                 }
                 let target = self.resolve_call(m.as_deref(), name, module)?;
                 self.invoke(&target, vals)
@@ -2083,6 +3598,423 @@ impl Interpreter {
             .find(|r| r.name == name)
             .cloned()
             .ok_or_else(|| RunError::new(format!("no routine named `{name}` is loaded")))
+    }
+
+    /// `W-359` (coordinator's final ruling, 2026-10-04): the parameter a routine
+    /// GROWS AND RETURNS. A routine is grow-and-return for run parameter `P` when
+    ///   ॱ `P` is declared `अङ्कः अन्तः T`,
+    ///   ॱ the body's LAST top-level statement is a `प्रत्यागमनम्`, so no path
+    ///     falls off the end, and
+    ///   ॱ EVERY `प्रत्यागमनम्` in the body, at any depth, returns `P`: the bare
+    ///     name, or a TAIL CALL of an unqualified routine of the SAME module
+    ///     that is itself grow-and-return, with the bare name `P` in its grown
+    ///     position — followed at most [`GROWTH_DEPTH`] calls deep.
+    ///
+    /// `शून्यम्` IS NOT `P`. It was admitted until the final ruling, and it did not
+    /// have to precede any store: a routine could grow `P` and answer nil, and a
+    /// caller assigning that back would lose the run on BOTH engines (a loss,
+    /// not a divergence). The `सम्भाव्य` writers that needed it now report
+    /// failure by `संयोजनॱनिधानविफलम्`. The `.t1` twin is
+    /// `घोषणासञ्चयॱवर्धकप्राचलः`, with the same bound and the same locality.
+    fn grown_and_returned(&self, module: usize, r: &Routine, depth: usize) -> Option<String> {
+        let body = r.body.as_ref().ok()?;
+        if !matches!(body.last(), Some(Stmt::Return(_))) {
+            return None;
+        }
+        if !r.params.iter().any(|(_, t)| matches!(t, Ty::Slice(_))) {
+            return None;
+        }
+        let mut found = Vec::new();
+        returns_of(body, &mut found);
+        let mut named: Option<String> = None;
+        for e in found {
+            let cand = match e {
+                Some(Expr::Var(n)) => n.clone(),
+                Some(Expr::Call {
+                    module: None,
+                    name,
+                    args,
+                    ..
+                }) => {
+                    // THE `.t1` TWIN'S BOUNDARY, EXACTLY: `प्रत्यागतवर्धनपाठः` refuses
+                    // to follow a tail call from a routine at depth ≥ the bound
+                    // (root ०), so a callee is classified down to depth ८ — eight
+                    // tail calls, nine routines. This read `depth + 1 >= ..`
+                    // until the delta review, cutting the chain one level early.
+                    if depth >= GROWTH_DEPTH {
+                        return None;
+                    }
+                    let callee = self.modules[module]
+                        .routines
+                        .iter()
+                        .find(|c| &c.name == name)?;
+                    let g = self.grown_and_returned(module, callee, depth + 1)?;
+                    let at = callee.params.iter().position(|(p, _)| *p == g)?;
+                    match args.get(at) {
+                        Some(Expr::Var(n)) => n.clone(),
+                        _ => return None,
+                    }
+                }
+                _ => return None,
+            };
+            match &named {
+                None => named = Some(cand),
+                Some(m) if *m == cand => {}
+                Some(_) => return None,
+            }
+        }
+        let n = named?;
+        r.params
+            .iter()
+            .find(|(p, t)| *p == n && matches!(t, Ty::Slice(_)))
+            .map(|(p, _)| p.clone())
+    }
+
+    /// Fill every routine's `grows` and `guarded` — once, after every module
+    /// is loaded and before any routine is shared.
+    fn classify_growth(&mut self) {
+        let mut found: Vec<Vec<Option<String>>> = Vec::new();
+        for (m, module) in self.modules.iter().enumerate() {
+            found.push(
+                module
+                    .routines
+                    .iter()
+                    .map(|r| self.grown_and_returned(m, r, 0))
+                    .collect(),
+            );
+        }
+        for (module, grows) in self.modules.iter_mut().zip(found) {
+            for (r, g) in module.routines.iter_mut().zip(grows) {
+                let r = Rc::get_mut(r).expect("no routine is shared before classification");
+                r.guarded = r
+                    .params
+                    .iter()
+                    .filter(|(p, t)| matches!(t, Ty::Slice(_)) && g.as_deref() != Some(p))
+                    .map(|(p, _)| p.clone())
+                    .collect();
+                r.grows = g;
+            }
+        }
+    }
+
+    /// `W-359` rules (A) and (C), AT LOAD, and the fail-closed unresolved callee.
+    ///
+    /// A grow-and-return routine hands the grown run back as its result —
+    /// natively growth cuts a NEW block whose base reaches the caller only
+    /// through the return. So the result is either ASSIGNED BACK to the very
+    /// name passed for the grown parameter (`x भवति f … x …`, x a bare name),
+    /// or TAIL-RETURNED from a routine that itself grows and returns that name.
+    /// Anything else — dropped, bound to another name or by `चरः`, used inside
+    /// a larger expression — refuses the load, by name. So does rule (C): an
+    /// indexed store into, or a growth of, a LOCAL ALIAS of a run parameter (a
+    /// `चरः` local bound to the parameter or to an alias by a bare name, closed
+    /// transitively); aliasing alone is allowed. A callee no loaded module
+    /// declares cannot be classified, so the CALLING routine is made to refuse
+    /// when called (fail closed) — except the intrinsics this interpreter
+    /// answers itself. The `.t1` twin is `अर्थॱवर्धनबन्धपरीक्षा`.
+    fn refuse_unbound_growth(&mut self) -> Result<(), RunError> {
+        let mut unresolved: Vec<(usize, usize, String)> = Vec::new();
+        for (m, module) in self.modules.iter().enumerate() {
+            for (ri, r) in module.routines.iter().enumerate() {
+                let Ok(body) = &r.body else { continue };
+                let mut check = BindCheck {
+                    it: self,
+                    module: m,
+                    routine: r,
+                    aliases: aliases_of(r, body),
+                    unresolved: None,
+                };
+                check.stmts(body)?;
+                if let Some(name) = check.unresolved {
+                    unresolved.push((m, ri, name));
+                }
+            }
+        }
+        for (m, ri, name) in unresolved {
+            let r = Rc::get_mut(&mut self.modules[m].routines[ri])
+                .expect("no routine is shared before classification");
+            r.body = Err(format!(
+                "`{}\u{971}{}` calls `{name}`, which no loaded module declares, so how its \
+                 result is used cannot be checked (W-359)",
+                r.module, r.name
+            ));
+        }
+        Ok(())
+    }
+
+    /// `W-359` rule (2): is `name`, written as the base of an indexed store, a
+    /// GUARDED parameter of the routine executing — a run parameter of a
+    /// routine that does not grow-and-return it, and not shadowed by a local?
+    /// The parameters are the frame at the bottom of the routine's scope.
+    fn guarded_parameter(&self, name: &str, scope: &[Frame]) -> Option<Rc<Routine>> {
+        let r = self.active.last()?;
+        if !r.guarded.iter().any(|p| p == name) {
+            return None;
+        }
+        let innermost = scope
+            .iter()
+            .rposition(|frame| frame.iter().any(|(n, _)| n == name))?;
+        (innermost == 0).then(|| Rc::clone(r))
+    }
+}
+
+/// `W-359` rule (C): the LOCAL ALIASES of a routine's run parameters — `चरः`
+/// locals bound, anywhere in the body, to a parameter or an alias by a bare
+/// name (`चरः y … भवति p`, or `y भवति p` for a `चरः` local y), closed.
+fn aliases_of(r: &Routine, body: &[Stmt]) -> Vec<String> {
+    fn lets<'a>(stmts: &'a [Stmt], out: &mut Vec<&'a str>) {
+        for s in stmts {
+            match s {
+                Stmt::Let { name, .. } => out.push(name),
+                Stmt::If { then, els, .. } => {
+                    lets(then, out);
+                    lets(els, out);
+                }
+                Stmt::While { body, .. } => lets(body, out),
+                _ => {}
+            }
+        }
+    }
+    fn bindings<'a>(stmts: &'a [Stmt], locals: &[&str], out: &mut Vec<(&'a str, &'a str)>) {
+        for s in stmts {
+            match s {
+                Stmt::Let {
+                    name,
+                    init: Expr::Var(z),
+                    ..
+                } => out.push((name, z)),
+                Stmt::Assign {
+                    target: Expr::Var(y),
+                    value: Expr::Var(z),
+                } if locals.contains(&y.as_str()) => out.push((y, z)),
+                Stmt::If { then, els, .. } => {
+                    bindings(then, locals, out);
+                    bindings(els, locals, out);
+                }
+                Stmt::While { body, .. } => bindings(body, locals, out),
+                _ => {}
+            }
+        }
+    }
+    let mut locals = Vec::new();
+    lets(body, &mut locals);
+    let mut pairs = Vec::new();
+    bindings(body, &locals, &mut pairs);
+    let params: Vec<&str> = r
+        .params
+        .iter()
+        .filter(|(_, t)| matches!(t, Ty::Slice(_)))
+        .map(|(p, _)| p.as_str())
+        .collect();
+    let mut aliases: Vec<String> = Vec::new();
+    loop {
+        let before = aliases.len();
+        for (y, z) in &pairs {
+            if (params.contains(z) || aliases.iter().any(|a| a == z))
+                && !aliases.iter().any(|a| a == y)
+            {
+                aliases.push((*y).to_string());
+            }
+        }
+        if aliases.len() == before {
+            return aliases;
+        }
+    }
+}
+
+/// A grow-and-return call: its callee, and its grown argument if a bare name.
+type GrownCall = (Rc<Routine>, Option<String>);
+
+/// One routine's walk for [`Interpreter::refuse_unbound_growth`].
+struct BindCheck<'a> {
+    it: &'a Interpreter,
+    module: usize,
+    routine: &'a Routine,
+    aliases: Vec<String>,
+    unresolved: Option<String>,
+}
+
+impl BindCheck<'_> {
+    fn here(&self) -> String {
+        format!("{}\u{971}{}", self.routine.module, self.routine.name)
+    }
+
+    /// The callee of a call, if it resolves; an unresolvable non-intrinsic is
+    /// remembered (fail closed) and answers `None`.
+    fn callee(&mut self, module: Option<&str>, name: &str) -> Option<Rc<Routine>> {
+        match self.it.resolve_call(module, name, self.module) {
+            Ok(c) => Some(c),
+            Err(_) => {
+                let intrinsic = (module == Some("अष्टक")
+                    && matches!(name, "मुद्रणम्" | "उपकरणचतुरष्टकाहारः" | "उपकरणचतुरष्टकनिधानम्"))
+                    || float_builtin(module, name).is_some()
+                    || checked_builtin(module, name).is_some()
+                    || wait_builtin(module, name);
+                if !intrinsic && self.unresolved.is_none() {
+                    self.unresolved = Some(match module {
+                        Some(m) => format!("{m}\u{971}{name}"),
+                        None => name.to_string(),
+                    });
+                }
+                None
+            }
+        }
+    }
+
+    fn misuse(&self, callee: &Routine, p: &str) -> RunError {
+        RunError::new(format!(
+            "`{}` uses the result of `{}\u{971}{}`, which grows its parameter `{p}`, other than \
+             by assigning it back to the name passed for `{p}` or tail-returning it (W-359)",
+            self.here(),
+            callee.module,
+            callee.name
+        ))
+    }
+
+    fn alias(&self, y: &str) -> RunError {
+        RunError::new(format!(
+            "`{}` stores into or grows `{y}`, a local alias of a run parameter (W-359)",
+            self.here()
+        ))
+    }
+
+    /// A call whose result is used in an approved form: the grown argument,
+    /// if it is a bare name. The arguments are walked either way.
+    fn grown_arg(&mut self, e: &Expr) -> Result<Option<GrownCall>, RunError> {
+        let Expr::Call {
+            module,
+            name,
+            args,
+            vector,
+            wait,
+        } = e
+        else {
+            return Ok(None);
+        };
+        // `V-008` part 2: the vector built-in calls no routine; nor does the
+        // `W-373` wait.
+        if *vector || *wait {
+            self.exprs(args)?;
+            return Ok(None);
+        }
+        let Some(callee) = self.callee(module.as_deref(), name) else {
+            self.exprs(args)?;
+            return Ok(None);
+        };
+        let Some(g) = callee.grows.clone() else {
+            return Ok(None);
+        };
+        self.exprs(args)?;
+        let at = callee.params.iter().position(|(p, _)| *p == g);
+        let arg = match at.and_then(|i| args.get(i)) {
+            Some(Expr::Var(n)) => Some(n.clone()),
+            _ => None,
+        };
+        Ok(Some((callee, arg)))
+    }
+
+    fn exprs(&mut self, es: &[Expr]) -> Result<(), RunError> {
+        for e in es {
+            self.expr(e)?;
+        }
+        Ok(())
+    }
+
+    /// Any grow-and-return call reached here is a misuse.
+    fn expr(&mut self, e: &Expr) -> Result<(), RunError> {
+        match e {
+            Expr::Call {
+                module,
+                name,
+                args,
+                vector,
+                wait,
+            } => {
+                if !*vector
+                    && !*wait
+                    && let Some(callee) = self.callee(module.as_deref(), name)
+                    && let Some(p) = &callee.grows
+                {
+                    return Err(self.misuse(&callee, p));
+                }
+                self.exprs(args)
+            }
+            Expr::Bin(_, l, r) | Expr::Index(l, r) => {
+                self.expr(l)?;
+                self.expr(r)
+            }
+            Expr::Slice(a, b, c) => {
+                self.expr(a)?;
+                self.expr(b)?;
+                self.expr(c)
+            }
+            Expr::Field(b, _) => self.expr(b),
+            Expr::Num(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Nil | Expr::Var(_) => Ok(()),
+        }
+    }
+
+    fn stmts(&mut self, stmts: &[Stmt]) -> Result<(), RunError> {
+        for s in stmts {
+            match s {
+                Stmt::Let { init, .. } => self.expr(init)?,
+                Stmt::Assign { target, value } => {
+                    if let Some((callee, arg)) = self.grown_arg(value)? {
+                        let p = callee.grows.clone().unwrap_or_default();
+                        match (target, arg) {
+                            (Expr::Var(x), Some(a)) if *x == a => {
+                                if self.aliases.iter().any(|y| y == x) {
+                                    return Err(self.alias(x));
+                                }
+                            }
+                            _ => return Err(self.misuse(&callee, &p)),
+                        }
+                    } else {
+                        self.expr(value)?;
+                    }
+                    if let Expr::Index(base, idx) = target {
+                        if let Expr::Var(y) = &**base
+                            && self.aliases.iter().any(|a| a == y)
+                        {
+                            return Err(self.alias(y));
+                        }
+                        self.expr(base)?;
+                        self.expr(idx)?;
+                    } else {
+                        self.expr(target)?;
+                    }
+                }
+                Stmt::If { cond, then, els } => {
+                    self.expr(cond)?;
+                    self.stmts(then)?;
+                    self.stmts(els)?;
+                }
+                Stmt::While { cond, body } => {
+                    self.expr(cond)?;
+                    self.stmts(body)?;
+                }
+                Stmt::Return(Some(e)) => {
+                    if let Some((callee, arg)) = self.grown_arg(e)? {
+                        let own = self.routine.grows.as_deref();
+                        if arg.is_none() || arg.as_deref() != own {
+                            return Err(RunError::new(format!(
+                                "`{}` tail-returns `{}\u{971}{}`, which grows its parameter \
+                                 `{}`, but does not itself grow and return the name it passes \
+                                 (W-359)",
+                                self.here(),
+                                callee.module,
+                                callee.name,
+                                callee.grows.as_deref().unwrap_or_default()
+                            )));
+                        }
+                    } else {
+                        self.expr(e)?;
+                    }
+                }
+                Stmt::Return(None) => {}
+                Stmt::Eval(e) => self.expr(e)?,
+            }
+        }
+        Ok(())
     }
 }
 
@@ -2120,7 +4052,9 @@ fn walk_stmts<'a>(
 
 fn walk_expr<'a>(e: &'a Expr, calls: &mut Vec<(Option<&'a str>, &'a str)>) {
     match e {
-        Expr::Call { module, name, args } => {
+        Expr::Call {
+            module, name, args, ..
+        } => {
             calls.push((module.as_deref(), name));
             for a in args {
                 walk_expr(a, calls);
@@ -2174,44 +4108,877 @@ fn named_types(ty: &Ty) -> Vec<&str> {
     }
 }
 
+// ── `V-005`: the float built-ins ─────────────────────────────────────────
+
+/// The module a float built-in is qualified by: `अष्टकॱप्लवयोगः`, as
+/// `अष्टकॱमुद्रणम्` is. The owner's shape (2026-10-03) is CALL-FORM BUILT-INS
+/// with no grammar change, and the tree's call-form intrinsics are qualified
+/// calls into `अष्टक` intercepted on both engines by their EXACT qualified name.
+/// Unlike those, a float built-in has NO DECLARATION in `ashtaka.t1`: a missed
+/// interception is then an unresolved symbol at link, not a body that answers.
+pub const FLOAT_BUILTIN_MODULE: &str = "अष्टक";
+
+/// Which float built-in a name is. `Convert` and `Move` each name BOTH
+/// directions — the tree has one word for `fcvt` and one for `fmv`
+/// (`spec/mnemonics-riscv64.src.tsv`), and T0 tells the directions apart by the
+/// operand's register file — so the direction is the ARGUMENT's type: an
+/// integer goes to a float, a float to an integer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FloatBuiltin {
+    /// `fadd.d`
+    Add,
+    /// `fsub.d`
+    Sub,
+    /// `fmul.d`
+    Mul,
+    /// `fmadd.d`: `a × b + c`, rounded once
+    MulAdd,
+    /// `fdiv.d`
+    Div,
+    /// `fsqrt.d`
+    Sqrt,
+    /// `feq.d`
+    Eq,
+    /// `flt.d`
+    Lt,
+    /// `fle.d`
+    Le,
+    /// `fcvt.d.l` from an integer, `fcvt.l.d` from a float
+    Convert,
+    /// `fmv.d.x` from an integer, `fmv.x.d` from a float
+    Move,
+}
+
+/// Every float built-in: its name, what it is, how many arguments it takes and
+/// the RV64D mnemonic(s) whose `spec/encodings-riscv64.tsv` word it is. The
+/// names are THAT FILE'S third column, copied, and
+/// `the_float_builtin_names_are_the_encoding_tables_words` reads the file to
+/// prove it — a name typed from memory is exactly the defect that test exists
+/// for.
+pub const FLOAT_BUILTINS: [(&str, FloatBuiltin, usize, &str); 11] = [
+    ("प्लवयोगः", FloatBuiltin::Add, 2, "fadd.d"),
+    ("प्लववियोगः", FloatBuiltin::Sub, 2, "fsub.d"),
+    ("प्लवगुणनम्", FloatBuiltin::Mul, 2, "fmul.d"),
+    ("प्लवगुणयोगः", FloatBuiltin::MulAdd, 3, "fmadd.d"),
+    ("प्लवभागः", FloatBuiltin::Div, 2, "fdiv.d"),
+    ("प्लववर्गमूलम्", FloatBuiltin::Sqrt, 1, "fsqrt.d"),
+    ("प्लवसमम्", FloatBuiltin::Eq, 2, "feq.d"),
+    ("प्लवन्यूनम्", FloatBuiltin::Lt, 2, "flt.d"),
+    ("प्लवानधिकम्", FloatBuiltin::Le, 2, "fle.d"),
+    ("प्लवरूपान्तरम्", FloatBuiltin::Convert, 1, "fcvt.d.l fcvt.l.d"),
+    ("प्लवसंचारः", FloatBuiltin::Move, 1, "fmv.d.x fmv.x.d"),
+];
+
+/// The built-in a `(module, name)` call names, by EXACT qualified name — never
+/// by the bare word, so a routine of that name in any module stays a call.
+#[must_use]
+pub fn float_builtin(module: Option<&str>, name: &str) -> Option<(FloatBuiltin, usize)> {
+    if module != Some(FLOAT_BUILTIN_MODULE) {
+        return None;
+    }
+    FLOAT_BUILTINS
+        .iter()
+        .find(|(n, ..)| *n == name)
+        .map(|(_, b, arity, _)| (*b, *arity))
+}
+
+// ── `W-381` stage 3: the checked integer built-ins ─────────────────────────
+
+/// `W-381` stage 3 (owner rulings 2026-10-06): the CHECKED integer operations,
+/// call-form members of `अष्टक` as the float built-ins are (ADR-0043 D1: a
+/// call-form member, never a keyword). Plain `योगः`/`वियोगः`/`गुणनम्`/`वामसृ`
+/// WRAP (ruling P1); these refuse instead. The names are the owner's, copied.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckedBuiltin {
+    /// `a + b`, refused on SIGNED 64-bit overflow.
+    Add,
+    /// `a − b`, refused on SIGNED 64-bit overflow.
+    Sub,
+    /// `a × b`, refused on SIGNED 64-bit overflow.
+    Mul,
+    /// `a << n`, refused ONLY when `n` is 64 or more (ruling (a)): bits shifted
+    /// out are not an overflow here.
+    Shl,
+}
+
+/// The four checked built-ins: the member name after `अष्टकॱ`, and which one.
+/// Each takes two arguments.
+pub const CHECKED_BUILTINS: [(&str, CheckedBuiltin); 4] = [
+    ("सुरक्षितयोगः", CheckedBuiltin::Add),
+    ("सुरक्षितवियोगः", CheckedBuiltin::Sub),
+    ("सुरक्षितगुणनम्", CheckedBuiltin::Mul),
+    ("सुरक्षितवामसरणम्", CheckedBuiltin::Shl),
+];
+
+/// `ir.t1`'s `अतिप्रवाहनिषेधः`: the refusal a checked built-in raises, natively
+/// written to the finisher in FAIL form (`0x035c_3333`), so `yantra` halts
+/// `Finisher { status: Some(0x35c) }` and QEMU exits `0x5c`.
+pub const OVERFLOW_REFUSAL: u64 = 0x35c;
+/// Its name (owner ruling, 2026-10-06).
+pub const OVERFLOW_REFUSAL_NAME: &str = "अतिप्रवाहनिषेधः";
+
+/// The refusal of a division or remainder BY ZERO (owner ruling (b),
+/// 2026-10-06: refuse on both engines, never the RV64 default). Natively a zero
+/// test before every `div`/`rem` whose divisor is not a non-zero numeral.
+pub const DIVISION_BY_ZERO_REFUSAL: u64 = 0x35e;
+/// Its name, APPROVED by the owner 2026-10-06 (the lane's proposal): this
+/// constant and `ir.t1`'s one global are the only places it is spelled.
+pub const DIVISION_BY_ZERO_REFUSAL_NAME: &str = "शून्यविभाजननिषेधः";
+
+/// The checked built-in a `(module, name)` call names, by EXACT qualified name.
+#[must_use]
+pub fn checked_builtin(module: Option<&str>, name: &str) -> Option<CheckedBuiltin> {
+    if module != Some(FLOAT_BUILTIN_MODULE) {
+        return None;
+    }
+    CHECKED_BUILTINS
+        .iter()
+        .find(|(n, _)| *n == name)
+        .map(|(_, b)| *b)
+}
+
+fn eval_checked_builtin(b: CheckedBuiltin, name: &str, vals: &[Value]) -> Result<Value, RunError> {
+    let int = |i: usize| -> Result<i128, RunError> {
+        match vals.get(i) {
+            Some(Value::Float(_)) | None => Err(RunError::new(format!(
+                "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` takes two integers, and argument {} is not one",
+                i + 1
+            ))),
+            Some(v) => v.int(),
+        }
+    };
+    let (x, y) = (int(0)?, int(1)?);
+    let refused = || {
+        RunError::new(format!(
+            "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` over {} and {} does not fit 64 signed bits: \
+             refused as `{OVERFLOW_REFUSAL_NAME}` (W-381, finisher word {OVERFLOW_REFUSAL:#x})",
+            signed(x),
+            signed(y)
+        ))
+    };
+    let (a, c) = (signed(x), signed(y));
+    let r = match b {
+        CheckedBuiltin::Add => a.checked_add(c).ok_or_else(refused)?,
+        CheckedBuiltin::Sub => a.checked_sub(c).ok_or_else(refused)?,
+        CheckedBuiltin::Mul => a.checked_mul(c).ok_or_else(refused)?,
+        CheckedBuiltin::Shl => {
+            if word(y) >= 64 {
+                return Err(RunError::new(format!(
+                    "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` by {}, which is 64 or more: refused as \
+                     `{OVERFLOW_REFUSAL_NAME}` (W-381, finisher word {OVERFLOW_REFUSAL:#x})",
+                    word(y)
+                )));
+            }
+            #[allow(clippy::cast_possible_truncation)]
+            let n = word(y) as u32;
+            return Ok(Value::Int(wrap(x << n)));
+        }
+    };
+    Ok(Value::Int(i128::from(r)))
+}
+
+// ── `V-008` part 2: the elementwise vector built-ins ─────────────────────
+
+/// The qualifier of a vector built-in: `व्यूहॱप्लवयोगः` adds two `प६४` runs
+/// elementwise into a third (ADR-0043 R3: `व्यूहॱ` + V-005's float names, so
+/// no operation word is coined). NOT a module and declared by none: like the
+/// float built-ins, a missed interception is an unresolved call, never a body.
+pub const VECTOR_BUILTIN_MODULE: &str = "व्यूह";
+
+/// `ir.t1`'s `व्यूहदैर्घ्यनिषेधः`: the refusal CODE the native expansion
+/// writes when the three runs' lengths differ (`V-008` part 2, owner ruling
+/// Q2: refuse, never truncate). The next value free after `W-359`'s `0x359`.
+/// Since `W-381` the finisher word is its FAIL form, `riscv64::fail_word`
+/// (`0x035a_3333`), so `yantra` halts `Finisher { status: Some(0x35a) }` and
+/// QEMU stops too. The interpreter refuses at the same call with this code in
+/// its cause (the text, which says "finisher word", is unchanged).
+pub const VECTOR_LENGTH_REFUSAL: u64 = 0x35a;
+
+/// The vector built-in a `(module, name)` call names, by EXACT qualified name:
+/// the four elementwise operations yantra executes as `.vv` — add, subtract,
+/// multiply, divide — each taking three runs (`फल`, `क`, `ख`). Their member
+/// names are [`FLOAT_BUILTINS`]' own, so the encoding-table proof of that table
+/// covers these too.
+#[must_use]
+pub fn vector_builtin(module: Option<&str>, name: &str) -> Option<FloatBuiltin> {
+    if module != Some(VECTOR_BUILTIN_MODULE) {
+        return None;
+    }
+    FLOAT_BUILTINS
+        .iter()
+        .find(|(n, ..)| *n == name)
+        .map(|(_, b, ..)| *b)
+        .filter(|b| {
+            matches!(
+                b,
+                FloatBuiltin::Add | FloatBuiltin::Sub | FloatBuiltin::Mul | FloatBuiltin::Div
+            )
+        })
+}
+
+/// How many arguments a vector built-in takes: the result run and the two
+/// operand runs.
+pub const VECTOR_BUILTIN_ARITY: usize = 3;
+
+/// The cause a length mismatch raises, the same words on every call.
+fn vector_length_error(qualified: &str, lens: [usize; 3]) -> RunError {
+    RunError::new(format!(
+        "`{qualified}` over runs of unequal length — the result {}, the operands {} and {}: \
+         refused, never truncated (V-008, finisher word {VECTOR_LENGTH_REFUSAL:#x})",
+        lens[0], lens[1], lens[2]
+    ))
+}
+
+// ── `V-009` part (ii): the matrix built-ins ──────────────────────────────
+
+/// The matrix product's member, `व्यूहॱआव्यूहगुणनम्` (ADR-0043 R1/R3, copied
+/// from the owner's ruling by script). Also the name of the module's product
+/// kernel routine (`chain.rs`'s `synthesised_routine_name`).
+pub const MATRIX_PRODUCT_MEMBER: &str = "आव्यूहगुणनम्";
+/// The transpose's member, `व्यूहॱव्युत्क्रमः`; also its kernel routine's name.
+pub const MATRIX_TRANSPOSE_MEMBER: &str = "व्युत्क्रमः";
+/// The tensor member, `व्यूहॱसमासः`: the rank-3 batched product (owner
+/// ruling 2026-10-06, the design's Q4 (a)), the product kernel with a batch.
+pub const TENSOR_MEMBER: &str = "समासः";
+/// The row-major layout constant, `व्यूहॱपङ्क्तिप्रधानम्` (the owner's names table).
+pub const ROW_MAJOR: &str = "पङ्क्तिप्रधानम्";
+/// The column-major layout constant, `व्यूहॱस्तम्भप्रधानम्`.
+pub const COLUMN_MAJOR: &str = "स्तम्भप्रधानम्";
+/// The transposed layout constant, `व्यूहॱपरिवर्तितम्` (owner ruling
+/// 2026-10-06: "the Transposed layout (Aᵀ, swapping row and column stride
+/// semantics)").
+pub const TRANSPOSED: &str = "परिवर्तितम्";
+
+/// `ir.t1`'s `अध्यासप्रतिषेधः`: the refusal CODE of a matrix built-in whose result
+/// run is one of its operand runs (owner ruling 2026-10-06, the design's D6).
+/// The next value free after `0x35a`; FAIL form, as every refusal (`W-381`).
+pub const REFUSAL_ADHYASA: u64 = 0x35b;
+
+/// `ir.t1`'s `सीमातीतलेखननिषेधः`: the refusal CODE of an out-of-bounds indexed
+/// STORE — natively a negative index (`W-381` stage 4, owner ruling
+/// 2026-10-06: "Assign a dedicated refusal. Split from 0x355"). Reads stay
+/// `0x355`. FAIL form, as every refusal; the interpreter names the code in its
+/// cause, which `agreement.rs`'s `NATIVE_REFUSALS` keys on.
+pub const OUT_OF_BOUNDS_WRITE_REFUSAL: u64 = 0x35d;
+
+/// `ir.t1`'s `खण्डप्रविष्टिसीमा`: the largest run, in ENTRIES, for every width
+/// (`W-381` stage 4, the review's finding 1). A store at an index at or past it
+/// refuses with [`OUT_OF_BOUNDS_WRITE_REFUSAL`] on both engines; below it the
+/// native need, (index + 1) × width, is at most 2^28 octets and cannot wrap.
+pub const MAX_RUN_ENTRIES: u64 = 1 << 25;
+
+/// The three matrix built-ins.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatrixOp {
+    /// `व्यूहॱआव्यूहगुणनम् ( फल , क , ख , M , K , N , L )`.
+    Product,
+    /// `व्यूहॱव्युत्क्रमः ( फल , क , M , N , L )`.
+    Transpose,
+    /// `व्यूहॱसमासः ( फल , क , ख , B , M , K , N , L )`.
+    Tensor,
+}
+
+impl MatrixOp {
+    /// How many arguments the call takes, the layout constant included.
+    #[must_use]
+    pub fn arity(self) -> usize {
+        match self {
+            Self::Product => 7,
+            Self::Transpose => 5,
+            Self::Tensor => 8,
+        }
+    }
+
+    /// The member name.
+    #[must_use]
+    pub fn member(self) -> &'static str {
+        match self {
+            Self::Product => MATRIX_PRODUCT_MEMBER,
+            Self::Transpose => MATRIX_TRANSPOSE_MEMBER,
+            Self::Tensor => TENSOR_MEMBER,
+        }
+    }
+}
+
+/// The matrix built-in a `(module, name)` call names, by EXACT qualified name
+/// behind the vector qualifier.
+#[must_use]
+pub fn matrix_builtin(module: Option<&str>, name: &str) -> Option<MatrixOp> {
+    if module != Some(VECTOR_BUILTIN_MODULE) {
+        return None;
+    }
+    [MatrixOp::Product, MatrixOp::Transpose, MatrixOp::Tensor]
+        .into_iter()
+        .find(|op| op.member() == name)
+}
+
+/// The members that also NAME a module's kernel routines: the product's and
+/// the transpose's. `ir.t1` synthesises BOTH routines in a module that makes
+/// ANY matrix call, and both emitters label them `<module><member>` — so a user
+/// routine of either name in that module is a label collision natively. The
+/// tensor member names no routine: the tensor is the product kernel with a
+/// batch.
+pub const MATRIX_KERNEL_MEMBERS: [&str; 2] = [MATRIX_PRODUCT_MEMBER, MATRIX_TRANSPOSE_MEMBER];
+
+/// The refusal of a routine named `member` (one of [`MATRIX_KERNEL_MEMBERS`])
+/// in `module`, a module that makes a matrix call. ONE text for its three
+/// sayers: the interpreter's load ([`Interpreter::load`]), `riscv64.rs`'s
+/// label check, and `chain.rs`'s report of the `.t1` emitter's
+/// `LabelCollision`.
+#[must_use]
+pub fn kernel_name_refusal(module: &str, member: &str) -> String {
+    format!(
+        "`{module}\u{971}{member}`: {}; this module makes a `{VECTOR_BUILTIN_MODULE}` matrix \
+         call, so its matrix kernel routine is named `{member}` (V-009 (ii))",
+        kernel_name_reserved(member)
+    )
+}
+
+/// The reserved sentence alone, WITHOUT the claim that a module makes a matrix
+/// call: what a sayer that cannot see the kernel may say (`chain.rs`'s report
+/// of `samyojana.t1`'s duplicate symbol, under a condition).
+#[must_use]
+pub fn kernel_name_reserved(member: &str) -> String {
+    format!("`{member}` is reserved for the matrix built-in in a module that uses it")
+}
+
+/// The kernel member a symbol `<module><member>` ends with, and the module.
+#[must_use]
+pub fn kernel_member_of(symbol: &str) -> Option<(&str, &'static str)> {
+    MATRIX_KERNEL_MEMBERS
+        .iter()
+        .find_map(|member| Some((symbol.strip_suffix(member)?, *member)))
+}
+
+/// `V-009` (ii): the reserved wording for a symbol two definitions export, when
+/// its name is `<module><member>` for a kernel member and `kernel(module)`
+/// says that module's matrix kernel is one of the definitions — the Rust
+/// linker's duplicate-symbol refusal (`samyojana.rs`), which sees the objects.
+/// A kernel-named global beside a matrix call, or a
+/// kernel-named routine in a second source of a module whose first source
+/// makes the call, collides there rather than in the emitter's label check.
+#[must_use]
+pub fn kernel_name_duplicate(symbol: &str, kernel: impl Fn(&str) -> bool) -> Option<String> {
+    let (module, member) = kernel_member_of(symbol)?;
+    kernel(module).then(|| kernel_name_refusal(module, member))
+}
+
+/// THE NATIVE RULE, MIRRORED EXACTLY (`W-381`): refused iff the module
+/// declares a routine or a global named by a kernel member AND makes a matrix call — which
+/// is exactly when `ir.t1` synthesises the kernel routine that collides. A
+/// matrix call is one the parser marked as a vector built-in whose
+/// `(module, name)` is a matrix member: the call `eval` hands to
+/// [`Interpreter::eval_matrix_builtin`].
+fn refuse_a_kernel_name(module: &Module) -> Result<(), RunError> {
+    fn in_stmts(stmts: &[Stmt]) -> bool {
+        stmts.iter().any(|s| match s {
+            Stmt::Let { init, .. } => in_expr(init),
+            Stmt::Assign { target, value } => in_expr(target) || in_expr(value),
+            Stmt::If { cond, then, els } => in_expr(cond) || in_stmts(then) || in_stmts(els),
+            Stmt::While { cond, body } => in_expr(cond) || in_stmts(body),
+            Stmt::Return(Some(e)) | Stmt::Eval(e) => in_expr(e),
+            Stmt::Return(None) => false,
+        })
+    }
+    fn in_expr(e: &Expr) -> bool {
+        match e {
+            Expr::Call {
+                module,
+                name,
+                args,
+                vector,
+                ..
+            } => {
+                (*vector && matrix_builtin(module.as_deref(), name).is_some())
+                    || args.iter().any(in_expr)
+            }
+            Expr::Bin(_, l, r) | Expr::Index(l, r) => in_expr(l) || in_expr(r),
+            Expr::Slice(a, b, c) => in_expr(a) || in_expr(b) || in_expr(c),
+            Expr::Field(inner, _) => in_expr(inner),
+            Expr::Num(_) | Expr::Str(_) | Expr::Bool(_) | Expr::Nil | Expr::Var(_) => false,
+        }
+    }
+    // EVERY MODULE-LEVEL NAME THAT BECOMES A LABEL `<module><name>`: a routine
+    // (refused natively by the emitter's label check) and a global, public or
+    // private (refused natively at link, as a symbol two definitions export).
+    let Some(named) = module
+        .routines
+        .iter()
+        .map(|r| r.name.as_str())
+        .chain(module.globals.iter().map(|(n, _, _)| n.as_str()))
+        .find(|n| MATRIX_KERNEL_MEMBERS.contains(n))
+    else {
+        return Ok(());
+    };
+    let calls = module
+        .routines
+        .iter()
+        .any(|r| r.body.as_ref().is_ok_and(|b| in_stmts(b)));
+    if calls {
+        return Err(RunError::new(kernel_name_refusal(&module.name, named)));
+    }
+    Ok(())
+}
+
+/// The three layouts a matrix call names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Layout {
+    /// `व्यूहॱपङ्क्तिप्रधानम्`.
+    RowMajor,
+    /// `व्यूहॱस्तम्भप्रधानम्`: every operand column-major (`ir.t1` permutes the call).
+    ColumnMajor,
+    /// `व्यूहॱपरिवर्तितम्` (owner ruling 2026-10-06): a product's FIRST operand
+    /// read transposed — A stored K×M, its two strides swapped — so C = Aᵀ·B;
+    /// B and C row-major.
+    Transposed,
+}
+
+/// The layout `(module, name)` names, if it is a layout constant.
+#[must_use]
+pub fn layout_constant(module: Option<&str>, name: &str) -> Option<Layout> {
+    if module != Some(VECTOR_BUILTIN_MODULE) {
+        return None;
+    }
+    match name {
+        ROW_MAJOR => Some(Layout::RowMajor),
+        COLUMN_MAJOR => Some(Layout::ColumnMajor),
+        TRANSPOSED => Some(Layout::Transposed),
+        _ => None,
+    }
+}
+
+// ── `W-373`: the wait intrinsic ──────────────────────────────────────────
+
+/// The qualifier of the WAIT intrinsic (`W-373`, ADR-0040 Option C R4): the
+/// call is `अष्टकॱ` + [`WAIT_BUILTIN_MEMBER`], as `अष्टकॱमुद्रणम्` is a call
+/// into `अष्टक`. Like the float built-ins it has NO DECLARATION in
+/// `ashtaka.t1`, so a missed interception is an unresolved call, never a body.
+pub const WAIT_BUILTIN_MODULE: &str = "अष्टक";
+
+/// The member: copied from the owner's ruling in BACKLOG row `W-373`, never
+/// retyped. `ir.t1` matches it with the qualifier SPLIT off, so the qualified
+/// token appears in no corpus code (`tests/w373_wait.rs` holds that ratchet).
+pub const WAIT_BUILTIN_MEMBER: &str = "घटनाप्रतीक्षा";
+
+/// ONE argument, reserved and ignored today: natively it is the word stored
+/// at the WAIT address (`W-377` will give it a meaning). Not zero arguments,
+/// because a zero-argument call reaches `ir.t1` as an Identifier and lowers to
+/// the constant ० — a "wait" that never waits natively.
+pub const WAIT_BUILTIN_ARITY: usize = 1;
+
+/// The tag in front of the EVENT word, `"SASEVENT"` read as a little-endian
+/// word: the interpreter's own copy of `yantra::input::EVENT_TAG` (`sadhana`
+/// does not depend on `yantra`), and `tests/w373_wait.rs` fails if the two
+/// ever differ.
+pub const EVENT_TAG: u64 = 0x544e_4556_4553_4153;
+
+/// Whether a `(module, name)` call is the wait, by EXACT qualified name.
+#[must_use]
+pub fn wait_builtin(module: Option<&str>, name: &str) -> bool {
+    module == Some(WAIT_BUILTIN_MODULE) && name == WAIT_BUILTIN_MEMBER
+}
+
+/// The interpreter's half of an event-log replay (`W-373`): the log, the
+/// global the program declared right after its `SASEVENT` tag, and how many
+/// records the waits have taken.
+struct EventReplay {
+    log: Vec<u64>,
+    slot: String,
+    kind: EventSlot,
+    delivered: usize,
+}
+
+/// THE SAME 64 BITS, READ AS THE SLOT'S TYPE READS THEM NATIVELY.
+fn event_value(kind: EventSlot, record: u64) -> Value {
+    match kind {
+        EventSlot::Unsigned => Value::Int(i128::from(record)),
+        EventSlot::Signed => Value::Int(i128::from(record as i64)),
+        // The bit pattern itself, never canonicalised: the host stores the
+        // word, and only an arithmetic instruction canonicalises a NaN.
+        EventSlot::Float => Value::Float(record),
+    }
+}
+
+// ── `W-377`: the socket device, replayed from its log (option (b)) ─────────
+
+/// The socket device's NEXT register: the interpreter's own copy of
+/// `yantra::socket::NEXT` (`sadhana` does not depend on `yantra`);
+/// `tests/w377_sockets.rs` fails if any of these copies differs from yantra's.
+pub const SOCK_NEXT: u64 = 0x1000_0110;
+/// RX, the copy of `yantra::socket::RX`.
+pub const SOCK_RX: u64 = 0x1000_0114;
+/// TX, the copy of `yantra::socket::TX`.
+pub const SOCK_TX: u64 = 0x1000_0118;
+/// The reserved CLOSE word, the copy of `yantra::socket::CLOSE`.
+pub const SOCK_CLOSE: u64 = 0x1000_011c;
+/// The session cap, the copy of `yantra::socket::SESSION_CAP` (64 MiB delivered).
+pub const SOCK_SESSION_CAP: u64 = 64 << 20;
+/// The cap's refusal name, the copy of `yantra::socket::SOCKET_LIMIT_EXCEEDED` (owner
+/// ruling 2026-10-06, copied byte for byte by script).
+pub const SOCKET_LIMIT_EXCEEDED: &str = "सङ्केतमात्राप्रतिषेधः";
+/// RX's EMPTY, the copy of `yantra::socket::EMPTY`.
+pub const SOCK_EMPTY: u32 = 0x100;
+/// RX's END, the copy of `yantra::socket::END`.
+pub const SOCK_END: u32 = 0x101;
+/// RX's UNREAD, the copy of `yantra::socket::UNREAD`.
+pub const SOCK_UNREAD: u32 = 0x102;
+/// The copy of `yantra::socket::WHY_LOAD_STORE_ONLY`.
+pub const SOCK_WHY_LOAD_STORE_ONLY: &str =
+    "NEXT and TX are store-only registers: read the socket at RX (W-377)";
+/// The copy of `yantra::socket::WHY_STORE_LOAD_ONLY`.
+pub const SOCK_WHY_STORE_LOAD_ONLY: &str =
+    "RX is a load-only register: store 0 to NEXT to pop the queue into it (W-377)";
+/// The copy of `yantra::socket::WHY_NEXT_VALUE`.
+pub const SOCK_WHY_NEXT_VALUE: &str =
+    "NEXT takes the value 0 only: other values are reserved for a connection id (W-377)";
+/// The copy of `yantra::socket::WHY_TX_VALUE`.
+pub const SOCK_WHY_TX_VALUE: &str =
+    "TX sends one octet: a value above 0xff is refused, never truncated (W-377)";
+/// The copy of `yantra::socket::WHY_CLOSE`.
+pub const SOCK_WHY_CLOSE: &str = "0x1000_011c is reserved for CLOSE, which is deferred: the program cannot close the \
+     connection in this row (W-377)";
+
+/// `yantra::socket::over_cap_refusal`'s twin: the same words, for the same record.
+fn sock_over_cap(index: usize, octets: usize, total: u64) -> String {
+    format!(
+        "{SOCKET_LIMIT_EXCEEDED} (SOCKET_LIMIT_EXCEEDED): record {index} ({octets} octets) \
+         would take the session's delivered records past the cap of {SOCK_SESSION_CAP} octets \
+         (64 MiB), to {total} — refused, not applied and not logged (W-377)"
+    )
+}
+
+/// One record of a socket log: `yantra::socket::SockRecord`'s twin.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SockRecord {
+    /// `s=<hex>`: the octets that arrived.
+    Octets(Vec<u8>),
+    /// `s=end`: the peer closed.
+    End,
+}
+
+/// [`Interpreter::set_socket`]'s state: the log and its cursor, the event slot, and the
+/// device's queue, latch and counts.
+struct SocketReplay {
+    log: Vec<SockRecord>,
+    slot: String,
+    kind: EventSlot,
+    delivered: usize,
+    queue: std::collections::VecDeque<u8>,
+    ended: bool,
+    latch: u32,
+    received: u64,
+    sent: Vec<u8>,
+}
+
+// ── `W-376`: threads, the serial subset ─────────────────────────────────
+
+/// The tag in front of the thread COUNT, `"SASTHRDS"` read as a little-endian
+/// word: the interpreter's own copy of `yantra::threads::THREADS_TAG`
+/// (`sadhana` does not depend on `yantra`); `tests/w376_threads.rs` fails if
+/// the two ever differ.
+pub const THREADS_TAG: u64 = 0x5344_5248_5453_4153;
+/// The tag in front of the THREAD-ID slot, `"SASTHRID"`: the copy of
+/// `yantra::threads::THREAD_ID_TAG`.
+pub const THREAD_ID_TAG: u64 = 0x4449_5248_5453_4153;
+/// The most threads a program may declare, as the native host allows.
+pub const MAX_THREADS: u64 = 64;
+
+/// One record of a threaded schedule: `yantra::input::ThreadRecord`'s twin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ThreadStep {
+    /// A value for the resuming thread's wait.
+    Value(u64),
+    /// `@N`: run thread `N`.
+    Run(u32),
+}
+
+/// [`Interpreter::run_threads`]'s state: the schedule, the next record, the
+/// thread running now, and the thread-id global.
+struct ThreadReplay {
+    schedule: Vec<ThreadStep>,
+    cursor: usize,
+    current: u32,
+    id_slot: String,
+}
+
+/// How the event global's declared type reads the 64 bits the host writes —
+/// the three types [`Interpreter::set_events`] accepts.
+#[derive(Debug, Clone, Copy)]
+enum EventSlot {
+    /// `न६४`: the word, unsigned.
+    Unsigned,
+    /// `अ६४`: the word as two's complement.
+    Signed,
+    /// `प६४`: the word as a double's bit pattern.
+    Float,
+}
+
+/// RISC-V's canonical NaN for a double, `0x7ff8000000000000` — what every
+/// D-extension arithmetic instruction writes when its result is NaN, whatever
+/// the operands' payloads (`crates/yantra/src/fp.rs`, `CANONICAL_NAN_D`).
+pub const CANONICAL_NAN_D: u64 = 0x7ff8_0000_0000_0000;
+
+/// A float result as the machine writes it: any NaN becomes the canonical one.
+fn canonical(x: f64) -> Value {
+    Value::Float(if x.is_nan() {
+        CANONICAL_NAN_D
+    } else {
+        x.to_bits()
+    })
+}
+
+/// `fcvt.l.d` under the dynamic rounding mode at its reset value, round to
+/// nearest with ties to even — the emitted instruction's `rm` field is `dyn`
+/// (`spec/encodings-riscv64.tsv`: funct3 ७) and `fcsr.frm` is ० — with RISC-V's
+/// saturation: NaN and anything at or above 2^63 give `i64::MAX`, anything below
+/// −2^63 gives `i64::MIN`. Not Rust's `as`, which answers ० for NaN.
+fn float_to_i64(x: f64) -> i64 {
+    if x.is_nan() {
+        return i64::MAX;
+    }
+    let r = x.round_ties_even();
+    if r < -(2f64.powi(63)) {
+        i64::MIN
+    } else if r >= 2f64.powi(63) {
+        i64::MAX
+    } else {
+        #[allow(clippy::cast_possible_truncation)]
+        let v = r as i64;
+        v
+    }
+}
+
+/// Evaluate a float built-in over its already-evaluated arguments, with IEEE
+/// semantics (Rust's `f64` is IEEE-754 binary64, round-to-nearest-even, and
+/// `mul_add` is the fused operation) and every NaN result canonicalised.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+fn eval_float_builtin(b: FloatBuiltin, name: &str, vals: &[Value]) -> Result<Value, RunError> {
+    let float = |i: usize| -> Result<f64, RunError> {
+        match vals.get(i) {
+            Some(Value::Float(bits)) => Ok(f64::from_bits(*bits)),
+            other => Err(RunError::new(format!(
+                "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` takes a `{T_F64}` as argument {}, \
+                 and was handed {other:?} (V-005)",
+                i + 1
+            ))),
+        }
+    };
+    Ok(match b {
+        FloatBuiltin::Add => canonical(float(0)? + float(1)?),
+        FloatBuiltin::Sub => canonical(float(0)? - float(1)?),
+        FloatBuiltin::Mul => canonical(float(0)? * float(1)?),
+        FloatBuiltin::MulAdd => canonical(float(0)?.mul_add(float(1)?, float(2)?)),
+        FloatBuiltin::Div => canonical(float(0)? / float(1)?),
+        FloatBuiltin::Sqrt => canonical(float(0)?.sqrt()),
+        // Rust's `==`/`<`/`<=` on `f64` ARE `feq`/`flt`/`fle`: false for any NaN,
+        // and `-0 == +0`.
+        FloatBuiltin::Eq => Value::Bool(float(0)? == float(1)?),
+        FloatBuiltin::Lt => Value::Bool(float(0)? < float(1)?),
+        FloatBuiltin::Le => Value::Bool(float(0)? <= float(1)?),
+        // The low sixty-four bits are what the register holds: `as i64` takes them.
+        FloatBuiltin::Convert => match vals.first() {
+            Some(Value::Int(i)) => canonical((*i as i64) as f64),
+            Some(Value::Float(_)) => Value::Int(i128::from(float_to_i64(float(0)?))),
+            other => {
+                return Err(RunError::new(format!(
+                    "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` converts an integer or a `{T_F64}`, \
+                     and was handed {other:?} (V-005)"
+                )));
+            }
+        },
+        // A bit move: no rounding, no canonicalisation — a NaN's payload passes.
+        FloatBuiltin::Move => match vals.first() {
+            Some(Value::Int(i)) => Value::Float(*i as u64),
+            Some(Value::Float(bits)) => Value::Int(i128::from(*bits as i64)),
+            other => {
+                return Err(RunError::new(format!(
+                    "`{FLOAT_BUILTIN_MODULE}\u{971}{name}` moves an integer or a `{T_F64}`, \
+                     and was handed {other:?} (V-005)"
+                )));
+            }
+        },
+    })
+}
+
+/// `V-005` — A VALUE CROSSING INTO A PLACE WHOSE FILE ITS DECLARATION FIXES —
+/// a local, a parameter, a routine's result — must already be in that file:
+/// a `प६४` takes only a float, anything else never a float. Otherwise the ONE
+/// named cause, `FileMismatch`, which `ir.t1` raises for the same shapes
+/// natively (`chain.rs`'s `file_mismatch_site`). Fail closed (review ruling,
+/// 2026-10-05): the explicit bit move `अष्टकॱप्लवसंचारः` is the way across, and
+/// no place moves a value by its bits on the writer's behalf.
+fn refuse_file_mismatch(ty: &Ty, v: &Value, place: &str) -> Result<(), RunError> {
+    let wants_float = matches!(ty, Ty::Named(n) if n == T_F64);
+    if wants_float != matches!(v, Value::Float(_)) {
+        return Err(file_mismatch_error(place));
+    }
+    Ok(())
+}
+
+fn file_mismatch_error(place: &str) -> RunError {
+    RunError::new(format!(
+        "FileMismatch: {place} is declared in the other register file from the value \
+         handed to it (a `{T_F64}` takes only a float, anything else never one); the \
+         explicit bit move `{FLOAT_BUILTIN_MODULE}\u{971}प्लवसंचारः` is the way across (V-005)"
+    ))
+}
+
 fn binop(op: BinOp, a: &Value, b: &Value) -> Result<Value, RunError> {
+    // `V-005`: AN INTEGER OPERATOR NEVER MEETS A FLOAT. The native builder
+    // refuses the same shape, so a `योगः` over two `प६४`s cannot add their bit
+    // patterns on one engine and fail on the other. The float operations are the
+    // `अष्टक` built-ins, by name.
+    if matches!(a, Value::Float(_)) || matches!(b, Value::Float(_)) {
+        return Err(RunError::new(format!(
+            "the integer operator {op:?} was handed a `{T_F64}`; a float is added, compared \
+             and converted with the `{FLOAT_BUILTIN_MODULE}` float built-ins (V-005)"
+        )));
+    }
     match op {
         BinOp::Eq => return Ok(Value::Bool(a == b)),
         BinOp::Ne => return Ok(Value::Bool(a != b)),
         _ => {}
     }
     let (x, y) = (a.int()?, b.int()?);
+    // `W-381` STAGE 3 (owner ruling P1, 2026-10-05): "64-bit two's-complement
+    // WRAPPING is the defined semantics". Every arm below computes what the RV64
+    // instruction the native code uses computes, on the operands' 64-bit WORDS:
+    // `add`/`sub`/`mul` keep the low 64 bits; a shift reads its count's low SIX
+    // bits (`sll`/`srl`/`sra`), so `१ वामसृ ६४` is १ and `वामसृ ६५` is `वामसृ १`;
+    // `div`/`rem` are the SIGNED pair natively, and ऋण२^६३ ÷ ऋण१ is ऋण२^६३ (RV64's
+    // defined overflow quotient, `wrapping_div`); an ordering comparison is
+    // signed, or unsigned when `mark_unsigned_operators` made it so.
+    //
+    // DIVISION AND REMAINDER BY ZERO ARE REFUSED (owner ruling (b), 2026-10-06),
+    // here and natively — never RV64's all-ones / dividend.
+    #[allow(clippy::cast_possible_truncation)]
+    let count = (word(y) & 63) as u32;
     Ok(match op {
-        BinOp::Add => Value::Int(x + y),
-        BinOp::Sub => Value::Int(x - y),
-        BinOp::Mul => Value::Int(x * y),
+        BinOp::Add => Value::Int(wrap(x + y)),
+        BinOp::Sub => Value::Int(wrap(x - y)),
+        BinOp::Mul => Value::Int(wrap(x.wrapping_mul(y))),
         BinOp::Div => {
-            if y == 0 {
-                return Err(RunError::new("division by ०"));
+            if word(y) == 0 {
+                return Err(division_by_zero("division"));
             }
-            Value::Int(x / y)
+            Value::Int(i128::from(signed(x).wrapping_div(signed(y))))
         }
         BinOp::Rem => {
-            if y == 0 {
-                return Err(RunError::new("remainder by ०"));
+            if word(y) == 0 {
+                return Err(division_by_zero("remainder"));
             }
-            Value::Int(x % y)
+            Value::Int(i128::from(signed(x).wrapping_rem(signed(y))))
         }
-        BinOp::Shl => Value::Int(
-            x.checked_shl(u32::try_from(y).unwrap_or(u32::MAX))
-                .ok_or_else(|| RunError::new(format!("`वामसृ {y}` is not a shift")))?,
-        ),
-        BinOp::Shr => Value::Int(
-            x.checked_shr(u32::try_from(y).unwrap_or(u32::MAX))
-                .ok_or_else(|| RunError::new(format!("`दक्षिणसृ {y}` is not a shift")))?,
-        ),
-        BinOp::And => Value::Int(x & y),
-        BinOp::Or => Value::Int(x | y),
-        BinOp::Lt => Value::Bool(x < y),
-        BinOp::Gt => Value::Bool(x > y),
-        BinOp::Ge => Value::Bool(x >= y),
+        BinOp::DivU => {
+            if word(y) == 0 {
+                return Err(division_by_zero("division"));
+            }
+            Value::Int(i128::from(word(x) / word(y)))
+        }
+        BinOp::RemU => {
+            if word(y) == 0 {
+                return Err(division_by_zero("remainder"));
+            }
+            Value::Int(i128::from(word(x) % word(y)))
+        }
+        BinOp::Shl => Value::Int(wrap(x << count)),
+        // `sra`: the word read signed, shifted with its sign.
+        BinOp::Shr => Value::Int(i128::from(signed(x) >> count)),
+        // `W-333` — THE LOGICAL SHIFT, for a left operand that is a name declared
+        // unsigned (`srl`): the word read unsigned, shifted with zeros. A count of
+        // ६४ is a count of ० and returns the operand unchanged, as `srl` does —
+        // the `STATE.md` shift-by-64 note this arm once deferred, answered by P1.
+        BinOp::ShrL => Value::Int(i128::from(word(x) >> count)),
+        BinOp::And => Value::Int(wrap(x & y)),
+        BinOp::Or => Value::Int(wrap(x | y)),
+        BinOp::Xor => Value::Int(wrap(x ^ y)),
+        BinOp::Lt => Value::Bool(signed(x) < signed(y)),
+        BinOp::Gt => Value::Bool(signed(x) > signed(y)),
+        BinOp::Ge => Value::Bool(signed(x) >= signed(y)),
+        BinOp::LtU => Value::Bool(word(x) < word(y)),
+        BinOp::GtU => Value::Bool(word(x) > word(y)),
+        BinOp::GeU => Value::Bool(word(x) >= word(y)),
         BinOp::Eq | BinOp::Ne => unreachable!("handled above"),
     })
+}
+
+/// `W-381` stage 3 (owner ruling (b)): a division or remainder by zero is
+/// REFUSED on both engines, natively by the zero test `ir.t1` writes before the
+/// `div`/`rem`. The text keeps "division by" / "remainder by" and adds the code.
+fn division_by_zero(what: &str) -> RunError {
+    RunError::new(format!(
+        "{what} by ० refused as `{DIVISION_BY_ZERO_REFUSAL_NAME}` (W-381, finisher word \
+         {DIVISION_BY_ZERO_REFUSAL:#x})"
+    ))
+}
+
+/// `W-381` stage 3: the narrow integer element types a run can be declared
+/// with, as (bits, signed). `अ८` is not here: its run is an `Octets`, unsigned,
+/// and `octet_of` truncates it. `न८` is an arena of whole values natively read
+/// with `lb` and masked to eight bits, so it is unsigned eight.
+fn narrow_width(ty: &str) -> Option<(u32, bool)> {
+    let signed = ty.starts_with(T_I64.chars().next()?);
+    let bits = match ty.chars().skip(1).collect::<String>().as_str() {
+        "८" => 8,
+        "१६" => 16,
+        "३२" => 32,
+        _ => return None,
+    };
+    let unsigned = ty.starts_with(T_U64.chars().next()?);
+    if signed && bits == 8 {
+        return None;
+    }
+    (signed || unsigned).then_some((bits, signed))
+}
+
+/// A value stored into a `bits`-wide element and read back: the low `bits`,
+/// zero- or sign-extended (`lbu`/`lhu`/`lwu`, `lh`/`lw`).
+fn narrow_value(x: i128, bits: u32, signed: bool) -> i128 {
+    let low = word(x) & ((1u64 << bits) - 1);
+    if signed && low >> (bits - 1) == 1 {
+        i128::from(low) - (1i128 << bits)
+    } else {
+        i128::from(low)
+    }
+}
+
+/// Owner ruling (a), 2026-10-06: a value stored into an octet run keeps its LOW
+/// EIGHT BITS (३०० is ४४), exactly as the native `sb` does.
+#[allow(clippy::cast_possible_truncation)]
+fn octet_of(x: i128) -> u8 {
+    (word(x) & 0xff) as u8
+}
+
+/// `W-381` stage 3 — THE 64-BIT WORD an integer stands for: its low 64 bits.
+///
+/// `Value::Int` is an `i128`, and a word whose top bit is set has TWO spellings
+/// in it: `ऋण१` (from a `ऋण` numeral or a subtraction) and २^६४−१ (from a
+/// `न६४` numeral, an unsigned event record). Neither is "the" value: every
+/// reader that can tell them apart — a comparison, a division, a right shift,
+/// equality — reads the word, signed or unsigned as the native instruction
+/// does, so the spelling never decides an answer.
+#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+fn word(x: i128) -> u64 {
+    x as u64
+}
+
+/// The same word read as two's complement.
+#[allow(clippy::cast_possible_truncation)]
+fn signed(x: i128) -> i64 {
+    x as i64
+}
+
+/// `W-381` stage 3 — AN EXACT RESULT BROUGHT BACK TO 64 BITS. A value already in
+/// `[−२^६३, २^६४)`, the span both readings of a word cover, is KEPT as it is, so
+/// every result that fitted before this stage is spelled as it was (the corpus's
+/// tests compare against those spellings); anything outside keeps its low 64
+/// bits, read unsigned.
+fn wrap(x: i128) -> i128 {
+    if (i128::from(i64::MIN)..=i128::from(u64::MAX)).contains(&x) {
+        x
+    } else {
+        i128::from(word(x))
+    }
 }
 
 // ── the top level of a source ────────────────────────────────────────────
@@ -2485,17 +5252,93 @@ struct ParseCtx<'a> {
     /// wrong number of arguments while dispatch found the right routine. Two
     /// resolutions, two answers, and only the parser's was silent.
     module: &'a str,
+    /// `V-008` part 2: the module's own GLOBAL names, so a spaced `व्यूह ॱ x`
+    /// can tell a bound `व्यूह` (a field access) from an unbound one (refused).
+    /// Locals and parameters are already the parser's `locals`.
+    globals: &'a [String],
+    /// What this module's `आयातः` lines name — every module it says it uses,
+    /// loaded or not. `modules` lists only what the loader was HANDED, so it
+    /// cannot tell `सङ्केतन ॱ पङ्क्तिसीमा` (a call into an absent module) from
+    /// `रङ्गः ॱ नीलः` (a variant qualified by its type); `आयातः` declares the
+    /// name to be a module, so this can. Read by the diagnostic only
+    /// ([`Parser::unresolved_note`]); it changes no parse.
+    imports: &'a [String],
+    /// Every loaded module's globals and `गणना` variants, qualified
+    /// (`परीक्षाॱसीमा`). Read by the diagnostic only.
+    data: &'a HashSet<String>,
 }
 
 struct Parser<'a> {
     t: &'a [Token],
     at: usize,
     ctx: ParseCtx<'a>,
+    /// Every MODULE-QUALIFIED name this parse read as a variable because no
+    /// routine answered it, in the order met (`W-358`).
+    unresolved: Vec<String>,
 }
 
 impl<'a> Parser<'a> {
     fn new(t: &'a [Token], ctx: ParseCtx<'a>) -> Self {
-        Self { t, at: 0, ctx }
+        Self {
+            t,
+            at: 0,
+            ctx,
+            unresolved: Vec::new(),
+        }
+    }
+
+    /// Whether `name` is a module as far as this parse can know: one the
+    /// load carries or one this module imports.
+    fn names_a_module(&self, name: &str) -> bool {
+        self.ctx.modules.iter().any(|m| m == name) || self.ctx.imports.iter().any(|m| m == name)
+    }
+
+    /// What to append to a FAILED body parse so it lists the qualified names
+    /// read as variables because nothing loaded answered them, or `""` when
+    /// there were none (`W-358`, replayed from the `W-304` tick's rescue ref).
+    ///
+    /// `primary`'s last line reads a name nothing declares as a VARIABLE, and
+    /// a variable takes no arguments. For a qualified CALL whose module the
+    /// load does not carry, every argument the call site wrote is then left in
+    /// the token stream and the parse dies at whatever follows them — a
+    /// reported line that is not the fault's (`expected आदि, found पाठ्यम्`).
+    /// The list is CANDIDATES, not the cause: a name in an unloaded module may
+    /// equally be one of its globals, read correctly, and this parser cannot
+    /// tell the two apart without that module's head. The fallback itself is
+    /// unchanged and only an already-failing parse reads this, so no
+    /// routine's `is_runnable` moves.
+    fn unresolved_note(&self) -> String {
+        let mut parts: Vec<String> = Vec::new();
+        for (i, name) in self.unresolved.iter().enumerate() {
+            if self.unresolved[..i].contains(name) {
+                continue;
+            }
+            let (m, n) = name.split_once('\u{971}').unwrap_or((name.as_str(), ""));
+            // TWO DIFFERENT REPAIRS: an absent module is a loader's list to
+            // widen, a present module without the name is a corpus fault. A
+            // loaded module's globals and variants were never recorded.
+            if self.ctx.modules.iter().any(|x| x == m) {
+                parts.push(format!(
+                    "`{name}` (module `{m}` is loaded and declares no routine or global `{n}`)"
+                ));
+            } else {
+                parts.push(format!(
+                    "`{name}` (a routine or global of module `{m}`, not loaded)"
+                ));
+            }
+        }
+        if parts.is_empty() {
+            return String::new();
+        }
+        let one = parts.len() == 1;
+        format!(
+            " — {} qualified name{} matched nothing loaded and {} read as a variable taking \
+             no arguments; a call among them would leave its arguments unparsed: {}",
+            parts.len(),
+            if one { "" } else { "s" },
+            if one { "was" } else { "were" },
+            parts.join(", ")
+        )
     }
 
     fn text(&self, off: usize) -> &str {
@@ -2550,6 +5393,44 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self, locals: &mut Vec<String>) -> Result<Stmt, RunError> {
+        // W-348. `अन्यथा` is read in ONE place — after the `इति` that closes a
+        // `यदि` block, by the arm just below. A statement that BEGINS with it
+        // is therefore the keyword in the wrong place: written inside the
+        // block, where other languages put their `else`. It used to fall
+        // through to an expression statement, become `Expr::Var("अन्यथा")`,
+        // and be reported AT RUN TIME as "not a name in scope" — which sends
+        // the reader after a missing declaration, and only when that statement
+        // was reached: with the branch not taken the program ran and answered.
+        // So it is refused here, when the body is parsed, with the construct
+        // it belongs to.
+        //
+        // NOT WHEN A LOCAL OF THAT NAME IS IN SCOPE. The front end lets
+        // `अन्यथा` be declared (`a-keyword-used-as-a-name-reads-as-nil`), and
+        // closing that is another row's; this one must not turn such a
+        // program's assignment into a refusal.
+        //
+        // THE ADVICE IS CONDITIONAL, since the follow-up of 2026-10-03. The
+        // first wording said "so it is inside a block: close the `यदि` block
+        // first", which is false in three shapes this arm also catches: after
+        // a `यावत्` block's `इति`, as a SECOND `अन्यथा` after an else block,
+        // and at a routine's top level with no `यदि` at all. What is true in
+        // every shape is that it begins a statement; where the `यदि` is, the
+        // parser does not know here. And it names the line, as `expect` does.
+        //
+        // THE EXEMPTION IS `locals` AND NOTHING WIDER: parameters and `चरः`
+        // locals. A MODULE-LEVEL name spelled `अन्यथा` is not in `locals`, so
+        // a statement beginning with it is refused — pinned by
+        // `a_module_level_name_spelled_like_the_keyword_is_not_exempt`.
+        if self.text(0) == W_ELSE && !locals.iter().any(|l| l == W_ELSE) {
+            return Err(RunError::new(format!(
+                "`{W_ELSE}` is the else keyword and is read only after the `{W_BLOCK_CLOSE}` \
+                 that closes a `{W_IF}` block — `{W_IF} … {W_BLOCK_OPEN} … {W_BLOCK_CLOSE} \
+                 {W_ELSE} {W_BLOCK_OPEN} … {W_BLOCK_CLOSE}`. On line {} it begins a statement \
+                 instead. If it is inside a `{W_IF}` block, close that block with \
+                 `{W_BLOCK_CLOSE}` first",
+                self.t.get(self.at).map_or(0, |t| t.line)
+            )));
+        }
         if self.eat(W_IF) {
             let cond = self.expression(locals)?;
             self.expect(W_BLOCK_OPEN)?;
@@ -2636,12 +5517,18 @@ impl<'a> Parser<'a> {
 
     fn bitor(&mut self, locals: &mut Vec<String>) -> Result<Expr, RunError> {
         let mut l = self.bitand(locals)?;
-        while self.text(0) == "विकल्प" {
+        loop {
+            // `विषम` shares this level with `विकल्प`: `द्विकर्मस्तरः`
+            // (parse.t1) gives both kinds level २, not C's | < ^ (W-335).
+            let op = match self.text(0) {
+                "विकल्प" => BinOp::Or,
+                "विषम" => BinOp::Xor,
+                _ => return Ok(l),
+            };
             self.at += 1;
             let r = self.bitand(locals)?;
-            l = Expr::Bin(BinOp::Or, Box::new(l), Box::new(r));
+            l = Expr::Bin(op, Box::new(l), Box::new(r));
         }
-        Ok(l)
     }
 
     fn bitand(&mut self, locals: &mut Vec<String>) -> Result<Expr, RunError> {
@@ -2773,6 +5660,7 @@ impl<'a> Parser<'a> {
                     | "अधिकम्"
                     | "बृहत्समम्"
                     | "विकल्प"
+                    | "विषम"
                     | "युक्"
                     | "वामसृ"
                     | "दक्षिणसृ"
@@ -2798,7 +5686,16 @@ impl<'a> Parser<'a> {
 
     fn primary(&mut self, locals: &mut Vec<String>) -> Result<Expr, RunError> {
         if let Some(Kind::Str { value }) = self.kind(0) {
-            let bytes = Rc::new(value.as_bytes().to_vec());
+            // ADR-0044 D5: a `वर्णाष्टकम्` literal is the octets the image
+            // holds — one per letter — so W-381's two engines read one value.
+            // Every other string is its UTF-8, as it always was.
+            let bytes = match self.t.get(self.at) {
+                Some(t) if crate::devanagari8::is_literal(t) => {
+                    crate::devanagari8::literal_octets(t).unwrap_or_default()
+                }
+                _ => value.as_bytes().to_vec(),
+            };
+            let bytes = Rc::new(bytes);
             self.at += 1;
             return Ok(Expr::Str(bytes));
         }
@@ -2854,6 +5751,129 @@ impl<'a> Parser<'a> {
 
         // `सङ्केतन ॱ पङ्क्तिसीमा …` — a module-qualified call. Distinguished
         // from `नव ॱ पाठ` (a record member) by the name being a MODULE.
+        // `V-005`: a FLOAT BUILT-IN has no declaration, so its arity is the
+        // table's and not `sigs`'s — in both spellings, `अष्टकॱप्लवयोगः` (one
+        // token) and `अष्टक ॱ प्लवयोगः`, and whether or not `अष्टक` is loaded.
+        {
+            let spaced = self.kind(0) == Some(&Kind::MemberMark);
+            let (m, n) = if spaced {
+                (Some(name.as_str()), self.text(1).to_string())
+            } else {
+                match name.split_once('\u{971}') {
+                    Some((m, n)) => (Some(m), n.to_string()),
+                    None => (None, String::new()),
+                }
+            };
+            // `W-373`: THE WAIT INTRINSIC — THE ONE-TOKEN SPELLING ONLY, ONE
+            // argument, no declaration in `ashtaka.t1`. A spaced `अष्टक ॱ <member>`
+            // is not it: it takes the ordinary module path below and is refused
+            // there by name, as both compilers refuse an undeclared member.
+            if !spaced && wait_builtin(m, &n) {
+                let key = format!("{WAIT_BUILTIN_MODULE}\u{971}{n}");
+                let args = self.arguments(&key, WAIT_BUILTIN_ARITY, locals)?;
+                return Ok(Expr::Call {
+                    module: m.map(str::to_string),
+                    name: n,
+                    args,
+                    vector: false,
+                    wait: true,
+                });
+            }
+            if let Some(arity) = float_builtin(m, &n)
+                .map(|(_, a)| a)
+                .or_else(|| checked_builtin(m, &n).map(|_| 2))
+            {
+                let module = m.map(str::to_string);
+                if spaced {
+                    self.at += 2;
+                }
+                let key = format!("{FLOAT_BUILTIN_MODULE}\u{971}{n}");
+                let args = self.arguments(&key, arity, locals)?;
+                return Ok(Expr::Call {
+                    module,
+                    name: n,
+                    args,
+                    vector: false,
+                    wait: false,
+                });
+            }
+            // `V-008` part 2: a VECTOR BUILT-IN — THE ONE-TOKEN SPELLING ONLY,
+            // three arguments, no `व्यूह` module to load. Owner ruling (B): a
+            // spaced `व्यूह ॱ x` is always an ordinary field access (below).
+            if !spaced && vector_builtin(m, &n).is_some() {
+                let module = m.map(str::to_string);
+                let key = format!("{VECTOR_BUILTIN_MODULE}\u{971}{n}");
+                let args = self.arguments(&key, VECTOR_BUILTIN_ARITY, locals)?;
+                return Ok(Expr::Call {
+                    module,
+                    name: n,
+                    args,
+                    vector: true,
+                    wait: false,
+                });
+            }
+            // `V-009` (ii): A MATRIX BUILT-IN, the one-token spelling only, its
+            // member's arity — the last argument is a layout constant, read by
+            // its text when the call is evaluated. A LAYOUT CONSTANT itself is
+            // parsed as a vector-flagged call with no arguments: a value nowhere
+            // (`eval` refuses it), read only in a matrix call's last position.
+            if !spaced && let Some(op) = matrix_builtin(m, &n) {
+                let module = m.map(str::to_string);
+                let key = format!("{VECTOR_BUILTIN_MODULE}\u{971}{n}");
+                let args = self.arguments(&key, op.arity(), locals)?;
+                return Ok(Expr::Call {
+                    module,
+                    name: n,
+                    args,
+                    vector: true,
+                    wait: false,
+                });
+            }
+            if !spaced && layout_constant(m, &n).is_some() {
+                return Ok(Expr::Call {
+                    module: m.map(str::to_string),
+                    name: n,
+                    args: Vec::new(),
+                    vector: true,
+                    wait: false,
+                });
+            }
+            // ANY OTHER `व्यूहॱ` MEMBER IS AN UNDECLARED NAME, refused here with
+            // the compilers' own words (`artha.t1` refuses it at resolve:
+            // "`…` at line N has no declaration"): `व्यूह` is no module, so no
+            // routine can answer it. Without this the call fell through to the
+            // argument reader and failed as a PARSE error about the bracket.
+            // Narrow on purpose: only the `व्यूह` qualifier is decided here; an
+            // unloaded MODULE keeps the old path, because the interpreter loads
+            // a partial corpus in many tests and resolves those calls late.
+            //
+            // SPACED, `व्यूह ॱ x` IS A FIELD ACCESS (owner ruling (B)): a `व्यूह`
+            // the routine binds — a local, a parameter, or this module's global
+            // — reads its field below like any other name; an UNBOUND one is
+            // refused here with the compilers' cause ("`व्यूह` at line N has no
+            // declaration"), so the three engines refuse it identically.
+            //
+            // A REAL MODULE NAMED `व्यूह` IS NOT REFUSED HERE (ADR-0043 reserves
+            // nothing): when one is loaded, its calls take the ordinary module
+            // path below, in both spellings, as they do on both compilers.
+            if m == Some(VECTOR_BUILTIN_MODULE)
+                && !locals.contains(&name)
+                && !self.ctx.modules.iter().any(|x| x == VECTOR_BUILTIN_MODULE)
+            {
+                let bound = spaced && self.ctx.globals.contains(&name);
+                if !bound {
+                    let shown = if spaced {
+                        name.clone()
+                    } else {
+                        format!("{VECTOR_BUILTIN_MODULE}\u{971}{n}")
+                    };
+                    return Err(RunError::new(format!(
+                        "`{shown}` at line {} has no declaration",
+                        self.t.get(self.at - 1).map_or(0, |t| t.line)
+                    )));
+                }
+            }
+        }
         if self.kind(0) == Some(&Kind::MemberMark) && self.ctx.modules.contains(&name) {
             let target = self.text(1).to_string();
             self.at += 2;
@@ -2868,6 +5888,8 @@ impl<'a> Parser<'a> {
                 module: Some(name),
                 name: target,
                 args,
+                vector: false,
+                wait: false,
             });
         }
 
@@ -2876,6 +5898,13 @@ impl<'a> Parser<'a> {
         // expects: `चरः पाठ्यम्` is the text, never a routine.
         if locals.contains(&name) {
             return Ok(Expr::Var(name));
+        }
+        // `W-358`: the SPACED qualified call whose module is not loaded (the
+        // branch above needs it loaded). Recorded for the diagnostic only —
+        // `self.at` does not move, so the parse proceeds exactly as before.
+        if self.kind(0) == Some(&Kind::MemberMark) && self.names_a_module(&name) {
+            self.unresolved
+                .push(format!("{name}\u{971}{}", self.text(1)));
         }
         // THIS MODULE'S OWN ROUTINE FIRST, then anyone's. `resolve_call`
         // (`:1096`) looks in `self.modules[from]` before falling back, so a
@@ -2921,6 +5950,8 @@ impl<'a> Parser<'a> {
                     module: Some(module),
                     name: target,
                     args,
+                    vector: false,
+                    wait: false,
                 });
             }
             let args = self.arguments(&name, arity, locals)?;
@@ -2928,7 +5959,18 @@ impl<'a> Parser<'a> {
                 module: None,
                 name,
                 args,
+                vector: false,
+                wait: false,
             });
+        }
+        // `W-358`: the silent fallback. Right for a local, a field or a
+        // `गणना` variant; wrong for a qualified call no routine answered, so
+        // that kind is recorded for `unresolved_note`.
+        if let Some((m, _)) = name.split_once('\u{971}')
+            && self.names_a_module(m)
+            && !self.ctx.data.contains(&name)
+        {
+            self.unresolved.push(name.clone());
         }
         Ok(Expr::Var(name))
     }
@@ -3066,6 +6108,60 @@ mod tests {
     }
 
     #[test]
+    fn vishama_is_xor_on_both_engines_figures() {
+        // W-335: the native chain already answered these two; the predict
+        // refused the operator outright. The figures are the row's own.
+        let src = "मण्डलम् परीक्षा ॥
+             सार्वजनिक वृत्तिः व आदाय क ॱॱ अ६४ ख ॱॱ अ६४ ददाति अ६४ आदि
+                 प्रत्यागमनम् क विषम ख ।
+             इति";
+        let v = run(src, "व", vec![Value::Int(12), Value::Int(10)]).expect("runs");
+        assert_eq!(v.as_int(), Some(6));
+        let v = run(
+            src,
+            "व",
+            vec![Value::Int(0xffff_ffff_ffff_ffff), Value::Int(255)],
+        )
+        .expect("runs");
+        assert_eq!(v.as_int(), Some(18446744073709551360));
+    }
+
+    #[test]
+    fn vishama_shares_vikalpa_s_level_and_folds_left() {
+        // `द्विकर्मस्तरः` (parse.t1) gives `विषम` level २, the SAME as
+        // `विकल्प` — not C's ^-binds-tighter-than-|. Left-folded at one level,
+        // `३ विकल्प १ विषम १` is `(३ | १) ^ १` = २; C's bracketing would
+        // answer `३ | (१ ^ १)` = ३.
+        let v = run(
+            "मण्डलम् परीक्षा ॥
+             सार्वजनिक वृत्तिः प ददाति अ६४ आदि
+                 प्रत्यागमनम् ३ विकल्प १ विषम १ ।
+             इति",
+            "प",
+            Vec::new(),
+        )
+        .expect("runs");
+        assert_eq!(v.as_int(), Some(2));
+    }
+
+    #[test]
+    fn vishama_without_a_left_operand_is_still_not_a_name() {
+        // The refusal that must survive the fix: `विषम` written where an
+        // ATOM belongs is a bare name, and no such name is in scope.
+        let e = run(
+            "मण्डलम् परीक्षा ॥
+             सार्वजनिक वृत्तिः प ददाति अ६४ आदि
+                 प्रत्यागमनम् विषम ।
+             इति",
+            "प",
+            Vec::new(),
+        )
+        .expect_err("refuses");
+        assert!(e.reason.contains("विषम"), "{}", e.reason);
+        assert!(e.reason.contains("not a name in scope"), "{}", e.reason);
+    }
+
+    #[test]
     fn an_index_closes_at_antah_and_a_slice_carries_a_limit() {
         // The one genuine ambiguity in the corpus's expression syntax:
         // `पाठ अङ्कः क अन्तः` is one octet and
@@ -3120,6 +6216,215 @@ mod tests {
         );
         // And the sibling still runs — one bad call site is not a bad file.
         assert!(it.routine("द्वयम्").expect("declared").is_runnable());
+    }
+
+    /// The `why_not` of `routine` in a one-source load of `text`.
+    fn why_not_of(text: &str, routine: &str) -> String {
+        let it = Interpreter::load(&[("test", text)], Path::new(".")).expect("loads");
+        it.routine(routine)
+            .expect("declared")
+            .why_not()
+            .expect("does not parse")
+            .to_string()
+    }
+
+    #[test]
+    fn a_body_that_calls_an_unloaded_module_names_it_rather_than_the_next_token() {
+        // W-358 (replayed from the rescue ref's 1b7f0d5d). A qualified call
+        // whose module is not in the load is read by `primary`'s last line as
+        // a VARIABLE, which takes no arguments, so the call's arguments stay in
+        // the token stream and the parse dies at whatever follows them —
+        // `सङ्केतनॱसङ्केतसूचीरचना` (encode.t1:3284) under any loader without
+        // `विश्लेषण` says `expected आदि, found पाठ्यम्` and names neither the
+        // module nor the routine it wanted. This is that shape, minimised.
+        let why = why_not_of(
+            "मण्डलम् परीक्षा ॥
+             आयातः सङ्केतन ।
+             सार्वजनिक वृत्तिः चयनम् आदाय पाठ्यम् ॱॱ अ६४ ददाति अ६४ आदि
+                 यदि सङ्केतनॱक्षेत्रसंख्या पाठ्यम् अधिकम् ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+                 प्रत्यागमनम् ० ।
+             इति",
+            "चयनम्",
+        );
+        // The original reason survives: the note is additive.
+        assert!(
+            why.contains("expected `आदि`"),
+            "the parse's own reason must survive: {why}"
+        );
+        assert!(
+            why.contains("`सङ्केतनॱक्षेत्रसंख्या` (a routine or global of module `सङ्केतन`, not loaded)"),
+            "the diagnostic must name the call and its absent module: {why}"
+        );
+        assert!(
+            why.contains("taking no arguments"),
+            "the diagnostic must say how the name was read: {why}"
+        );
+    }
+
+    #[test]
+    fn an_unloaded_module_is_named_when_the_call_is_written_spaced_too() {
+        // 9cbdc3ae's half: `सङ्केतन ॱ क्षेत्रसंख्या`, the member mark its own
+        // token. `अक्षरकोशॱभेदपूरणम्` (sanskrit_text.t1:1032) and its two
+        // siblings write their call this way, so a rule keyed on the mark
+        // inside the token named one of the four `अक्षरकोश` rows and not the
+        // other three.
+        let why = why_not_of(
+            "मण्डलम् परीक्षा ॥
+             आयातः सङ्केतन ।
+             सार्वजनिक वृत्तिः चयनम् आदाय पाठ्यम् ॱॱ अ६४ ददाति अ६४ आदि
+                 यदि सङ्केतन ॱ क्षेत्रसंख्या पाठ्यम् अधिकम् ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+                 प्रत्यागमनम् ० ।
+             इति",
+            "चयनम्",
+        );
+        assert!(
+            why.contains("`सङ्केतनॱक्षेत्रसंख्या` (a routine or global of module `सङ्केतन`, not loaded)"),
+            "the spaced call must be named, joined, with its absent module: {why}"
+        );
+    }
+
+    #[test]
+    fn a_global_of_an_unloaded_module_is_listed_as_a_candidate_not_a_cause() {
+        // Review finding on W-358: an unloaded module's GLOBAL is read as a
+        // variable correctly — `सङ्केतनॱसीमा` takes no arguments either way —
+        // and this parser cannot tell it from a routine without the module's
+        // head. Seen on `सङ्केतनॱस्थानसङ्केतनम्` (encode.t1:4516) under any
+        // loader without `वाक्यविभाग`: two of its four listed names are that
+        // module's globals. So the note lists CANDIDATES in neutral words and
+        // claims no cause; here the real fault is the stray `४`.
+        let why = why_not_of(
+            "मण्डलम् परीक्षा ॥
+             आयातः सङ्केतन ।
+             सार्वजनिक वृत्तिः दोषः ददाति अ६४ आदि
+                 यदि सङ्केतनॱसीमा ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+             इति",
+            "दोषः",
+        );
+        assert!(
+            why.contains("`सङ्केतनॱसीमा` (a routine or global of module `सङ्केतन`, not loaded)"),
+            "an unloaded module's name is a routine OR a global: {why}"
+        );
+        assert!(
+            !why.contains("misaligned"),
+            "the note lists candidates and must not claim the cause: {why}"
+        );
+    }
+
+    #[test]
+    fn a_loaded_module_without_the_routine_is_named_as_a_corpus_fault() {
+        // The second of the two repairs the note distinguishes: the module IS
+        // in the load and declares no such routine, so widening a loader's
+        // list would not help.
+        let why = why_not_of(
+            "मण्डलम् परीक्षा ॥
+             सार्वजनिक वृत्तिः चयनम् आदाय पाठ्यम् ॱॱ अ६४ ददाति अ६४ आदि
+                 यदि परीक्षाॱक्षेत्रसंख्या पाठ्यम् अधिकम् ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+                 प्रत्यागमनम् ० ।
+             इति",
+            "चयनम्",
+        );
+        assert!(
+            why.contains(
+                "`परीक्षाॱक्षेत्रसंख्या` (module `परीक्षा` is loaded and declares no routine or \
+                 global `क्षेत्रसंख्या`)"
+            ),
+            "a present module without the routine is a different repair: {why}"
+        );
+    }
+
+    #[test]
+    fn a_qualified_read_of_a_loaded_modules_global_carries_no_such_note() {
+        // THE CASE THAT MUST STILL BE REFUSED for the loaded-module state:
+        // `परीक्षाॱसीमा` is this module's GLOBAL, read correctly as a variable.
+        // Measured on main before this rule: `अर्थॱअभिव्यञ्जकप्रकारः`
+        // (artha.t1:1089) under `t1_paradigm`'s loader listed fourteen
+        // qualified names and most were `वास्तुॱ…भेद` globals of a module the
+        // load carries — a note blaming them would point at the wrong thing.
+        let why = why_not_of(
+            "मण्डलम् परीक्षा ॥
+             सार्वजनिक चरः सीमा ॱॱ अ६४ भवति ४ ।
+             सार्वजनिक वृत्तिः दोषः ददाति अ६४ आदि
+                 यदि परीक्षाॱसीमा ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+             इति",
+            "दोषः",
+        );
+        assert!(
+            why.contains("expected `आदि`"),
+            "the real fault is reported: {why}"
+        );
+        assert!(
+            !why.contains("qualified name"),
+            "a loaded module's global is not an unresolved call: {why}"
+        );
+    }
+
+    #[test]
+    fn a_bare_unknown_name_is_still_a_variable_and_carries_no_such_note() {
+        // THE CASE THAT MUST STILL BE REFUSED. `primary`'s fallback is
+        // load-bearing — an unqualified undeclared name is a legitimate local,
+        // field or `गणना` variant — so `चयनम्` parses, and `दोषः`'s real
+        // parse fault (a stray `४` where `आदि` belongs) carries no note,
+        // because no qualified name went unresolved.
+        let text = "मण्डलम् परीक्षा ॥
+             गणना रङ्गः आरभ्य रक्तः ऽ नीलः समाप्तम् ।
+             सार्वजनिक वृत्तिः चयनम् ददाति अ६४ आदि
+                 प्रत्यागमनम् नीलः ।
+             इति
+             सार्वजनिक वृत्तिः दोषः ददाति अ६४ आदि
+                 यदि नीलः ४ आदि
+                     प्रत्यागमनम् १ ।
+                 इति
+             इति";
+        let it = Interpreter::load(&[("test", text)], Path::new(".")).expect("loads");
+        assert!(it.routine("चयनम्").expect("declared").is_runnable());
+        let why = why_not_of(text, "दोषः");
+        assert!(
+            why.contains("expected `आदि`"),
+            "the real fault is reported: {why}"
+        );
+        assert!(
+            !why.contains("qualified name"),
+            "no qualified name went unresolved, so no note: {why}"
+        );
+    }
+
+    #[test]
+    fn a_member_mark_on_a_name_that_is_not_a_module_carries_no_such_note() {
+        // THE CASE THAT MUST STILL BE REFUSED, in both spellings. `रङ्गः`
+        // is a `गणना` TYPE qualifying its variant, not a module: nothing
+        // imports it and nothing loads it, so a note saying "module `रङ्गः`
+        // is not loaded" would be false. The rescue ref's rule recorded the
+        // UNSPACED spelling on the member mark alone; here both spellings are
+        // recorded only for a name the module imports or the load carries.
+        for cond in ["रङ्गः ॱ नीलः", "रङ्गःॱनीलः"] {
+            let why = why_not_of(
+                &format!(
+                    "मण्डलम् परीक्षा ॥
+                     आयातः सङ्केतन ।
+                     गणना रङ्गः आरभ्य रक्तः ऽ नीलः समाप्तम् ।
+                     सार्वजनिक वृत्तिः दोषः ददाति अ६४ आदि
+                         यदि {cond} ४ आदि
+                             प्रत्यागमनम् १ ।
+                         इति
+                     इति"
+                ),
+                "दोषः",
+            );
+            assert!(
+                !why.contains("qualified name"),
+                "`{cond}` names no module, so no note: {why}"
+            );
+        }
     }
 
     #[test]

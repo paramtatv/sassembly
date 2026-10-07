@@ -1876,10 +1876,13 @@ fn load_layout(encode: &str) -> Interpreter {
             ("encode.t1", encode),
             ("vakyavibhaga.t1", &source("vakyavibhaga.t1")),
             ("ashtaka.t1", &source("ashtaka.t1")),
+            // W-363: the whole-program layout asks `कोशॱदत्तपृष्ठाधारः` where
+            // `.data` begins.
+            ("kosha.t1", &source("kosha.t1")),
         ],
         &spec_root(),
     )
-    .expect("the three T1 sources load")
+    .expect("the T1 sources load")
 }
 
 /// The value of a `लक्ष्य` variant, READ FROM THE INTERPRETER.
@@ -2335,10 +2338,12 @@ fn load_encoder(encode: &str) -> Interpreter {
             ("vishlesana.t1", &source("vishlesana.t1")),
             ("sanskrit_text.t1", &source("sanskrit_text.t1")),
             ("ashtaka.t1", &source("ashtaka.t1")),
+            // W-363: the whole-program layout asks `कोशॱदत्तपृष्ठाधारः`.
+            ("kosha.t1", &source("kosha.t1")),
         ],
         &spec_root(),
     )
-    .expect("encode.t1 and the three modules it reaches load together")
+    .expect("encode.t1 and the modules it reaches load together")
 }
 
 /// One operand slot of one encoding, read out of field ६ of the spec table.
@@ -2510,9 +2515,10 @@ fn mirror(it: &mut Interpreter, src: &str) -> (Value, sadhana::parse::Instructio
 /// A `चिह्नस्थान` arena — zero-based, as that record's own margin says.
 fn symbols(pairs: &[(&str, i128)]) -> Value {
     let rows: Vec<Value> = if pairs.is_empty() {
-        // An arena is born holding one शून्यम्, and that is how this language
-        // spells an EMPTY map — Rust's `&BTreeMap::new()`.
-        vec![Value::Nil]
+        // An EMPTY map — Rust's `&BTreeMap::new()` — is an empty arena, which
+        // is what a fresh `भवति ०` run is since `W-355`. Until then an arena
+        // was born holding one शून्यम् and that was this language's empty map.
+        vec![]
     } else {
         pairs
             .iter()
@@ -2855,6 +2861,141 @@ fn every_float_case_the_oracle_carries_encodes_to_the_word_the_oracle_gives() {
         cases.len(),
         disagreed.join("\n  ")
     );
+}
+
+/// **`V-008` part 2 — every VECTOR case the oracle carries, through the `.t1`
+/// encoder, per form.** The seven forms the vector lowering emits — `vsetvli`,
+/// `vle64.v`, `vse64.v` and `vfadd`/`vfsub`/`vfmul`/`vfdiv.vv` — are rows of
+/// `spec/conformance-t0.tsv` that `tools/gen-conformance.py` asked
+/// `riscv64-elf-as -march=rv64gcv` for; `tests/conformance.rs` drives the same
+/// rows through the Rust encoder. The `.vv` rows pin the operand ORDER as well
+/// as the opcode: the first source written is GNU's `vs2`.
+#[test]
+fn every_vector_case_the_oracle_carries_encodes_to_the_word_the_oracle_gives() {
+    let path = repo_root().join("spec/conformance-t0.tsv");
+    let text = std::fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("{} is readable: {e}", path.display()));
+    let mut cases: Vec<(String, u32, String)> = Vec::new();
+    for line in text.lines() {
+        if line.starts_with('#') || line.starts_with("sassembly\t") || line.trim().is_empty() {
+            continue;
+        }
+        let f: Vec<&str> = line.split('\t').collect();
+        let (Some(src), Some(hex), Some(riscv)) = (f.first(), f.get(1), f.get(2)) else {
+            continue;
+        };
+        if !riscv.starts_with('v') {
+            continue;
+        }
+        let Ok(word) = u32::from_str_radix(hex.trim().trim_start_matches("0x"), 16) else {
+            continue;
+        };
+        cases.push((src.to_string(), word, riscv.to_string()));
+    }
+
+    let mut it = load_encoder(&source("encode.t1"));
+    let syms = symbols(&[]);
+    let mut disagreed: Vec<String> = Vec::new();
+    let mut refused: Vec<String> = Vec::new();
+    let mut per_family: BTreeMap<String, usize> = BTreeMap::new();
+    for (src, want, riscv) in &cases {
+        let mnemonic = riscv.split_whitespace().next().unwrap_or("").to_string();
+        *per_family.entry(mnemonic).or_default() += 1;
+        let (value, _inst) = mirror(&mut it, src);
+        match encode_at_t1(&mut it, value, 0, syms.clone()) {
+            None => refused.push(format!("{riscv}: {src:?} — {}", last_code(&it))),
+            Some(got) if got != *want => disagreed.push(format!(
+                "{riscv}: {src:?} — port {got:#010x}, oracle {want:#010x}"
+            )),
+            Some(_) => {}
+        }
+    }
+    println!("METRIC t1_vector_oracle_cases {}", cases.len());
+    for (m, n) in &per_family {
+        println!("  {m:<12} {n}");
+    }
+    // `vlse64.v` (`V-009` (ii)'s strided load: the matrix kernel's stride-0
+    // broadcast and the transpose's column read) has the same floor as the
+    // seven — the review's follow-up 2.
+    for m in [
+        "vsetvli", "vle64.v", "vlse64.v", "vse64.v", "vfadd.vv", "vfsub.vv", "vfmul.vv", "vfdiv.vv",
+    ] {
+        assert!(
+            per_family.get(m).is_some_and(|n| *n >= 6),
+            "`{m}` has fewer than six oracle cases in the corpus this test read"
+        );
+    }
+    assert!(
+        refused.is_empty(),
+        "the `.t1` encoder REFUSED {} vector case(s) GNU binutils accepted:\n  {}",
+        refused.len(),
+        refused.join("\n  ")
+    );
+    assert!(
+        disagreed.is_empty(),
+        "the `.t1` encoder disagrees with the oracle on {} of {} vector case(s):\n  {}",
+        disagreed.len(),
+        cases.len(),
+        disagreed.join("\n  ")
+    );
+}
+
+/// **`V-008` part 2 — a register never fills another file's field, in the
+/// port.** The twin of `encode.rs`'s `a_vector_register_never_fills_a_scalar_field`:
+/// the files swapped on the vector load/store's own shape match `vle64.v` and
+/// `vse64.v` BY COUNT, so only a per-field check refuses them. Each line must be
+/// REFUSED; the control (the same names in the right roles) must encode.
+#[test]
+fn the_port_refuses_a_register_in_another_files_field() {
+    let rows = encoding_rows_text();
+    let mn = |insn: &str| -> String {
+        rows.lines()
+            .map(|l| l.split('\t').collect::<Vec<_>>())
+            .find(|f| f.len() >= 3 && f[0] == insn)
+            .map(|f| f[2].to_string())
+            .unwrap_or_else(|| panic!("{insn} is in the encoding table"))
+    };
+    let regs =
+        std::fs::read_to_string(spec_root().join("registers-riscv64.tsv")).expect("registers");
+    let reg = |abi: &str| -> String {
+        regs.lines()
+            .map(|l| l.split('\t').collect::<Vec<_>>())
+            .find(|f| f.len() >= 4 && f[1] == abi)
+            .map(|f| f[0].to_string())
+            .unwrap_or_else(|| panic!("{abi} is in the register table"))
+    };
+    let (ld, sd, fadd) = (mn("ld"), mn("sd"), mn("fadd.d"));
+    let (v1, v2, v3, t1, t2) = (reg("v1"), reg("v2"), reg("v3"), reg("t1"), reg("t2"));
+    let mut it = load_encoder(&source("encode.t1"));
+    let syms = symbols(&[]);
+    for src in [
+        format!("{ld} {t1}म् {v1}त् ।"),
+        format!("{sd} {v1}य् {t1}न ।"),
+        format!("{ld} {v1}म् {t1}त् ०न ।"),
+        format!("{fadd} {v1}म् {t1}न {t2}न ।"),
+    ] {
+        let (value, _inst) = mirror(&mut it, &src);
+        let got = encode_at_t1(&mut it, value, 0, syms.clone());
+        assert!(
+            got.is_none(),
+            "{src} encoded as {got:x?}: a register reached another file's field"
+        );
+    }
+    for (src, want) in [
+        (format!("{ld} {v1}म् {t1}त् ।"), 0x0203_7087_u32),
+        (format!("{fadd} {v1}म् {v2}न {v3}न ।"), 0x0221_90d7),
+    ] {
+        let (value, _inst) = mirror(&mut it, &src);
+        assert_eq!(
+            encode_at_t1(&mut it, value, 0, syms.clone()),
+            Some(want),
+            "{src}"
+        );
+    }
+}
+
+fn encoding_rows_text() -> String {
+    std::fs::read_to_string(spec_root().join("encodings-riscv64.tsv")).expect("encodings")
 }
 
 /// **`fence`'s operands are DOMAIN SETS**, and a domain is neither a register
@@ -3330,7 +3471,8 @@ fn the_bare_encoder_is_the_addressed_one_at_zero_with_no_symbols() {
 /// by hand from `encode.rs:542-566` rather than read back from the routine.
 ///
 /// Three 32-bit instructions put `pc` at १२. `दत्ताधारः` is १२ aligned up to
-/// ८ = १६; there is no `ॱदत्त` entry, so `रिक्ताधारः` is १६ too. A text label
+/// the page = ४०९६ (W-363, `कोशॱदत्तपृष्ठाधारः`; it was ८ = १६ before); there
+/// is no `ॱदत्त` entry, so `रिक्ताधारः` is ४०९६ too. A text label
 /// takes the address of the instruction it marks; a data or bss label takes
 /// its base plus `दत्तसरण`. Every address is RELATIVE to the image base —
 /// that is the whole point of the table and the thing encode.rs:544 records
@@ -3417,9 +3559,9 @@ fn the_symbol_table_places_a_label_in_each_section() {
             )
             .unwrap_or_else(|e| panic!("चिह्नस्थानम् runs: {e:?}"));
         let expected = match name {
-            "आदिः" => 4,  // स्थानानि[१]
-            "दत्तम्" => 20, // दत्ताधारः १६ + ४
-            _ => 24,      // रिक्ताधारः १६ + ८
+            "आदिः" => 4,    // स्थानानि[१]
+            "दत्तम्" => 4100, // दत्ताधारः ४०९६ + ४
+            _ => 4104,      // रिक्ताधारः ४०९६ + ८
         };
         assert_eq!(
             got.as_int(),
@@ -3995,4 +4137,124 @@ fn dropping_the_error_slot_restore_is_caught() {
         "with the restore dropped the branch's round-० refusal must be left \
          behind; anything else means the slot is restored somewhere else"
     );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// N-001 — the signature table guard.
+// ─────────────────────────────────────────────────────────────────────────
+
+/// The class letters `प्रकारवर्गः` answers 1, 2 and 3 for.
+const N001_CLASSES: [&str; 3] = ["\u{0905}", "\u{0928}", "\u{092A}"];
+
+/// The text a type code stands for: class × 1024 + width, rendered back.
+fn n001_type_text(code: i128) -> Option<String> {
+    let class = usize::try_from(code / 1024).ok()?;
+    let width = u64::try_from(code % 1024).ok()?;
+    let letter = N001_CLASSES.get(class.checked_sub(1)?)?;
+    Some(format!("{letter}{}", devanagari(width)))
+}
+
+/// What the pratyāhāra signatures assume of `spec/encodings-riscv64.tsv`, and
+/// why the row builder can pack a count without saturating it: no row has
+/// more than 63 slots of any kind a signature field counts, and every
+/// conversion text round-trips through `प्रकारकूटः` (a non-zero code whose
+/// rendering is the text). Answers one line per refusal.
+fn n001_table_refusals(it: &mut Interpreter, table: &str) -> Vec<String> {
+    let mut refused = Vec::new();
+    for line in table.lines() {
+        if line.starts_with('#') || line.starts_with("insn\t") || line.trim().is_empty() {
+            continue;
+        }
+        let f: Vec<&str> = line.split('\t').collect();
+        if f.len() < 9 {
+            continue;
+        }
+        let kinds: Vec<&str> = if f[6] == "(none)" {
+            Vec::new()
+        } else {
+            f[6].split('|')
+                .map(|s| s.split(':').next().unwrap_or(""))
+                .collect()
+        };
+        let count = |want: &[&str]| kinds.iter().filter(|k| want.contains(k)).count();
+        for (what, n) in [
+            ("register", count(&["reg", "freg", "vreg"])),
+            ("vector register", count(&["vreg"])),
+            ("displacement", count(&["disp"])),
+            ("immediate", count(&["imm", "simm"])),
+        ] {
+            if n > 63 {
+                refused.push(format!(
+                    "{}: {n} {what} slots; a signature field holds 63",
+                    f[0]
+                ));
+            }
+        }
+        if f[8] == "-" || f[8].is_empty() {
+            continue;
+        }
+        for text in f[8].split(',') {
+            let code = it
+                .call("सङ्केतनॱप्रकारकूटः", vec![octets(text)], 1_000_000)
+                .unwrap_or_else(|e| panic!("प्रकारकूटः runs on {text:?}: {e:?}"))
+                .as_int()
+                .expect("a code");
+            if code == 0 || n001_type_text(code).as_deref() != Some(text) {
+                refused.push(format!(
+                    "{}: the conversion text {text} codes to {code}, which is not it",
+                    f[0]
+                ));
+            }
+        }
+    }
+    refused
+}
+
+/// The table as it stands passes the guard.
+#[test]
+fn n001_every_encoding_row_fits_the_signature_fields() {
+    let mut it = load_encoder(&source("encode.t1"));
+    let refused = n001_table_refusals(&mut it, &encodings_text());
+    assert!(
+        refused.is_empty(),
+        "the table breaks the signature fields:\n  {}",
+        refused.join("\n  ")
+    );
+}
+
+/// CONTROL: a row with 64 register slots is refused.
+#[test]
+fn n001_the_guard_refuses_a_row_with_64_slots_of_one_kind() {
+    let table = encodings_text();
+    let row = table
+        .lines()
+        .find(|l| l.starts_with("add\t"))
+        .expect("`add` is a row");
+    let f: Vec<&str> = row.split('\t').collect();
+    let many = vec!["reg:0x00000f80:0>7;1>8;2>9;3>10;4>11"; 64].join("|");
+    let mutated_row = row.replacen(f[6], &many, 1);
+    let mutated = table.replacen(row, &mutated_row, 1);
+    let mut it = load_encoder(&source("encode.t1"));
+    let refused = n001_table_refusals(&mut it, &mutated);
+    assert!(
+        refused.iter().any(|r| r.starts_with("add:")),
+        "64 register slots on `add` were not refused: {refused:?}"
+    );
+}
+
+/// CONTROL: conversion texts that do not round-trip are refused — a leading
+/// `०`, four digits, and a letter that is no class.
+#[test]
+fn n001_the_guard_refuses_a_conversion_text_that_does_not_round_trip() {
+    let table = encodings_text();
+    for bad in ["प०६४", "प६४६४", "क६४"] {
+        let mutated = table.replacen("\tप६४,अ६४\t", &format!("\t{bad},अ६४\t"), 1);
+        assert_ne!(mutated, table, "the table has a `प६४,अ६४` pair to mutate");
+        let mut it = load_encoder(&source("encode.t1"));
+        let refused = n001_table_refusals(&mut it, &mutated);
+        assert!(
+            refused.iter().any(|r| r.contains(bad)),
+            "`{bad}` was not refused: {refused:?}"
+        );
+    }
 }

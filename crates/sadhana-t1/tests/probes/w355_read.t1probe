@@ -1,0 +1,9 @@
+मण्डलम् रिक्तपरीक्षण ॥
+
+॰ W-355 probe (a peer session): READ index ० of a never-written `भवति ०` arena.
+॰ Measured 2026-10-02: interpreter Nil; natively the null-arena guard answered ० (the
+॰ silent zero). Since `W-355` both REFUSE it — crates/yantra/tests/w355_fresh_run.rs.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    प्रत्यागमनम् सूची अङ्कः ० अन्तः ।
+इति

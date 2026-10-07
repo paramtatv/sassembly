@@ -7,7 +7,7 @@
 //!
 //! # Why a code
 //!
-//! Doc 12's **D-12-A1** says compiler diagnostics are a Sankriti feature and
+//! Doc 12's **D-12-A1** says compiler diagnostics are a the host application feature and
 //! must be *machine-repairable*: a stable code, a precise span, a suggested
 //! fix. Prose is none of those. `L01` survives rewording, translation and
 //! rephrasing; "is exported by more than one file" survives nothing, and a

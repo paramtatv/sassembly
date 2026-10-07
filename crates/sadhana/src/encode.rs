@@ -51,7 +51,7 @@ const RS3: u32 = 0xf800_0000;
 /// One operand slot of one encoding.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Slot {
-    /// `reg`, `freg`, `imm`, `label` or `fixed`.
+    /// `reg`, `freg`, `vreg`, `imm`, `label` or `fixed`.
     pub kind: String,
     /// Which encoding bits this slot occupies.
     pub mask: u32,
@@ -69,7 +69,7 @@ pub struct Slot {
 
 /// Whether a slot kind names a register.
 fn is_register(kind: &str) -> bool {
-    kind == "reg" || kind == "freg"
+    kind == "reg" || kind == "freg" || kind == "vreg"
 }
 
 /// Whether two slot kinds can hold the same thing.
@@ -242,10 +242,11 @@ impl Encoding {
         self.slots.iter().filter(|s| is_immediate(&s.kind)).nth(n)
     }
     fn register_count(&self) -> usize {
-        self.slots
-            .iter()
-            .filter(|s| s.kind == "reg" || s.kind == "freg")
-            .count()
+        self.slots.iter().filter(|s| is_register(&s.kind)).count()
+    }
+    /// `V-008` part 2: how many of the slots take a VECTOR register.
+    fn vector_register_count(&self) -> usize {
+        self.slots.iter().filter(|s| s.kind == "vreg").count()
     }
 }
 
@@ -332,6 +333,24 @@ pub fn register(name: &str) -> Option<(u32, bool)> {
             (f.len() >= 4 && f[0] == name)
                 .then(|| Some((f[2].parse().ok()?, f[3] == "float")))
                 .flatten()
+        })
+}
+
+/// Whether a Sassembly register name is a VECTOR register (`V-008` part 2).
+///
+/// [`register`]'s pair says only float or not, and a vector register is not a
+/// float — so without this a `व्यूह<n>` would pass every test an integer
+/// register passes and land in an `x` field as register `n`. The class column
+/// is what tells them apart, and the encoder asks it wherever a register's
+/// FILE decides the encoding.
+#[must_use]
+pub fn is_vector_register(name: &str) -> bool {
+    REGISTERS
+        .lines()
+        .filter(|l| !l.starts_with('#') && !l.starts_with("devanagari\t"))
+        .any(|l| {
+            let f: Vec<&str> = l.split('\t').collect();
+            f.len() >= 4 && f[0] == name && f[3] == "vector"
         })
 }
 
@@ -552,11 +571,12 @@ pub fn encode_program_for(program: &Program, target: Target) -> Result<Vec<u8>, 
         // difference, so the base cancels, and keeping it out of `addresses`
         // means one place converts to absolute — the data base below.
         symbols.clear();
-        // `.data` follows `.text`, eight-aligned, exactly as `kosha` lays it
-        // out. Kept RELATIVE to the image base like every text address: a
-        // pc-relative offset is a difference and the base cancels, so mixing
-        // one absolute address into the table put 0x80000000 into an auipc.
-        let data_base = pc.next_multiple_of(8);
+        // `.data` follows `.text` at the next page, exactly as `kosha` lays it
+        // out (`kosha::data_base`, W-363 — it was eight-aligned until then). Kept
+        // RELATIVE to the image base like every text address: a pc-relative
+        // offset is a difference and the base cancels, so mixing one absolute
+        // address into the table put 0x80000000 into an auipc.
+        let data_base = u32::try_from(crate::kosha::data_base(u64::from(pc))).unwrap_or(u32::MAX);
         // `ॱरिक्त` follows `ॱदत्त` in memory and nowhere in the file.
         let data_len: u32 = program
             .data
@@ -987,13 +1007,11 @@ pub fn encode_object_for(
             ),
         }]);
     }
-    let data_base = pc.next_multiple_of(8);
-    let data_len: u32 = program
-        .data
-        .iter()
-        .map(|d| u32::try_from(d.bytes.len()).unwrap_or(0))
-        .sum();
-    let bss_base = (data_base + data_len).next_multiple_of(8);
+    // NO DATA OR BSS BASE IS COMPUTED HERE (W-363). This path resolves text
+    // labels only, and a data base it computed and discarded was a third
+    // statement of the image layout that nothing read — `kosha::data_base` is
+    // the one an object's data lands at, applied by the linker.
+    //
     // ONLY text labels. A pc-relative reference can be resolved while
     // assembling exactly when both ends sit in the same section, because only
     // then does linking move them together: every object's `.text` is laid end
@@ -1003,7 +1021,6 @@ pub fn encode_object_for(
     // Resolving one anyway is what this did, and it produced an object whose
     // `auipc`/`addi` pair pointed 32 bytes short once `lib-mudraka` was linked
     // in front of the data — a program that runs and prints nothing.
-    let _ = (data_base, bss_base);
     for l in &program.labels {
         if l.section != crate::parse::Section::Text {
             continue;
@@ -1218,6 +1235,17 @@ fn encode_collecting(
         .iter()
         .filter(|o| o.is_numeral || split_address_part(&o.base).is_some())
         .count();
+    // `V-008` part 2 — how many of the registers written are VECTOR registers.
+    // R-02-2 gives `प्लवयोगः` both `fadd.d` and `vfadd.vv`, and `आहारः` both
+    // `ld` and `vle64.v`: the operands' FILE is what tells them apart, so an
+    // encoding is a candidate only when its vector slots match this count
+    // exactly — a vector register never fills an `x` or `f` field, and an `x`
+    // or `f` register never fills a vector one.
+    let vregs = inst
+        .operands
+        .iter()
+        .filter(|o| !o.is_numeral && is_vector_register(&o.base))
+        .count();
 
     // Match the written shape, then the width. The `w` suffix is RV64's
     // convention for a 32-bit operation on 64-bit registers; it is the one
@@ -1289,6 +1317,9 @@ fn encode_collecting(
         if e.register_count() != regs {
             continue;
         }
+        if e.vector_register_count() != vregs {
+            continue;
+        }
         let disp_slots = e.slots.iter().filter(|s| s.kind == "disp").count();
         if disp_slots != labels {
             continue;
@@ -1302,6 +1333,29 @@ fn encode_collecting(
             && let Some(rd) = e.slot_with(RD)
             && (rd.kind == "freg") != dest_is_float
         {
+            continue;
+        }
+        // `V-008` part 2 — EACH REGISTER IN ITS OWN FILE'S FIELD, not merely the
+        // right NUMBER of vector registers. `vle64.v` has one vector and one `x`
+        // slot, so `आहारः क्षणिक१म् व्यूह१त् ।` — the files swapped — matched it
+        // by count and encoded `vle64.v v6, (ra)`, a valid instruction on
+        // registers nobody named. So the destination's file must be its rd
+        // slot's (vector or not), and an ADDRESS (त्/य्) is never a vector
+        // register: no encoding of the subset reads an address from one. A
+        // candidate that fails either is not this instruction; with none left the
+        // instruction is refused by name (E04).
+        if let Some(dest) = inst.by_role(Karaka::Destination)
+            && let Some(rd) = e.slot_with(RD)
+            && is_register(&rd.kind)
+            && (rd.kind == "vreg") != is_vector_register(&dest.base)
+        {
+            continue;
+        }
+        if inst.operands.iter().any(|o| {
+            matches!(o.karaka, Karaka::SourceAddress | Karaka::DestAddress)
+                && !o.is_numeral
+                && is_vector_register(&o.base)
+        }) {
             continue;
         }
 
@@ -1685,6 +1739,21 @@ fn encode_collecting(
                     reason: Diagnostic::new("E14", &[&op.base]).render(Language::default()),
                 });
             }
+            // `V-008` part 2 — A VECTOR SOURCE fills the encoding's vector slots
+            // in the order the table records them, which is GNU's operand
+            // order: `vfsub.vv vd, vs2, vs1` is `vs2 - vs1`, so the first
+            // source written is `vs2` and `प्लववियोगः घम् कन खन` is `क - ख`, as
+            // the scalar form reads. With a destination written, the slot at
+            // rd's mask is the destination's; with none — `vse64.v`, whose
+            // stored register sits at rd's mask — it is the source's.
+            Karaka::Source if !op.is_numeral && is_vector_register(&op.base) => {
+                let has_destination = inst.by_role(Karaka::Destination).is_some();
+                enc.slots.iter().find(|s| {
+                    s.kind == "vreg"
+                        && !(has_destination && s.mask == RD)
+                        && !filled.iter().any(|(m, _)| *m == s.mask)
+                })
+            }
             Karaka::Source => {
                 if op.is_numeral {
                     next_immediate(enc, &filled)
@@ -2059,6 +2128,66 @@ mod tests {
             "the value at fault travels with the error: {:?}",
             e.args
         );
+    }
+
+    /// A register's Sassembly name by ABI name, READ from the table.
+    fn reg_named(abi: &str) -> String {
+        REGISTERS
+            .lines()
+            .map(|l| l.split('\t').collect::<Vec<_>>())
+            .find(|f| f.len() >= 4 && f[1] == abi)
+            .map(|f| f[0].to_string())
+            .unwrap_or_else(|| panic!("{abi} is in spec/registers-riscv64.tsv"))
+    }
+
+    /// An instruction's Sassembly mnemonic by RISC-V name, READ from the table.
+    fn mnemonic_of(insn: &str) -> String {
+        ENCODINGS
+            .lines()
+            .map(|l| l.split('\t').collect::<Vec<_>>())
+            .find(|f| f.len() >= 3 && f[0] == insn)
+            .map(|f| f[2].to_string())
+            .unwrap_or_else(|| panic!("{insn} is in spec/encodings-riscv64.tsv"))
+    }
+
+    /// `V-008` part 2: R-02-2 puts `vfadd.vv` under `प्लवयोगः` and `vle64.v`
+    /// under `आहारः`, so the operands' FILE is all that selects the encoding —
+    /// and a vector register must never fill an `x` or `f` field. `register`
+    /// answers "not a float" for `व्यूह१`, so without the vector count every
+    /// line below would encode SILENTLY as the scalar instruction on register 1.
+    #[test]
+    fn a_vector_register_never_fills_a_scalar_field() {
+        let (v1, v2, v3) = (reg_named("v1"), reg_named("v2"), reg_named("v3"));
+        let (t1, t2, f1, f2) = (
+            reg_named("t1"),
+            reg_named("t2"),
+            reg_named("f1"),
+            reg_named("f2"),
+        );
+        let add = mnemonic_of("add");
+        let fadd = mnemonic_of("fadd.d");
+        let ld = mnemonic_of("ld");
+        let sd = mnemonic_of("sd");
+        for src in [
+            format!("{add} {v1}म् {t1}न {t2}न ।"),
+            format!("{add} {t1}म् {v2}न {t2}न ।"),
+            format!("{fadd} {v1}म् {f1}न {f2}न ।"),
+            format!("{fadd} {f1}म् {v2}न {f2}न ।"),
+            format!("{ld} {v1}म् {t1}त् ०न ।"),
+            // The FILES SWAPPED on the vector forms' own shape: the count of
+            // vector registers matches `vle64.v`/`vse64.v`, the fields do not.
+            format!("{ld} {t1}म् {v1}त् ।"),
+            format!("{sd} {v1}य् {t1}न ।"),
+        ] {
+            let is = assemble_source(&src).expect("parses");
+            assert!(
+                encode(&is[0]).is_err(),
+                "{src} encoded: a vector register reached a scalar field"
+            );
+        }
+        // The control: the same names in the vector form encode, as `vs2` then `vs1`.
+        let w = one(&format!("{fadd} {v1}म् {v2}न {v3}न ।"));
+        assert_eq!(w, 0x0221_90d7, "vfadd.vv v1, v2, v3");
     }
 
     #[test]

@@ -1,0 +1,16 @@
+मण्डलम् अल्पपरीक्षा ॥
+
+॰ The smallest program that still exercises a store and a loop. If W-356's
+॰ 13.2x shows up HERE, the regression is general and the bisect can use this
+॰ instead of a 2,300-line generated test — seconds per leg instead of 40 min.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः योगः ॱॱ न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+
+    यावत् क्रमः न्यूनम् १०० आदि
+        योगः भवति आरभ्य योगः योगः क्रमः समाप्तम् ।
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति

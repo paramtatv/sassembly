@@ -70,11 +70,13 @@ fn csr_insn(funct3: u32, rd: u32, csr: u32, source: u32) -> u32 {
 /// A machine holding `words` at the entry point and nothing else.
 fn machine(words: &[u32]) -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -86,6 +88,8 @@ fn machine(words: &[u32]) -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     for (i, w) in words.iter().enumerate() {
         m.mem[i * 4..i * 4 + 4].copy_from_slice(&w.to_le_bytes());

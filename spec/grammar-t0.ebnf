@@ -131,7 +131,13 @@ negative       = "ऋण" ;
 
    `॰` and `॥` therefore cannot appear inside a string; both are structural
    signs, and a program needing one as data writes the byte. *)
-string         = "उक्तम्" , { aksara_word | "इति" , "इति" } , "इति" ;
+string         = ( "उक्तम्" | "वर्णाष्टकम्" ) , { aksara_word | "इति" , "इति" } , "इति" ;
+
+(* AMENDED 2026-10-06 by ADR-0044 (D3), the owner-approved assembler half of
+   the T1 exemption: a `वर्णाष्टकम् … इति` operand of `अष्टकाः` carries Devanagari-8
+   data as its letters, UTF-8 in the text, and the assembler packs each
+   letter to ONE octet, `0x80 + (code point − 0x0900)`. A body that does not
+   pack — a space between words, a letter outside U+0900–U+097F — is P19. *)
 
 binary         = "०द्वि"  , bin_digit , { bin_digit } ;
 octal          = "०अष्ट" , oct_digit , { oct_digit } ;

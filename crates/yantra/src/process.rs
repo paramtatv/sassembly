@@ -502,6 +502,9 @@ impl Kernel {
                 if was_user && matches!(halt, Halt::SpinForever { .. }) {
                     continue;
                 }
+                // Every other halt ends the run — including `Halt::Wait` (`W-370`),
+                // which this kernel has no event source to answer: it propagates by
+                // name in `Ended::Stopped`, never resumed here. See that variant.
                 result = Ended::Stopped(halt);
                 break;
             }

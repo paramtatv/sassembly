@@ -1,0 +1,20 @@
+मण्डलम् प्राचलसीमापरीक्षण ॥
+
+॰ W-359 rule (2), the refusal: a routine that does NOT return its run
+॰ parameter writes past that parameter's end. The caller's run has storage
+॰ (index ० written first, as prewrite.t1probe), so the base is not nil and
+॰ the BOUND test is what refuses. Both engines refuse at the store:
+॰ interpreted "entry 5 is past the end of the parameter `सूची`, a run of 1,
+॰ and `परलेखकः` does not return it (W-359)"; natively the finisher word
+॰ 0x359 (`प्राचलसीमानिषेधः`) in FAIL form, status Some(0x359) (W-381). crates/yantra/tests/w359_param_growth.rs.
+वृत्तिः परलेखकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    सूची अङ्कः ५ अन्तः भवति ९९ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    सूची अङ्कः ० अन्तः भवति ७ ।
+    चरः उ ॱॱ न६४ भवति परलेखकः सूची ।
+    प्रत्यागमनम् सूची अङ्कः ० अन्तः ।
+इति

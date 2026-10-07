@@ -229,8 +229,15 @@ fn reserved_space_costs_memory_and_not_file() {
     );
 
     // p_memsz must exceed p_filesz by the reservation, or the loader gives the
-    // program nothing and every write into the buffer lands somewhere else.
-    let ph = 64usize;
+    // program nothing and every write into the buffer lands somewhere else. The
+    // reservation is in the SECOND program header, the writable one (`W-363`):
+    // the first is the text, `R E`, and reserves nothing.
+    let ph = 64usize + 56;
+    assert_eq!(
+        u32::from_le_bytes(elf[ph + 4..ph + 8].try_into().expect("4")),
+        0b110,
+        "the segment holding `.bss` is PF_R | PF_W"
+    );
     let filesz = u64::from_le_bytes(elf[ph + 32..ph + 40].try_into().expect("8"));
     let memsz = u64::from_le_bytes(elf[ph + 40..ph + 48].try_into().expect("8"));
     assert_eq!(memsz - filesz.next_multiple_of(8), 4096);
@@ -606,7 +613,7 @@ fn संरेखः_raises_the_section_alignment_the_linker_sees() {
     // `kosha.rs` builds its plan with `.text` first — but a test that asserts a
     // value from a section it never identifies would read a different section's
     // alignment if that plan ever gained an entry, and would then pass or fail
-    // for a reason unconnected to `संरेखः` (`sansos-f0`).
+    // for a reason unconnected to `संरेखः` (a peer session).
     let shoff = u64::from_le_bytes(obj[0x28..0x30].try_into().unwrap()) as usize;
     let shnum = u16::from_le_bytes(obj[0x3c..0x3e].try_into().unwrap()) as usize;
     let shstrndx = u16::from_le_bytes(obj[0x3e..0x40].try_into().unwrap()) as usize;

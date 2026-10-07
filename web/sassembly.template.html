@@ -11,6 +11,11 @@
        margin-top:1rem}
  .empty{color:#999;font-size:.9rem;font-style:italic}
  #halt{color:#555;font-size:.85rem} .ok{color:#1a7a3a} .bad{color:#a33}
+ #steps{color:#555;font-size:.85rem;margin-top:.2rem} #steps.na{color:#999;font-style:italic}
+ #sizing{color:#555;font-size:.85rem;margin-top:.2rem} #sizing.na{color:#999;font-style:italic}
+ #assembler{font-size:.85rem;margin-top:.2rem} #assembler.na{color:#999;font-style:italic}
+ #interp{font-size:.85rem;margin-top:.2rem} #interp.na{color:#999;font-style:italic}
+ #asm{font-size:.85rem;margin-top:.2rem} #asm.na{color:#999;font-style:italic}
  .note{color:#777;font-size:.8rem;margin-top:2rem;border-top:1px solid #e5e0d8;padding-top:1rem}
 </style>
 <h1>The same ELF, in a browser</h1>
@@ -23,6 +28,29 @@ RISC-V interpreter compiled to wasm. No third-party crate; no server. A store to
 <div class="lbl">the machine&rsquo;s own UART</div>
 <div id="uart" class="pane"></div>
 <div id="halt"></div>
+<div id="steps"></div>
+<div id="sizing"></div>
+<div class="lbl">the interpreter, in this tab</div>
+<div id="interp"></div>
+<div class="lbl">the assembler, in this tab</div>
+<div id="assembler"></div>
+<div id="asm"></div>
+<p class="note"><strong>The fourth button, when this page carries one, is the T1 compiler
+image itself</strong> &mdash; the ELF <code>tools/fixpoint.sh</code> Stage 1 writes, compiling
+<code>.t1</code> source in this tab off one source on its input channel. Its line is the
+<em>sizing</em> one: what it DEMANDS of linear memory against what it ever TOUCHES. Those are
+very different numbers and the gap is the whole reason this button is hard &mdash; the image
+asks for its whole declared span at LOAD, because that is where the stack top sits, so a device
+cannot host it however little it uses. A device that will not give the memory is told so BY
+NAME, with the figure, and nothing is run; it is not a blank pane. And the halt line for it is
+red on purpose: the one source is <code>lib.t1</code>, which declares nothing, so a non-zero
+status is the compiler delivering its own verdict about that source rather than this page
+failing to run it.</p>
+<p class="note">The <em>retired-instruction count</em> under the halt line is the machine&rsquo;s
+own clock, and it is the same number this ELF retires natively &mdash; which is what makes a
+figure measured in a browser worth quoting. A boot proof has one; an <em>application</em> does
+not, because a supervisor hands back a verdict and no counter, and the line says so rather than
+showing a zero.</p>
 <p class="note">Two of these are OS <em>proofs</em>: a machine boots at its reset vector in
 S-mode and writes to a device. <code>atithi.sas</code> is an <em>application</em> — a
 loader places it, a supervisor answers its two calls, and it never leaves U-mode. It
@@ -32,24 +60,259 @@ buffers</strong>, and which one fills is the whole difference between the two ki
 program.</p>
 <script type="module">
 const WASM_B64 = "@@WASM@@";
+// ॥ THE ASSEMBLER'S MODULE IS A SEPARATE PLACEHOLDER AND MAY BE EMPTY ॥
+// `@@WASM@@` is the interpreter and the page cannot open without it. This one is
+// `sadhana-wasm`, the ASSEMBLER, and the page is complete without it: the ELFs below
+// were assembled by native `sadhana` at build time either way. So an empty string here
+// is a STATE and not a broken build — `#assembler` says ABSENT and names what that
+// costs, which is the refusal `check-sassembly-page.mjs`'s last arm drives by emptying
+// this very line. A page that splices the glue and not the module must not look like one
+// that assembles.
+const SADHANA_WASM_B64 = "@@SADHANA_WASM@@";
+// ॥ THE STAMP OF THE NATIVE ASSEMBLER THAT ASSEMBLED THE ELFs BELOW ॥
+// `tools/src-rev.sh crates/sadhana/src`, taken by the build from the
+// same tree it then ran `cargo run -p sadhana` against, or the word `unknown` when
+// that machine had no sha256 tool. The module above carries its OWN stamp, sealed in
+// at compile time. The two together are the only thing on this page that can tell a
+// fresh tab from one served tomorrow out of a stale `sadhana-wasm`.
+const SADHANA_NATIVE_REV = "@@SADHANA_REV@@";
+// ॥ THE STAMP OF THE NATIVE INTERPRETER THAT MEASURED THE SIZING FIGURES ॥
+// `tools/src-rev.sh crates/yantra/src`, taken by the build from the same tree it then
+// ran `yantra-run` against for `ram` and `touches`, or the word `unknown` when that
+// machine had no sha256 tool. The interpreter module above carries its OWN stamp,
+// sealed in at compile time, and the two together are the only thing that can tell a
+// fresh tab from one served tomorrow out of a stale `yantra-wasm` — because unlike the
+// assembler, NOTHING ELSE ON THIS PAGE PRODUCES A SECOND OPINION ABOUT A RUN.
+const YANTRA_NATIVE_REV = "@@YANTRA_REV@@";
 const PROGRAMS = {@@PROGRAMS@@};
 const un = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 @@GLUE@@
+@@SADHANA_GLUE@@
 const y = await load(un(WASM_B64));
+// `loadSadhana` and NOT `load`: both glues are pasted into THIS module scope and
+// `yantra.mjs`'s loader owns that name — see `web/sadhana.mjs`'s header.
+const s = SADHANA_WASM_B64 ? await loadSadhana(un(SADHANA_WASM_B64)) : null;
 const surface = document.getElementById('surface'), uart = document.getElementById('uart');
-const halt = document.getElementById('halt');
+const halt = document.getElementById('halt'), steps = document.getElementById('steps');
+const sizing = document.getElementById('sizing');
+const assembler = document.getElementById('assembler'), asm = document.getElementById('asm');
+const interp = document.getElementById('interp');
+// Grouped by hand and NOT with `toLocaleString`, which groups by whatever locale the
+// browser is in — a figure that is quoted should read the same in every tab.
+const group = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 // A pane says WHY it is empty rather than sitting blank: for a boot proof nothing granted
 // a surface, and for an application an empty UART is the guarantee, not a missing result.
 const show = (el, text, why) => {
   el.textContent = text || why;
   el.className = text ? 'pane' : 'pane empty';
 };
+// ॥ A DEVICE THAT WILL NOT GIVE THE MEMORY IS TOLD SO, NOT CRASHED ॥
+// `yantra_run(ram, …)` allocates the guest's RAM INSIDE this module's linear memory, so a
+// half-gigabyte ask is a `memory.grow` the device may refuse. Rust's allocation-failure path
+// is `unreachable`, which arrives in JS as a bare `RuntimeError` naming neither the figure
+// nor the device — exactly the silent failure this button must not have. So the growth is
+// asked for FIRST, by hand: `WebAssembly.Memory.prototype.grow` throws `RangeError` when the
+// device will not give it, and a caught throw is a verdict with the number in it.
+//
+// IT IS A FLOOR AND NOT THE MODULE'S WHOLE WORKING SET. The allocator may want more for its
+// own bookkeeping and can still refuse from inside. What this catches is the device that
+// cannot come close — which, at 538 MB, is every phone.
+const PAGE = 65536;
+const reserve = (octets) => {
+  const have = y.e.memory.buffer.byteLength;
+  if (have >= octets) return null;
+  try {
+    y.e.memory.grow(Math.ceil((octets - have) / PAGE));
+    return null;
+  } catch (e) {
+    return `this device would not give ${group(octets)} octets of linear memory — ` +
+      `${e.name} after ${group(have)}. The image demands its whole declared span at LOAD, ` +
+      `because that is where the stack top sits, so however little it touches it cannot run ` +
+      `here. NOTHING WAS RUN: this is the ask being refused, not a result about the compiler.`;
+  }
+};
+// The sizing line, from the figures the build measured and NOT from prose typed beside them:
+// `ram` is read off the native loader's own refusal and `touches` is a real run's high water.
+const askedFor = (p) =>
+  `${group(p.ram)} octets of linear memory asked for (${(p.ram / 1e6).toFixed(1)} MB) — ` +
+  `${group(p.touches)} of it ever touched, a ${Math.round(p.ram / p.touches)}× tail. ` +
+  `Demanded at LOAD, not on use. One source on the input channel: ${p.source}.`;
+// ॥ AN ABSENT ASSEMBLER IS A VERDICT WITH ITS COST IN IT ॥ The page opens and every
+// button still works without `sadhana-wasm`, because the ELFs were assembled natively at
+// build time — so the failure mode this line exists against is the page looking like it
+// assembles when it cannot. It is set ONCE, on load, and says ABSENT by that word.
+// ॥ AGREEMENT IS NOT PROVENANCE, AND THIS IS THE FIGURE THAT SAYS SO ॥
+//
+// Every button below re-assembles its own source and compares the octets. All three
+// matching proves the two assemblers AGREE; it does not prove they are THE SAME
+// ASSEMBLER, because two copies of one stale `sadhana` agree with each other
+// perfectly. This page is a generated artefact that can be served for months, and the
+// failure it cannot otherwise see is a `sadhana-wasm` built from a different revision
+// than the native `sadhana` that assembled the ELFs travelling beside it.
+//
+// FOUR STATES, because the truth has four. An instrument with two where the truth has
+// more hides its own breakage:
+//   SAME       both stamps present and equal — the strongest claim this page can make
+//   STALE      both present and different: the tab's assembler is not the one that
+//              assembled these ELFs, and this must be said EVEN WHILE all three
+//              programs still read IDENTICAL, which is exactly how it will look
+//   NO STAMP   the module exports no `sadhana_rev_*` at all, so it predates stamping
+//              and could be any revision — the staleness case in its purest form
+//   UNKNOWN    one side's build could not take a stamp (no sha256 tool on it)
+// Only the first is `ok`. The last is `na`, a gap and not a verdict. The middle two
+// are `bad`: a page that cannot name its own assembler is making a claim it has not
+// earned, and the colour is what stops a reader from taking the match on trust.
+const provenance = () => {
+  const mine = s.rev;
+  const theirs = SADHANA_NATIVE_REV;
+  if (mine === null) return [' PROVENANCE: NO STAMP — this module exports no stamp at ' +
+    'all, so it cannot say which `sadhana` it was built from and it predates the ' +
+    'stamping that would. Every match below is agreement between an assembler of ' +
+    `unknown revision and the ELFs of ${theirs}.`, 'bad'];
+  if (mine === 'unknown' || !theirs || theirs === 'unknown') return ' PROVENANCE: ' +
+    `UNKNOWN — this tab's assembler is ${mine} and the ELFs' is ${theirs || 'unrecorded'}; ` +
+    'one side could not be stamped, so whether they are the same assembler is not ' +
+    'established either way. The matches below are still matches.';
+  return mine === theirs
+    ? [` PROVENANCE: SAME ASSEMBLER — ${mine}, a hash of \`crates/sadhana/src\` sealed ` +
+       'into this module when it was built and recorded beside the ELFs when they were ' +
+       'assembled. Not just agreeing: the same source.', 'ok']
+    : [` STALE ASSEMBLER — this tab's module was built from \`crates/sadhana/src\` ` +
+       `${mine} and the ELFs on this page were assembled by ${theirs}. THE MATCHES ` +
+       'BELOW ARE NOT PROVENANCE: a page served from a stale wasm agrees with itself. ' +
+       'Rebuild it with `tools/build-sassembly-web.sh`.', 'bad'];
+};
+// `na` is the DEFAULT for the unknown arm, which returns a bare string: a gap takes
+// the class the absent-assembler line already has rather than claiming either verdict.
+const prov = s ? provenance() : null;
+const [provText, provClass] = typeof prov === 'string' ? [prov, 'na'] : (prov || ['', 'na']);
+assembler.textContent = s
+  ? `sadhana-wasm is in this tab — ${group(un(SADHANA_WASM_B64).length)} octets of ` +
+    `assembler. Each button below re-assembles its own Devanagari source here and ` +
+    `compares the octets against the ELF the build shipped.` + provText
+  : 'the assembler is ABSENT from this page — its glue is spliced and its wasm module is ' +
+    'not, so nothing here can turn source into an ELF. The programs below still run: ' +
+    'their ELFs were assembled by native `sadhana` at build time. What is missing is the ' +
+    'claim that the BROWSER assembled them.';
+assembler.className = s ? provClass : 'na';
+
+// ॥ THE SAME FOUR STATES FOR THE INTERPRETER, AND A WEAKER STARTING POSITION ॥
+//
+// The assembler's verdict above qualifies a COMPARISON: every button re-assembles its
+// own source and the octets either match or do not, so a wrong assembler can be caught
+// disagreeing and the stamp only says whether the agreement was between the same source.
+// NOTHING ON THIS PAGE CORROBORATES A RUN. The halt line, the step count and the UART
+// text are `yantra-wasm`'s own output — there is no second interpreter in the tab to
+// differ from it — and the sizing line's `ram` and `touches` were measured by NATIVE
+// `yantra-run`, a different binary, and quoted here as if about this one.
+//
+// So the case this must refuse is: a stale interpreter whose halt status, step count and
+// UART text are ALL STILL EXACTLY RIGHT. Three small programs are not where two
+// interpreter revisions diverge, so that is the state this will usually be in, and a
+// verdict that only fired when a run looked wrong would never fire at all.
+//
+// FOUR STATES, the same shape and the same colours as the assembler's:
+//   SAME       both stamps present and equal — the figures and the run are one `yantra`
+//   STALE      both present and different: the tab's interpreter is not the one that
+//              measured the sizing figures, and this must be said EVEN WHILE the halt,
+//              the step count and the UART text are all correct
+//   NO STAMP   the module exports no `yantra_rev_*` at all, so it predates stamping
+//   UNKNOWN    one side's build could not take a stamp (no sha256 tool on it)
+// Only the first is `ok`; UNKNOWN is `na`, a gap and not a verdict; the middle two are
+// `bad`. There is no ABSENT arm here and there cannot be: `@@WASM@@` is the interpreter
+// and the page does not open without it, which is exactly why its glue is unconditional
+// where `s` is tested everywhere.
+const interpProvenance = () => {
+  const mine = y.rev;
+  const theirs = YANTRA_NATIVE_REV;
+  if (mine === null) return ['the interpreter in this tab exports NO STAMP, so it cannot ' +
+    'say which `crates/yantra/src` it was built from and it predates the stamping that ' +
+    `would. The halt line and the step count below are ITS output and the sizing figures ` +
+    `are ${theirs}'s — whether those are one interpreter is not established.`, 'bad'];
+  if (mine === 'unknown' || !theirs || theirs === 'unknown') return ['the interpreter in ' +
+    `this tab is ${mine} and the interpreter that measured the sizing figures is ` +
+    `${theirs || 'unrecorded'}; one side could not be stamped, so whether they are the ` +
+    'same interpreter is not established either way. The run below is still a real run.',
+    'na'];
+  return mine === theirs
+    ? [`the interpreter in this tab is ${mine} — a hash of \`crates/yantra/src\` sealed ` +
+       'into the module when it was built, and it is the SAME interpreter the build ran ' +
+       'natively to measure the sizing figures quoted above.', 'ok']
+    : ['STALE INTERPRETER — this tab\'s module was built from `crates/yantra/src` ' +
+       `${mine} and the sizing figures above were measured by ${theirs}. THE HALT LINE, ` +
+       'THE STEP COUNT AND THE UART TEXT CAN ALL STILL BE EXACTLY RIGHT: three small ' +
+       'programs are not where two interpreter revisions diverge. Rebuild this page with ' +
+       '`tools/build-sassembly-web.sh`.', 'bad'];
+};
+const [interpText, interpClass] = interpProvenance();
+interp.textContent = interpText;
+interp.className = interpClass;
+// Where a program is assembled, by KIND, and from the glue's own constants rather than a
+// second copy of the two addresses: a proof lands on `kosha::LOAD_ADDRESS` and an
+// application on `spec/application-load.tsv`'s row, which is exactly the pair
+// `tools/build-sassembly-web.sh` passes native `sadhana` for the same two kinds.
+const ASSEMBLE_AT = { proof: Sadhana.BARE_METAL, app: Sadhana.APP_LOAD };
+// `every` over a Uint8Array, and the length FIRST: the divergence this is here for was
+// 904 octets against 904 octets with different bytes in them, so a length check alone
+// would have passed it (`tools/check-sadhana-glue-live.sh`'s own measurement).
+const sameOctets = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+const reassembled = (p) => {
+  if (!s) return ['(no assembler in this tab — the ELF this button ran was assembled by ' +
+    'native `sadhana` at build time, and nothing here re-derived it)', 'na'];
+  if (!p.sas64) return [`(no Devanagari source was carried for ${p.kind === 't1' ? 'the ' +
+    'compiler image, which is an ELF this page was HANDED' : 'this program'}, so there is ` +
+    'nothing to re-assemble)', 'na'];
+  // `TextDecoder` AND NOT `atob` ALONE. `un()` gives the octets; `atob`'s own result is
+  // one latin-1 char per octet, so a bare `atob(p.sas64)` hands the assembler mojibake
+  // for every Devanagari codepoint — which is the whole source.
+  const r = s.assemble(new TextDecoder().decode(un(p.sas64)), ASSEMBLE_AT[p.kind]);
+  // The assembler's OWN diagnostics, handed through unchanged — a generic "failed" in
+  // their place throws away the refusal the language is built around.
+  if (!r.ok) return [`the in-tab assembler REFUSED this source: ${r.error}`, 'bad'];
+  const shipped = un(p.elf);
+  return sameOctets(r.elf, shipped)
+    ? [`assembled in this tab: ${group(r.elf.length)} octets, IDENTICAL to the ELF the ` +
+       'build shipped and ran above.', 'ok']
+    : [`DIVERGED: this tab assembled ${group(r.elf.length)} octets and the ELF that ran ` +
+       `is ${group(shipped.length)}. The page is not running what it assembled.`, 'bad'];
+};
 for (const [name, p] of Object.entries(PROGRAMS)) {
   const b = document.createElement('button');
-  b.textContent = name + '.sas';
+  // A `.sas` suffix would be a lie on the T1 image: it is an ELF this page was HANDED,
+  // not something `sadhana` assembled from Devanagari seconds ago like the other three.
+  b.textContent = p.kind === 't1' ? name : name + '.sas';
   b.onclick = () => {
     const app = p.kind === 'app';
-    const r = app ? y.host(un(p.elf)) : y.run(un(p.elf));
+    const t1 = p.kind === 't1';
+    const elf = un(p.elf);
+    const slab = t1 ? un(p.input) : null;
+    // The sizing line has the step line's two states: a FIGURE for the image whose
+    // memory is the interesting thing about it, and a REASON for the three whose
+    // megabyte nobody had to be asked for.
+    sizing.textContent = t1 ? askedFor(p)
+      : '(this program is handed a megabyte and a budget no device has to be asked about — ' +
+        'the sizing line belongs to the T1 compiler image)';
+    sizing.className = t1 ? '' : 'na';
+    // SET BEFORE THE MEMORY-REFUSAL RETURN BELOW, which leaves this handler without
+    // running anything: a refused T1 press that skipped this line would leave the
+    // PREVIOUS program's assembly verdict standing under a different button.
+    const [asmText, asmClass] = reassembled(p);
+    asm.textContent = asmText;
+    asm.className = asmClass;
+    if (t1) {
+      const refused = reserve(p.ram + elf.length + slab.length);
+      if (refused) {
+        show(surface, '', '(nothing ran — the memory was refused before load)');
+        show(uart, '', '(nothing ran — the memory was refused before load)');
+        halt.textContent = refused;
+        halt.className = 'bad';
+        steps.textContent = '(no instructions were retired — the image never loaded)';
+        steps.className = 'na';
+        return;
+      }
+    }
+    const r = app ? y.host(elf)
+      : y.run(elf, t1 ? { ram: p.ram, budget: p.budget, input: slab, inputName: p.inputName } : {});
     show(surface, r.surface, app
       ? '(the application wrote nothing to its surface)'
       : '(a boot proof is granted no surface — it is the machine, not a guest of one)');
@@ -58,10 +321,50 @@ for (const [name, p] of Object.entries(PROGRAMS)) {
       : '(this program writes no characters — it computes and exits)');
     halt.textContent = r.halt;
     halt.className = r.code === 0 ? 'ok' : 'bad';
+    // ॥ NULL IS A REASON, NOT A BLANK AND NOT A ZERO ॥ Only `run()` has a reading:
+    // `yantra_host` clears the counter because `host::Hosted` carries no `time`, so an
+    // application's line explains the absence the way the empty panes above do. A `0`
+    // here would claim the machine retired nothing, which is a different statement.
+    steps.textContent = r.steps === null
+      ? '(an application is ended by a supervisor, which hands back a verdict and no instruction count)'
+      : group(r.steps) + ' instructions retired';
+    steps.className = r.steps === null ? 'na' : '';
+    // ॥ THE SECOND ENGINE'S READING OF THE SAME QUANTITY, BESIDE THE FIRST ॥
+    // `p.touches` was measured at BUILD time by the native `yantra-run`; `r.water` is
+    // this tab's own interpreter measuring the same thing with the same arithmetic
+    // (`yantra-wasm/src/lib.rs:351` is `bin/yantra-run.rs:26`). Until this line existed
+    // `touches` was the one figure above with no second opinion — the page quoted it and
+    // compared it with itself, which is exactly the state the step count was in.
+    //
+    // THE VERDICT IS EQUALITY AND NOT A TOLERANCE: the same ELF, the same slab, the same
+    // `ram` and the same budget go to both engines, so a difference is a finding about one
+    // of the two interpreters and not a margin to widen.
+    //
+    // APPENDED, with `askedFor` left exactly as it was: those are the figures the BUILD
+    // recorded and this is what the tab saw, and a line that merged them could no longer
+    // be read as either.
+    if (t1) {
+      const agree = r.water === p.touches;
+      sizing.textContent += r.water === null
+        ? ' THIS TAB REPORTED NO HIGH WATER for the run, so the figure above stands ' +
+          'uncompared — a run that executed has a reading, and this one says it has none.'
+        : agree
+          ? ` This tab touched ${group(r.water)} — the same octet, measured again here.`
+          : ` DISAGREEMENT: this tab touched ${group(r.water)}, not the ${group(p.touches)} ` +
+            'measured natively. Both engines were handed the same image, slab, span and ' +
+            'budget, so one of the two interpreters is wrong about this program.';
+      // Not `na`: the figures above were measured and are still shown. `bad` is the
+      // state of the COMPARISON, which is the only thing this sentence claims.
+      sizing.className = agree ? '' : 'bad';
+    }
   };
   document.getElementById('buttons').append(b);
 }
 [...document.querySelectorAll('button')].find(b => b.textContent.startsWith('namaste')).click();
 globalThis.__result = () =>
-  ({surface: surface.textContent, uart: uart.textContent, halt: halt.textContent});
+  ({surface: surface.textContent, uart: uart.textContent, halt: halt.textContent,
+    steps: steps.textContent, sizing: sizing.textContent,
+    assembler: assembler.textContent, assemblerClass: assembler.className,
+    interp: interp.textContent, interpClass: interp.className,
+    asm: asm.textContent, asmClass: asm.className});
 </script>

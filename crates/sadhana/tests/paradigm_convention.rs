@@ -387,16 +387,17 @@ fn share(m: &BTreeMap<u32, usize>, role: &str, names: &BTreeMap<u32, String>) ->
     (in_role, total)
 }
 
-/// What the census measured on 2026-09-04, and what doc 02 §2.4's dated note
+/// What the census measured on 2026-09-04 (re-pinned 2026-10-06 for F-009's
+/// play-out wait in spec/virtio-sound.sas), and what doc 02 §2.4's dated note
 /// quotes. Order: written before a `jal` call, per temporary.
 const PINNED_T_ARGS: [(&str, usize); 7] = [
     ("t0", 323),
     ("t1", 246),
-    ("t2", 375),
+    ("t2", 374),
     ("t3", 48),
     ("t4", 18),
     ("t5", 15),
-    ("t6", 127),
+    ("t6", 126),
 ];
 const PINNED_PROGRAMS: usize = 82;
 const PINNED_JAL_CALLS: usize = 686;
@@ -406,7 +407,7 @@ const PINNED_ARGS_IN_A_REGS: &str = "0.0590";
 const PINNED_ECALL_NUMBER_IN_A7: &str = "0.9714";
 const PINNED_ECALL_NUMBER_IN_A7_SITES: usize = 170;
 const PINNED_TEMPORARIES_READ_FIRST_AFTER_CALL: usize = 181;
-const PINNED_READ_FIRST_IN_S_REGS: &str = "0.8197";
+const PINNED_READ_FIRST_IN_S_REGS: &str = "0.8192";
 const PINNED_SP_WRITES: usize = 2;
 const PINNED_FRAMES_WRITTEN: &[&str] = &["spec/golden/34-stack-frame.sas"];
 
@@ -853,13 +854,13 @@ fn declared_unwritten(declared: &[(String, String)], written: &BTreeSet<&str>) -
         .collect()
 }
 
-/// What the census measured on 2026-09-04; doc 02 §2.2's sigils, by count.
-const PINNED_OPERANDS: usize = 22_087;
+/// What the census measured on 2026-09-04 (re-pinned 2026-10-06, F-009); doc 02 §2.2's sigils, by count.
+const PINNED_OPERANDS: usize = 22_101;
 const PINNED_SIGILS: [(&str, usize); 5] = [
-    ("म्", 6_466),
-    ("न", 12_146),
-    ("त्", 1_044),
-    ("य्", 2_431),
+    ("म्", 6_470),
+    ("न", 12_152),
+    ("त्", 1_047),
+    ("य्", 2_432),
     ("ए", 0),
 ];
 const PINNED_FUSED: usize = 1_902;

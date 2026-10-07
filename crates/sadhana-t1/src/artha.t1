@@ -417,10 +417,11 @@
 ॰ binding in the SAME scope is the duplicate this refuses. Testing the whole
 ॰ stack instead would refuse every shadow, which is a different language.
 सार्वजनिक वृत्तिः पुनरुक्तघोषणम् आदाय निर्णायकः ॱॱ निर्णायक नाम ॱॱ पाठ ददाति बूल आदि
-    ॰ न्यूनम् २ AND NOT समम् ०, for the reason परिसरान्वेषणम् now states: an
-    ॰ arena with no live entry has दैर्घ्य १, not ०, because slot ० is
-    ॰ reserved. The old समम् ० never fired, so a resolver with no scope fell
-    ॰ through to read the reserved slot instead of answering असत्यम्.
+    ॰ न्यूनम् २ AND NOT समम् ०: the scopes are one-based, so a resolver with
+    ॰ no scope has दैर्घ्य ० (fresh, since `W-355`) or १ (before `W-355`, or
+    ॰ after a push and a pop), and both must answer असत्यम्. The old समम् ०
+    ॰ never fired, so a resolver with no scope fell through to read the
+    ॰ reserved slot instead.
     चरः दैर्घ्य ॱॱ अ६४ भवति निर्णायकः ॱ परिसराः ॱ दैर्घ्य ।
     यदि दैर्घ्य न्यूनम् २ आदि
         प्रत्यागमनम् असत्यम् ।
@@ -1862,9 +1863,18 @@
 ॰ the second resolver's first scope land at the first resolver's depth.
 ॰ Writing at दैर्घ्य appends by construction and cannot drift from the
 ॰ arena it measures.
+॰ AT दैर्घ्य OR १, WHICHEVER IS GREATER (`W-355`). The scopes are ONE-BASED —
+॰ the seven readers take the innermost as `दैर्घ्य वियोगः १` — and a fresh
+॰ resolver's arena had length १ until `W-355`, so the first push landed at
+॰ १. It now has length ०, and a push at ० would make the innermost index
+॰ one lower than every reader expects. Under the old length rule this test
+॰ never fires, which is what lets a fixpoint's Stage 1 run it.
 सार्वजनिक वृत्तिः परिसरप्रवेशः आदाय निर्णायकः ॱॱ निर्णायक ददाति निर्णायक आदि
     चरः नवपरिसरः ॱॱ परिसर भवति ० ।
     चरः स्थानम् ॱॱ अ६४ भवति निर्णायकः ॱ परिसराः ॱ दैर्घ्य ।
+    यदि स्थानम् समम् ० आदि
+        स्थानम् भवति १ ।
+    इति
     निर्णायकः ॱ परिसराः अङ्कः स्थानम् अन्तः भवति नवपरिसरः ।
     प्रत्यागमनम् निर्णायकः ।
 इति
@@ -2009,7 +2019,12 @@
     ॰ convention — the same index पुनरुक्तघोषणम् tests, and they must agree
     ॰ or declare would refuse in one scope and bind in another.
     चरः अन्तिमः ॱॱ परिसर भवति निर्णायकः ॱ परिसराः अङ्कः आरभ्य दैर्घ्य वियोगः १ समाप्तम् अन्तः ।
+    ॰ AT दैर्घ्य OR १ (`W-355`), for the reason `परिसरप्रवेशः` gives: a scope's
+    ॰ entries are one-based too, and a fresh scope's arena is now length ०.
     चरः स्थानम् ॱॱ अ६४ भवति अन्तिमः ॱ प्रविष्टयः ॱ दैर्घ्य ।
+    यदि स्थानम् समम् ० आदि
+        स्थानम् भवति १ ।
+    इति
     अन्तिमः ॱ प्रविष्टयः अङ्कः स्थानम् अन्तः भवति प्रविष्टिः ।
 
     प्रत्यागमनम् संज्ञा ।
@@ -2094,10 +2109,12 @@
         परिधिदोषभेद भवति परिधिऋणभेद ।
         प्रत्यागमनम् असत्यम् ।
     इति
-    यदि कार्यक्रमः बृहत्समम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
-        परिधिदोषमस्ति भवति सत्यम् ।
-        परिधिदोषभेद भवति परिधिबाह्यभेद ।
-        प्रत्यागमनम् असत्यम् ।
+    यदि कार्यक्रमः अधिकम् ० आदि   ॰ W-381: ० is never past the end, even of an EMPTY arena (W-355: a fresh run has length ०)
+        यदि कार्यक्रमः बृहत्समम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+            परिधिदोषमस्ति भवति सत्यम् ।
+            परिधिदोषभेद भवति परिधिबाह्यभेद ।
+            प्रत्यागमनम् असत्यम् ।
+        इति
     इति
     चरः सीमा ॱॱ अ६४ भवति आरभ्य कार्यक्रमः योगः १ समाप्तम् ।
 
@@ -2317,6 +2334,27 @@
     प्रत्यागमनम् फलम् ।
 इति
 
+॰ ॥ अन्वेषणकोश ॥ A BLOCK'S DIRECT CHILDREN, ONE WALK OF THE CHAIN — W-346.
+॰
+॰ The block arms of `वाक्यनिर्णयः` and `वाक्यप्रकारः` visit a block's direct
+॰ children in WRITTEN order, and `आदिसूचकाङ्क` only steps BACKWARD from
+॰ `अन्तिम`. They used to rescan that chain from `अन्तिम` once per child for the
+॰ smallest root above the last one visited — quadratic in the direct children,
+॰ on the premise "a block has few". A generated vector puts thousands of
+॰ statements in ONE block, and W-346 measured that walk as 44 interpreter steps
+॰ per (child, child) pair in each routine. Now each arm walks the chain ONCE,
+॰ pushing every root here, then pops them: the chain is strictly descending, so
+॰ the pops come out smallest first — the same children in the same order.
+॰
+॰ ONE STACK FOR BOTH ARMS AND EVERY NESTING DEPTH. An arm notes the top as its
+॰ base, pushes its own run, visits it top-down (a nested block pushes ABOVE that
+॰ run and puts the top back), and restores the top to its base when done. An
+॰ arm reads only its own run, so nothing a nested arm leaves above it can
+॰ disturb it. Global, like the arenas above, so no callee grows an array it
+॰ was handed (W-359).
+सार्वजनिक चरः अन्वेषणकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः अन्वेषणशिखर ॱॱ न६४ भवति ० ।
+
 ॰ resolve every name in a statement — resolve_statement.
 ॰ NOT STUBBED FOR WANT OF A SCOPE STACK — that works now, and वाक्यप्रकारः
 ॰ below walks this very arena. It is stubbed because THIS PASS MUST SEE
@@ -2383,41 +2421,40 @@
         ॰ FORWARD NEEDS A SEARCH, because `आदिसूचकाङ्क` only permits BACKWARD
         ॰ skips: a child knows where its own subtree starts, not where the next
         ॰ one does, and a next-sibling index cannot be computed at push time —
-        ॰ that is why the subtree start exists at all. So each round scans the
-        ॰ chain from `अन्तिम` down and keeps the SMALLEST root still above the
-        ॰ last one visited. Quadratic in a block's direct children, and a block
-        ॰ has few; correctness before speed, and the shape is honest about it.
+        ॰ that is why the subtree start exists at all. This scanned the chain
+        ॰ from `अन्तिम` down once PER CHILD, keeping the smallest root above the
+        ॰ last one visited — quadratic, on the premise "a block has few", which
+        ॰ a generated vector breaks (W-346). It now walks the chain ONCE onto
+        ॰ `अन्वेषणकोश` and pops it: see that stack's margin. Same children, same
+        ॰ order, and the same spin on a `प्रथमः` of ० the old scan had.
         ॰
         ॰ DECLARING EVERY `चरः` UP FRONT WOULD BE EASIER AND WRONG: it accepts a
         ॰ use BEFORE its declaration, which is not order-sensitivity but its
         ॰ absence. The test pins that case.
-        चरः सीमा ॱॱ अ६४ भवति प्रथमः ।
-        यावत् सीमा न्यूनम् आरभ्य क्रमः योगः १ समाप्तम् आदि
-            ॰ the smallest direct-child root that is `सीमा` or above
-            चरः अन्वेषणम् ॱॱ अ६४ भवति क्रमः ।
-            चरः अग्रिमः ॱॱ अ६४ भवति ० ।
-            ॰ W-229: `>=` is `बृहत्समम्` (ADR-0037); the chain `x न्यूनम् y समम् असत्यम्` the corpus wrote before it had the word is one the frozen grammar refuses, and read flat it is `x < (y == false)`, right only because बूल is one octet wide.
-            यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
-                यदि अन्वेषणम् न्यूनम् १ आदि
-                    अन्वेषणम् भवति ० ।
-                इति अन्यथा आदि
-                    यदि अन्वेषणम् बृहत्समम् सीमा आदि
-                        अग्रिमः भवति अन्वेषणम् ।
-                    इति
-                    चरः चरणम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः अन्वेषणम् अन्तः ।
-                    अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
-                इति
-            इति
-
-            यदि अग्रिमः न्यूनम् १ आदि
-                सीमा भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+        चरः आधारः ॱॱ न६४ भवति अन्वेषणशिखर ।
+        चरः अन्वेषणम् ॱॱ अ६४ भवति क्रमः ।
+        ॰ W-229: `>=` is `बृहत्समम्` (ADR-0037); the chain `x न्यूनम् y समम् असत्यम्` the corpus wrote before it had the word is one the frozen grammar refuses, and read flat it is `x < (y == false)`, right only because बूल is one octet wide.
+        यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
+            यदि अन्वेषणम् न्यूनम् १ आदि
+                अन्वेषणम् भवति ० ।
             इति अन्यथा आदि
-                यदि वाक्यनिर्णयः निर्णायकः अग्रिमः समम् असत्यम् आदि
-                    फलम् भवति असत्यम् ।
-                इति
-                सीमा भवति आरभ्य अग्रिमः योगः १ समाप्तम् ।
+                अन्वेषणकोश अङ्कः अन्वेषणशिखर अन्तः भवति अन्वेषणम् ।
+                अन्वेषणशिखर भवति आरभ्य अन्वेषणशिखर योगः १ समाप्तम् ।
+                चरः चरणम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः अन्वेषणम् अन्तः ।
+                अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
             इति
         इति
+
+        ॰ pop in written order: the smallest root sits on top
+        चरः अवरोहः ॱॱ न६४ भवति अन्वेषणशिखर ।
+        यावत् अवरोहः अधिकम् आधारः आदि
+            अवरोहः भवति आरभ्य अवरोहः वियोगः १ समाप्तम् ।
+            चरः अग्रिमः ॱॱ अ६४ भवति अन्वेषणकोश अङ्कः अवरोहः अन्तः ।
+            यदि वाक्यनिर्णयः निर्णायकः अग्रिमः समम् असत्यम् आदि
+                फलम् भवति असत्यम् ।
+            इति
+        इति
+        अन्वेषणशिखर भवति आधारः ।
 
         परिसरनिर्गमः निर्णायकः ।
         प्रत्यागमनम् फलम् ।
@@ -2781,6 +2818,373 @@
 ॰ a test pushed by hand — and then no line is blamed.
 सार्वजनिक चरः प्रकारदोषपङ्क्ति ॱॱ न६४ भवति ० ।
 
+॰ ॥ वर्धनबन्ध ॥ `W-359` rules (A) and (C), coordinator's final ruling
+॰ 2026-10-04. A grow-and-return routine (`घोषणासञ्चयॱवर्धकप्राचलः`) hands its
+॰ grown run back as its result — natively growth cuts a NEW block, and its
+॰ base reaches the caller only through that return. So its result is used in
+॰ exactly two ways:
+॰   ॱ ASSIGNED BACK to the very name passed for the grown parameter,
+॰     `x भवति f … x …` (x a bare name), or
+॰   ॱ TAIL-RETURNED, `प्रत्यागमनम् f … x …`, from a routine that is itself
+॰     grow-and-return for x (transitivity, which the classifier computed).
+॰ Anything else — a dropped result, a different name, a `चरः` binding, a call
+॰ inside a larger expression, a grown argument that is not a bare name — is
+॰ refused, by kind:
+॰   १ the result is not assigned back to its own name;
+॰   २ a tail return from a routine that does not grow-and-return that name;
+॰   ३ (rule C) an indexed store into, or a growth of, a LOCAL ALIAS of a run
+॰     parameter — a `चरः` local bound to the parameter, or to an alias, by a
+॰     bare name (closed transitively). Aliasing alone is allowed;
+॰   ४ (fail closed) a callee this checker cannot classify: a routine symbol
+॰     with neither a declaration in this source nor a store entry.
+॰ The callee is found through its symbol: this source's routine by its
+॰ declaration (`संज्ञाघोषणाकोश`), another module's by its store entry and the
+॰ grows flag `सङ्ग्रहः` wrote there. Counted, the FIRST recorded by kind,
+॰ name and line; the count refuses the program in `कार्यक्रमप्रकारपरीक्षा`
+॰ (recording a refusal is not making one). The interpreter's twin is
+॰ `Interpreter::refuse_unbound_growth`.
+सार्वजनिक चरः वर्धनबन्धदोषसंख्या ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः वर्धनबन्धदोषमस्ति ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः वर्धनबन्धदोषभेद ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः वर्धनबन्धदोषनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः वर्धनबन्धदोषपङ्क्ति ॱॱ न६४ भवति ० ।
+॰ The memo of `पात्रवर्धकः`, by declaration index of the source in hand:
+॰ ० unknown, else the grown parameter + १. Rebuilt DENSE (every slot written)
+॰ by `कार्यक्रमप्रकारपरीक्षा` for each source, since declaration indices
+॰ restart with every parse.
+सार्वजनिक चरः वर्धकस्मृतिकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+
+॰ Record one refusal of kind `भेदः`, naming the token `चिह्नकाङ्कः`.
+सार्वजनिक वृत्तिः वर्धनबन्धनिषेधः आदाय भेदः ॱॱ न६४ ऽ चिह्नकाङ्कः ॱॱ न६४ ददाति न६४ आदि
+    वर्धनबन्धदोषसंख्या भवति वर्धनबन्धदोषसंख्या योगः १ ।
+    यदि वर्धनबन्धदोषमस्ति समम् असत्यम् आदि
+        वर्धनबन्धदोषभेद भवति भेदः ।
+        यदि चिह्नकाङ्कः अधिकम् ० आदि
+            यदि चिह्नकाङ्कः न्यूनम् पदविभागॱचिह्नककोश ॱ दैर्घ्य आदि
+                चरः दोषचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः चिह्नकाङ्कः अन्तः ।
+                वर्धनबन्धदोषनाम भवति पदविभागॱचिह्नकपाठः दोषचिह्नकम् ।
+                वर्धनबन्धदोषपङ्क्ति भवति दोषचिह्नकम् ॱ पङ्क्ति ।
+            इति
+        इति
+        वर्धनबन्धदोषमस्ति भवति सत्यम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ The grown parameter (१-based) of the routine a call's foot names, or ०.
+॰ A routine symbol with no declaration here and no store entry is refused
+॰ (kind ४) and answers ०.
+सार्वजनिक वृत्तिः पात्रवर्धकः आदाय पादः ॱॱ न६४ ददाति न६४ आदि
+    यदि पादः न्यूनम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पादपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः पादः अन्तः ।
+    चरः पात्रसंज्ञा ॱॱ न६४ भवति पादपदम् ॱ संज्ञासूचकाङ्क ।
+    यदि पात्रसंज्ञा न्यूनम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि पात्रसंज्ञा बृहत्समम् संज्ञाभेदकोश ॱ दैर्घ्य आदि
+        चरः अवगणनसीमा ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य ४ ऽ पादपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    यदि संज्ञाभेदकोश अङ्कः पात्रसंज्ञा अन्तः असमम् व्याकरॱवृत्तिघोषणाभेद आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पात्रघोषणा ॱॱ न६४ भवति ० ।
+    यदि पात्रसंज्ञा न्यूनम् संज्ञाघोषणाकोश ॱ दैर्घ्य आदि
+        पात्रघोषणा भवति संज्ञाघोषणाकोश अङ्कः पात्रसंज्ञा अन्तः ।
+    इति
+    यदि पात्रघोषणा अधिकम् ० आदि
+        ॰ MEMOISED per declaration (`वर्धकस्मृतिकोश`, value + १): a call names
+        ॰ the same few routines thousands of times, and classifying one walks
+        ॰ its body.
+        यदि पात्रघोषणा न्यूनम् वर्धकस्मृतिकोश ॱ दैर्घ्य आदि
+            चरः स्मृतम् ॱॱ न६४ भवति वर्धकस्मृतिकोश अङ्कः पात्रघोषणा अन्तः ।
+            यदि स्मृतम् अधिकम् ० आदि
+                प्रत्यागमनम् स्मृतम् वियोगः १ ।
+            इति
+            चरः गणितम् ॱॱ न६४ भवति घोषणासञ्चयॱवर्धकप्राचलः पात्रघोषणा ।
+            वर्धकस्मृतिकोश अङ्कः पात्रघोषणा अन्तः भवति गणितम् योगः १ ।
+            प्रत्यागमनम् गणितम् ।
+        इति
+        प्रत्यागमनम् घोषणासञ्चयॱवर्धकप्राचलः पात्रघोषणा ।
+    इति
+    चरः सञ्चितक्रमः ॱॱ न६४ भवति १ ।
+    यावत् सञ्चितक्रमः न्यूनम् आरभ्य सञ्चयसंज्ञासूचकाङ्क योगः १ समाप्तम् आदि
+        यदि सञ्चयसंज्ञामूल्यानि अङ्कः सञ्चितक्रमः अन्तः समम् पात्रसंज्ञा आदि
+            चरः सञ्चितप्रविष्टिः ॱॱ न६४ भवति सञ्चयसंज्ञाप्रविष्टयः अङ्कः सञ्चितक्रमः अन्तः ।
+            प्रत्यागमनम् घोषणासञ्चयॱप्रविष्टिवर्धकप्राचलः सञ्चितप्रविष्टिः ।
+        इति
+        सञ्चितक्रमः भवति सञ्चितक्रमः योगः १ ।
+    इति
+    चरः अवगणनाभाव ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य ४ ऽ पादपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Every grow-and-return call in the expression tree at `अभिसूचकाङ्क` is a
+॰ misuse here (kind १), and each is recorded; the arguments of every call are
+॰ walked too. Answers how many.
+सार्वजनिक वृत्तिः वर्धकाह्वानगणना आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    यदि अभिसूचकाङ्क न्यूनम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि अभिसूचकाङ्क बृहत्समम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अभिसूचकाङ्क अन्तः ।
+    चरः मिथ्यागणना ॱॱ न६४ भवति ० ।
+    यदि पदम् ॱ भेद समम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि
+        चरः पादः ॱॱ न६४ भवति घोषणासञ्चयॱआह्वानपादः अभिसूचकाङ्क ।
+        यदि पात्रवर्धकः पादः अधिकम् ० आदि
+            चरः पादपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः पादः अन्तः ।
+            चरः अवगणनदोष ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य १ ऽ पादपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+            मिथ्यागणना भवति १ ।
+        इति
+        चरः तर्कगणना ॱॱ न६४ भवति आह्वानतर्कगणना अभिसूचकाङ्क ।
+        प्रत्यागमनम् मिथ्यागणना योगः तर्कगणना ।
+    इति
+    यदि पदम् ॱ भेद समम् वास्तुॱसमूहाभिव्यञ्जकभेद आदि
+        प्रत्यागमनम् वर्धकाह्वानगणना पदम् ॱ वामसूचकाङ्क ।
+    इति
+    यदि पदम् ॱ भेद समम् वास्तुॱक्षेत्राभिव्यञ्जकभेद आदि
+        प्रत्यागमनम् वर्धकाह्वानगणना पदम् ॱ वामसूचकाङ्क ।
+    इति
+    यदि पदम् ॱ भेद समम् वास्तुॱऋणाभिव्यञ्जकभेद आदि
+        प्रत्यागमनम् वर्धकाह्वानगणना पदम् ॱ वामसूचकाङ्क ।
+    इति
+    चरः द्विपदम् ॱॱ बूल भवति असत्यम् ।
+    यदि पदम् ॱ भेद समम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि द्विपदम् भवति सत्यम् । इति
+    यदि पदम् ॱ भेद समम् वास्तुॱद्विकर्माभिव्यञ्जकभेद आदि द्विपदम् भवति सत्यम् । इति
+    यदि पदम् ॱ भेद समम् वास्तुॱखण्डाभिव्यञ्जकभेद आदि द्विपदम् भवति सत्यम् । इति
+    यदि द्विपदम् समम् सत्यम् आदि
+        चरः वामगणना ॱॱ न६४ भवति वर्धकाह्वानगणना पदम् ॱ वामसूचकाङ्क ।
+        चरः दक्षिणगणना ॱॱ न६४ भवति वर्धकाह्वानगणना पदम् ॱ दक्षिणसूचकाङ्क ।
+        प्रत्यागमनम् वामगणना योगः दक्षिणगणना ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ The grow-and-return calls among a call's ARGUMENTS (not the call itself).
+सार्वजनिक वृत्तिः आह्वानतर्कगणना आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः मिथ्यागणना ॱॱ न६४ भवति ० ।
+    चरः अत्र ॱॱ न६४ भवति अभिसूचकाङ्क ।
+    यावत् अत्र अधिकम् ० आदि
+        यदि अत्र बृहत्समम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि
+            प्रत्यागमनम् मिथ्यागणना ।
+        इति
+        चरः पदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अत्र अन्तः ।
+        यदि पदम् ॱ भेद असमम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि
+            प्रत्यागमनम् मिथ्यागणना ।
+        इति
+        चरः एकगणना ॱॱ न६४ भवति वर्धकाह्वानगणना पदम् ॱ दक्षिणसूचकाङ्क ।
+        मिथ्यागणना भवति मिथ्यागणना योगः एकगणना ।
+        अत्र भवति पदम् ॱ वामसूचकाङ्क ।
+    इति
+    प्रत्यागमनम् मिथ्यागणना ।
+इति
+
+॰ Is `नाम` among the first `संख्या` texts of `सूची`?
+सार्वजनिक वृत्तिः पाठसदस्यता आदाय सूची ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ ऽ संख्या ॱॱ न६४ ऽ नाम ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    यदि नाम ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् संख्या आदि
+        यदि घोषणासञ्चयॱसञ्चयपाठसाम्यम् आरभ्य सूची अङ्कः क्रमः अन्तः ऽ नाम समाप्तम् समम् सत्यम् आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ॥ वर्धनबन्धपरीक्षा ॥ rules (A) and (C) over one routine's body. Answers
+॰ how many refusals it recorded.
+सार्वजनिक वृत्तिः वर्धनबन्धपरीक्षा आदाय घोषणासूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    यदि घोषणासूचकाङ्क न्यूनम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि घोषणासूचकाङ्क बृहत्समम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः घोषणा ॱॱ व्याकरॱघोषणा भवति व्याकरॱघोषणाकोश अङ्कः घोषणासूचकाङ्क अन्तः ।
+    चरः शरीरम् ॱॱ न६४ भवति घोषणा ॱ शरीरसूचकाङ्क ।
+    यदि शरीरम् न्यूनम् १ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि शरीरम् बृहत्समम् वास्तुॱवाक्यकोश ॱ दैर्घ्य आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पूर्वसंख्या ॱॱ न६४ भवति वर्धनबन्धदोषसंख्या ।
+    चरः आदिवाक्यम् ॱॱ न६४ भवति वास्तुॱवाक्यकोश अङ्कः शरीरम् अन्तः ॱ आदिसूचकाङ्क ।
+    चरः स्ववर्धकः ॱॱ न६४ भवति घोषणासञ्चयॱवर्धकप्राचलः घोषणासूचकाङ्क ।
+    चरः स्ववर्धनपाठ ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    यदि स्ववर्धकः अधिकम् ० आदि
+        स्ववर्धनपाठ भवति घोषणासञ्चयॱप्राचलनामपाठः घोषणासूचकाङ्क स्ववर्धकः ।
+    इति
+
+    ॰ the run parameters, the `चरः` locals, and the aliases (closed).
+    चरः उपनामानि ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।
+    चरः उपनामसंख्या ॱॱ न६४ भवति ० ।
+    चरः स्थानीयानि ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।
+    चरः स्थानीयसंख्या ॱॱ न६४ भवति ० ।
+    यदि घोषणा ॱ प्राचलादि अधिकम् ० आदि
+        चरः प्राचलक्रमः ॱॱ अ६४ भवति घोषणा ॱ प्राचलादि ।
+        यावत् प्राचलक्रमः न्यूनम् आरभ्य घोषणा ॱ प्राचलान्त योगः १ समाप्तम् आदि
+            चरः प्राचलम् ॱॱ व्याकरॱप्राचल भवति व्याकरॱप्राचलकोश अङ्कः प्राचलक्रमः अन्तः ।
+            यदि घोषणासञ्चयॱखण्डप्राचलम् प्राचलम् ॱ प्रकारसूचकाङ्क समम् सत्यम् आदि
+                चरः प्राचलचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः प्राचलम् ॱ नामसूचकाङ्क अन्तः ।
+                उपनामानि अङ्कः उपनामसंख्या अन्तः भवति पदविभागॱचिह्नकपाठः प्राचलचिह्नकम् ।
+                उपनामसंख्या भवति उपनामसंख्या योगः १ ।
+            इति
+            प्राचलक्रमः भवति प्राचलक्रमः योगः १ ।
+        इति
+    इति
+    चरः प्राचलसंख्यानम् ॱॱ न६४ भवति उपनामसंख्या ।
+    चरः क्रमः ॱॱ न६४ भवति आदिवाक्यम् ।
+    यावत् क्रमः न्यूनम् शरीरम् आदि
+        चरः वाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः क्रमः अन्तः ।
+        यदि वाक्यम् ॱ भेद समम् वास्तुॱचरवाक्यभेद आदि
+            चरः चरचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यम् ॱ वामसूचकाङ्क अन्तः ।
+            स्थानीयानि अङ्कः स्थानीयसंख्या अन्तः भवति पदविभागॱचिह्नकपाठः चरचिह्नकम् ।
+            स्थानीयसंख्या भवति स्थानीयसंख्या योगः १ ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः वृद्धम् ॱॱ बूल भवति सत्यम् ।
+    यावत् वृद्धम् समम् सत्यम् आदि
+        वृद्धम् भवति असत्यम् ।
+        क्रमः भवति आदिवाक्यम् ।
+        यावत् क्रमः न्यूनम् शरीरम् आदि
+            चरः वाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः क्रमः अन्तः ।
+            चरः उपनामपाठ ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+            चरः मूलपाठ ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+            यदि वाक्यम् ॱ भेद समम् वास्तुॱचरवाक्यभेद आदि
+                चरः चरचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः वाक्यम् ॱ वामसूचकाङ्क अन्तः ।
+                उपनामपाठ भवति पदविभागॱचिह्नकपाठः चरचिह्नकम् ।
+                मूलपाठ भवति घोषणासञ्चयॱनामाभिपाठः वाक्यम् ॱ दक्षिणसूचकाङ्क ।
+            इति
+            यदि वाक्यम् ॱ भेद समम् वास्तुॱसमवाक्यभेद आदि
+                चरः लक्ष्यपाठ ॱॱ अङ्कः अन्तः अ८ भवति घोषणासञ्चयॱनामाभिपाठः वाक्यम् ॱ वामसूचकाङ्क ।
+                यदि पाठसदस्यता आरभ्य स्थानीयानि ऽ स्थानीयसंख्या ऽ लक्ष्यपाठ समाप्तम् समम् सत्यम् आदि
+                    उपनामपाठ भवति लक्ष्यपाठ ।
+                    मूलपाठ भवति घोषणासञ्चयॱनामाभिपाठः वाक्यम् ॱ दक्षिणसूचकाङ्क ।
+                इति
+            इति
+            यदि उपनामपाठ ॱ दैर्घ्य अधिकम् ० आदि
+                यदि पाठसदस्यता आरभ्य उपनामानि ऽ उपनामसंख्या ऽ मूलपाठ समाप्तम् समम् सत्यम् आदि
+                    यदि पाठसदस्यता आरभ्य उपनामानि ऽ उपनामसंख्या ऽ उपनामपाठ समाप्तम् समम् असत्यम् आदि
+                        उपनामानि अङ्कः उपनामसंख्या अन्तः भवति उपनामपाठ ।
+                        उपनामसंख्या भवति उपनामसंख्या योगः १ ।
+                        वृद्धम् भवति सत्यम् ।
+                    इति
+                इति
+            इति
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+    इति
+    ॰ the aliases proper: the names after the parameters'.
+    चरः उपनामसूची ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।
+    चरः उपनामगणना ॱॱ न६४ भवति ० ।
+    चरः उपक्रमः ॱॱ न६४ भवति प्राचलसंख्यानम् ।
+    यावत् उपक्रमः न्यूनम् उपनामसंख्या आदि
+        उपनामसूची अङ्कः उपनामगणना अन्तः भवति उपनामानि अङ्कः उपक्रमः अन्तः ।
+        उपनामगणना भवति उपनामगणना योगः १ ।
+        उपक्रमः भवति उपक्रमः योगः १ ।
+    इति
+
+    ॰ the statements
+    क्रमः भवति आदिवाक्यम् ।
+    यावत् क्रमः न्यूनम् शरीरम् आदि
+        चरः वाक्यम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः क्रमः अन्तः ।
+        चरः भेदः ॱॱ न६४ भवति वाक्यम् ॱ भेद ।
+        चरः मिथ्यागणना ॱॱ न६४ भवति ० ।
+        यदि भेदः समम् वास्तुॱअभिव्यञ्जकवाक्यभेद आदि
+            मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ वामसूचकाङ्क ।
+        इति
+        यदि भेदः समम् वास्तुॱचरवाक्यभेद आदि
+            मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
+        इति
+        यदि भेदः समम् वास्तुॱयदिवाक्यभेद आदि
+            मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ वामसूचकाङ्क ।
+        इति
+        यदि भेदः समम् वास्तुॱयावत्वाक्यभेद आदि
+            मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ वामसूचकाङ्क ।
+        इति
+        यदि भेदः समम् वास्तुॱप्रत्यागमनवाक्यभेद आदि
+            चरः प्रतिफलम् ॱॱ न६४ भवति घोषणासञ्चयॱनिर्वृतम् वाक्यम् ॱ वामसूचकाङ्क ।
+            चरः प्रतिवर्धकः ॱॱ न६४ भवति ० ।
+            यदि प्रतिफलम् अधिकम् ० आदि
+                यदि वास्तुॱअभिव्यञ्जककोश अङ्कः प्रतिफलम् अन्तः ॱ भेद समम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि
+                    प्रतिवर्धकः भवति पात्रवर्धकः आरभ्य घोषणासञ्चयॱआह्वानपादः प्रतिफलम् समाप्तम् ।
+                इति
+            इति
+            यदि प्रतिवर्धकः अधिकम् ० आदि
+                चरः प्रतिपाठ ॱॱ अङ्कः अन्तः अ८ भवति घोषणासञ्चयॱनामाभिपाठः आरभ्य घोषणासञ्चयॱआह्वानतर्कः प्रतिफलम् प्रतिवर्धकः समाप्तम् ।
+                चरः प्रतिठीकम् ॱॱ बूल भवति असत्यम् ।
+                यदि प्रतिपाठ ॱ दैर्घ्य अधिकम् ० आदि
+                    यदि घोषणासञ्चयॱसञ्चयपाठसाम्यम् आरभ्य प्रतिपाठ ऽ स्ववर्धनपाठ समाप्तम् समम् सत्यम् आदि
+                        प्रतिठीकम् भवति सत्यम् ।
+                    इति
+                इति
+                यदि प्रतिठीकम् समम् असत्यम् आदि
+                    चरः प्रतिपादपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः आरभ्य घोषणासञ्चयॱआह्वानपादः प्रतिफलम् समाप्तम् अन्तः ।
+                    चरः अवगणनप्रति ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य २ ऽ प्रतिपादपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+                इति
+                मिथ्यागणना भवति आह्वानतर्कगणना प्रतिफलम् ।
+            इति अन्यथा आदि
+                मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ वामसूचकाङ्क ।
+            इति
+        इति
+        यदि भेदः समम् वास्तुॱसमवाक्यभेद आदि
+            चरः लक्ष्यपाठ ॱॱ अङ्कः अन्तः अ८ भवति घोषणासञ्चयॱनामाभिपाठः वाक्यम् ॱ वामसूचकाङ्क ।
+            चरः मूल्याभि ॱॱ न६४ भवति घोषणासञ्चयॱनिर्वृतम् वाक्यम् ॱ दक्षिणसूचकाङ्क ।
+            चरः मूल्यवर्धकः ॱॱ न६४ भवति ० ।
+            यदि मूल्याभि अधिकम् ० आदि
+                यदि वास्तुॱअभिव्यञ्जककोश अङ्कः मूल्याभि अन्तः ॱ भेद समम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि
+                    मूल्यवर्धकः भवति पात्रवर्धकः आरभ्य घोषणासञ्चयॱआह्वानपादः मूल्याभि समाप्तम् ।
+                इति
+            इति
+            यदि मूल्यवर्धकः अधिकम् ० आदि
+                चरः तर्कपाठ ॱॱ अङ्कः अन्तः अ८ भवति घोषणासञ्चयॱनामाभिपाठः आरभ्य घोषणासञ्चयॱआह्वानतर्कः मूल्याभि मूल्यवर्धकः समाप्तम् ।
+                चरः बद्धम् ॱॱ बूल भवति असत्यम् ।
+                यदि तर्कपाठ ॱ दैर्घ्य अधिकम् ० आदि
+                    यदि घोषणासञ्चयॱसञ्चयपाठसाम्यम् आरभ्य तर्कपाठ ऽ लक्ष्यपाठ समाप्तम् समम् सत्यम् आदि
+                        बद्धम् भवति सत्यम् ।
+                    इति
+                इति
+                चरः मूलपादपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः आरभ्य घोषणासञ्चयॱआह्वानपादः मूल्याभि समाप्तम् अन्तः ।
+                यदि बद्धम् समम् असत्यम् आदि
+                    चरः अवगणनबन्ध ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य १ ऽ मूलपादपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+                इति अन्यथा आदि
+                    यदि पाठसदस्यता आरभ्य उपनामसूची ऽ उपनामगणना ऽ लक्ष्यपाठ समाप्तम् समम् सत्यम् आदि
+                        चरः लक्ष्यपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः आरभ्य घोषणासञ्चयॱनिर्वृतम् वाक्यम् ॱ वामसूचकाङ्क समाप्तम् अन्तः ।
+                        चरः अवगणनउपनाम ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य ३ ऽ लक्ष्यपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+                    इति
+                इति
+                मिथ्यागणना भवति आह्वानतर्कगणना मूल्याभि ।
+            इति अन्यथा आदि
+                मिथ्यागणना भवति वर्धकाह्वानगणना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
+            इति
+            ॰ the target: a store THROUGH AN ALIAS is refused (kind ३).
+            चरः लक्ष्याभि ॱॱ न६४ भवति घोषणासञ्चयॱनिर्वृतम् वाक्यम् ॱ वामसूचकाङ्क ।
+            यदि लक्ष्याभि अधिकम् ० आदि
+                चरः लक्ष्यपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः लक्ष्याभि अन्तः ।
+                यदि लक्ष्यपदम् ॱ भेद समम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि
+                    चरः आधारपाठ ॱॱ अङ्कः अन्तः अ८ भवति घोषणासञ्चयॱनामाभिपाठः लक्ष्यपदम् ॱ वामसूचकाङ्क ।
+                    यदि पाठसदस्यता आरभ्य उपनामसूची ऽ उपनामगणना ऽ आधारपाठ समाप्तम् समम् सत्यम् आदि
+                        चरः आधारपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः आरभ्य घोषणासञ्चयॱनिर्वृतम् लक्ष्यपदम् ॱ वामसूचकाङ्क समाप्तम् अन्तः ।
+                        चरः अवगणनलेख ॱॱ न६४ भवति वर्धनबन्धनिषेधः आरभ्य ३ ऽ आधारपदम् ॱ मूल्यसूचकाङ्क समाप्तम् ।
+                    इति
+                इति
+                चरः लक्ष्यगणना ॱॱ न६४ भवति वर्धकाह्वानगणना लक्ष्याभि ।
+            इति
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् वर्धनबन्धदोषसंख्या वियोगः पूर्वसंख्या ।
+इति
+
 ॰ ॥ सञ्चयसिद्धिः ॥ ASSERT THAT A COLLECTION PASS HAS RUN OVER THIS INTERPRETER.
 ॰ W-223 part 2, 2026-09-04. Whoever filled `घोषणासञ्चय` calls this, and only
 ॰ then does `सदस्यनिर्णयः` consult the store.
@@ -2986,6 +3390,71 @@
 ॰ kind left by an EARLIER failure and take the wrong branch: a module that is
 ॰ merely uncollected would be reported as a module missing a member, turning a
 ॰ trust into a refusal on evidence belonging to another name.
+॰ `V-008` PART 2 — WHETHER `<module>ॱ<member>` IS ONE OF THE FOUR VECTOR BUILT-INS
+॰ (owner ruling 2026-10-05, option A). `व्यूह` is a qualifier and NOT a module: no
+॰ source declares it and none can be imported, so the import check below would
+॰ refuse every `व्यूहॱप्लवयोगः`. The trust is as narrow as the float built-ins':
+॰ the qualifier must be exactly `व्यूह` AND the member exactly one of the four
+॰ names `ir.t1`'s `व्यूहान्तर्निहितम्` lowers (`प्लवसदस्यभेदः` १..४) — any other
+॰ member, and any other undeclared qualifier, still meets the import check and
+॰ is refused by name. No symbol is written: like a qualified use, the node stays
+॰ at ०, and `ir.t1` intercepts the call by its text before any symbol is asked.
+॰ ONE TOKEN ONLY (owner ruling (B), 2026-10-05): the SPACED `व्यूह ॱ x` is always
+॰ an ordinary field access — a `व्यूह` the program binds wins, and an unbound
+॰ one is refused like any other undeclared name. The parser cannot see scope,
+॰ so no spaced spelling can be decided as a built-in there.
+वृत्तिः व्यूहसदस्यः आदाय मण्डलपाठ ॱॱ अङ्कः अन्तः अ८ ऽ सदस्यपाठ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    यदि मण्डलपाठ असमम् उक्तम् व्यूह इति आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+    यदि सदस्यपाठ समम् उक्तम् प्लवयोगः इति आदि प्रत्यागमनम् सत्यम् । इति
+    यदि सदस्यपाठ समम् उक्तम् प्लववियोगः इति आदि प्रत्यागमनम् सत्यम् । इति
+    यदि सदस्यपाठ समम् उक्तम् प्लवगुणनम् इति आदि प्रत्यागमनम् सत्यम् । इति
+    यदि सदस्यपाठ समम् उक्तम् प्लवभागः इति आदि प्रत्यागमनम् सत्यम् । इति
+    प्रत्यागमनम् आव्यूहसदस्यः सदस्यपाठ ।
+इति
+
+॰ `V-009` PART (ii) — THE MATRIX MEMBERS AND THE THREE LAYOUT CONSTANTS, taken on
+॰ the same narrow trust behind the same `व्यूह` qualifier (ADR-0043, owner
+॰ ruling 2026-10-06): `ir.t1` intercepts the three calls by their text
+॰ (`आव्यूहान्तर्निहितरचना`), reads a layout constant only as a matrix call's
+॰ last argument (`प्रधानभेदः`) and refuses one anywhere else.
+वृत्तिः आव्यूहसदस्यः आदाय सदस्यपाठ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः सदस्यक्रमः ॱॱ न६४ भवति सूचीपदक्रमः आरभ्य उक्तम् आव्यूहगुणनम् व्युत्क्रमः समासः पङ्क्तिप्रधानम् स्तम्भप्रधानम् परिवर्तितम् इति ऽ सदस्यपाठ समाप्तम् ।
+    प्रत्यागमनम् सदस्यक्रमः अधिकम् ० ।
+इति
+
+॰ `V-009` (ii) — WHICH WORD of the space-separated list `सूची` `पदम्` is, from
+॰ १; ० when none. ONE LOOP in place of a compare per word (owner ruling
+॰ 2026-10-06, the size reduction (1)): an inline `समम् उक्तम् … इति` cost the
+॰ compiler image about २३० octets each. `ir.t1` asks this too.
+सार्वजनिक वृत्तिः सूचीपदक्रमः आदाय सूची ॱॱ अङ्कः अन्तः अ८ ऽ पदम् ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः आदिः ॱॱ न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    चरः स्थलम् ॱॱ न६४ भवति ० ।
+    चरः सीमा ॱॱ न६४ भवति सूची ॱ दैर्घ्य ।
+    चरः अन्तिमम् ॱॱ न६४ भवति सीमा योगः १ ।
+    यावत् स्थलम् न्यूनम् अन्तिमम् आदि
+        चरः विरामः ॱॱ बूल भवति सत्यम् ।
+        यदि स्थलम् न्यूनम् सीमा आदि
+            चरः वर्णः ॱॱ अ८ भवति सूची अङ्कः स्थलम् अन्तः ।
+            यदि वर्णः असमम् ३२ आदि
+                विरामः भवति असत्यम् ।
+            इति
+        इति
+        यदि विरामः समम् सत्यम् आदि
+            चरः शब्दः ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱखण्डपाठः सूची आदिः स्थलम् ।
+            यदि शब्दः समम् पदम् आदि
+                प्रत्यागमनम् क्रमः ।
+            इति
+            क्रमः भवति क्रमः योगः १ ।
+            आदिः भवति स्थलम् योगः १ ।
+        इति
+        स्थलम् भवति स्थलम् योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
 वृत्तिः सदस्यनिर्णयः आदाय निर्णायकः ॱॱ निर्णायक मण्डलपाठ ॱॱ अङ्कः अन्तः अ८ सदस्यपाठ ॱॱ अङ्कः अन्तः अ८ पङ्क्ति ॱॱ न६४ ददाति न६४ आदि
     ॰ NOBODY COLLECTED — trust, and count it. The store may not even be in the
     ॰ image; under this flag it is never called, so it need not be.
@@ -3128,6 +3597,14 @@
             ॰ keyword "is also a possible identifier ... the reader must prefer
             ॰ the keyword", so binding it as a name is already illegal.
             ॰ `no_t1_source_binds_a_frozen_keyword_as_a_name` caught it.
+            ॰ `V-008` part 2 — THE VECTOR BUILT-INS, one token: see `व्यूहसदस्यः`.
+            चरः व्यूहउपसर्गदैर्घ्यम् ॱॱ न६४ भवति उपसर्गः ॱ दैर्घ्य ।
+            चरः व्यूहनामदैर्घ्यम् ॱॱ न६४ भवति नामपाठ ॱ दैर्घ्य ।
+            चरः व्यूहसदस्यादिः ॱॱ न६४ भवति आरभ्य व्यूहउपसर्गदैर्घ्यम् योगः ३ समाप्तम् ।
+            चरः व्यूहएकसदस्यपाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱखण्डपाठः नामपाठ व्यूहसदस्यादिः व्यूहनामदैर्घ्यम् ।
+            यदि व्यूहसदस्यः आरभ्य उपसर्गः ऽ व्यूहएकसदस्यपाठ समाप्तम् समम् सत्यम् आदि
+                प्रत्यागमनम् सत्यम् ।
+            इति
             चरः मण्डलस्थानम् ॱॱ सम्भाव्य अ६४ भवति नामनिर्णयः निर्णायकः उपसर्गः ।
             यदि मण्डलस्थानम् समम् शून्यम् आदि
                 यदि अनिर्णीतमस्ति समम् असत्यम् आदि
@@ -3420,6 +3897,11 @@
     अनिर्णीतधारपङ्क्ति भवति ० ।
     अऋण्यमस्ति भवति असत्यम् ।
     अऋण्यभेद भवति ० ।
+    ॰ `W-359`: the count and the bool; the name is left standing (see above).
+    वर्धनबन्धदोषसंख्या भवति ० ।
+    वर्धनबन्धदोषमस्ति भवति असत्यम् ।
+    वर्धनबन्धदोषभेद भवति ० ।
+    वर्धनबन्धदोषपङ्क्ति भवति ० ।
     पुच्छे भवति सत्यम् ।
     प्रत्यागमनम् निर्णायकः ।
 इति
@@ -3461,13 +3943,23 @@
         परिधिदोषभेद भवति परिधिऋणभेद ।
         प्रत्यागमनम् असत्यम् ।
     इति
-    यदि कार्यक्रमः बृहत्समम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
-        परिधिदोषमस्ति भवति सत्यम् ।
-        परिधिदोषभेद भवति परिधिबाह्यभेद ।
-        प्रत्यागमनम् असत्यम् ।
+    यदि कार्यक्रमः अधिकम् ० आदि   ॰ W-381: ० is never past the end, even of an EMPTY arena (W-355: a fresh run has length ०)
+        यदि कार्यक्रमः बृहत्समम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+            परिधिदोषमस्ति भवति सत्यम् ।
+            परिधिदोषभेद भवति परिधिबाह्यभेद ।
+            प्रत्यागमनम् असत्यम् ।
+        इति
     इति
     चरः सीमा ॱॱ अ६४ भवति आरभ्य कार्यक्रमः योगः १ समाप्तम् ।
     चरः फलम् ॱॱ बूल भवति सत्यम् ।
+    ॰ `W-359`: the classifier's memo, fresh and dense for this source.
+    चरः नवस्मृतिः ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः स्मृतिक्रमः ॱॱ न६४ भवति ० ।
+    यावत् स्मृतिक्रमः न्यूनम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+        नवस्मृतिः अङ्कः स्मृतिक्रमः अन्तः भवति ० ।
+        स्मृतिक्रमः भवति स्मृतिक्रमः योगः १ ।
+    इति
+    वर्धकस्मृतिकोश भवति नवस्मृतिः ।
     चरः क्रमः ॱॱ अ६४ भवति १ ।
 
     यावत् क्रमः न्यूनम् सीमा आदि
@@ -3477,6 +3969,7 @@
             ॰ declares a shape and has no statements, so there is nothing to
             ॰ compare a return type against.
             यदि घोषणा ॱ भेद समम् व्याकरॱवृत्तिघोषणाभेद आदि
+                चरः बन्धदोषाः ॱॱ न६४ भवति वर्धनबन्धपरीक्षा क्रमः ।
                 चरः शरीरार्थः ॱॱ अर्थप्रकार भवति वाक्यप्रकारः वास्तुॱवाक्यकोश घोषणा ॱ शरीरसूचकाङ्क ।
                 चरः प्रत्यागमनार्थः ॱॱ अर्थप्रकार भवति शून्यार्थः ।
 
@@ -3524,6 +4017,11 @@
     इति
 
     यदि अऋण्यसंख्या अधिकम् ० आदि
+        फलम् भवति असत्यम् ।
+    इति
+
+    ॰ `W-359` rules (A) and (C): `वर्धनबन्धपरीक्षा`, run per routine above.
+    यदि वर्धनबन्धदोषसंख्या अधिकम् ० आदि
         फलम् भवति असत्यम् ।
     इति
 
@@ -3585,10 +4083,10 @@
     ॰ is wrong for the reason `वाक्यनिर्णयः` records at `:1020-1050`:
     ॰ `वाक्ययोजनम्` numbers a statement AFTER its children, so a nested block's
     ॰ statements lie inside its parent's range and a plain sweep visits them
-    ॰ twice. So each round scans from अन्तिम down and keeps the SMALLEST direct
-    ॰ child still above the last one visited. QUADRATIC in a block's direct
-    ॰ children, exactly as it is there, and said out loud here for the same
-    ॰ reason: a block has few, and correctness comes before speed.
+    ॰ twice. So it walks the chain from अन्तिम down ONCE onto `अन्वेषणकोश` and
+    ॰ pops it smallest first, exactly as the resolver does. This was a rescan
+    ॰ per child — quadratic, on "a block has few" — until W-346 measured a
+    ॰ generated vector's one block of thousands paying for it.
     ॰
     ॰ THE ANSWER IS STILL THE LAST CHILD'S TYPE, so Rust's `last_ty` reading
     ॰ survives — but a दोषार्थः anywhere in the block is the block's type. A
@@ -3609,72 +4107,69 @@
         ॰ in the ANSWER and not only in the index, and it is what caught this
         ॰ arm accumulating its answer instead of reading दक्षिण.
         यदि प्रथमः बृहत्समम् १ आदि
-        चरः सीमा ॱॱ न६४ भवति प्रथमः ।
-        यावत् सीमा न्यूनम् आरभ्य क्रमः योगः १ समाप्तम् आदि
-            ॰ the smallest direct-child root that is `सीमा` or above
-            चरः अन्वेषणम् ॱॱ न६४ भवति क्रमः ।
-            चरः अग्रिमः ॱॱ न६४ भवति ० ।
-            यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
-                यदि अन्वेषणम् न्यूनम् १ आदि
-                    अन्वेषणम् भवति ० ।
-                इति अन्यथा आदि
-                    यदि अन्वेषणम् बृहत्समम् सीमा आदि
-                        अग्रिमः भवति अन्वेषणम् ।
-                    इति
-                    चरः चरणम् ॱॱ वास्तुॱवाक्य भवति कोशः अङ्कः अन्वेषणम् अन्तः ।
-                    अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
-                इति
-            इति
-
-            यदि अग्रिमः न्यूनम् १ आदि
-                सीमा भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+        चरः आधारः ॱॱ न६४ भवति अन्वेषणशिखर ।
+        चरः अन्वेषणम् ॱॱ न६४ भवति क्रमः ।
+        यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
+            यदि अन्वेषणम् न्यूनम् १ आदि
+                अन्वेषणम् भवति ० ।
             इति अन्यथा आदि
-                ॰ THE LAST CHILD IS LEFT TO THE READ AT THE BOTTOM, and this
-                ॰ skip is not an optimisation. The counters below and in the
-                ॰ यदि/यावत् arms are incremented BY `वाक्यप्रकारः` itself, so
-                ॰ typing the same statement here and again for the answer counts
-                ॰ everything inside it TWICE. MEASURED on the same tree, the
-                ॰ two metrics read 262 and 188 with the child walked twice and
-                ॰ 137 and 63 with it walked once — an inflation that would have
-                ॰ gone into `W-231`'s acceptance number as if the checker were
-                ॰ twice as blind. The verdicts did not move (10 of 15 either
-                ॰ way), which is why no test caught it: a metric is a number,
-                ॰ not an assertion, and only comparing it against the run before
-                ॰ the change showed it.
-                यदि अग्रिमः असमम् क्रमः आदि
-                    पुच्छे भवति असत्यम् ।
-                    अन्तिमार्थः भवति वाक्यप्रकारः कोशः अग्रिमः ।
-                    ॰ WHO ANSWERED THE POISON DECIDES WHETHER IT SPREADS — see
-                    ॰ `अप्रकार्यवाक्यसंख्या`. An expression statement made no
-                    ॰ judgement and its value is discarded; anything else did.
-                    यदि अन्तिमार्थः ॱ भेद समम् दोषार्थभेद आदि
-                        चरः पदार्थम् ॱॱ वास्तुॱवाक्य भवति कोशः अङ्कः अग्रिमः अन्तः ।
-                        यदि पदार्थम् ॱ भेद समम् वास्तुॱअभिव्यञ्जकवाक्यभेद आदि
-                            अप्रकार्यवाक्यसंख्या भवति आरभ्य अप्रकार्यवाक्यसंख्या योगः १ समाप्तम् ।
-                            ॰ W-223 part 2: WHERE the first one is, so the census
-                            ॰ can NAME it instead of counting it. The existing
-                            ॰ poison report fires only when a routine is REFUSED,
-                            ॰ and with the corpus typechecking 19 of 19 nothing
-                            ॰ is refused — so an untypable statement was counted
-                            ॰ and never located. FIRST only, guarded like
-                            ॰ `अनिर्णीतमस्ति`, so the count and the site cannot
-                            ॰ disagree about which one is meant.
-                            यदि अप्रकार्यवाक्यमस्ति समम् असत्यम् आदि
-                                चरः अप्रकार्यपदाङ्कः ॱॱ न६४ भवति पदार्थम् ॱ स्थानसूचकाङ्क ।
-                                यदि अप्रकार्यपदाङ्कः अधिकम् ० आदि
-                                    चरः अप्रकार्यचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः अप्रकार्यपदाङ्कः अन्तः ।
-                                    अप्रकार्यवाक्यस्थान भवति अप्रकार्यचिह्नकम् ॱ पङ्क्ति ।
-                                इति
-                                अप्रकार्यवाक्यमस्ति भवति सत्यम् ।
-                            इति
-                        इति अन्यथा आदि
-                            दुष्टम् भवति सत्यम् ।
-                        इति
-                    इति
-                इति
-                सीमा भवति आरभ्य अग्रिमः योगः १ समाप्तम् ।
+                अन्वेषणकोश अङ्कः अन्वेषणशिखर अन्तः भवति अन्वेषणम् ।
+                अन्वेषणशिखर भवति आरभ्य अन्वेषणशिखर योगः १ समाप्तम् ।
+                चरः चरणम् ॱॱ वास्तुॱवाक्य भवति कोशः अङ्कः अन्वेषणम् अन्तः ।
+                अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
             इति
         इति
+
+        ॰ pop in written order: the smallest root sits on top
+        चरः अवरोहः ॱॱ न६४ भवति अन्वेषणशिखर ।
+        यावत् अवरोहः अधिकम् आधारः आदि
+            अवरोहः भवति आरभ्य अवरोहः वियोगः १ समाप्तम् ।
+            चरः अग्रिमः ॱॱ न६४ भवति अन्वेषणकोश अङ्कः अवरोहः अन्तः ।
+            ॰ THE LAST CHILD IS LEFT TO THE READ AT THE BOTTOM, and this
+            ॰ skip is not an optimisation. The counters below and in the
+            ॰ यदि/यावत् arms are incremented BY `वाक्यप्रकारः` itself, so
+            ॰ typing the same statement here and again for the answer counts
+            ॰ everything inside it TWICE. MEASURED on the same tree, the
+            ॰ two metrics read 262 and 188 with the child walked twice and
+            ॰ 137 and 63 with it walked once — an inflation that would have
+            ॰ gone into `W-231`'s acceptance number as if the checker were
+            ॰ twice as blind. The verdicts did not move (10 of 15 either
+            ॰ way), which is why no test caught it: a metric is a number,
+            ॰ not an assertion, and only comparing it against the run before
+            ॰ the change showed it.
+            यदि अग्रिमः असमम् क्रमः आदि
+                पुच्छे भवति असत्यम् ।
+                अन्तिमार्थः भवति वाक्यप्रकारः कोशः अग्रिमः ।
+                ॰ WHO ANSWERED THE POISON DECIDES WHETHER IT SPREADS — see
+                ॰ `अप्रकार्यवाक्यसंख्या`. An expression statement made no
+                ॰ judgement and its value is discarded; anything else did.
+                यदि अन्तिमार्थः ॱ भेद समम् दोषार्थभेद आदि
+                    चरः पदार्थम् ॱॱ वास्तुॱवाक्य भवति कोशः अङ्कः अग्रिमः अन्तः ।
+                    यदि पदार्थम् ॱ भेद समम् वास्तुॱअभिव्यञ्जकवाक्यभेद आदि
+                        अप्रकार्यवाक्यसंख्या भवति आरभ्य अप्रकार्यवाक्यसंख्या योगः १ समाप्तम् ।
+                        ॰ W-223 part 2: WHERE the first one is, so the census
+                        ॰ can NAME it instead of counting it. The existing
+                        ॰ poison report fires only when a routine is REFUSED,
+                        ॰ and with the corpus typechecking 19 of 19 nothing
+                        ॰ is refused — so an untypable statement was counted
+                        ॰ and never located. FIRST only, guarded like
+                        ॰ `अनिर्णीतमस्ति`, so the count and the site cannot
+                        ॰ disagree about which one is meant.
+                        यदि अप्रकार्यवाक्यमस्ति समम् असत्यम् आदि
+                            चरः अप्रकार्यपदाङ्कः ॱॱ न६४ भवति पदार्थम् ॱ स्थानसूचकाङ्क ।
+                            यदि अप्रकार्यपदाङ्कः अधिकम् ० आदि
+                                चरः अप्रकार्यचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः अप्रकार्यपदाङ्कः अन्तः ।
+                                अप्रकार्यवाक्यस्थान भवति अप्रकार्यचिह्नकम् ॱ पङ्क्ति ।
+                            इति
+                            अप्रकार्यवाक्यमस्ति भवति सत्यम् ।
+                        इति
+                    इति अन्यथा आदि
+                        दुष्टम् भवति सत्यम् ।
+                    इति
+                इति
+            इति
+        इति
+        अन्वेषणशिखर भवति आधारः ।
 
         इति
 
@@ -3927,9 +4422,17 @@
                     ॰ So the rule is inverted: name the kind that CANNOT be
                     ॰ indexed rather than the one that can. That is the hole the
                     ॰ ruling names — `word अङ्कः i अन्तः भवति v` — and nothing
-                    ॰ wider. `प्लवार्थभेद` (Float) belongs here too the day a
-                    ॰ float type exists; it does not yet, so adding it now would
-                    ॰ be a guard with no subject.
+                    ॰ wider. **`प्लवार्थभेद` (Float) IS COUNTED NOW — THE ARM IS
+                    ॰ BELOW.** This paragraph used to read *"belongs here too the
+                    ॰ day a float type exists; it does not yet, so adding it now
+                    ॰ would be a guard with no subject"*, and that premise has
+                    ॰ gone: `float_type = "प" , ( "३२" | "६४" )` is in the frozen
+                    ॰ grammar since ADR-0042, and `:639-647` of this file already
+                    ॰ PRODUCE kind 2 with width 32/64 while `:487-492` compare two
+                    ॰ float types by width. The subject exists, so the omission
+                    ॰ lost its reason — a paragraph whose premise has gone needs
+                    ॰ refounding rather than deleting, which is why the old
+                    ॰ wording is quoted here instead of removed.
                     ॰ COUNTED, NOT REFUSED — AND THE REASON IS A PRIOR DEFECT,
                     ॰ not caution. Refusing here is what the ruling asked for
                     ॰ and it CANNOT BE DONE AT THIS LEVEL TODAY:
@@ -3958,6 +4461,25 @@
                     इति
                     यदि आधारप्रकारः ॱ भेद समम् दोषार्थभेद आदि
                         ॰ NO JUDGEMENT — counted, never refused.
+                        अप्रकार्यलक्ष्यसंख्या भवति आरभ्य अप्रकार्यलक्ष्यसंख्या योगः १ समाप्तम् ।
+                    इति
+                    ॰ `V-006`, 2026-09-30 — प्लवार्थभेद JOINS THIS COUNT, AND THE
+                    ॰ PARAGRAPH ABOVE THAT SAID IT SHOULD NOT IS REFOUNDED BELOW.
+                    ॰
+                    ॰ A float is not an aggregate, so an indexed write through one
+                    ॰ is the same SHAPE as one through `दोषार्थभेद` — a target that
+                    ॰ cannot be worked on — and it belongs in the same bucket
+                    ॰ rather than a third. NOT A NEW CENSUS: `अप्रकार्यलक्ष्यसंख्या`
+                    ॰ already means *"indexed through something no index can
+                    ॰ reach"*, and a float satisfies that for the same reason an
+                    ॰ error type does.
+                    ॰
+                    ॰ COUNTED AND NOT REFUSED, for the reason the margin above
+                    ॰ already gives and which applies here unchanged: nothing can
+                    ॰ refuse at this site until a global carries its declared
+                    ॰ type. Refusing floats while merely counting integers would
+                    ॰ make this site inconsistent about the same question.
+                    यदि आधारप्रकारः ॱ भेद समम् प्लवार्थभेद आदि
                         अप्रकार्यलक्ष्यसंख्या भवति आरभ्य अप्रकार्यलक्ष्यसंख्या योगः १ समाप्तम् ।
                     इति
                 इति

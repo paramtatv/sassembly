@@ -166,6 +166,24 @@ const DIAGNOSTIC_PREFIXES: &[&str] = &[
     // note and then repeating the omission is the one outcome it was written to
     // prevent.
     "steps: ",
+    // `yantra-run.rs:53`, `--version` as the sole argument: "version: {commit}",
+    // the W-347 build stamp. Enrolled IN THE SAME COMMIT that added it — which is
+    // what the `steps:` note above demands, and which I failed to do on the first
+    // attempt: the stamp went in as a bare `{}` with no prefix at all, and this
+    // census refused it at the second assertion after the first had already refused
+    // it for being on stdout. Two refusals from one guard, both correct.
+    //
+    // It is on STDERR rather than stdout because in this binary stdout carries the
+    // guest's payload and nothing else. `t1_image --version` stays on stdout: that
+    // binary has 45 `println!`s of its own, reports `build:` and `write:` there, and
+    // no purity contract covers it — this census names only `yantra-run.rs` and
+    // `yantra-host.rs`.
+    "version: ",
+    // `yantra-run.rs`, `--source-stamp` (W-381): the content stamp the gate compares.
+    "source: ",
+    // `yantra-run.rs`, `YANTRA_VERDICT` unwritable (W-381): "verdict: {path}: {e}".
+    // Enrolled in the commit that added it, as the notes above require.
+    "verdict: ",
     // `yantra-run.rs:85`, behind `YANTRA_WATERMARK`: "ram: high water {} of {}
     // octets". A real diagnostic on the real stream, added without being enrolled
     // here — so this census reported an unrecognised stderr line and the step
@@ -187,6 +205,41 @@ const DIAGNOSTIC_PREFIXES: &[&str] = &[
     // alone. A multi-line `eprintln!` still escapes the scan below — its literal
     // is on the next line — so the reflowed one was given the prefix by hand.
     "input: ",
+    // `W-344` made the exit code the halt and wrote two failure diagnostics
+    // under this prefix. The step-limit one reflows its literal onto the next
+    // line and escaped the scan; the finisher one does not, and this census
+    // reported an unrecognised stderr line — the standing red of cycle 1006.
+    // Enrolled late, after the fact, which is exactly the omission the `steps: `
+    // margin above was written to prevent.
+    "yantra-run: ",
+    // `yantra-run.rs`, always on: the argument-interface report and its
+    // not-handed-over refusal. Both sit behind match arms, so the scan below —
+    // which takes only lines that BEGIN with `eprintln!(` — never sees them;
+    // they are enrolled because they are real diagnostics on the real stream,
+    // and this list is the census of those, not of what the scan happens to reach.
+    "args: ",
+    // `W-371`: `--events <log>`'s report, its load-time refusals and its two replay
+    // refusals (shorter, longer). Enrolled in the commit that added them.
+    "events: ",
+    // `W-376`: `threads: N` whenever an image declares SASTHRDS (the line
+    // `tools/fixpoint.sh` refuses in a Stage 2 log), the thread host's report, each
+    // thread's end, the end rule's verdict and the load-time refusals — one prefix
+    // for all of them. Enrolled in the commit that added them.
+    "threads: ",
+    // `F-022` (b): a Saṃpuṭa archive launched directly — its verification report, its
+    // S1..S8 refusals, the env-conflict and YANTRA_STEPS refusals and the step-cap clamp.
+    // Enrolled in the commit that added them.
+    "smp: ",
+    // `W-377`: the socket device's host — `socket: listening on …`, the accepted client,
+    // a send failure (said by the host, never told to the program), the address and
+    // `--listen` refusals, the closing `socket: R octets received in K records, …` account
+    // and the touched-with-no-device line `tools/fixpoint.sh` refuses in a Stage 2 log.
+    // Enrolled in the commit that added them.
+    "socket: ",
+    // The deferred virtio completion (`YANTRA_VIRTIO_DEFER`): the line saying a run's
+    // completions are deferred, and the refusal of a value that is not decimal digits.
+    // Enrolled in the commit that added them.
+    "virtio: ",
 ];
 
 fn root() -> PathBuf {
@@ -722,11 +775,13 @@ fn lingerer(load: u64) -> Vec<u8> {
 /// A machine with the supervisor's one `sret` installed at [`BASE`].
 fn kernel_machine() -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -738,6 +793,8 @@ fn kernel_machine() -> Machine {
         mode: Privilege::Supervisor,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.csr.sstatus = 1 << 8;
     install(&mut m, BASE).expect("the supervisor's word is inside RAM");

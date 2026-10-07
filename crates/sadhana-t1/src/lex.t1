@@ -110,10 +110,15 @@
 ॰       mean giving this file its first import, which W-304 judged a bigger
 ॰       change than the gate needs.
 ॰
-॰       SO THE GATE IS A PRE-PASS ONE LEVEL UP: `शृङ्खलाॱपठनम्` calls
-॰       `अक्षरकोशॱपरिधिदोषः` before it calls `पदविभाग` and refuses the source,
+॰       SO THE GATE IS A PRE-PASS ONE LEVEL UP, IN `अक्षरकोश` ITSELF:
+॰       `अक्षरकोशॱपरिधिपदविभाग` runs `परिधिदोषः` and then calls `पदविभाग`,
 ॰       recording `परिधिदोषस्थितम्`/`परिधिदोषस्थानम्` that `chain::refusal_site`
-॰       renders. lex.rs:583-625 checks per WORD while lexing and reports one
+॰       renders. Until 2026-10-01 the pre-pass sat in `शृङ्खलाॱपठनम्`, and
+॰       `chain.rs`'s `Front::lex` — which calls the lexer without `पठनम्` —
+॰       was ungated; both now call the one entry (W-304, a peer session's
+॰       placement ruling). THIS ROUTINE STAYS UNGATED ON PURPOSE: it also
+॰       lexes the EMITTED `.sas` text (`वाक्यविभागॱसङ्कलनम्`), which a source
+॰       gate has no business walking a second time. lex.rs:583-625 checks per WORD while lexing and reports one
 ॰       diagnostic per offending word; the pre-pass refuses at the FIRST
 ॰       offending code point. The verdicts are identical — that is what the
 ॰       twin compares — and the diagnostic granularity is not.
@@ -121,7 +126,7 @@
 ॰       THE दोष RECORD BELOW STILL HAS NO ARENA, and now for a different
 ॰       reason than the one that stood here: nothing in THIS file can write
 ॰       one, because nothing in this file can see the table. The arena the old
-॰       margin withheld would today belong beside `पठनम्`, not here. Adding
+॰       margin withheld would today belong beside `परिधिपदविभाग`, not here. Adding
 ॰       one here would still be an arena nothing can write.
 ॰   (b) is_numeral — CORRECTED 2026-09-01, and the correction is the whole
 ॰       point of auditing a blocker before believing it. This read
@@ -139,9 +144,10 @@
 ॰       the value" of a routine that does not and must not, and cost a red main.
 ॰       सङ्ख्याभेद is STILL never produced here, but
 ॰       BY DESIGN and not for want of a routine — see (d): T0 वाक्यविभाग
-॰       requires an operand to arrive as पदभेद. One lexer serves T0 and T1,
-॰       so व्याकर decides numeral-ness by TEXT (parse.t1, अभिव्यञ्जकपठनम्)
-॰       rather than have this file take a side that would break T0.
+॰       requires an operand to arrive as पदभेद. One WALK serves T0 and T1
+॰       (two entries, see (e)), and neither entry makes सङ्ख्याभेद, so व्याकर
+॰       decides numeral-ness by TEXT (parse.t1, अभिव्यञ्जकपठनम्) rather than
+॰       have this file take a side that would break T0.
 ॰   (c) TRUE akṣara segmentation — अक्षरकोश ॱ अक्षराणि is a stub too, so
 ॰       अक्षरगणना counts CODE POINTS by UTF-8 lead byte, which is what this
 ॰       file always counted. क्ष is three code points and one akṣara, so the
@@ -152,7 +158,14 @@
 ॰       and takes the base by length. So this lexer does not call विभज at
 ॰       all, and that is the landed shape and not an omission.
 ॰   (e) Kind::Str and ADR-0018's layout words belong to `lex_t1`, the T1
-॰       entry point, and not to `lex`. Different row.
+॰       entry point, and not to `lex` (ADR-0017 :206, "T0 is not changed").
+॰       HELD SINCE W-366 (b), 2026-10-04: `पदविभाग` is `lex_t1` and makes
+॰       `शब्दभेद`; `वाक्यपदविभाग` is `lex` and never does; both are the one
+॰       walk `पदविभाजनम्`, and the T0 reader calls `वाक्यपदविभाग`. Before (b)
+॰       the T0 reader lexed through `पदविभाग` and this line was a rule nothing
+॰       kept. The run-time witness is `w366a_sas_lexes_no_string_token.rs`.
+॰       Kind::Str's OTHER Rust producer, the `उक्तम् … इति` string token, is
+॰       not made by either entry: the parser reads those words (parse.t1).
 ॰ ══════════════════════════════════════════════════════════════════════
 
 ॰ `आयातः वास्तु ।` STOOD HERE UNTIL 2026-09-04 (W-225) and was REMOVED: this
@@ -599,7 +612,18 @@
 ॰ answers HOW MANY TOKENS IT WROTE. the arena is चिह्नककोश and the count
 ॰ is चिह्नकसूचकाङ्क, which is reset here so that lexing a second source
 ॰ does not append to the first.
-सार्वजनिक वृत्तिः पदविभाग आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि   ॰ how many tokens were written
+॰
+॰ ═══ TWO ENTRIES, ONE WALK — ADR-0017, and W-366 (b) ═══
+॰ This is Rust's `lex_with(source, strings)`, and the two public routines
+॰ below it are Rust's two entry points. `शब्दग्रहणम्` is `Strings::Token`:
+॰ सत्यम् for T1 text (`पदविभाग`, Rust's `lex_t1`), असत्यम् for T0 text
+॰ (`वाक्यपदविभाग`, Rust's `lex`). It gates the ONLY two places this walk
+॰ makes `शब्दभेद` — the ADR-0018 layout-word arm and the embed collapse — so
+॰ T0 text never lexes to kind ३ here, as it never does in Rust (ADR-0017 :206,
+॰ "T0 is not changed"). Every other token is the same on both entries. The
+॰ choice is made at the CALL SITE by naming the entry, which is the shape the
+॰ ADR chose over a mode per file (:285).
+वृत्तिः पदविभाजनम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ शब्दग्रहणम् ॱॱ बूल ददाति न६४ आदि   ॰ how many tokens were written
     चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।   ॰ मूल ॱ दैर्घ्य — a length
     चरः पङ्क्ति ॱॱ न६४ भवति १ ।   ॰ Rust's `line`, counted from १
     चरः पङ्क्त्यारम्भः ॱॱ न६४ भवति ० ।   ॰ an offset
@@ -638,24 +662,50 @@
                     ॰ ADR-0018 (2026-09-13): the two layout words are VALUES — the Rust lexer hands
                     ॰ `विवरम्` over as " " and `यतिः` as "\n" (Kind::Str); this lexer never did,
                     ॰ so the compiled compiler saw two unresolved names and two ० initialisers.
-                    चरः पदपाठम् ॱॱ अङ्कः अन्तः अ८ भवति खण्डपाठः आरभ्य मूल ऽ पदारम्भः ऽ शिरोन्तः समाप्तम् ।
-                    ॰ ADR-0018 names the BARE word only. Inside `उक्तम् … इति` the word is
-                    ॰ text — the interpreter's reading (18 octets), which the two
-                    ॰ comparisons just below and ir.t1's fold arms depend on: until
-                    ॰ 2026-09-14 this classified the quoted word too, the .t1 IR folded
-                    ॰ `उक्तम् विवरम् इति` to one space, and the COMPILED lexer compared every
-                    ॰ word against " " — no layout word was ever शब्दभेद natively, and lex.t1
-                    ॰ compiled by itself emitted ० where the interpreter emitted ३२ (the
-                    ॰ first per-module rung to differ). The token before this one decides.
-                    चरः उक्तानन्तरम् ॱॱ बूल भवति असत्यम् ।
-                    यदि चिह्नकसूचकाङ्क अधिकम् ० आदि
-                        यदि चिह्नकपाठः आरभ्य चिह्नककोश अङ्कः चिह्नकसूचकाङ्क अन्तः समाप्तम् समम् उक्तम् उक्तम् इति आदि
-                            उक्तानन्तरम् भवति सत्यम् ।
+                    ॰ SAS-011 FIX (3), THE TOKENISER'S CLASS ORDER — THE LENGTH FIRST.
+                    ॰ `खण्डपाठः` ALLOCATES a run and copies the word octet by octet, and
+                    ॰ the `उक्तम्` lookback below calls `चिह्नकपाठः`, which allocates a
+                    ॰ second. Both ran on EVERY word, to recognise two. That is exactly
+                    ॰ the bloat the `समावेशः` loop at the foot of this routine already
+                    ॰ names — "Calling it on every token to find four is twenty thousand
+                    ॰ allocations per source" — and the remedy it already states: test
+                    ॰ the LENGTH from the token's own bounds, and copy only a word that
+                    ॰ could match. `विवरम्` is six akṣaras, १८ octets; `यतिः` is four, १२.
+                    ॰ The difference `शिरोन्तः वियोगः पदारम्भः` is the one `विरामचिह्न`
+                    ॰ already takes on the same two offsets one line above, so this adds
+                    ॰ no unsigned reading that was not already made.
+                    चरः पदमानम् ॱॱ न६४ भवति आरभ्य शिरोन्तः वियोगः पदारम्भः समाप्तम् ।
+                    चरः मानमिलितम् ॱॱ बूल भवति असत्यम् ।
+                    यदि पदमानम् समम् १८ आदि मानमिलितम् भवति सत्यम् । इति
+                    यदि पदमानम् समम् १२ आदि मानमिलितम् भवति सत्यम् । इति
+                    ॰ T0 text never asks: `lex` has no layout words (ADR-0018 is T1 only).
+                    यदि शब्दग्रहणम् समम् असत्यम् आदि मानमिलितम् भवति असत्यम् । इति
+                    यदि मानमिलितम् समम् सत्यम् आदि
+                        चरः पदपाठम् ॱॱ अङ्कः अन्तः अ८ भवति खण्डपाठः आरभ्य मूल ऽ पदारम्भः ऽ शिरोन्तः समाप्तम् ।
+                        चरः विन्यासपदम् ॱॱ बूल भवति असत्यम् ।
+                        यदि पदपाठम् समम् उक्तम् विवरम् इति आदि विन्यासपदम् भवति सत्यम् । इति
+                        यदि पदपाठम् समम् उक्तम् यतिः इति आदि विन्यासपदम् भवति सत्यम् । इति
+                        यदि विन्यासपदम् समम् सत्यम् आदि
+                            ॰ ADR-0018 names the BARE word only. Inside `उक्तम् … इति` the word is
+                            ॰ text — the interpreter's reading (18 octets), which this comparison
+                            ॰ and ir.t1's fold arms depend on: until
+                            ॰ 2026-09-14 this classified the quoted word too, the .t1 IR folded
+                            ॰ `उक्तम् विवरम् इति` to one space, and the COMPILED lexer compared every
+                            ॰ word against " " — no layout word was ever शब्दभेद natively, and lex.t1
+                            ॰ compiled by itself emitted ० where the interpreter emitted ३२ (the
+                            ॰ first per-module rung to differ). The token before this one decides.
+                            ॰ THE LOOKBACK IS NOW INSIDE THE MATCH, not beside it: only a word that
+                            ॰ IS a layout word has any need to ask what preceded it.
+                            चरः उक्तानन्तरम् ॱॱ बूल भवति असत्यम् ।
+                            यदि चिह्नकसूचकाङ्क अधिकम् ० आदि
+                                यदि चिह्नकपाठः आरभ्य चिह्नककोश अङ्कः चिह्नकसूचकाङ्क अन्तः समाप्तम् समम् उक्तम् उक्तम् इति आदि
+                                    उक्तानन्तरम् भवति सत्यम् ।
+                                इति
+                            इति
+                            यदि उक्तानन्तरम् समम् असत्यम् आदि
+                                भेद भवति शब्दभेद ।
+                            इति
                         इति
-                    इति
-                    यदि उक्तानन्तरम् समम् असत्यम् आदि
-                        यदि पदपाठम् समम् उक्तम् विवरम् इति आदि भेद भवति शब्दभेद । इति
-                        यदि पदपाठम् समम् उक्तम् यतिः इति आदि भेद भवति शब्दभेद । इति
                     इति
                 इति
 
@@ -689,7 +739,10 @@
     ॰ the CURSOR by three; the arena's length is left alone, and every reader
     ॰ walks to the cursor, never the length. An unknown name is left as four
     ॰ tokens — the parser's embed node, `ir.t1`'s cause १२ stub, the honest marker.
+    ॰ T0 text has no embed: Rust's `lex` leaves the four words as words, and so
+    ॰ does this walk on T0 text — the collapse is skipped by starting past the cursor.
     चरः समावेशक्रमः ॱॱ न६४ भवति १ ।
+    यदि शब्दग्रहणम् समम् असत्यम् आदि समावेशक्रमः भवति चिह्नकसूचकाङ्क । इति
     यावत् आरभ्य समावेशक्रमः योगः ३ समाप्तम् न्यूनम् आरभ्य चिह्नकसूचकाङ्क योगः १ समाप्तम् आदि
         चरः समावेशचिह्नकम् ॱॱ चिह्नक भवति चिह्नककोश अङ्कः समावेशक्रमः अन्तः ।
         ॰ `चिह्नकपाठः` ALLOCATES a fresh run per call. Calling it on every token
@@ -735,6 +788,19 @@
     इति
 
     प्रत्यागमनम् चिह्नकसूचकाङ्क ।
+इति
+
+॰ Rust's `lex_t1`: T1 text, where `उक्तम्`'s layout words and `समावेशः` make
+॰ `शब्दभेद`. Every T1 source and the self-tests lex through this.
+सार्वजनिक वृत्तिः पदविभाग आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि   ॰ how many tokens were written
+    प्रत्यागमनम् पदविभाजनम् मूल सत्यम् ।
+इति
+
+॰ Rust's `lex`: T0 text, which never lexes to `शब्दभेद`. The T0 reader
+॰ (`वाक्यविभागॱसङ्कलनम्`) lexes `.sas` through this, and it is ungated for the
+॰ same reason `पदविभाग` is (margin (a)): it reads EMITTED text too.
+सार्वजनिक वृत्तिः वाक्यपदविभाग आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि   ॰ how many tokens were written
+    प्रत्यागमनम् पदविभाजनम् मूल असत्यम् ।
 इति
 
 ॰ ══════════════════ the kāraka split ══════════════════

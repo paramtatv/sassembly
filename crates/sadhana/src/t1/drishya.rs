@@ -61,10 +61,20 @@
 //!
 //! ganana    = "प्रकारः" , "घटना" , "भवति" , "गणना" , "आदि" ,
 //!             [ ident , { "ऽ" , ident } , [ "ऽ" ] ] , "इति" , "॥" ;
+//! sanrachana = "प्रकारः" , "स्थितिः" , "भवति" , "संरचना" , "आदि" ,
+//!             [ anga , { "ऽ" , anga } , [ "ऽ" ] ] , "इति" , "॥" ;
+//! anga      = ident , "ॱॱ" , type_words ;   (* the type is collected, not parsed *)
 //! ```
 //!
-//! `ganana` is the one declaration outside `वृत्तिः दृश्यम्` this module reads,
-//! and it reads it because the view refers to it: doc 07 §4.2's
+//! `ganana` and `sanrachana` are the only declarations outside
+//! `वृत्तिः दृश्यम्` this module reads, and it reads them because the view
+//! refers to both — `सॱसङ्ख्या` is a member of the one and `वर्धनम्` a variant
+//! of the other. `sanrachana` arrived with `F-004f` after `ganana` had been
+//! read since `F-004f5`, and the asymmetry between them was the gap: the event
+//! was typed by the source and the state was typed by whatever the host put in
+//! the map. See [`Reader::state_field`].
+//!
+//! On `ganana`: doc 07 §4.2's
 //! `प्रकारः घटना भवति गणना ꣺ वर्धनम् ऽ ह्रासः ꣻ ॥` is the type of every
 //! `कुञ्जिका`'s event. `spec/grammar-t1.ebnf` says `enum_body` is NOT frozen,
 //! so the shape above is the corpus's — `गणकः.सस` and
@@ -163,9 +173,25 @@ const MEMBER_MARK: char = 'ॱ';
 /// see the module docs.
 const GHATANA: &str = "घटना";
 
+/// `स्थितिः` — the name of the `संरचना` that types the state a view reads,
+/// doc 07 §4.2. Fixed by name for the same reason [`GHATANA`] is, and with
+/// less room for doubt: [`Reader::view`] already requires the view's parameter
+/// to be declared `ॱॱ स्थितिः`, so the declaration an `अङ्कपाठः` resolves
+/// against is the one wearing that name and there is no second candidate.
+const STHITI: &str = "स्थितिः";
+
+/// `अ३२` — the one member type an `अङ्कपाठः` may read.
+///
+/// Doc 07 §4.2 declares `सङ्ख्याॱॱ अ३२` and [`Sthiti`] holds `i32`, so this is
+/// not a restriction this module adds: it is the whole of what the state a
+/// `दृश्यम्` is rendered against can carry. A member of any other type is a
+/// member `अङ्कपाठः` has no value for, and saying so is the point of reading
+/// the declaration at all.
+const A32: &str = "अ३२";
+
 /// `संरेखः` — how a [`Vinyasa`] aligns children on the cross axis.
 ///
-/// The three values are `crates/darshana/src/vastu/rupa.rs`'s, named the same
+/// The three values are `crates/renderer/src/vastu/rupa.rs`'s, named the same
 /// way and for the same reason: doc 07 §4.2 writes only `मध्यम्`, and an
 /// alignment with a centre and no ends cannot express a column at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -238,7 +264,7 @@ impl Vinyasa {
 /// **घटना** — a typed event: one variant of the module's
 /// `प्रकारः घटना भवति गणना`, resolved (`F-004f5`).
 ///
-/// This is what `crates/darshana/src/vastu/rupa.rs`'s `Rupa<E>` leaves
+/// This is what `crates/renderer/src/vastu/rupa.rs`'s `Rupa<E>` leaves
 /// generic — *"a value the application named rather than a string an engine
 /// would have to interpret"* — made concrete for a view read from a file: the
 /// application named it in a `गणना`, and this is that name together with its
@@ -258,7 +284,7 @@ pub struct Ghatana {
 
 /// **रूपम्** — a view, as doc 07 §4.2's sketch writes one.
 ///
-/// The variants and fields are `crates/darshana/src/vastu/rupa.rs`'s, because
+/// The variants and fields are `crates/renderer/src/vastu/rupa.rs`'s, because
 /// both are naming the same seven words of one language. Where that type is
 /// generic in its event, this one carries a [`Ghatana`]: the view came out of
 /// a module, so the module's own `गणना` is what the event is a value of.
@@ -428,20 +454,35 @@ impl core::error::Error for DrishyaError {}
 
 /// Read the `वृत्तिः दृश्यम्` of a T1 token stream and render it for `sthiti`.
 ///
-/// Everything before `वृत्तिः दृश्यम्` is skipped unread — the module header,
-/// the state type and `परिवर्तनम्` are T1's and belong to the rest of the
-/// front end — with ONE exception: `प्रकारः घटना भवति गणना`, the type of every
-/// `कुञ्जिका`'s event, is read first if the module declares it (`F-004f5`).
-/// A view refers to it, so a reader of the view has to know what it says.
+/// Everything before `वृत्तिः दृश्यम्` is skipped unread — the module header
+/// and `परिवर्तनम्` are T1's and belong to the rest of the front end — with
+/// TWO exceptions, which are the two types the view NAMES:
+///
+/// - `प्रकारः घटना भवति गणना`, the type of every `कुञ्जिका`'s event
+///   (`F-004f5`).
+/// - `प्रकारः स्थितिः भवति संरचना`, the type of the state every `अङ्कपाठः`
+///   reads a member of (`F-004f`).
+///
+/// A view refers to both, so a reader of the view has to know what they say.
+/// This doc comment used to list the state type among the things skipped
+/// unread, and it was right: `state_field` resolved a member against the
+/// [`Sthiti`] the CALLER passed and never against the module's declaration, so
+/// a view naming a member the module does not declare rendered whenever the
+/// caller's map happened to carry it, and a view naming one it does declare was
+/// refused in the same words when the caller's map did not. The runtime map is
+/// the host's half; the declaration is the source's.
 ///
 /// # Errors
 ///
-/// [`DrishyaError`] if there is no `वृत्तिः दृश्यम्`, if its shape or the
-/// `घटना` declaration's does not match the grammar in the module docs, if it
-/// reads a state field the caller did not bind, or if a `कुञ्जिका` emits an
-/// event the `घटना` does not declare — including every `कुञ्जिका` of a module
-/// that declares no `घटना`.
+/// [`DrishyaError`] if there is no `वृत्तिः दृश्यम्`, if its shape or either
+/// declaration's does not match the grammar in the module docs, if a
+/// `कुञ्जिका` emits an event the `घटना` does not declare, or if an `अङ्कपाठः`
+/// reads a member the `स्थितिः` does not declare, declares at a type other
+/// than `अ३२`, or the caller did not bind — including every `कुञ्जिका` of a
+/// module that declares no `घटना` and every `अङ्कपाठः` of one that declares no
+/// `स्थितिः`.
 pub fn render(tokens: &[Token], sthiti: &Sthiti) -> Result<Rupa, DrishyaError> {
+    let anga = read_sthiti(tokens, sthiti)?;
     let ghatana = read_ghatana(tokens, sthiti)?;
     let start = find_declaration(tokens, "वृत्तिः", "दृश्यम्").ok_or_else(|| DrishyaError {
         line: 0,
@@ -453,8 +494,49 @@ pub fn render(tokens: &[Token], sthiti: &Sthiti) -> Result<Rupa, DrishyaError> {
         pos: start,
         sthiti,
         ghatana: ghatana.as_deref(),
+        anga: anga.as_deref(),
     };
     r.view()
+}
+
+/// One member of `प्रकारः स्थितिः भवति संरचना` — its name and the words of its
+/// declared type.
+///
+/// **The type is kept as the words it was written with and is NOT parsed.** The
+/// T1 corpus declares members whose types run several tokens —
+/// `अग्रिमःॱॱ सम्भाव्य स्थानम् गण्डिका` in `tests/corpus/t1/शृङ्खला.सस`, a whole
+/// function type in `tests/corpus/t1/यन्त्रम्.सस` — and
+/// `spec/grammar-t1.ebnf:1597` says `struct_body` is NOT frozen. This module
+/// is not a type checker and `F-004f5` already measured that it does not need
+/// to be one: it needs ONE fact about a member, whether it is [`A32`], and a
+/// joined string answers that fact without claiming to answer any other.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Anga {
+    /// The member's name, as `सॱसङ्ख्या`'s field half must spell it.
+    nama: String,
+    /// The member's declared type, as the words between its `ॱॱ` and the `ऽ`
+    /// or `इति` that ends it, joined with one space.
+    prakara: String,
+}
+
+/// The members of the module's `प्रकारः स्थितिः भवति संरचना`, in declaration
+/// order, or [`None`] if the module declares no `स्थितिः`.
+///
+/// Read eagerly, for [`read_ghatana`]'s reason exactly: the declaration is the
+/// module's, and a module whose state type does not read is not one whose view
+/// should, whether or not that view happens to name a member of it.
+fn read_sthiti(tokens: &[Token], sthiti: &Sthiti) -> Result<Option<Vec<Anga>>, DrishyaError> {
+    let Some(start) = find_declaration(tokens, "प्रकारः", STHITI) else {
+        return Ok(None);
+    };
+    let mut r = Reader {
+        tokens,
+        pos: start,
+        sthiti,
+        ghatana: None,
+        anga: None,
+    };
+    r.sanrachana().map(Some)
 }
 
 /// The variants of the module's `प्रकारः घटना भवति गणना`, in declaration
@@ -472,6 +554,7 @@ fn read_ghatana(tokens: &[Token], sthiti: &Sthiti) -> Result<Option<Vec<String>>
         pos: start,
         sthiti,
         ghatana: None,
+        anga: None,
     };
     r.ganana().map(Some)
 }
@@ -500,6 +583,11 @@ struct Reader<'a> {
     /// The module's `घटना` variants in declaration order; [`None`] if the
     /// module declares no `घटना`, in which case every `कुञ्जिका` is refused.
     ghatana: Option<&'a [String]>,
+    /// The module's `स्थितिः` members in declaration order; [`None`] if the
+    /// module declares no `स्थितिः`, in which case every `अङ्कपाठः` is
+    /// refused. The same shape as `ghatana` and for the same reason: a view
+    /// names two types, and a reader of the view resolves both as it reads.
+    anga: Option<&'a [Anga]>,
 }
 
 impl<'a> Reader<'a> {
@@ -779,6 +867,92 @@ impl<'a> Reader<'a> {
         Ok(variants)
     }
 
+    /// `प्रकारः स्थितिः भवति संरचना आदि सङ्ख्याॱॱ अ३२ ऽ इति ॥` — the members,
+    /// in order.
+    ///
+    /// `संरचना` is required for [`Self::ganana`]'s reason mirrored: a
+    /// `प्रकारः स्थितिः भवति गणना` is a different declaration that shares a
+    /// name, and an enum has no members for an `अङ्कपाठः` to read.
+    ///
+    /// # Why a member's type is collected rather than parsed
+    ///
+    /// `spec/grammar-t1.ebnf:1597` lists `struct_body` among the productions
+    /// that are NOT frozen, and the corpus writes member types several tokens
+    /// long. So the words of a type are gathered to the `ऽ` or `इति` that ends
+    /// the member, at nesting depth zero, and joined — see [`Anga`]. The three
+    /// bracket pairs ADR-0003 ratified all nest inside a type
+    /// (`आरभ्य … समाप्तम्` in a function type, `अङ्कः … अन्तः` in an array
+    /// type, `आदि … इति` in neither today but counted rather than assumed
+    /// absent), so each is tracked: an interior `ऽ` — a function type's second
+    /// argument — must not end the member, and `इति` must close its own
+    /// bracket before it can close the body.
+    ///
+    /// The trailing separator is optional exactly as in [`Self::ganana`], and
+    /// for the stronger reason: the sketch and every `संरचना` in the corpus
+    /// write one.
+    fn sanrachana(&mut self) -> Result<Vec<Anga>, DrishyaError> {
+        self.expect("प्रकारः")?;
+        self.expect(STHITI)?;
+        self.expect("भवति")?;
+        self.expect("संरचना")?;
+        self.expect("आदि")?;
+        let mut angani: Vec<Anga> = Vec::new();
+        while !self.eat("इति") {
+            let nama = self.name()?;
+            if angani.iter().any(|a| a.nama == nama) {
+                return self.err(format!("{nama} इति अङ्गम् स्थितौ द्विः घोषितम्"));
+            }
+            if !self.eat_kind(&Kind::LabelMark) {
+                return self.err(format!("ॱॱ इति अपेक्षितम् {nama} इत्यस्य प्रकाराय"));
+            }
+            let (prakara, ended) = self.prakara_padani()?;
+            if prakara.is_empty() {
+                return self.err(format!("{nama} इत्यस्य प्रकारः न लिखितः"));
+            }
+            angani.push(Anga { nama, prakara });
+            if ended {
+                break;
+            }
+        }
+        if !self.eat_kind(&Kind::DoubleDanda) {
+            return self.err("॥ इति अपेक्षितम् प्रकारस्य अन्ते");
+        }
+        Ok(angani)
+    }
+
+    /// The words of one member's type, and whether the body ended with it.
+    ///
+    /// `true` means the member was closed by the body's own `इति` — which this
+    /// consumes, so the caller must not look for it again — and `false` that it
+    /// was closed by a `ऽ` and another member may follow.
+    fn prakara_padani(&mut self) -> Result<(String, bool), DrishyaError> {
+        let mut padani: Vec<String> = Vec::new();
+        let mut gahanata = 0usize;
+        loop {
+            let Some(t) = self.peek() else {
+                return self.err("इति इत्यस्य अन्तः प्रकारे न प्राप्तः");
+            };
+            match t.text.as_str() {
+                "आरभ्य" | "अङ्कः" | "आदि" => gahanata += 1,
+                "समाप्तम्" | "अन्तः" => {
+                    gahanata = gahanata.saturating_sub(1)
+                }
+                "इति" if gahanata == 0 => {
+                    self.pos += 1;
+                    return Ok((padani.join(" "), true));
+                }
+                "इति" => gahanata -= 1,
+                _ if gahanata == 0 && matches!(t.kind, Kind::Separator) => {
+                    self.pos += 1;
+                    return Ok((padani.join(" "), false));
+                }
+                _ => {}
+            }
+            padani.push(t.text.clone());
+            self.pos += 1;
+        }
+    }
+
     /// Text pieces joined by `अधि`, with nothing between them.
     ///
     /// **The join used to insert one space, and ADR-0018 deleted it.** See the
@@ -829,9 +1003,32 @@ impl<'a> Reader<'a> {
         if root != param {
             return self.err(format!("{root} इति अज्ञातम् ऽ अस्याम् वृत्तौ {param} एव स्थितिः"));
         }
+        // ── F-004f: THE MEMBER IS TYPED, AND THE SOURCE TYPES IT ──────────
+        //
+        // The two questions below used to be one, and collapsing them is what
+        // made this reader half-typed. `self.sthiti` is the HOST's map, handed
+        // in by whoever called `render`; the declaration is the SOURCE's. A
+        // member absent from the declaration is a defect in the view, and a
+        // member present in it but absent from the map is a defect in the
+        // caller — the first refuses the program, the second refuses the call,
+        // and they cannot share a sentence.
+        let Some(angani) = self.anga else {
+            return self.err(format!(
+                "अस्मिन् मण्डले प्रकारः स्थितिः न घोषितः ऽ {field} इत्यस्य अङ्कपाठः न शक्यः"
+            ));
+        };
+        let Some(anga) = angani.iter().find(|a| a.nama == field) else {
+            return self.err(format!("स्थितौ {field} इति अङ्गम् न घोषितम्"));
+        };
+        if anga.prakara != A32 {
+            let prakara = &anga.prakara;
+            return self.err(format!(
+                "{field} इति अङ्गम् {prakara} प्रकारस्य ऽ अङ्कपाठः {A32} एव पठति"
+            ));
+        }
         match self.sthiti.get(field) {
             Some(v) => Ok(v),
-            None => self.err(format!("स्थितौ {field} इति अङ्गम् नास्ति")),
+            None => self.err(format!("{field} इति अङ्गम् घोषितम् ऽ मूल्यम् तु न बद्धम्")),
         }
     }
 
@@ -915,9 +1112,15 @@ mod tests {
     /// read with it in front — which is where `गणकः.सस` puts it too.
     const GHATANA_GANANA: &str = "प्रकारः घटना भवति गणना आदि वर्धनम् ऽ ह्रासः ऽ इति ॥\n";
 
-    /// `view` with the sketch's `घटना` declared before it.
+    /// The sketch's state type, alone. `F-004f`: an `अङ्कपाठः` reads a member
+    /// of THIS declaration, so every view below that names one is read with it
+    /// in front — which is where `गणकः.सस` puts it too, first of the two.
+    const STHITI_SANRACHANA: &str = "प्रकारः स्थितिः भवति संरचना आदि सङ्ख्याॱॱ अ३२ ऽ इति ॥\n";
+
+    /// `view` with the sketch's two types declared before it, in the sketch's
+    /// own order.
     fn module(view: &str) -> String {
-        format!("{GHATANA_GANANA}{view}")
+        format!("{STHITI_SANRACHANA}{GHATANA_GANANA}{view}")
     }
 
     /// The typed event `F-004f5` resolves `word` to, at `krama`.
@@ -1074,6 +1277,19 @@ mod tests {
         let tokens = lex(&module(VIEW)).expect("lexes");
         let e = render(&tokens, &Sthiti::new()).expect_err("no सङ्ख्या is bound");
         assert!(e.reason.contains("सङ्ख्या"), "got {}", e.reason);
+        // `F-004f`: the member IS declared, so this is the CALLER's omission
+        // and must not read as the view's. `an_undeclared_member_is_refused`
+        // below is the other half, and the two messages are disjoint.
+        assert!(
+            e.reason.contains("न बद्धम्"),
+            "the binding is what is missing: {}",
+            e.reason
+        );
+        assert!(
+            !e.reason.contains("न घोषितम्"),
+            "and the declaration is not: {}",
+            e.reason
+        );
     }
 
     #[test]
@@ -1108,8 +1324,9 @@ mod tests {
     }
 
     /// The sub-language is embedded in T1, so what precedes it is skipped
-    /// unread rather than parsed. Three declarations the sketch has and this
-    /// module does not understand sit in front of the view here.
+    /// unread rather than parsed — with the two exceptions `render` names, the
+    /// two types the view itself refers to. The declaration this module does
+    /// not understand, and skips, is `वृत्तिः परिवर्तनम्`.
     ///
     /// **`वृत्तिः परिवर्तनम्` is one of them, and it is load-bearing.** A
     /// mutation that made the view finder (now `find_declaration`) take the first `वृत्तिः` whatever its
@@ -1128,8 +1345,9 @@ mod tests {
              वर्धनम् ततः प्रत्यागमनम् स्थितिः आदि सङ्ख्या भवति सॱसङ्ख्या अधि १ इति ।\n\
              इति\nइति ॥\n{VIEW}"
         );
-        // Read as written: the prefix already declares `घटना`, and it is the
-        // one declaration before the view that IS read — `F-004f5`.
+        // Read as written: the prefix already declares both `स्थितिः`
+        // (`F-004f`) and `घटना` (`F-004f5`), which are the two declarations
+        // before the view that ARE read, and nothing else in it is.
         assert_eq!(
             read_module(&src).expect("the view is found"),
             view_at(0).expect("ok")
@@ -1253,7 +1471,8 @@ mod tests {
     #[test]
     fn the_ganana_is_read_from_the_module_and_not_assumed() {
         let src = format!(
-            "प्रकारः घटना भवति गणना आदि वर्धनम् ऽ ह्रासः ऽ नाशः ऽ इति ॥\n{}",
+            "{STHITI_SANRACHANA}\
+             प्रकारः घटना भवति गणना आदि वर्धनम् ऽ ह्रासः ऽ नाशः ऽ इति ॥\n{}",
             VIEW.replace("ऽ ह्रासः समाप्तम्", "ऽ नाशः समाप्तम्")
         );
         let view = read_module(&src).expect("नाशः is declared here");
@@ -1287,7 +1506,8 @@ mod tests {
             ]
         );
 
-        let reversed = format!("प्रकारः घटना भवति गणना आदि ह्रासः ऽ वर्धनम् ऽ इति ॥\n{VIEW}");
+        let reversed =
+            format!("{STHITI_SANRACHANA}प्रकारः घटना भवति गणना आदि ह्रासः ऽ वर्धनम् ऽ इति ॥\n{VIEW}");
         let view = read_module(&reversed).expect("reads");
         let row = view.children()[1].children();
         let Rupa::Kunjika { ghatana: first, .. } = &row[0] else {
@@ -1308,7 +1528,12 @@ mod tests {
     /// on its own, which every test above `F-004f5` used to read.
     #[test]
     fn a_button_in_a_module_with_no_ghatana_is_refused() {
-        let e = read_module(VIEW).expect_err("no घटना is declared");
+        // The state type IS declared here and the event type is not: the
+        // `पाठः` precedes the buttons in the tree, so a module declaring
+        // NEITHER is refused for the state and this test's subject never
+        // runs. That is the two refusals being distinct, not an accident.
+        let e =
+            read_module(&format!("{STHITI_SANRACHANA}{VIEW}")).expect_err("no घटना is declared");
         assert!(e.reason.contains("घटना"), "got {}", e.reason);
         assert!(
             e.reason.contains("कुञ्जिका"),
@@ -1323,7 +1548,8 @@ mod tests {
     /// type.
     #[test]
     fn a_ganana_of_another_name_does_not_type_events() {
-        let src = format!("प्रकारः अवस्था भवति गणना आदि वर्धनम् ऽ ह्रासः ऽ इति ॥\n{VIEW}");
+        let src =
+            format!("{STHITI_SANRACHANA}प्रकारः अवस्था भवति गणना आदि वर्धनम् ऽ ह्रासः ऽ इति ॥\n{VIEW}");
         let e = read_module(&src).expect_err("अवस्था is not घटना");
         assert!(e.reason.contains("घटना"), "got {}", e.reason);
     }
@@ -1333,7 +1559,8 @@ mod tests {
     /// `फलम् रूपम्`: the kind is the claim, and the reader does not invent one.
     #[test]
     fn a_ghatana_that_is_not_a_ganana_is_refused() {
-        let src = format!("प्रकारः घटना भवति संरचना आदि सङ्ख्याॱॱ अ३२ ऽ इति ॥\n{VIEW}");
+        let src =
+            format!("{STHITI_SANRACHANA}प्रकारः घटना भवति संरचना आदि सङ्ख्याॱॱ अ३२ ऽ इति ॥\n{VIEW}");
         let e = read_module(&src).expect_err("a struct is not an event type");
         assert!(e.reason.contains("गणना"), "got {}", e.reason);
     }
@@ -1341,7 +1568,8 @@ mod tests {
     /// A `गणना` that names a variant twice cannot give it one place.
     #[test]
     fn a_ganana_that_repeats_a_variant_is_refused() {
-        let src = format!("प्रकारः घटना भवति गणना आदि वर्धनम् ऽ वर्धनम् ऽ इति ॥\n{VIEW}");
+        let src =
+            format!("{STHITI_SANRACHANA}प्रकारः घटना भवति गणना आदि वर्धनम् ऽ वर्धनम् ऽ इति ॥\n{VIEW}");
         let e = read_module(&src).expect_err("a repeated variant");
         assert!(e.reason.contains("वर्धनम्"), "got {}", e.reason);
     }
@@ -1375,6 +1603,7 @@ mod tests {
             "पाठः आरभ्य उक्तम् क इति समाप्तम्",
         );
         assert_ne!(src, VIEW, "the buttons must be replaced");
+        let src = format!("{STHITI_SANRACHANA}{src}");
         let view = read_module(&src).expect("a view without buttons reads without a घटना");
         assert!(view.events().is_empty());
         assert_eq!(view.text(), ["गणना ०", "क"]);
@@ -1385,17 +1614,177 @@ mod tests {
     /// spelling is refused — while two variants with nothing between them are.
     #[test]
     fn the_last_variant_may_or_may_not_be_followed_by_a_separator() {
-        let no_trailing = format!("प्रकारः घटना भवति गणना आदि वर्धनम् ऽ ह्रासः इति ॥\n{VIEW}");
+        let no_trailing =
+            format!("{STHITI_SANRACHANA}प्रकारः घटना भवति गणना आदि वर्धनम् ऽ ह्रासः इति ॥\n{VIEW}");
         assert_eq!(
             read_module(&no_trailing).expect("reads"),
             view_at(0).expect("reads")
         );
-        let unseparated = format!("प्रकारः घटना भवति गणना आदि वर्धनम् ह्रासः इति ॥\n{VIEW}");
+        let unseparated =
+            format!("{STHITI_SANRACHANA}प्रकारः घटना भवति गणना आदि वर्धनम् ह्रासः इति ॥\n{VIEW}");
         let e = read_module(&unseparated).expect_err("two names with no ऽ between");
         assert!(
             e.reason.contains("ह्रासः"),
             "names the word it stopped at: {}",
             e.reason
+        );
+    }
+    // ── F-004f: THE STATE IS TYPED BY THE SOURCE ─────────────────────────
+    //
+    // The seven tests below are the `घटना` block's shape applied to the other
+    // type a view names. Before them, `state_field` asked `self.sthiti` — the
+    // map the CALLER passes — and nothing else, so the view's two references
+    // were typed by two different authorities: the event by the module, the
+    // state by the host.
+
+    /// A member no `प्रकारः स्थितिः` declares is refused even when the caller's
+    /// map carries a value for it. This is the defect, stated: the host's map
+    /// could type the view, and here it would have.
+    #[test]
+    fn an_undeclared_member_is_refused_even_when_the_caller_binds_it() {
+        let src = format!(
+            "प्रकारः स्थितिः भवति संरचना आदि अन्यत्ॱॱ अ३२ ऽ इति ॥\n\
+             {GHATANA_GANANA}{VIEW}"
+        );
+        let tokens = lex(&src).expect("lexes");
+        // The caller binds `सङ्ख्या`, exactly as every passing test does.
+        let e = render(&tokens, &Sthiti::new().with("सङ्ख्या", 7))
+            .expect_err("सङ्ख्या is not declared in this module");
+        assert!(e.reason.contains("सङ्ख्या"), "got {}", e.reason);
+        assert!(
+            e.reason.contains("न घोषितम्"),
+            "the declaration is what is missing: {}",
+            e.reason
+        );
+    }
+
+    /// A module that declares no `स्थितिः` at all has no state type, so an
+    /// `अङ्कपाठः` in it reads a member of nothing and is refused — the exact
+    /// rule `a_button_in_a_module_with_no_ghatana_is_refused` applies to a
+    /// `कुञ्जिका`.
+    #[test]
+    fn an_ankapatha_in_a_module_with_no_sthiti_is_refused() {
+        let e = read_module(&format!("{GHATANA_GANANA}{VIEW}")).expect_err("no स्थितिः is declared");
+        assert!(e.reason.contains("स्थितिः"), "got {}", e.reason);
+        assert!(
+            e.reason.contains("अङ्कपाठः"),
+            "and says what needed it: {}",
+            e.reason
+        );
+    }
+
+    /// A view with no `अङ्कपाठः` needs no state type at all, for
+    /// `a_view_without_a_button_needs_no_ghatana`'s reason: the declaration is
+    /// read for its readers, and a module with none is not asked for it.
+    #[test]
+    fn a_view_without_an_ankapatha_needs_no_sthiti() {
+        let src = VIEW.replace(
+            "उक्तम् गणना इति अधि विवरम् अधि अङ्कपाठः आरभ्य सॱसङ्ख्या समाप्तम्",
+            "उक्तम् गणना इति",
+        );
+        assert_ne!(src, VIEW, "the अङ्कपाठः must be replaced");
+        let view = read_module(&format!("{GHATANA_GANANA}{src}"))
+            .expect("a view with no अङ्कपाठः reads without a स्थितिः");
+        // `text()` reaches a `कुञ्जिका`'s label too, so the two buttons are
+        // here; the point is that `गणना` lost its numeral and nothing asked
+        // for a state.
+        assert_eq!(view.text(), ["गणना", "वर्धय", "ह्रासय"]);
+    }
+
+    /// `प्रकारः स्थितिः भवति गणना` is a different declaration that shares the
+    /// name, and an enum has no members. Same rule as
+    /// `a_ghatana_that_is_not_a_ganana_is_refused`, the other way round.
+    #[test]
+    fn a_sthiti_that_is_not_a_sanrachana_is_refused() {
+        let src = format!("प्रकारः स्थितिः भवति गणना आदि सङ्ख्या ऽ इति ॥\n{GHATANA_GANANA}{VIEW}");
+        let e = read_module(&src).expect_err("an enum has no members");
+        assert!(e.reason.contains("संरचना"), "got {}", e.reason);
+    }
+
+    /// A `संरचना` that names a member twice cannot give it one type.
+    #[test]
+    fn a_sanrachana_that_repeats_a_member_is_refused() {
+        let src = format!(
+            "प्रकारः स्थितिः भवति संरचना आदि सङ्ख्याॱॱ अ३२ ऽ सङ्ख्याॱॱ अ३२ ऽ इति ॥\n\
+             {GHATANA_GANANA}{VIEW}"
+        );
+        let e = read_module(&src).expect_err("a repeated member");
+        assert!(e.reason.contains("द्विः"), "got {}", e.reason);
+    }
+
+    /// `अङ्कपाठः` writes a numeral and [`Sthiti`] holds `i32`, so a member
+    /// declared at any other type is one it has no value for. The type here is
+    /// `पाठः`, which `tests/corpus/t1/यन्त्रम्.सस` declares a member at.
+    #[test]
+    fn a_member_declared_at_another_type_is_refused() {
+        let src = format!(
+            "प्रकारः स्थितिः भवति संरचना आदि सङ्ख्याॱॱ पाठः ऽ इति ॥\n\
+             {GHATANA_GANANA}{VIEW}"
+        );
+        let tokens = lex(&src).expect("lexes");
+        let e = render(&tokens, &Sthiti::new().with("सङ्ख्या", 7)).expect_err("पाठः is not अ३२");
+        assert!(
+            e.reason.contains("पाठः"),
+            "names the type it found: {}",
+            e.reason
+        );
+        assert!(
+            e.reason.contains(A32),
+            "and the one it wanted: {}",
+            e.reason
+        );
+    }
+
+    /// A member type is COLLECTED and not parsed ([`Anga`]), so the corpus's
+    /// multi-token types read — including a function type whose own `आरभ्य …
+    /// समाप्तम्` holds the `ऽ` that would otherwise end the member early. The
+    /// `अ३२` member beside it still resolves, which is the fact at issue: a
+    /// reader that mis-split the first type would lose the second.
+    #[test]
+    fn a_multi_word_member_type_does_not_end_the_member_early() {
+        let src = format!(
+            "प्रकारः स्थितिः भवति संरचना आदि \
+             अग्रिमःॱॱ सम्भाव्य स्थानम् गण्डिका ऽ \
+             चालकःॱॱ वृत्तिस्थानम् आरभ्य अ३२ ऽ अ३२ समाप्तम् फलम् शून्यम् ऽ \
+             सङ्ख्याॱॱ अ३२ ऽ इति ॥\n{GHATANA_GANANA}{VIEW}"
+        );
+        let tokens = lex(&src).expect("lexes");
+        let view = render(&tokens, &Sthiti::new().with("सङ्ख्या", 7)).expect("सङ्ख्या resolves");
+        assert_eq!(view.text()[0], "गणना ७");
+        // And the two members before it kept their whole types, so neither
+        // half of a split type was mistaken for a member of its own.
+        let angani = read_sthiti(&tokens, &Sthiti::new())
+            .expect("reads")
+            .expect("declared");
+        assert_eq!(
+            angani,
+            vec![
+                Anga {
+                    nama: "अग्रिमः".into(),
+                    prakara: "सम्भाव्य स्थानम् गण्डिका".into()
+                },
+                Anga {
+                    nama: "चालकः".into(),
+                    prakara: "वृत्तिस्थानम् आरभ्य अ३२ ऽ अ३२ समाप्तम् फलम् शून्यम्".into(),
+                },
+                Anga {
+                    nama: "सङ्ख्या".into(),
+                    prakara: A32.into()
+                },
+            ]
+        );
+    }
+
+    /// A member may end with or without the trailing `ऽ`, exactly as a variant
+    /// may: the sketch and every `संरचना` in the corpus write one, and
+    /// `spec/grammar-t1.ebnf:1597` says `struct_body` is not frozen.
+    #[test]
+    fn the_last_member_may_or_may_not_be_followed_by_a_separator() {
+        let no_trailing =
+            format!("प्रकारः स्थितिः भवति संरचना आदि सङ्ख्याॱॱ अ३२ इति ॥\n{GHATANA_GANANA}{VIEW}");
+        assert_eq!(
+            read_module(&no_trailing).expect("reads"),
+            view_at(0).expect("reads")
         );
     }
 }

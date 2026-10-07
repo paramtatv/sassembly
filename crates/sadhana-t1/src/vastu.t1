@@ -47,7 +47,7 @@
   स्थानाङ्कः ॱॱ न६४ ऽ    ॰ byte offset into .text
   संज्ञाङ्कः ॱॱ अ३२ ऽ     ॰ index into वस्तुॱसंज्ञाः, as ELF counts it — ० is the null symbol
   भेदः ॱॱ अ३२ ऽ         ॰ a type from spec/relocations-riscv64.tsv
-  योज्यम् ॱॱ इ६४        ॰ added to the symbol's value
+  योज्यम् ॱॱ अ६४        ॰ added to the symbol's value
 समाप्तम् ।
 
 ॰ one debug section, carried by name — the (String, Vec<u8>) pair.

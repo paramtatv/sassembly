@@ -1,0 +1,24 @@
+मण्डलम् प्राचलसीमापरीक्षण ॥
+
+॰ W-359 rule (2), the control: the same non-returning writer, but the caller
+॰ sized the run to six in its own frame, so index ५ is WITHIN the length and
+॰ the store passes untouched — the in-place out-parameter writer
+॰ (vishlesana.t1's अवकाशमूल्यानि, spec/virtio-gpu.t1's लिख) keeps working.
+॰ Both engines answer ९९ + ६ = १०५: the write reaches the caller.
+वृत्तिः परलेखकः आदाय सूची ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    सूची अङ्कः ५ अन्तः भवति ९९ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क ॱॱ न६४ भवति ० ।
+    यावत् क न्यूनम् ६ आदि
+        सूची अङ्कः क अन्तः भवति ० ।
+        क भवति क योगः १ ।
+    इति
+    चरः उ ॱॱ न६४ भवति परलेखकः सूची ।
+    चरः फलाङ्कः ॱॱ न६४ भवति सूची अङ्कः ५ अन्तः ।
+    फलाङ्कः भवति फलाङ्कः योगः सूची ॱ दैर्घ्य ।
+    प्रत्यागमनम् फलाङ्कः ।
+इति

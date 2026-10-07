@@ -365,45 +365,65 @@ fn the_t1_image_is_octet_for_octet_the_rust_one() {
     // that is both well-defined and STRONGER than a file comparison: it is
     // insensitive to padding and header layout no loader looks at, and
     // sensitive to every octet that executes.
-    let seg = |img: &[u8], who: &str| -> (u64, Vec<u8>) {
+    // EVERY PT_LOAD, header and bytes (`W-363`: the text's `R E` segment and,
+    // when there is data or bss, a writable one at the next page).
+    // (the program header, the segment's file bytes), per PT_LOAD.
+    type Load = (Vec<u8>, Vec<u8>);
+    let seg = |img: &[u8]| -> (u64, Vec<Load>) {
         let ph_off = u64::from_le_bytes(img[32..40].try_into().unwrap()) as usize;
-        let ph_num = u16::from_le_bytes(img[56..58].try_into().unwrap());
-        assert_eq!(
-            ph_num, 1,
-            "{who}: one PT_LOAD is the shape both sides write"
-        );
-        let p_offset =
-            u64::from_le_bytes(img[ph_off + 8..ph_off + 16].try_into().unwrap()) as usize;
-        let p_filesz =
-            u64::from_le_bytes(img[ph_off + 32..ph_off + 40].try_into().unwrap()) as usize;
+        let ph_num = u16::from_le_bytes(img[56..58].try_into().unwrap()) as usize;
+        let loads = (0..ph_num)
+            .map(|k| ph_off + 56 * k)
+            .filter(|&at| u32::from_le_bytes(img[at..at + 4].try_into().unwrap()) == 1)
+            .map(|at| {
+                let p_offset =
+                    u64::from_le_bytes(img[at + 8..at + 16].try_into().unwrap()) as usize;
+                let p_filesz =
+                    u64::from_le_bytes(img[at + 32..at + 40].try_into().unwrap()) as usize;
+                (
+                    img[at..at + 56].to_vec(),
+                    img[p_offset..p_offset + p_filesz].to_vec(),
+                )
+            })
+            .collect();
         let entry = u64::from_le_bytes(img[24..32].try_into().unwrap());
-        (entry, img[p_offset..p_offset + p_filesz].to_vec())
+        (entry, loads)
     };
-    let (my_entry, my_seg) = seg(&mine, "the .t1 image");
-    let (rust_entry, rust_seg) = seg(&theirs, "the Rust image");
-    println!("METRIC t1_twin_segment_mine {}", my_seg.len());
-    println!("METRIC t1_twin_segment_rust {}", rust_seg.len());
+    let (my_entry, my_loads) = seg(&mine);
+    let (rust_entry, rust_loads) = seg(&theirs);
+    let total = |l: &[Load]| l.iter().map(|(_, b)| b.len()).sum::<usize>();
+    println!("METRIC t1_twin_segment_mine {}", total(&my_loads));
+    println!("METRIC t1_twin_segment_rust {}", total(&rust_loads));
     println!("  e_entry mine {my_entry:#x} rust {rust_entry:#x}");
 
     assert_eq!(
         my_entry, rust_entry,
         "the two images enter at different addresses"
     );
-    if my_seg != rust_seg {
-        let at = my_seg
-            .iter()
-            .zip(rust_seg.iter())
-            .position(|(a, b)| a != b)
-            .unwrap_or_else(|| my_seg.len().min(rust_seg.len()));
-        panic!(
-            "THE LOADABLE SEGMENTS DIFFER — this is code or data, not a format \
-             choice. mine {} octets, rust {} octets, FIRST DIFFERING OFFSET {at} \
-             within the segment (mine {:?}, rust {:?})",
-            my_seg.len(),
-            rust_seg.len(),
-            my_seg.get(at),
-            rust_seg.get(at),
-        );
+    assert_eq!(
+        my_loads.len(),
+        rust_loads.len(),
+        "the two images carry different numbers of PT_LOAD"
+    );
+    for (k, ((my_ph, my_seg), (rust_ph, rust_seg))) in my_loads.iter().zip(&rust_loads).enumerate()
+    {
+        assert_eq!(my_ph, rust_ph, "PT_LOAD {k}: the program headers differ");
+        if my_seg != rust_seg {
+            let at = my_seg
+                .iter()
+                .zip(rust_seg.iter())
+                .position(|(a, b)| a != b)
+                .unwrap_or_else(|| my_seg.len().min(rust_seg.len()));
+            panic!(
+                "THE LOADABLE SEGMENTS DIFFER — this is code or data, not a format \
+                 choice. PT_LOAD {k}: mine {} octets, rust {} octets, FIRST DIFFERING \
+                 OFFSET {at} within the segment (mine {:?}, rust {:?})",
+                my_seg.len(),
+                rust_seg.len(),
+                my_seg.get(at),
+                rust_seg.get(at),
+            );
+        }
     }
     println!("  the loadable segments are octet-identical");
 

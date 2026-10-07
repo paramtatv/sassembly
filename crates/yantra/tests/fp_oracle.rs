@@ -41,7 +41,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use yantra::{Csrs, Halt, Machine, Privilege};
+use yantra::{Csrs, Machine, Privilege};
 
 const BASE: u64 = 0x8000_0000;
 
@@ -146,7 +146,14 @@ fn binutils_agrees_with_our_table_on_every_float_encoding() {
     // process spawns is a slow test, and a slow test gets `#[ignore]`d and then nothing
     // runs it. Every float pattern has `11` in its low two bits, so none decodes as a
     // compressed instruction and the 4-byte stride holds.
-    let dir = std::env::temp_dir().join(format!("fp-oracle-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "fp-oracle-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
     std::fs::create_dir_all(&dir).expect("temp dir");
     let bin = dir.join("patterns.bin");
     {
@@ -229,17 +236,26 @@ fn binutils_agrees_with_our_table_on_every_float_encoding() {
 
 #[test]
 fn yantra_implements_every_float_row_the_table_names() {
-    // A COVERAGE claim, not a semantic one: the machine must not halt `Unimplemented` on
-    // any float encoding the table names. This catches a family the table has and the
+    // A COVERAGE claim, not a semantic one: every float encoding the table names must
+    // RETIRE — one step, no halt of any kind. This catches a family the table has and the
     // machine forgot — which is exactly how F and D looked before `V-001`.
+    //
+    // **ANY HALT, NOT ONLY `Unimplemented` (V-009 part (i-c)).** The first version failed
+    // on `Unimplemented` alone, and so had two false greens. Under the FS gate every row
+    // halted `Undelivered { cause: 2 }` and this still passed; and on main before (i-c)
+    // the four loads and stores halted `BadAccess` at address 0 or 2 — `x1`, the `rs1`
+    // the probe names, was 0 — so they never ran at all. Now `x1` points into RAM, FS is
+    // Initial as the startup sets it, and every halt is a failure, named.
     let rows = float_rows();
-    let mut unimplemented = Vec::new();
+    let mut halted = Vec::new();
 
     for r in &rows {
         let mut m = Machine {
+            store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
             patra_root: None,
             patra_path: None,
             patra_buffer: None,
+            virtio: Default::default(),
             x: [0; 32],
             f: [0; 32],
             fcsr: 0, // frm = RNE, so a `dyn` pattern resolves to a mode we honour
@@ -247,34 +263,38 @@ fn yantra_implements_every_float_row_the_table_names() {
             base: BASE,
             mem: vec![0; 1 << 16],
             reservation: None,
-            csr: Csrs::default(),
+            // FS = Initial: a float instruction under FS = Off is illegal (V-009 (i-c)).
+            csr: Csrs {
+                sstatus: 0b01 << 13,
+                ..Csrs::default()
+            },
             mode: Privilege::Supervisor,
             time: 0,
             timecmp: None,
+            vec: Default::default(),
+            socket: None,
         };
         m.mem[0..4].copy_from_slice(&r.probe().to_le_bytes());
-        // Give the loads and stores an address inside RAM rather than 0, so a genuine
-        // implementation is not mistaken for a fault. Every float row's rs1 is x0 in the
-        // bare pattern, and x0 reads 0, so point the base at BASE via the only register
-        // the pattern can name — x0 cannot be written, so instead put the target page at
-        // offset 0, which BASE already is.
-        let halt = m.step(&mut Vec::new());
-        if let Some(Halt::Unimplemented { .. }) = halt {
-            unimplemented.push(format!("{} ({:#010x})", r.insn, r.probe()));
+        // Give the loads and stores an address inside RAM, so a genuine implementation is
+        // not mistaken for a fault: [`Row::probe`] names `x1` as `rs1` wherever the mask
+        // leaves it free, and the loads' and stores' offset is the probe's `rs2` field
+        // (2) at most, so `x1 = BASE + 0x1000` keeps every access on one RAM page. The
+        // comment this replaces said the target page was "at offset 0, which BASE already
+        // is" — it was not: the access went to address 0 and halted `BadAccess`.
+        m.x[1] = BASE + 0x1000;
+        if let Some(h) = m.step(&mut Vec::new()) {
+            halted.push(format!("{} ({:#010x}): {h:?}", r.insn, r.probe()));
         }
     }
 
     println!("METRIC fp_oracle_coverage_rows {}", rows.len());
-    println!(
-        "METRIC fp_oracle_coverage_unimplemented {}",
-        unimplemented.len()
-    );
+    println!("METRIC fp_oracle_coverage_halted {}", halted.len());
 
     assert!(
-        unimplemented.is_empty(),
-        "{} float encoding(s) the table names halt `Unimplemented` on this machine. The \
-         table and the machine must agree about what exists:\n  {}",
-        unimplemented.len(),
-        unimplemented.join("\n  ")
+        halted.is_empty(),
+        "{} float encoding(s) the table names halt on this machine instead of retiring. \
+         The table and the machine must agree about what exists:\n  {}",
+        halted.len(),
+        halted.join("\n  ")
     );
 }

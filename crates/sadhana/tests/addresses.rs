@@ -14,7 +14,8 @@
 //!
 //! `as` alone emits relocations for `%pcrel_hi`, so it cannot be the oracle
 //! here. `ld --no-relax` resolves them, and the words below are what it
-//! produced for the same shape.
+//! produced for the same shape — with `-Tdata` at the page after the text
+//! since W-363, which is where `kosha::data_base` puts `.data`.
 
 use sadhana::encode::encode_program;
 use sadhana::parse::{Section, assemble_program};
@@ -32,12 +33,14 @@ const SOURCE: &str = "\
 fn the_pair_matches_what_the_linker_resolves() {
     let p = assemble_program(SOURCE).expect("parses");
     let words = sadhana::encode::words(&encode_program(&p).expect("encodes"));
-    // From `ld --no-relax -Ttext=0x80000000` on:
+    // From `ld --no-relax -Ttext=0x80000000 -Tdata=0x80001000` on (W-363:
+    // `.data` at the page after the text; it was `addi a0, a0, 8` behind an
+    // eight-aligned data base):
     //     1: auipc a0, %pcrel_hi(d)
     //        addi  a0, a0, %pcrel_lo(1b)
-    //     d: .word 1
-    assert_eq!(words[0], 0x0000_0517, "auipc a0, 0x0");
-    assert_eq!(words[1], 0x0085_0513, "addi a0, a0, 8");
+    //     d: .word 1     (in .data)
+    assert_eq!(words[0], 0x0000_1517, "auipc a0, 0x1");
+    assert_eq!(words[1], 0x0005_0513, "addi a0, a0, 0");
 }
 
 #[test]
@@ -79,9 +82,15 @@ fn the_low_half_measures_from_the_instruction_before_it() {
 ";
     let p = assemble_program(src).expect("parses");
     let words = sadhana::encode::words(&encode_program(&p).expect("encodes"));
-    // auipc is at +4, data at +16 (12 bytes of text, rounded to 16): offset 12.
-    assert_eq!(words[1], 0x0000_0517, "auipc a0, 0x0");
-    assert_eq!(words[2] >> 20, 12, "addi immediate is the whole distance");
+    // auipc is at +4, data at +4096 (the page after 12 octets of text):
+    // distance 4092, so `ld` (same flags as above) writes auipc a0, 0x1 and
+    // addi a0, a0, -4. Measured from its own pc, the low half would be -8.
+    assert_eq!(words[1], 0x0000_1517, "auipc a0, 0x1");
+    assert_eq!(
+        (words[2] as i32) >> 20,
+        -4,
+        "addi immediate completes the distance from the auipc"
+    );
 }
 
 #[test]

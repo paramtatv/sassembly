@@ -91,9 +91,13 @@
 ॰ pairs are a slice and स्थानान्वेषणम् below is the lookup. lossy by
 ॰ construction in both: two objects may each define a local चक्रः and
 ॰ only one entry survives — सारणी is the truth.
+॰ नामसूचीकोश is the hash index of the TABLE the entry is in (symbol-lookup step
+॰ 2): every entry of one table carries the same one, so a table answers its own
+॰ lookups without a second parameter beside it. See `नामसूचीक्रमः`.
 सार्वजनिक संरचना नामस्थानम् आरभ्य
   नाम ॱॱ पाठ ऽ
-  स्थान ॱॱ न६४
+  स्थान ॱॱ न६४ ऽ
+  नामसूचीकोश ॱॱ अङ्कः अन्तः न६४
 समाप्तम् ।
 
 ॰ a linked image — Linked.
@@ -242,15 +246,28 @@
     प्रत्यागमनम् योगफलम् ।
 इति
 
-॰ where the data begins, relative to the image — data_base.
+॰ where the data begins, relative to the image — data_base. THE PAGE AFTER
+॰ THE TEXT since W-363, and asked of `कोश` rather than restated here: the
+॰ writer places the writable segment by the same routine, and a rule written
+॰ twice is how the two would come apart.
 सार्वजनिक वृत्तिः दत्ताधारः आदाय पाठदैर्घ्यम् ॱॱ न६४ ददाति न६४ आदि
-    प्रत्यागमनम् अष्टकसंरेखणम् पाठदैर्घ्यम् ।
+    प्रत्यागमनम् कोशॱदत्तपृष्ठाधारः पाठदैर्घ्यम् ।
 इति
 
-॰ where the reserved bytes begin — bss_base. after ALL of the data.
+॰ where the reserved bytes begin — bss_base. after ALL of the data, ON
+॰ SIXTEEN (V-009 part (i-b2)): the startup's stack is the first thing in
+॰ .bss and sp is its top, which the RISC-V ABI wants 16-aligned. In .data it
+॰ was — the data starts on a page — but the data ends wherever its objects
+॰ end. कोश places .bss at the data rounded to EIGHT, so स्थानसंयोजनम् reports
+॰ the up-to-eight octets between that and this start as .bss too, and p_memsz
+॰ still ends at the last reservation. Twin: samyojana.rs `bss_base`.
 सार्वजनिक वृत्तिः बीजाधारः आदाय पाठदैर्घ्यम् ॱॱ न६४ दत्तदैर्घ्यम् ॱॱ न६४ ददाति न६४ आदि
     चरः आधारः ॱॱ न६४ भवति दत्ताधारः पाठदैर्घ्यम् ।
-    प्रत्यागमनम् अष्टकसंरेखणम् आरभ्य आधारः योगः दत्तदैर्घ्यम् समाप्तम् ।
+    चरः अष्टकान्तः ॱॱ न६४ भवति अष्टकसंरेखणम् आरभ्य आधारः योगः दत्तदैर्घ्यम् समाप्तम् ।
+    यदि आरभ्य अष्टकान्तः युक् १५ समाप्तम् असमम् ० आदि
+        प्रत्यागमनम् अष्टकान्तः योगः ८ ।
+    इति
+    प्रत्यागमनम् अष्टकान्तः ।
 इति
 
 
@@ -318,35 +335,109 @@
     प्रत्यागमनम् आधारः योगः संज्ञा ॱ मूल्यम् ।
 इति
 
-॰ the address recorded for a name, or शून्यम् — one scope's lookup.
-॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY: `भवति ०` gives it one slot and
-॰ nothing shrinks it, so a scope with NO names and a scope with ONE both report
-॰ ॱ दैर्घ्य १ and only the entry tells them apart. An object that exports
-॰ nothing is ordinary — every object with no ॥ वैश्विकम् … ॥ is one — so the
-॰ शून्यम् entry is a normal reading here and not a fault. Without the guard the
-॰ first link of an object that defines no global asks a शून्यम् for ॱ नाम.
-सार्वजनिक वृत्तिः स्थानान्वेषणम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ ददाति सम्भाव्य न६४ आदि
+॰ ══════════════════ the name tables' hash index ══════════════════
+॰ SYMBOL-LOOKUP STEP 2 (2026-10-06). Every name table was searched by a walk
+॰ from entry ०: the insert below walked the whole table on every append, and the
+॰ merge into all names made that 26.8G of a 94.8G Stage 2 (proposal §1). Each
+॰ table now keeps a SIDE INDEX: an open-addressing hash over all of a name's
+॰ octets, whose slot holds an entry's position plus one. The table itself — its
+॰ ORDER and its CONTENTS — is what it was; only the search changed. Rust's twin
+॰ is a BTreeMap and needs nothing.
+॰
+॰ THE HASH IS MASKED TO TWENTY BITS ON EVERY STEP, and each octet to eight
+॰ first. Nothing in it passes २^२५, so the interpreter and the native image agree
+॰ on it whatever either does at 64 bits (`W-381` stage 3 is still open), and a
+॰ signed and an unsigned octet read hash alike.
+सार्वजनिक वृत्तिः नामसारः आदाय नाम ॱॱ पाठ ददाति न६४ आदि
+    चरः फलम् ॱॱ न६४ भवति ० ।
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
-    चरः दैर्घ्य ॱॱ न६४ भवति नामानि ॱ दैर्घ्य ।
-
-    यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
-        चरः प्रविष्टिः ॱॱ नामस्थानम् भवति नामानि अङ्कः सूचकाङ्क अन्तः ।
-        यदि प्रविष्टिः असमम् शून्यम् आदि
-            यदि प्रविष्टिः ॱ नाम समम् नाम आदि
-                प्रत्यागमनम् प्रविष्टिः ॱ स्थान ।
-            इति
-        इति
+    यावत् सूचकाङ्क न्यूनम् नाम ॱ दैर्घ्य आदि
+        चरः अष्टकम् ॱॱ न६४ भवति नाम अङ्कः सूचकाङ्क अन्तः ।
+        अष्टकम् भवति अष्टकम् युक् २५५ ।
+        फलम् भवति फलम् गुणनम् ३१ ।
+        फलम् भवति फलम् योगः अष्टकम् ।
+        फलम् भवति फलम् युक् १०४८५७५ ।
         सूचकाङ्क भवति सूचकाङ्क योगः १ ।
     इति
+    प्रत्यागमनम् फलम् ।
+इति
 
-    प्रत्यागमनम् शून्यम् ।
+॰ an EMPTY index for a table of at most संख्यानम् names: a power of two at least
+॰ twice that, every slot ० (empty). PREALLOCATED, so the insert, which stores
+॰ into it as a parameter, never stores past its length and never takes the
+॰ growth path (`W-359`); and at most half full, so a probe always ends.
+सार्वजनिक वृत्तिः नामसूचीरचना आदाय संख्यानम् ॱॱ अ६४ ददाति अङ्कः अन्तः न६४ आदि
+    चरः सीमा ॱॱ अ६४ भवति १ ।
+    यावत् सीमा न्यूनम् आरभ्य संख्यानम् योगः संख्यानम् समाप्तम् आदि
+        सीमा भवति सीमा योगः सीमा ।
+    इति
+    चरः फलम् ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् सीमा आदि
+        फलम् अङ्कः सूचकाङ्क अन्तः भवति ० ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् फलम् ।
+इति
+
+॰ where नाम sits in a table's index: the slot that holds it, or the empty slot
+॰ it would take. Linear probing, one slot at a time, wrapping at the index's
+॰ length. A HASH HIT IS NOT A MATCH: two names may share a slot's chain, so the
+॰ entry's name is compared before the slot is answered.
+॰ THE PROBE IS BOUNDED BY THE INDEX'S LENGTH (review, 2026-10-07). Every caller
+॰ sizes its index to at least twice its names, so an empty slot is always met;
+॰ an index filled past that would otherwise be probed for ever. Having visited
+॰ every slot without meeting the name or an empty one, it answers the LENGTH:
+॰ no slot. A lookup reads that as absent, which it is; the insert refuses.
+सार्वजनिक वृत्तिः नामसूचीक्रमः आदाय नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ नामानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ ददाति न६४ आदि
+    चरः सीमा ॱॱ न६४ भवति नामसूचीकोश ॱ दैर्घ्य वियोगः १ ।
+    चरः क्रमः ॱॱ न६४ भवति नामसारः नाम ।
+    क्रमः भवति क्रमः युक् सीमा ।
+    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् नामसूचीकोश ॱ दैर्घ्य आदि
+        यदि नामसूचीकोश अङ्कः क्रमः अन्तः समम् ० आदि
+            प्रत्यागमनम् क्रमः ।
+        इति
+        चरः प्रविष्टिः ॱॱ नामस्थानम् भवति नामानि अङ्कः आरभ्य नामसूचीकोश अङ्कः क्रमः अन्तः वियोगः १ समाप्तम् अन्तः ।
+        यदि प्रविष्टिः ॱ नाम समम् नाम आदि
+            प्रत्यागमनम् क्रमः ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् युक् सीमा ।
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् नामसूचीकोश ॱ दैर्घ्य ।
+इति
+
+॰ the address recorded for a name, or शून्यम् — one scope's lookup, through the
+॰ index every entry of the table carries.
+॰ A scope with NO names is an EMPTY arena, length ० since `W-355`, and an object
+॰ that exports nothing is ordinary — every object with no ॥ वैश्विकम् … ॥ is
+॰ one — so an empty table is a normal reading here and not a fault. Without the
+॰ guard the first link of an object that defines no global asks a शून्यम् for
+॰ its index.
+सार्वजनिक वृत्तिः स्थानान्वेषणम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् नाम ॱॱ पाठ ददाति सम्भाव्य न६४ आदि
+    यदि नामानि ॱ दैर्घ्य समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    चरः नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ भवति नामानि अङ्कः ० अन्तः ॱ नामसूचीकोश ।
+    चरः क्रमः ॱॱ न६४ भवति नामसूचीक्रमः नामसूचीकोश नामानि नाम ।
+    यदि क्रमः समम् नामसूचीकोश ॱ दैर्घ्य आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    चरः सूचकाङ्क ॱॱ न६४ भवति नामसूचीकोश अङ्कः क्रमः अन्तः ।
+    यदि सूचकाङ्क समम् ० आदि
+        प्रत्यागमनम् शून्यम् ।
+    इति
+    प्रत्यागमनम् नामानि अङ्कः आरभ्य सूचकाङ्क वियोगः १ समाप्तम् अन्तः ॱ स्थान ।
 इति
 
 ॰ how many live entries a name table holds — the count स्थानान्वेषणम् walks
-॰ and the one a caller appends at. Same reading as above: ० entries and १
-॰ entry both report ॱ दैर्घ्य १, and entry ० separates them.
+॰ and the one a caller appends at. An empty table has LENGTH ० since `W-355`;
+॰ before it, ० entries and १ entry both reported ॱ दैर्घ्य १ and only entry ०
+॰ separated them. That entry test is gone (`W-355` step 3): the table is
+॰ appended densely from ० at this count, so the length alone answers.
 सार्वजनिक वृत्तिः नामसंख्या आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् ददाति अ६४ आदि
-    यदि नामानि अङ्कः ० अन्तः समम् शून्यम् आदि
+    यदि नामानि ॱ दैर्घ्य समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् नामानि ॱ दैर्घ्य ।
@@ -370,26 +461,35 @@
 ॰ parameter already returns the run and has its caller assign it (census
 ॰ 2026-09-22: 9 such sites, 8 of that shape or never growing); this one now
 ॰ does too, and the count it used to return is `नामस्थानगणना`.
+॰ THE INDEX IS A PARAMETER AND IS NOT RETURNED (symbol-lookup step 2): it is
+॰ built at its full size by `नामसूचीरचना` before the first insert, so the store
+॰ into it is always inside its length and it never grows (`W-359`). Its slot
+॰ for नाम is found once and serves both the replace and the append. An index
+॰ with NO SLOT left for a new name is REFUSED, code १४ (see the code table), and
+॰ the table is returned unchanged: no caller can reach it, since each sizes its
+॰ index to twice its names, but an undersized one would otherwise hang.
 सार्वजनिक चरः नामस्थानगणना ॱॱ अ६४ भवति ० ।
-सार्वजनिक वृत्तिः नामस्थानयोजनम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् संख्यानम् ॱॱ अ६४ नाम ॱॱ पाठ स्थान ॱॱ अ६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
-    चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
-
-    यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
-        चरः पूर्वा ॱॱ नामस्थानम् भवति नामानि अङ्कः सूचकाङ्क अन्तः ।
-        यदि पूर्वा असमम् शून्यम् आदि
-            यदि पूर्वा ॱ नाम समम् नाम आदि
-                पूर्वा ॱ स्थान भवति स्थान ।
-                नामस्थानगणना भवति संख्यानम् ।
-                प्रत्यागमनम् नामानि ।
-            इति
-        इति
-        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+सार्वजनिक वृत्तिः नामस्थानयोजनम् आदाय नामानि ॱॱ अङ्कः अन्तः नामस्थानम् संख्यानम् ॱॱ अ६४ नाम ॱॱ पाठ स्थान ॱॱ अ६४ नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ ददाति अङ्कः अन्तः नामस्थानम् आदि
+    चरः क्रमः ॱॱ न६४ भवति नामसूचीक्रमः नामसूचीकोश नामानि नाम ।
+    यदि क्रमः समम् नामसूचीकोश ॱ दैर्घ्य आदि
+        संयोजनदोषयोजनम् आरभ्य १४ ऽ नाम ऽ ० ऽ संख्यानम् समाप्तम् ।
+        नामस्थानगणना भवति संख्यानम् ।
+        प्रत्यागमनम् नामानि ।
+    इति
+    चरः सूचकाङ्क ॱॱ न६४ भवति नामसूचीकोश अङ्कः क्रमः अन्तः ।
+    यदि सूचकाङ्क असमम् ० आदि
+        चरः पूर्वा ॱॱ नामस्थानम् भवति नामानि अङ्कः आरभ्य सूचकाङ्क वियोगः १ समाप्तम् अन्तः ।
+        पूर्वा ॱ स्थान भवति स्थान ।
+        नामस्थानगणना भवति संख्यानम् ।
+        प्रत्यागमनम् नामानि ।
     इति
 
     चरः नवा ॱॱ नामस्थानम् भवति ० ।
     नवा ॱ नाम भवति नाम ।
     नवा ॱ स्थान भवति स्थान ।
+    नवा ॱ नामसूचीकोश भवति नामसूचीकोश ।
     नामानि अङ्कः संख्यानम् अन्तः भवति नवा ।
+    नामसूचीकोश अङ्कः क्रमः अन्तः भवति संख्यानम् योगः १ ।
     नामस्थानगणना भवति संख्यानम् योगः १ ।
     प्रत्यागमनम् नामानि ।
 इति
@@ -424,31 +524,31 @@
 ॰ ══════════════════ what a relocation computes ══════════════════
 
 ॰ the pc-relative value a record asks for — target + addend - pc.
-सार्वजनिक वृत्तिः अन्तरमूल्यम् आदाय लक्ष्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ क्रमसूचकः ॱॱ इ६४ ददाति इ६४ आदि
-    चरः योगफलम् ॱॱ इ६४ भवति लक्ष्यम् योगः योज्यम् ।
+सार्वजनिक वृत्तिः अन्तरमूल्यम् आदाय लक्ष्यम् ॱॱ अ६४ योज्यम् ॱॱ अ६४ क्रमसूचकः ॱॱ अ६४ ददाति अ६४ आदि
+    चरः योगफलम् ॱॱ अ६४ भवति लक्ष्यम् योगः योज्यम् ।
     प्रत्यागमनम् योगफलम् वियोगः क्रमसूचकः ।
 इति
 
 ॰ the absolute value .rela.data asks for — target + addend, and NOT a
 ॰ displacement (B-098). a pointer in a table is dereferenced, never added
 ॰ to a pc.
-सार्वजनिक वृत्तिः निरपेक्षमूल्यम् आदाय लक्ष्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+सार्वजनिक वृत्तिः निरपेक्षमूल्यम् आदाय लक्ष्यम् ॱॱ अ६४ योज्यम् ॱॱ अ६४ ददाति अ६४ आदि
     प्रत्यागमनम् लक्ष्यम् योगः योज्यम् ।
 इति
 
 ॰ the upper twenty bits an auipc must carry — R_RISCV_PCREL_HI20.
 ॰ rounded so that adding a SIGNED lower twelve reaches the target: addi
 ॰ sign-extends, so a low half above 0x7ff must be borrowed against.
-सार्वजनिक वृत्तिः उपरिभागः आदाय मूल्यम् ॱॱ इ६४ ददाति इ६४ आदि
-    चरः समायोजितम् ॱॱ इ६४ भवति मूल्यम् योगः २०४८ ।    ॰ 0x800
+सार्वजनिक वृत्तिः उपरिभागः आदाय मूल्यम् ॱॱ अ६४ ददाति अ६४ आदि
+    चरः समायोजितम् ॱॱ अ६४ भवति मूल्यम् योगः २०४८ ।    ॰ 0x800
     प्रत्यागमनम् समायोजितम् दक्षिणसृ १२ ।
 इति
 
 ॰ the lower twelve an addi must carry — R_RISCV_PCREL_LO12_I.
 ॰ whole - ((whole + 0x800) >> 12 << 12): what the rounded upper half did
 ॰ not already reach.
-सार्वजनिक वृत्तिः अधोभागः आदाय पूर्णम् ॱॱ इ६४ ददाति इ६४ आदि
-    चरः उपरि ॱॱ इ६४ भवति उपरिभागः पूर्णम् ।
+सार्वजनिक वृत्तिः अधोभागः आदाय पूर्णम् ॱॱ अ६४ ददाति अ६४ आदि
+    चरः उपरि ॱॱ अ६४ भवति उपरिभागः पूर्णम् ।
     प्रत्यागमनम् पूर्णम् वियोगः आरभ्य उपरि वामसृ १२ समाप्तम् ।
 इति
 
@@ -456,9 +556,9 @@
 ॰ ॱअधः completes the register the PRECEDING instruction set, so the pair
 ॰ is positional and the low half is computed against that pc. computing
 ॰ it against its own would be wrong by four.
-सार्वजनिक वृत्तिः उपरिपदस्थानम् आदाय भारणम् ॱॱ इ६४ पाठस्थानम् ॱॱ इ६४ संज्ञामूल्यम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
-    चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठस्थानम् ।
-    चरः स्थानाङ्कः ॱॱ इ६४ भवति आधारः योगः संज्ञामूल्यम् ।
+सार्वजनिक वृत्तिः उपरिपदस्थानम् आदाय भारणम् ॱॱ अ६४ पाठस्थानम् ॱॱ अ६४ संज्ञामूल्यम् ॱॱ अ६४ योज्यम् ॱॱ अ६४ ददाति अ६४ आदि
+    चरः आधारः ॱॱ अ६४ भवति भारणम् योगः पाठस्थानम् ।
+    चरः स्थानाङ्कः ॱॱ अ६४ भवति आधारः योगः संज्ञामूल्यम् ।
     प्रत्यागमनम् स्थानाङ्कः योगः योज्यम् ।
 इति
 
@@ -482,7 +582,7 @@
 ॰ statement of the search. (The %pcrel_lo/%pcrel_hi reasoning it carried —
 ॰ B-105: a %pcrel_lo names WHERE its %pcrel_hi is, which lets GNU ld read these
 ॰ objects — is the reason this search exists at all.)
-सार्वजनिक वृत्तिः उपरिलेखक्रमाङ्कः आदाय लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् उपरिभेदः ॱॱ न६४ लक्षितम् ॱॱ इ६४ ददाति न६४ आदि
+सार्वजनिक वृत्तिः उपरिलेखक्रमाङ्कः आदाय लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् उपरिभेदः ॱॱ न६४ लक्षितम् ॱॱ अ६४ ददाति न६४ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     चरः दैर्घ्य ॱॱ न६४ भवति लेखाः ॱ दैर्घ्य ।
 
@@ -508,7 +608,7 @@
 
 ॰ a %pcrel_lo's addend belongs to the address it NAMES, not to the value
 ॰ it writes, so it is not added a second time here.
-सार्वजनिक वृत्तिः लेखयोज्यम् आदाय भेदः ॱॱ न६४ अधोभेदः ॱॱ न६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
+सार्वजनिक वृत्तिः लेखयोज्यम् आदाय भेदः ॱॱ न६४ अधोभेदः ॱॱ न६४ योज्यम् ॱॱ अ६४ ददाति अ६४ आदि
     यदि भेदः समम् अधोभेदः आदि
         प्रत्यागमनम् ० ।
     इति
@@ -524,18 +624,30 @@
 ॰ VALUE, and `दत्तम् अङ्कः क अन्तः भवति ब` rebinds the callee's own name — the
 ॰ caller's run is untouched. A बूल here would report सत्यम् over bytes nobody
 ॰ can see, which is the worst of the three possible answers.
-॰ So each answers THE RUN IT WROTE, and शून्यम् where Rust answers Err. The
-॰ caller writes `दत्तम् भवति अष्टाष्टकनिधानम् …`, which is the same sentence
-॰ Rust's `&mut` writes with the mutation made explicit.
+॰ So each answers THE RUN IT WROTE. The caller writes `दत्तम् भवति
+॰ अष्टाष्टकनिधानम् दत्तम् …`, which is the same sentence Rust's `&mut` writes
+॰ with the mutation made explicit.
+॰ `W-359` (coordinator's final ruling, 2026-10-04): WHERE RUST ANSWERS Err
+॰ THESE ANSWER THE RUN UNCHANGED AND RAISE `निधानविफलम्`. They answered
+॰ `शून्यम्` until then, and a caller bound that to a second name, tested it and
+॰ moved it back — the one shape the ruling refuses, since a grown run must be
+॰ assigned back to the name it was passed as. Now every return is the
+॰ parameter, so each is a grow-and-return routine
+॰ (`घोषणासञ्चयॱवर्धकप्राचलः`), and the failure travels in a status the caller
+॰ tests right after the call; every write sets it, so it never carries a
+॰ previous call's answer.
+सार्वजनिक चरः निधानविफलम् ॱॱ बूल भवति असत्यम् ।
 
 ॰ put eight little-endian octets at स्थानाङ्कः — the .rela.data write.
-॰ शून्यम् when the record points past the section, which Rust reports as
-॰ "a data relocation points past .data".
-सार्वजनिक वृत्तिः अष्टाष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+॰ The run unchanged and `निधानविफलम्` raised when the record points past the
+॰ section, which Rust reports as "a data relocation points past .data".
+सार्वजनिक वृत्तिः अष्टाष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः ८ ।
     यदि दत्तम् ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् दत्तम् ।
     इति
+    निधानविफलम् भवति असत्यम् ।
 
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     यावत् सूचकाङ्क न्यूनम् ८ आदि
@@ -552,11 +664,13 @@
 ॰ an OFFSET into the merged .debug_line and not an address, and so is four
 ॰ octets where every other debug record is eight. It is also the width of an
 ॰ instruction word, so संस्कारः writes its rebuilt पदम् through this.
-सार्वजनिक वृत्तिः चतुरष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+सार्वजनिक वृत्तिः चतुरष्टकनिधानम् आदाय दत्तम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ मूल्यम् ॱॱ न६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः अन्त्यम् ॱॱ न६४ भवति स्थानाङ्कः योगः ४ ।
     यदि दत्तम् ॱ दैर्घ्य न्यूनम् अन्त्यम् आदि
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् दत्तम् ।
     इति
+    निधानविफलम् भवति असत्यम् ।
 
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     यावत् सूचकाङ्क न्यूनम् ४ आदि
@@ -572,8 +686,8 @@
 ॰ the offset a debug record writes at, given which unit it came from.
 ॰ .debug_line's own record is a DW_LNE_set_address, a TEXT address,
 ॰ applied against this object's text base.
-सार्वजनिक वृत्तिः शोधनस्थानम् आदाय भारणम् ॱॱ इ६४ पाठस्थानम् ॱॱ इ६४ योज्यम् ॱॱ इ६४ ददाति इ६४ आदि
-    चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठस्थानम् ।
+सार्वजनिक वृत्तिः शोधनस्थानम् आदाय भारणम् ॱॱ अ६४ पाठस्थानम् ॱॱ अ६४ योज्यम् ॱॱ अ६४ ददाति अ६४ आदि
+    चरः आधारः ॱॱ अ६४ भवति भारणम् योगः पाठस्थानम् ।
     प्रत्यागमनम् आधारः योगः योज्यम् ।
 इति
 
@@ -586,15 +700,17 @@
 ॰ makes. returns the slot count as the not-found answer, T1 having no
 ॰ reference to return — सङ्केतन ॱ आवरणावकाशः reports the same way.
 सार्वजनिक वृत्तिः पूरणीयावकाशः आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत भेदः ॱॱ न६४ ददाति न६४ आदि
-    ॰ ecall, ebreak and fence.i fix every bit and have NO slots, and an arena
-    ॰ in this language cannot be empty — so their ॱ अवकाशाः reports दैर्घ्य १
-    ॰ with शून्यम् at entry ०. Asked without this the loop below reads ॱ भेद
-    ॰ from a शून्यम्; those three are exactly the instructions a relocation can
-    ॰ never name, so the honest answer is "no such slot" and not a fault.
+    ॰ ecall, ebreak and fence.i fix every bit and have NO slots, so their
+    ॰ ॱ अवकाशाः is EMPTY — length ० since `W-355`; before it, दैर्घ्य १ with
+    ॰ शून्यम् at entry ०, which a second test here read until `W-355` step 3
+    ॰ removed it. Asked without this the loop below would read ॱ भेद from a
+    ॰ शून्यम् under the old rule; those three are
+    ॰ exactly the instructions a relocation can never name, so the honest
+    ॰ answer is "no such slot" and not a fault.
     ॰ ० IS THE NOT-FOUND ANSWER HERE AND NOT AN INDEX, which is consistent
     ॰ with the दैर्घ्य this returns below only because a caller compares
     ॰ against अवकाशसंख्या — ० for a slotless row, दैर्घ्य for every other.
-    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+    यदि सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
 
@@ -619,9 +735,10 @@
 
 ॰ how many slots an encoding really has — ० for the four rows that fix every
 ॰ bit. The partner of पूरणीयावकाशः: "not found" is this number, so the two
-॰ must be read together.
+॰ must be read together. The length answers ० for those rows since `W-355`;
+॰ the entry-० test that read the older one-nil-slot shape is gone (step 3).
 सार्वजनिक वृत्तिः अवकाशसंख्या आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत ददाति अ६४ आदि
-    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+    यदि सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
@@ -782,13 +899,16 @@
 सार्वजनिक चरः अनुपरिकूटः ॱॱ अ६४ भवति ११ ।           ॰ a %pcrel_lo at {} names {}, where no %pcrel_hi is
 सार्वजनिक चरः शोधनातिक्रमकूटः ॱॱ अ६४ भवति १२ ।      ॰ a record points past {}, at {}
 सार्वजनिक चरः संक्षेपविरोधकूटः ॱॱ अ६४ भवति १३ ।     ॰ objects disagree about .debug_abbrev
+॰ १४ — a name index has no slot left for `{}`. No alloc::format! in
+॰ samyojana.rs: Rust's BTreeMap never fills. Raised by नामस्थानयोजनम् and
+॰ written there as the bare number, as the owner rules names (2026-10-07).
 
 ॰ one refusal — the Vec<String> Rust returns, one entry at a time.
 सार्वजनिक संरचना संयोजनदोष आरभ्य
   कूट ॱॱ अ६४ ऽ                  ॰ which diagnostic, from the numbers above
   नाम ॱॱ पाठः ऽ                 ॰ the name it is about, empty where there is none
   स्थानाङ्कः ॱॱ अ६४ ऽ           ॰ where in the image, ० where it is not about a place
-  मूल्यम् ॱॱ इ६४                 ॰ the number the message would have shown
+  मूल्यम् ॱॱ अ६४                 ॰ the number the message would have shown
 समाप्तम् ।
 
 ॰ every refusal of the CURRENT link, and how many there are.
@@ -944,7 +1064,7 @@
 ॰ advance the cursor, write at the cursor, answer the index. THE CODE IS THE
 ॰ FIRST PARAMETER for the reason that file gives — a test can see which
 ॰ diagnostics are actually raised only if the code is at the call site.
-सार्वजनिक वृत्तिः संयोजनदोषयोजनम् आदाय कूट ॱॱ अ६४ ऽ नाम ॱॱ पाठः ऽ स्थानाङ्कः ॱॱ अ६४ ऽ मूल्यम् ॱॱ इ६४ ददाति अ६४ आदि
+सार्वजनिक वृत्तिः संयोजनदोषयोजनम् आदाय कूट ॱॱ अ६४ ऽ नाम ॱॱ पाठः ऽ स्थानाङ्कः ॱॱ अ६४ ऽ मूल्यम् ॱॱ अ६४ ददाति अ६४ आदि
     चरः नव ॱॱ संयोजनदोष भवति ० ।
     नव ॱ कूट भवति कूट ।
     नव ॱ नाम भवति नाम ।
@@ -1014,17 +1134,22 @@
 ॰ relocation cannot have been compressed. IF A FUTURE LINKER RELAXES ACROSS
 ॰ OBJECTS that property dies and this silently re-encodes over two
 ॰ instructions; ask विश्लेषण ॱ आज्ञादैर्घ्यम् with that change, not after it.
-सार्वजनिक वृत्तिः संस्कारः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ भेदः ॱॱ न६४ मूल्यम् ॱॱ इ६४ ददाति सम्भाव्य अङ्कः अन्तः अ८ आदि
+॰ `W-359`: the run unchanged and `निधानविफलम्` raised where this answered
+॰ `शून्यम्`; the tail call answers through `चतुरष्टकनिधानम्`, which sets the
+॰ status itself — so this grows-and-returns `पाठ्यम्` by transitivity.
+सार्वजनिक वृत्तिः संस्कारः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ स्थानाङ्कः ॱॱ न६४ भेदः ॱॱ न६४ मूल्यम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः पदम् ॱॱ सम्भाव्य अ३२ भवति विश्लेषण ॱ पदग्रहणम् पाठ्यम् स्थानाङ्कः ।
     यदि पदम् समम् शून्यम् आदि
         संयोजनदोषयोजनम् आरभ्य पाठातिक्रमकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् पाठ्यम् ।
     इति
 
     चरः विश्लिष्टः ॱॱ सम्भाव्य विश्लेषणॱविश्लिष्टम् भवति विश्लेषण ॱ विश्लेषणम् पदम् ।
     यदि विश्लिष्टः समम् शून्यम् आदि
         संयोजनदोषयोजनम् आरभ्य अविश्लेष्यकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ पदम् समाप्तम् ।
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् पाठ्यम् ।
     इति
 
     ॰ samyojana.rs:472 — find(|e| e.insn == decoded.insn && e.bits == 32).
@@ -1032,7 +1157,8 @@
     चरः पङ्क्तिः ॱॱ न६४ भवति विश्लेषण ॱ नामपङ्क्तिः विश्लिष्टः ॱ आज्ञा विश्लेषणॱविस्तृतांशाः ।
     यदि पङ्क्तिः समम् ० आदि
         संयोजनदोषयोजनम् आरभ्य असङ्केतकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् पाठ्यम् ।
     इति
 
     चरः कोशपाठः ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
@@ -1044,18 +1170,20 @@
     चरः पूरणीयः ॱॱ अ६४ भवति पूरणीयावकाशः सङ्केतः भेदः ।
     यदि पूरणीयः बृहत्समम् संख्यानम् आदि
         संयोजनदोषयोजनम् आरभ्य अनवकाशकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ भेदः समाप्तम् ।
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् पाठ्यम् ।
     इति
 
     चरः अवकाशः ॱॱ सङ्केतनॱअवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः पूरणीयः अन्तः ।
     यदि सङ्केतन ॱ अन्तर्भावः अवकाशः मूल्यम् मूल्यम् समम् असत्यम् आदि
         संयोजनदोषयोजनम् आरभ्य अगम्यकूटः ऽ विश्लिष्टः ॱ आज्ञा ऽ स्थानाङ्कः ऽ मूल्यम् समाप्तम् ।
-        प्रत्यागमनम् शून्यम् ।
+        निधानविफलम् भवति सत्यम् ।
+        प्रत्यागमनम् पाठ्यम् ।
     इति
 
     ॰ Rust zips e.slots with decoded.operands; पदपुनर्निर्माणम् wants the
     ॰ VALUES alone, in written order, which is what this fill is.
-    चरः मूल्यानि ॱॱ अङ्कः अन्तः इ६४ भवति ० ।
+    चरः मूल्यानि ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
         चरः क्रिया ॱॱ विश्लेषणॱक्रियामूल्यम् भवति विश्लिष्टः ॱ मूल्यानि अङ्कः सूचकाङ्क अन्तः ।
@@ -1070,14 +1198,13 @@
 
 ॰ ══════════════════ laying an image out, one object at a time ══════════════════
 
-॰ how many objects there are. AN ARENA CANNOT BE EMPTY, so ० objects and १
-॰ both report ॱ दैर्घ्य १ and only entry ० tells them apart — the reading
+॰ how many objects there are. ० objects is an EMPTY arena, length ० since
+॰ `W-355`; before it ० objects and १ both reported ॱ दैर्घ्य १ and only entry
+॰ ० told them apart. That entry test is gone (`W-355` step 3): objects are
+॰ stored densely from ०, so the length alone answers — the reading
 ॰ विश्लेषण ॱ मूल्यसंख्या states for its own store.
 सार्वजनिक वृत्तिः वस्तुसंख्या आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ददाति अ६४ आदि
     यदि वस्तूनि ॱ दैर्घ्य समम् ० आदि
-        प्रत्यागमनम् ० ।
-    इति
-    यदि वस्तूनि अङ्कः ० अन्तः समम् शून्यम् आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् वस्तूनि ॱ दैर्घ्य ।
@@ -1145,13 +1272,14 @@
     चरः बीजस्थानम् ॱॱ अ६४ भवति बीजारम्भः वस्तूनि क्रमः ।
     चरः संख्यानम् ॱॱ अ६४ भवति ० ।
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
+    चरः नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ भवति नामसूचीरचना आरभ्य वस्तु ॱ संज्ञाः ॱ दैर्घ्य समाप्तम् ।
 
     यावत् सूचकाङ्क न्यूनम् वस्तु ॱ संज्ञाः ॱ दैर्घ्य आदि
         चरः संज्ञा ॱॱ वास्तुॱवस्तुसंज्ञा भवति वस्तु ॱ संज्ञाः अङ्कः सूचकाङ्क अन्तः ।
         यदि संज्ञा असमम् शून्यम् आदि
             चरः स्थान ॱॱ सम्भाव्य अ६४ भवति संज्ञास्थानम् आरभ्य संज्ञा ऽ भारणम् ऽ पाठस्थानम् ऽ दत्ताधारम् ऽ दत्तस्थानम् ऽ बीजाधारम् ऽ बीजस्थानम् समाप्तम् ।
             यदि स्थान असमम् शून्यम् आदि
-                फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान समाप्तम् ।
+                फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान ऽ नामसूचीकोश समाप्तम् ।
                 संख्यानम् भवति नामस्थानगणना ।
             इति
         इति
@@ -1170,6 +1298,15 @@
     चरः संख्यानम् ॱॱ अ६४ भवति ० ।
     चरः क्रमः ॱॱ अ६४ भवति ० ।
     चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+    ॰ the index is sized for every symbol of every object, an upper bound on
+    ॰ the exports, since it cannot grow.
+    चरः सीमा ॱॱ अ६४ भवति ० ।
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        सीमा भवति सीमा योगः आरभ्य वस्तूनि अङ्कः क्रमः अन्तः ॱ संज्ञाः ॱ दैर्घ्य समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    क्रमः भवति ० ।
+    चरः नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ भवति नामसूचीरचना सीमा ।
 
     यावत् क्रमः न्यूनम् वस्तूनाम् आदि
         चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
@@ -1187,7 +1324,7 @@
                         संयोजनदोषयोजनम् आरभ्य पुनरुक्तकूटः ऽ संज्ञा ॱ नाम ऽ स्थान ऽ ० समाप्तम् ।
                     इति
                     यदि संज्ञा ॱ वैश्विकम् समम् सत्यम् आदि
-                        फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान समाप्तम् ।
+                        फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ संज्ञा ॱ नाम ऽ स्थान ऽ नामसूचीकोश समाप्तम् ।
                         संख्यानम् भवति नामस्थानगणना ।
                     इति
                 इति
@@ -1211,6 +1348,13 @@
     चरः संख्यानम् ॱॱ अ६४ भवति ० ।
     चरः क्रमः ॱॱ अ६४ भवति ० ।
     चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
+    चरः सीमा ॱॱ अ६४ भवति ० ।
+    यावत् क्रमः न्यूनम् वस्तूनाम् आदि
+        सीमा भवति सीमा योगः आरभ्य वस्तूनि अङ्कः क्रमः अन्तः ॱ संज्ञाः ॱ दैर्घ्य समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    क्रमः भवति ० ।
+    चरः नामसूचीकोश ॱॱ अङ्कः अन्तः न६४ भवति नामसूचीरचना सीमा ।
 
     यावत् क्रमः न्यूनम् वस्तूनाम् आदि
         चरः परिसरः ॱॱ अङ्कः अन्तः नामस्थानम् भवति वस्तुपरिसरः आरभ्य वस्तूनि ऽ क्रमः ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
@@ -1219,7 +1363,7 @@
 
         यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
             चरः प्रविष्टिः ॱॱ नामस्थानम् भवति परिसरः अङ्कः सूचकाङ्क अन्तः ।
-            फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ प्रविष्टिः ॱ नाम ऽ प्रविष्टिः ॱ स्थान समाप्तम् ।
+            फलम् भवति नामस्थानयोजनम् आरभ्य फलम् ऽ संख्यानम् ऽ प्रविष्टिः ॱ नाम ऽ प्रविष्टिः ॱ स्थान ऽ नामसूचीकोश समाप्तम् ।
             संख्यानम् भवति नामस्थानगणना ।
             सूचकाङ्क भवति सूचकाङ्क योगः १ ।
         इति
@@ -1295,7 +1439,6 @@
 ॰ and nothing about it depends on relaxation.
 सार्वजनिक वृत्तिः दत्तपुनःस्थापनम् आदाय वस्तूनि ॱॱ अङ्कः अन्तः वास्तुॱवस्तु ऽ दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ निर्यातानि ॱॱ अङ्कः अन्तः नामस्थानम् ऽ भारणम् ॱॱ अ६४ ऽ दत्ताधारम् ॱॱ अ६४ ऽ बीजाधारम् ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः निरपेक्षभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः निरपेक्षभेदनाम ।
-    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति दत्तम् ।
     चरः क्रमः ॱॱ अ६४ भवति ० ।
     चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
 
@@ -1324,11 +1467,9 @@
                             संयोजनदोषयोजनम् आरभ्य अनुपयुक्तभेदकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ भेदः समाप्तम् ।
                         इति अन्यथा आदि
                             चरः स्थानाङ्कः ॱॱ अ६४ भवति दत्तस्थानम् योगः लेखः ॱ स्थानाङ्कः ।
-                            चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति अष्टाष्टकनिधानम् फलम् स्थानाङ्कः आरभ्य निरपेक्षमूल्यम् लक्ष्यम् लेखः ॱ योज्यम् समाप्तम् ।
-                            यदि नवम् समम् शून्यम् आदि
+                            दत्तम् भवति अष्टाष्टकनिधानम् दत्तम् स्थानाङ्कः आरभ्य निरपेक्षमूल्यम् लक्ष्यम् लेखः ॱ योज्यम् समाप्तम् ।
+                            यदि निधानविफलम् समम् सत्यम् आदि
                                 संयोजनदोषयोजनम् आरभ्य दत्तातिक्रमकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ ० समाप्तम् ।
-                            इति अन्यथा आदि
-                                फलम् भवति नवम् ।
                             इति
                         इति
                     इति
@@ -1340,7 +1481,7 @@
         क्रमः भवति क्रमः योगः १ ।
     इति
 
-    प्रत्यागमनम् फलम् ।
+    प्रत्यागमनम् दत्तम् ।
 इति
 
 ॰ what a .rela.text record resolves to, in ADDRESS — the whole of Rust's
@@ -1354,7 +1495,7 @@
     चरः नाम ॱॱ पाठः भवति संज्ञा ॱ नाम ।
 
     यदि लेखः ॱ भेदः समम् अधोभेदः आदि
-        चरः लक्षितम् ॱॱ इ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।
+        चरः लक्षितम् ॱॱ अ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।
         ॰ PRESENCE FROM THE ONE-BASED POSITION — see `उपरिलेखक्रमाङ्कः`. The
         ॰ first relocation is index ०, which the image reads as absent.
         चरः उपरिस्थानम् ॱॱ न६४ भवति उपरिलेखक्रमाङ्कः आरभ्य वस्तु ॱ पुनःस्थापनानि ऽ उपरिभेदः ऽ लक्षितम् समाप्तम् ।
@@ -1392,7 +1533,6 @@
     चरः उपरिभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः उपरिभेदनाम ।
     चरः अधोभेदः ॱॱ सम्भाव्य अ३२ भवति भेदाङ्कः अधोभेदनाम ।
 
-    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति पाठ्यम् ।
     चरः क्रमः ॱॱ अ६४ भवति ० ।
     चरः वस्तूनाम् ॱॱ अ६४ भवति वस्तुसंख्या वस्तूनि ।
 
@@ -1414,16 +1554,14 @@
                     यदि लक्ष्यम् असमम् शून्यम् आदि
                         चरः स्थानाङ्कः ॱॱ अ६४ भवति पाठस्थानम् योगः लेखः ॱ स्थानाङ्कः ।
                         चरः क्रमसूचकः ॱॱ अ६४ भवति भारणम् योगः स्थानाङ्कः ।
-                        चरः योज्यम् ॱॱ इ६४ भवति लेखयोज्यम् लेखः ॱ भेदः अधोभेदः लेखः ॱ योज्यम् ।
-                        चरः अन्तरम् ॱॱ इ६४ भवति अन्तरमूल्यम् लक्ष्यम् योज्यम् क्रमसूचकः ।
-                        चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति शून्यम् ।
-                        चरः ज्ञातम् ॱॱ बूल भवति सत्यम् ।
+                        चरः योज्यम् ॱॱ अ६४ भवति लेखयोज्यम् लेखः ॱ भेदः अधोभेदः लेखः ॱ योज्यम् ।
+                        चरः अन्तरम् ॱॱ अ६४ भवति अन्तरमूल्यम् लक्ष्यम् योज्यम् क्रमसूचकः ।
 
                         यदि लेखः ॱ भेदः समम् आह्वानभेदः आदि
-                            नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱअन्तरभेद ऽ अन्तरम् समाप्तम् ।
+                            पाठ्यम् भवति संस्कारः आरभ्य पाठ्यम् ऽ स्थानाङ्कः ऽ सङ्केतनॱअन्तरभेद ऽ अन्तरम् समाप्तम् ।
                         इति अन्यथा आदि
                             यदि लेखः ॱ भेदः समम् उपरिभेदः आदि
-                                नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ उपरिभागः अन्तरम् समाप्तम् ।
+                                पाठ्यम् भवति संस्कारः आरभ्य पाठ्यम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ उपरिभागः अन्तरम् समाप्तम् ।
                             इति अन्यथा आदि
                                 यदि लेखः ॱ भेदः समम् अधोभेदः आदि
                                     ॰ MEASURED FROM THE auipc, not from here.
@@ -1431,21 +1569,15 @@
                                     ॰ instruction set, so the pair is positional
                                     ॰ and computing the low half against its own
                                     ॰ pc would be wrong by four.
-                                    चरः उपरिस्थानम् ॱॱ इ६४ भवति उपरिपदस्थानम् भारणम् पाठस्थानम् संज्ञा ॱ मूल्यम् लेखः ॱ योज्यम् ।
-                                    चरः पूर्णम् ॱॱ इ६४ भवति लक्ष्यम् वियोगः उपरिस्थानम् ।
-                                    नवम् भवति संस्कारः आरभ्य फलम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ अधोभागः पूर्णम् समाप्तम् ।
+                                    चरः उपरिस्थानम् ॱॱ अ६४ भवति उपरिपदस्थानम् भारणम् पाठस्थानम् संज्ञा ॱ मूल्यम् लेखः ॱ योज्यम् ।
+                                    चरः पूर्णम् ॱॱ अ६४ भवति लक्ष्यम् वियोगः उपरिस्थानम् ।
+                                    पाठ्यम् भवति संस्कारः आरभ्य पाठ्यम् ऽ स्थानाङ्कः ऽ सङ्केतनॱतत्कालभेद ऽ अधोभागः पूर्णम् समाप्तम् ।
                                 इति अन्यथा आदि
-                                    ज्ञातम् भवति असत्यम् ।
                                     संयोजनदोषयोजनम् आरभ्य अनुपयुक्तभेदकूटः ऽ रिक्तनाम ऽ स्थानाङ्कः ऽ लेखः ॱ भेदः समाप्तम् ।
                                 इति
                             इति
                         इति
 
-                        यदि ज्ञातम् समम् सत्यम् आदि
-                            यदि नवम् असमम् शून्यम् आदि
-                                फलम् भवति नवम् ।
-                            इति
-                        इति
                     इति
                 इति
             इति
@@ -1455,7 +1587,7 @@
         क्रमः भवति क्रमः योगः १ ।
     इति
 
-    प्रत्यागमनम् फलम् ।
+    प्रत्यागमनम् पाठ्यम् ।
 इति
 
 
@@ -1514,8 +1646,7 @@
 ॰ every other record is eight and an ADDRESS in .text. ONE symbol serving
 ॰ both would hand the linker the wrong base for one of them, which is why
 ॰ वास्तु ॱ स्थापन carries शोधनपङ्क्तिः at all (B-104b).
-सार्वजनिक वृत्तिः शोधनसंस्कारः आदाय वस्तु ॱॱ वास्तुॱवस्तु ऽ अष्टकाः ॱॱ अङ्कः अन्तः अ८ ऽ लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् ऽ आधारः ॱॱ इ६४ ऽ पङ्क्त्याधारः ॱॱ इ६४ ददाति अङ्कः अन्तः अ८ आदि
-    चरः फलम् ॱॱ अङ्कः अन्तः अ८ भवति अष्टकाः ।
+सार्वजनिक वृत्तिः शोधनसंस्कारः आदाय वस्तु ॱॱ वास्तुॱवस्तु ऽ अष्टकाः ॱॱ अङ्कः अन्तः अ८ ऽ लेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् ऽ आधारः ॱॱ अ६४ ऽ पङ्क्त्याधारः ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
 
     यावत् सूचकाङ्क न्यूनम् लेखाः ॱ दैर्घ्य आदि
@@ -1525,23 +1656,20 @@
             यदि संज्ञा समम् शून्यम् आदि
                 संयोजनदोषयोजनम् आरभ्य असत्संज्ञाकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ लेखः ॱ संज्ञाङ्कः समाप्तम् ।
             इति अन्यथा आदि
-                चरः नवम् ॱॱ सम्भाव्य अङ्कः अन्तः अ८ भवति शून्यम् ।
                 यदि संज्ञा ॱ स्थापनम् समम् शोधनपङ्क्तिनिवेशः आदि
-                    नवम् भवति चतुरष्टकनिधानम् फलम् लेखः ॱ स्थानाङ्कः आरभ्य पङ्क्त्याधारः योगः लेखः ॱ योज्यम् समाप्तम् ।
+                    अष्टकाः भवति चतुरष्टकनिधानम् अष्टकाः लेखः ॱ स्थानाङ्कः आरभ्य पङ्क्त्याधारः योगः लेखः ॱ योज्यम् समाप्तम् ।
                 इति अन्यथा आदि
-                    नवम् भवति अष्टाष्टकनिधानम् फलम् लेखः ॱ स्थानाङ्कः आरभ्य शोधनस्थानम् आधारः ० लेखः ॱ योज्यम् समाप्तम् ।
+                    अष्टकाः भवति अष्टाष्टकनिधानम् अष्टकाः लेखः ॱ स्थानाङ्कः आरभ्य शोधनस्थानम् आधारः ० लेखः ॱ योज्यम् समाप्तम् ।
                 इति
-                यदि नवम् समम् शून्यम् आदि
+                यदि निधानविफलम् समम् सत्यम् आदि
                     संयोजनदोषयोजनम् आरभ्य शोधनातिक्रमकूटः ऽ रिक्तनाम ऽ लेखः ॱ स्थानाङ्कः ऽ ० समाप्तम् ।
-                इति अन्यथा आदि
-                    फलम् भवति नवम् ।
                 इति
             इति
         इति
         सूचकाङ्क भवति सूचकाङ्क योगः १ ।
     इति
 
-    प्रत्यागमनम् फलम् ।
+    प्रत्यागमनम् अष्टकाः ।
 इति
 
 ॰ the merged debug sections, with every address fixed — Linked::debug.
@@ -1570,9 +1698,20 @@
         चरः वस्तु ॱॱ वास्तुॱवस्तु भवति वस्तूनि अङ्कः क्रमः अन्तः ।
         चरः खण्डाः ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः भवति वस्तु ॱ शोधनम् ।
 
-        यदि खण्डाः अङ्कः ० अन्तः असमम् शून्यम् आदि
-            चरः आधारः ॱॱ इ६४ भवति भारणम् योगः पाठारम्भः वस्तूनि क्रमः ।
-            चरः पङ्क्त्याधारः ॱॱ इ६४ भवति पङ्क्तयः ॱ दैर्घ्य ।
+        ॰ AN OBJECT WITH NO DEBUG SECTIONS carries an EMPTY run: length ० since
+        ॰ `W-355`, where entry ० is out of bounds and reading it is refused on
+        ॰ both engines — so the LENGTH is the question. Before `W-355` the run
+        ॰ was one शून्यम् and entry ० alone told; that entry test is gone
+        ॰ (`W-355` step 3), since शोधनसंयोगः either fills entries ०–२ or leaves
+        ॰ the run empty.
+        चरः शोधनमस्ति ॱॱ बूल भवति असत्यम् ।
+        यदि खण्डाः ॱ दैर्घ्य अधिकम् ० आदि
+            शोधनमस्ति भवति सत्यम् ।
+        इति
+
+        यदि शोधनमस्ति समम् सत्यम् आदि
+            चरः आधारः ॱॱ अ६४ भवति भारणम् योगः पाठारम्भः वस्तूनि क्रमः ।
+            चरः पङ्क्त्याधारः ॱॱ अ६४ भवति पङ्क्तयः ॱ दैर्घ्य ।
 
             चरः एतद्विवरणम् ॱॱ अङ्कः अन्तः अ८ भवति शोधनखण्डपाठः खण्डाः विवरनाम ।
             चरः एतत्पङ्क्तिः ॱॱ अङ्कः अन्तः अ८ भवति शोधनखण्डपाठः खण्डाः पङ्क्तिनाम ।
@@ -1676,6 +1815,12 @@
     फलम् ॱ पाठ्यम् भवति पाठ्यम् ।
     फलम् ॱ दत्तम् भवति दत्तम् ।
     फलम् ॱ बीजम् भवति बीजदैर्घ्यम् ।
+    ॰ the pad up to बीजाधारः's sixteen counts as .bss — but only when there IS
+    ॰ a .bss: an image with none keeps none, and its one program header.
+    यदि बीजदैर्घ्यम् अधिकम् ० आदि
+        चरः अष्टकबीजाधारम् ॱॱ अ६४ भवति अष्टकसंरेखणम् आरभ्य दत्ताधारम् योगः दत्तदैर्घ्यम् समाप्तम् ।
+        फलम् ॱ बीजम् भवति आरभ्य बीजदैर्घ्यम् योगः बीजाधारम् समाप्तम् वियोगः अष्टकबीजाधारम् ।
+    इति
     फलम् ॱ नामानि भवति सर्वस्थानानि आरभ्य वस्तूनि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
     फलम् ॱ सारणी भवति संज्ञासारणी आरभ्य वस्तूनि ऽ भारणम् ऽ दत्ताधारम् ऽ बीजाधारम् समाप्तम् ।
     फलम् ॱ शोधनम् भवति शोधनसंयोगः वस्तूनि भारणम् ।

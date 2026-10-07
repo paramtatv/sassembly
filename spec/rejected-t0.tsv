@@ -31,6 +31,10 @@ sassembly	expect	why
 योगःॱअ३२ॱप६४ अर्थ०म् अर्थ१न अर्थ२न ।	E04	B-075: only a conversion reads one type and writes another
 ॥ अष्टकाः उक्तम् क इति इति ॥	इति	B-067: a doubled इति is the word itself, so nothing closes this string
 ॥ अष्टकाः उक्तम् क इति ख ॥	इति	B-067: content after the closing इति would assemble as `क`, which is not what the program says
+॥ अष्टकाः वर्णाष्टकम् क ख इति ॥	P19	ADR-0044 D3: a Devanagari-8 body is one word of letters; a space between two does not pack to one octet each
+॥ अष्टकाः वर्णाष्टकम् क᳐ इति ॥	P19	ADR-0044 D3: U+1CD0 is in R-15-1's repertoire but outside U+0900–U+097F, so it has no Devanagari-8 octet
+॥ अष्टकाः वर्णाष्टकम् क ॥	P22	ADR-0044 D3: the opener mirrors उक्तम् and nothing closed it
+॥ अष्टकाः वर्णाष्टकम् क इति ख ॥	P18	ADR-0044 D3: content after the close, refused as for उक्तम्
 योगःॱप३२ अर्थ०म् अर्थ१न अर्थ२न ।	E03	B-077: भ names a float and योगः adds integers; the letter was validated and discarded, so this assembled as addw
 प्लवयोगःॱअ३२ प्लव०म् प्लव१न प्लव२न ।	E09	B-077: the corpus wrote every float family with the integer type that happens to share its width
 वैश्विकम् मुख्यम् ॥	P24	ADR-0012: this assembled for 150 cycles, and the claim that a directive is tellable from an instruction without knowing the names was false while it did

@@ -491,6 +491,197 @@ fn the_encoder_port_reports_how_much_of_it_is_real() {
     );
 }
 
+/// N-001's three ratified names, copied from the row: the row-signature
+/// cache, the row-signature builder and the demand builder.
+const N001_ROW_CACHE: &str = "सङ्केतसूचीप्रत्याहारकोश";
+const N001_ROW_BUILDER: &str = "सङ्केतप्रत्याहारः";
+const N001_DEMAND_BUILDER: &str = "आज्ञाप्रत्याहारः";
+/// The routine both builders code a conversion's type text through (named by
+/// the coordinator's follow-up, beside `प्रकारवर्गः`).
+const N001_TYPE_CODE: &str = "प्रकारकूटः";
+
+/// The checks the old candidate chain made, each a table or slot walk. The
+/// mask compare reads none of them: what they answered is in the signatures.
+const N001_OLD_CHAIN: &[&str] = &[
+    "कोष्ठसंख्यानम्",
+    "अवकाशसंख्या",
+    "कोष्ठप्लवः",
+    "कोष्ठव्यूहः",
+    "कोष्ठसूचीव्यूहः",
+    "कोष्ठाङ्कः",
+    "आवरणावकाशः",
+    "कोष्ठवाचकः",
+    "तत्कालवाचकः",
+    "प्रकारवर्गः",
+    "समानपाठः",
+    "कारकानुसारम्",
+];
+
+/// The code words of a `.t1` text: every margin (`॰` to the end of the line)
+/// dropped, split on whitespace.
+fn n001_code_words(text: &str) -> Vec<&str> {
+    text.lines()
+        .flat_map(|l| l.split('॰').next().unwrap_or("").split_whitespace())
+        .collect()
+}
+
+/// The body of one public routine, from its declaration line to the first
+/// `इति` at column ०.
+fn n001_routine(text: &str, name: &str) -> String {
+    let head = format!("सार्वजनिक वृत्तिः {name} आदाय");
+    let start = text
+        .find(&head)
+        .unwrap_or_else(|| panic!("encode.t1 declares no `{name}`"));
+    let rest = &text[start..];
+    let end = rest.find("\nइति\n").expect("the routine closes");
+    rest[..end].to_string()
+}
+
+/// N-001 — EVERY CANDIDATE IS DECIDED BY THE MASK COMPARE.
+///
+/// The selection loop in `स्थानसङ्केतनम्` asks `सङ्केतयोग्यम्` of each
+/// candidate row. Before N-001 that routine was a chain of hand-written
+/// checks, and the destination check walked the register table again per
+/// candidate (`कोष्ठप्लवः`), half the chain's cost on ashtaka.t1. After it the
+/// routine is `((S_row XOR D) AND C AND C_row) == 0` over a per-row
+/// signature cached at parse time and a per-instruction demand built once
+/// from the operand loop. This asserts the shape: the three ratified names
+/// are declared, the match calls none of the old checks and has no branch
+/// and no loop, and the second register-table walk has no call site left.
+#[test]
+fn every_candidate_is_decided_by_the_pratyahara_mask_compare() {
+    let text = std::fs::read_to_string(crate_src().join("encode.t1")).expect("encode.t1 exists");
+    let words = n001_code_words(&text);
+
+    assert!(
+        text.contains(&format!("सार्वजनिक चरः {N001_ROW_CACHE} ॱॱ")),
+        "encode.t1 declares no row-signature cache `{N001_ROW_CACHE}`"
+    );
+    for name in [N001_ROW_BUILDER, N001_DEMAND_BUILDER] {
+        assert!(
+            text.contains(&format!("सार्वजनिक वृत्तिः {name} आदाय")),
+            "encode.t1 declares no `{name}`"
+        );
+        let calls = words.iter().filter(|w| **w == name).count();
+        assert_eq!(
+            calls,
+            2,
+            "`{name}` has {} call site(s); it is built once, from one place",
+            calls.saturating_sub(1)
+        );
+    }
+
+    let body = n001_routine(&text, "सङ्केतयोग्यम्");
+    let body_words = n001_code_words(&body);
+    for old in N001_OLD_CHAIN {
+        let n = body_words.iter().filter(|w| *w == old).count();
+        assert_eq!(
+            n, 0,
+            "the match still calls the old check `{old}` ({n} site(s))"
+        );
+    }
+    let count = |w: &str| body_words.iter().filter(|x| **x == w).count();
+    // ((S_row XOR D) AND M) == 0 is written as (S_row AND M) == (D AND M) with
+    // M = C AND C_row: the same compare bit for bit, and it keeps `विषम` the
+    // one operator no body writes (`t1_operators.rs`, ADR-0026).
+    assert_eq!(count("युक्"), 3, "the match is not three ANDs: {body}");
+    assert_eq!(count("समम्"), 1, "the match is not one compare: {body}");
+    assert_eq!(count("यदि"), 0, "the match branches: {body}");
+    assert_eq!(count("यावत्"), 0, "the match loops: {body}");
+    assert!(
+        body_words.contains(&N001_ROW_CACHE),
+        "the match does not read `{N001_ROW_CACHE}`"
+    );
+
+    // The destination's file is captured once per instruction now, so the
+    // per-candidate register-table walk is gone from the encoder.
+    let floats = words.iter().filter(|w| **w == "कोष्ठप्लवः").count();
+    assert_eq!(
+        floats,
+        1,
+        "`कोष्ठप्लवः` has {} call site(s) in encode.t1; the mask leaves none",
+        floats.saturating_sub(1)
+    );
+    // And the selection loop is the match's only caller.
+    let sites = words.iter().filter(|w| **w == "सङ्केतयोग्यम्").count();
+    assert_eq!(
+        sites,
+        2,
+        "`सङ्केतयोग्यम्` has {} call site(s), not one",
+        sites - 1
+    );
+    // ...and that one caller is the selection loop's routine, as each
+    // builder's one caller is the place its input is in hand.
+    for (callee, caller) in [
+        ("सङ्केतयोग्यम्", "स्थानसङ्केतनम्"),
+        (N001_DEMAND_BUILDER, "स्थानसङ्केतनम्"),
+        (N001_ROW_BUILDER, "सूचितसङ्केतः"),
+    ] {
+        let body = n001_routine(&text, caller);
+        let n = n001_code_words(&body)
+            .iter()
+            .filter(|w| **w == callee)
+            .count();
+        assert_eq!(n, 1, "`{caller}` calls `{callee}` {n} time(s), not once");
+    }
+    println!("METRIC n001_old_chain_call_sites_in_match 0");
+}
+
+/// N-001 — THE ROW BUILDER PACKS ITS COUNTS UNSATURATED. A count wider than
+/// its six-bit field would spill into the next field, and the table guard in
+/// `t1_exec_encode.rs` (`n001_every_encoding_row_fits_the_signature_fields`)
+/// is what makes that impossible, so the row side carries no clamp to ६३.
+/// The DEMAND keeps its clamps: an instruction can be written with any count.
+#[test]
+fn the_row_signature_builder_does_not_saturate_its_counts() {
+    let text = std::fs::read_to_string(crate_src().join("encode.t1")).expect("encode.t1 exists");
+    let body = n001_routine(&text, N001_ROW_BUILDER);
+    let clamps = n001_code_words(&body)
+        .iter()
+        .filter(|w| **w == "६३")
+        .count();
+    assert_eq!(
+        clamps, 0,
+        "`{N001_ROW_BUILDER}` still clamps {clamps} time(s) at ६३"
+    );
+    let demand = n001_routine(&text, N001_DEMAND_BUILDER);
+    assert!(
+        n001_code_words(&demand).contains(&"६३"),
+        "`{N001_DEMAND_BUILDER}` lost its clamps; an instruction's counts are not bounded"
+    );
+}
+
+/// N-001 — THE CONVERSION CODE IS ONE ROUTINE. Both signature builders turn a
+/// conversion's type text into class × 1024 + width; the first build wrote
+/// that loop twice, once per builder. The digit reader is called from one
+/// routine only, and neither builder calls it.
+#[test]
+fn the_conversion_text_code_is_one_routine_both_builders_call() {
+    let text = std::fs::read_to_string(crate_src().join("encode.t1")).expect("encode.t1 exists");
+    let digits = "अक्षरकोशॱअङ्कमूल्यम्";
+    let words = n001_code_words(&text);
+    let sites = words.iter().filter(|w| **w == digits).count();
+    assert_eq!(
+        sites, 1,
+        "`{digits}` has {sites} call site(s) in encode.t1, not one"
+    );
+    for builder in [N001_ROW_BUILDER, N001_DEMAND_BUILDER] {
+        let body = n001_routine(&text, builder);
+        let calls = n001_code_words(&body)
+            .iter()
+            .filter(|w| **w == N001_TYPE_CODE)
+            .count();
+        assert_eq!(
+            calls, 2,
+            "`{builder}` codes the pair {calls} time(s) through `{N001_TYPE_CODE}`, not twice"
+        );
+        assert!(
+            !n001_code_words(&body).contains(&digits),
+            "`{builder}` still reads the digits itself"
+        );
+    }
+}
+
 /// The four functions `crates/sadhana/src/samyojana.rs` defines, in the spelling
 /// the port gives them — task `D-002b`.
 ///
@@ -801,7 +992,7 @@ fn the_ir_port_reports_how_much_of_it_is_real() {
     // which is the same defect as a count that is right about the wrong
     // population — the third instance of that shape this week.
     //
-    // REPORTING ONLY, DELIBERATELY NO RATCHET. sansos-e4 is splitting cause २७
+    // REPORTING ONLY, DELIBERATELY NO RATCHET. A peer session is splitting cause २७
     // into named sites right now, which MOVES this number; a ratchet here would
     // red their work for doing exactly what it is for. The number is worth
     // seeing and is not yet worth pinning.
@@ -1059,9 +1250,10 @@ fn the_disassembler_port_reports_how_much_of_it_is_real() {
     //   `खण्डसंख्या`/`खण्डारम्भः`/`खण्डसीमा` (the fields column nests three
     //   separators, so the separator is a parameter), the two field readers,
     //   `पङ्क्तिसङ्केतः`/`पङ्क्त्यवकाशः`/`न्यासरचना` (a row, a slot, a bit
-    //   map), and `मूल्यसंख्या`/`न्याससंख्या` — the two that carry the finding
-    //   that AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY, so ० entries and १
-    //   both report `ॱ दैर्घ्य` १ and only entry ० tells them apart.
+    //   map), and `मूल्यसंख्या`/`न्याससंख्या` — the two that carried the
+    //   finding that an arena in this language could not be empty, so ०
+    //   entries and १ both reported `ॱ दैर्घ्य` १ and only entry ० told them
+    //   apart. Since `W-355` a fresh arena has length ० and the length answers.
     //
     // Every one of them is EXECUTED by `tests/t1_execution.rs`, against
     // `spec/encodings-riscv64.tsv` read there in Rust — this count cannot see
@@ -2171,6 +2363,15 @@ const RISCV_SYMBOLS: &[(&str, &str)] = &[
     ("Refusal::FrameTooLarge", "यन्त्रबृहच्चौकटनिषेधभेद"),
     ("Refusal::EntryTakesParameters", "यन्त्रप्रवेशप्राचलनिषेधभेद"),
     ("Refusal::BranchOutOfRange", "यन्त्रदूरशाखानिषेधभेद"),
+    // `W-306`: the J-type's own reach. Paired and not recorded RUST_ONLY —
+    // the port declares the भेद beside the other ten, in the same order.
+    ("Refusal::JumpOutOfRange", "यन्त्रदूरलङ्घननिषेधभेद"),
+    // `W-306c`: the narrow store's unnamed width. Paired for the same reason —
+    // the port declares the भेद beside the other eleven, in the same order.
+    ("Refusal::StoreWidthUnnamed", "यन्त्रानामविस्तारनिषेधभेद"),
+    // `V-005`: a value read from the wrong register file. Paired for the same
+    // reason — the port declares the भेद beside the other twelve, in order.
+    ("Refusal::FileMismatch", "यन्त्रवर्गविरोधनिषेधभेद"),
     ("Err(Refusal)", "यन्त्रनिषेधः"),
     ("routine_label", "यन्त्रवृत्तिचिह्नम्"),
     // `global_label` is `routine_label` for the two symbols `ir.t1` mints and
@@ -2196,6 +2397,11 @@ const RISCV_SYMBOLS: &[(&str, &str)] = &[
     ("split_hi_lo", "यन्त्रोच्चनीचविभागः"),
     ("emit_call", "यन्त्राह्वानोत्सर्जनम्"),
     ("lower_cond_branch", "यन्त्रशाखावतरणम्"),
+    // `W-306`: the inversion the far-conditional relaxation leans on. Paired
+    // here and not recorded as Rust-only because the `.t1` half is CONSULTED by
+    // its own `यन्त्रशाखावतरणम्` — the crossed table (`न्यून → अचिह्नान्यून`) is
+    // the failure this pairing is against.
+    ("inverse_condition", "यन्त्रविपरीततुलनाभेदः"),
     ("emit_terminator", "यन्त्रावसानोत्सर्जनम्"),
     ("verify", "यन्त्रपरीक्षा"),
     ("emit_function", "यन्त्रवृत्त्युत्सर्जनम्"),
@@ -2213,6 +2419,39 @@ const RISCV_SYMBOLS: &[(&str, &str)] = &[
     ("lower_compare_value", "यन्त्रतुलनावतरणम्"),
     ("fusable_compare", "यन्त्रसंयोज्यतुलना"),
     ("fixture_forms", "यन्त्ररूपदृष्टान्तः"),
+    // `V-005` — THE SECOND REGISTER FILE, PAIRED. These six were RUST_ONLY rows
+    // with the reason "the T1 IR has no float instruction kind, so the port has
+    // no float `Location` to spell", and each said to DELETE the row and pair it
+    // the day the IR gained one. `ir.t1`'s `प्लवाज्ञाभेद` (२७) and the float read
+    // are that day: the port now runs the float scan, lays out the float spill
+    // region and saves the `fs` registers it uses, so each has a twin.
+    ("class_register_name", "यन्त्रवर्गकोष्ठनाम"),
+    ("ALLOCATABLE_FLOAT_ROLE", "यन्त्रप्लवस्थिरसङ्ख्या"),
+    ("allocatable", "यन्त्रवर्गावण्टनीयम्"),
+    ("registers_held", "यन्त्रधृतकोष्ठाः"),
+    ("store_mnemonic", "यन्त्रनिधानपदम्"),
+    ("load_mnemonic", "यन्त्राहारपदम्"),
+    // and the three `V-005` adds: the classifier both scans share, the op's
+    // word, and the one-line lowering.
+    ("value_class", "यन्त्रप्लववर्गः"),
+    ("float_verb", "यन्त्रप्लवक्रियापदम्"),
+    ("lower_float", "यन्त्रप्लवावतरणम्"),
+    // `V-008` part 2.
+    ("lower_vector", "यन्त्रव्यूहावतरणम्"),
+    // `V-009` part (ii): the matrix kernel, its operand and refusal writers.
+    ("matrix_kernel", "यन्त्राव्यूहकायोत्सर्जनम्"),
+    ("matrix_kernel_operand", "यन्त्राव्यूहपदम्"),
+    ("matrix_kernel_refusal", "यन्त्राव्यूहनिषेधः"),
+    ("MATRIX_KERNEL_VERBS", "यन्त्राव्यूहक्रियापदम्"),
+    ("matrix_kernel_letter", "यन्त्राव्यूहाक्षरमूल्यम्"),
+    ("matrix_kernel_operand_code", "यन्त्राव्यूहपदसङ्केतः"),
+    ("vector_register", "यन्त्रव्यूहनाम"),
+    // `V-005` — the float calling convention: where each argument travels, the
+    // same allocation over a routine's parameters, and `fa<n>`'s spelling (the
+    // port's fifth register-code band).
+    ("abi_slots", "यन्त्रतर्कस्थानानि"),
+    ("param_locations", "यन्त्रप्राचलस्थानानि"),
+    ("float_arg", "यन्त्रप्लवार्थाधारः"),
 ];
 
 /// The fields of the two structs, checked inside their own bodies. `Frame::saved`
@@ -2235,6 +2474,7 @@ const RISCV_FIELDS: &[(&str, &[(&str, &str)])] = &[
             ("Frame::saved.len()", "रक्षितसंख्यान"),
             ("Frame::ra_offset", "पुनःस्थानस्थानम्"),
             ("Frame::num_spills", "निक्षेपसंख्यान"),
+            ("Frame::num_float_spills", "प्लवनिक्षेपसंख्यान"),
             ("Frame::num_locals", "स्थानीयसंख्यान"),
         ],
     ),
@@ -2329,8 +2569,11 @@ const RISCV_EMITTERS_LANDED: &[(&str, &str, &str)] = &[
     ("यन्त्रोच्चनीचविभागः", "योगः २०४८", "split_hi_lo"),
     // §2.5 STACK ARGUMENTS: the ninth and later travel above स्तूपसूचकः, stored
     // there by the caller after one addi of 16⌈(n−8)/2⌉ — the one corpus routine
-    // of arity 9 (निर्देशयोजनम्) needs exactly this line.
-    ("यन्त्राह्वानोत्सर्जनम्", "उक्तम् निधानम् स्तूपसूचकःय् इति", "emit_call"),
+    // of arity 9 (निर्देशयोजनम्) needs exactly this line. `V-005`: the store's
+    // WORD is now the value's file's (`यन्त्रनिधानपदम्` — `निधानम्` for an
+    // integer, `प्लवनिधानम्` for a float past `fa7`), so the fragment is the
+    // place it stores to, written right after it.
+    ("यन्त्राह्वानोत्सर्जनम्", "उक्तम् स्तूपसूचकःय् इति", "emit_call"),
     // §2.5 THE SYNTHESIZED COMPARE: `bne c, zero, then` — the form for a condition
     // that is a VALUE (a call's result, a loaded बूल); kept beside the fusion.
     ("यन्त्रशाखावतरणम्", "उक्तम् विषमलङ्घनम् इति", "lower_cond_branch"),
@@ -3115,36 +3358,94 @@ const T0_LEXER_KINDS: &[(&str, &str)] = &[
 /// count alone is held by any two absences, so the blocked ones are named. A
 /// body appearing for either means a decision was taken, and it should have a
 /// row rather than arrive unremarked inside a port.
-const T0_LEXER_BLOCKED_KINDS: &[(&str, &str)] = &[
-    (
-        "सङ्ख्याभेद",
-        "not produced BY DESIGN, and the reason changed 2026-09-01. It used to \
+const T0_LEXER_BLOCKED_KINDS: &[(&str, &str)] = &[(
+    "सङ्ख्याभेद",
+    "not produced BY DESIGN, and the reason changed 2026-09-01. It used to \
          read \"अक्षरकोशॱसङ्ख्या (is_numeral) is a stub\"; that routine is FULLY \
          IMPLEMENTED at sanskrit_text.t1:21 and had been for some time. The \
          lexer still does not classify numerals because T0 वाक्यविभाग REQUIRES \
          an operand to arrive as पदभेद and takes its role from विभज — lex.t1 \
-         blocker (d). One lexer serves both languages, so व्याकर decides \
-         numeral-ness by TEXT instead, asking अक्षरकोशॱसङ्ख्या",
-    ),
-    (
-        "शब्दभेद",
-        "Kind::Str is lex_t1's, not lex's — ADR-0017, and a different row",
-    ),
-];
+         blocker (d). One WALK serves both languages through two entries \
+         (पदविभाग for T1, वाक्यपदविभाग for T0, ADR-0017 and W-366 (b)) and \
+         neither makes a numeral kind, so व्याकर decides numeral-ness by TEXT \
+         instead, asking अक्षरकोशॱसङ्ख्या",
+)];
+
+// `शब्दभेद` WAS IN THIS LIST AND THE ENTRY WAS FACTUALLY WRONG — removed
+// 2026-10-03, and NOT because a row cleared its blocker. `lex.t1` produced it
+// all along, at TWO sites, and this file could not see either: both were the
+// one-line form `यदि पदपाठम् समम् उक्तम् विवरम् इति आदि भेद भवति शब्दभेद । इति`,
+// and `t0_lexer_kind_sites` compared WHOLE LINES. So the assertion below read
+// `0` and passed while the thing it forbids was happening twice.
+//
+// SAS-011(3) (`ebfe686c`) only reformatted the arm — it moved the `उक्तम्`
+// lookback inside the match, which put the assignment on a line of its own. The
+// sound count went 2 -> 1, i.e. that commit REDUCED the production sites, and
+// this test reported it as newly produced. Measured both ways on both trees:
+// before 0 by whole-line / 2 by occurrence, after 1 / 1, with the other six
+// भेद at 1 / 1 unchanged and `सङ्ख्याभेद` genuinely absent at 0 / 0.
+//
+// So the number was never bumped to 1: that would have re-pinned a matcher
+// that cannot see an inline assignment. The matcher was fixed instead.
+//
+// WHAT IS NOT SETTLED, and it is a claim about the LANGUAGE rather than this
+// test: the removed entry asserted "Kind::Str is lex_t1's, not lex's —
+// ADR-0017". `lex.t1` demonstrably produces `शब्दभेद`, and the corpus reaches
+// the fixpoint, so either that intent is stale or it needs a guard somewhere
+// that can actually observe it. A whole-line text scan never could. Filed as
+// W-366 rather than decided here.
+//
+// DECIDED BY ADR-0017 ITSELF, and BUILT as W-366 (b) on 2026-10-04: the intent
+// stood (":206, T0 is not changed"), so the walk now takes Rust's `Strings`
+// flag and has two entries. `शब्दभेद` stays PRODUCED in this file — by the T1
+// entry — and the claim "never on T0 text" is enforced at RUN time, where a
+// text scan cannot: `w366a_sas_lexes_no_string_token.rs` lexes through the T0
+// entry `पदविभागॱवाक्यपदविभाग` and holds its T1 control through `पदविभाग`.
 
 /// A `भेद` is PRODUCED where it is returned or assigned, and nowhere else.
 ///
-/// Whole-line equality, so neither the declaration at the head of the file nor
-/// a mention in prose can count. This is the lesson `the_t0_reader_reports_
-/// whether_it_reads_any_token` records one screen up, applied to the file it
-/// was reporting on.
+/// COUNTED PER OCCURRENCE AND NOT PER WHOLE LINE — corrected 2026-10-03. The
+/// previous version compared whole lines, and `.t1` writes a short arm inline:
+/// `यदि <test> आदि भेद भवति शब्दभेद । इति` is one line carrying one production
+/// site, and whole-line equality scored it ZERO. That is how the `शब्दभेद`
+/// entry above stayed green over two live sites. Prose cannot count either way
+/// — `t1_code_lines` drops `॰`-led lines before this sees them.
+///
+/// THE LEADING SPACE IS LOAD-BEARING, not decoration: `भेद` ends many names in
+/// this corpus, so a bare substring would also match `अन्यभेद भवति शब्दभेद ।`
+/// and credit a different variable's assignment to this one. A site is the
+/// phrase at the start of a line or preceded by a space.
+///
+/// THE KIND'S NUMBER IS A THIRD SPELLING — added 2026-10-03 (W-366 a). The
+/// embed collapse writes `समावेशचिह्नकम् ॱ भेद भवति ३ ।`: a production of
+/// `शब्दभेद` by its declared VALUE, which neither named phrase can see. So the
+/// assignment form is also matched with the number `text` itself declares for
+/// `kind` (`सार्वजनिक चरः <kind> ॱॱ न६४ भवति <N> ।`), read and never typed. The
+/// RETURN form gets no numeric twin on purpose: `विभज` returns kāraka roles
+/// `प्रत्यागमनम् १ ।`..`प्रत्यागमनम् ५ ।` in the same digits, and counting
+/// those would credit `सङ्ख्याभेद` (२) with production sites it does not have.
 fn t0_lexer_kind_sites(text: &str, kind: &str) -> usize {
-    let returned = format!("प्रत्यागमनम् {kind} ।");
-    let assigned = format!("भेद भवति {kind} ।");
+    let declared = format!("सार्वजनिक चरः {kind} ॱॱ न६४ भवति ");
+    let mut phrases = vec![format!("प्रत्यागमनम् {kind} ।"), format!("भेद भवति {kind} ।")];
+    if let Some(n) = t1_code_lines(text)
+        .into_iter()
+        .find_map(|l| l.strip_prefix(declared.as_str()))
+        .and_then(|rest| rest.split_whitespace().next())
+    {
+        phrases.push(format!("भेद भवति {n} ।"));
+    }
     t1_code_lines(text)
         .into_iter()
-        .filter(|l| *l == returned || *l == assigned)
-        .count()
+        .map(|l| {
+            phrases
+                .iter()
+                .map(|p| {
+                    let inner = l.matches(&format!(" {p}")).count();
+                    inner + usize::from(l.starts_with(p.as_str()))
+                })
+                .sum::<usize>()
+        })
+        .sum()
 }
 
 #[test]
@@ -3234,6 +3535,60 @@ fn the_t0_lexer_port_actually_writes_tokens() {
         "{} भेद are neither produced nor named as blocked; one of them had a \
          production site and lost it",
         T0_LEXER_KINDS.len() - produced.len() - T0_LEXER_BLOCKED_KINDS.len()
+    );
+}
+
+/// W-366 (a): the matcher SEES the embed collapse's literal-number site.
+///
+/// Before the numeric phrase, `lex.t1`'s `शब्दभेद` read 1 site (the layout-word
+/// arm) while the routine had two; the second assigns the kind by its value.
+/// Shown both ways on the site itself: the line ALONE, with no declaration to
+/// read the number from, scores 0 — which is what the named phrases score — and
+/// the same line beside the declaration scores 1.
+#[test]
+fn the_t0_lexer_kind_matcher_sees_a_kind_assigned_by_its_number() {
+    let text = t0_lexer_text();
+    let kind = "शब्दभेद";
+    let prefix = format!("सार्वजनिक चरः {kind} ॱॱ न६४ भवति ");
+    let decl = t1_code_lines(&text)
+        .into_iter()
+        .find(|l| l.starts_with(prefix.as_str()))
+        .expect("lex.t1 declares शब्दभेद");
+    let n = decl[prefix.len()..]
+        .split_whitespace()
+        .next()
+        .expect("the declaration has a value");
+    let numeric = format!(" भेद भवति {n} ।");
+    let sites: Vec<&str> = t1_code_lines(&text)
+        .into_iter()
+        .filter(|l| l.ends_with(numeric.as_str()))
+        .collect();
+    assert!(
+        !sites.is_empty(),
+        "lex.t1 no longer assigns शब्दभेद by its number ({n}); if the embed collapse \
+         now names the kind, this test has served and can go"
+    );
+    for site in &sites {
+        assert_eq!(
+            t0_lexer_kind_sites(site, kind),
+            0,
+            "without the declaration the site is invisible — the old matcher's reading"
+        );
+        assert_eq!(
+            t0_lexer_kind_sites(&format!("{decl}\n{site}"), kind),
+            1,
+            "beside the declaration the numeric site is counted: {site}"
+        );
+    }
+    let all = t0_lexer_kind_sites(&text, kind);
+    println!(
+        "METRIC sadhana_t1_t0_lexer_str_sites {all} (numeric {})",
+        sites.len()
+    );
+    assert!(
+        all == sites.len() + 1,
+        "lex.t1's शब्दभेद sites are the layout-word arm plus {} numeric; counted {all}",
+        sites.len()
     );
 }
 
@@ -4435,7 +4790,7 @@ const ANNOTATION_MARK: &str = "ॱॱ";
 /// Every `.t1` source in the tree, from every crate, sorted.
 ///
 /// Deliberately NOT [`t1_sources`], which reads this crate's `src/` alone:
-/// `crates/sankriti/src/text/*.t1` are T1 sources too and the grammar binds them
+/// `crates/textapp/src/text/*.t1` are T1 sources too and the grammar binds them
 /// exactly as much.
 fn every_t1_source_in_the_tree() -> Vec<PathBuf> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -5589,6 +5944,21 @@ const RUST_ONLY: &[(&str, &str)] = &[
          their old signatures; the port changed its one signature instead",
     ),
     (
+        "emit_module_and_relaxations",
+        "`W-332`'s census entry point. It is emit_module's OWN body with the \
+         relaxed-routine labels still attached, and emit_module is now the \
+         wrapper that drops them — so this is a wrapper count that differs, \
+         exactly as emit_startup_object_with_records below is, and not a second \
+         emitter. The port's यन्त्रमण्डलोत्सर्जनम् needs no variant because it \
+         has no census to return: its relaxation is STATE in the routine \
+         emitter (`W-306`) rather than an `Err` value, so a `.t1` counter is a \
+         global on that side and not a widened result. NOT WRITTEN THIS CYCLE \
+         and the asymmetry is deliberate: `W-332`'s acceptance is a count of \
+         what the RUST emitter did to the corpus, and `t1_twin_agreement` \
+         already pins that the two halves emit the same octets, so a second \
+         census would re-measure agreement rather than add a reading",
+    ),
+    (
         "emit_startup_object_with_records",
         "same — and the port needs no VARIANT because since `W-285` its \
          यन्त्रारम्भमण्डलोत्सर्जनम् takes the flag directly and passes it \
@@ -5620,7 +5990,51 @@ const RUST_ONLY: &[(&str, &str)] = &[
         "ir.t1's `रचनाक्षेत्रसंज्ञा`; the port reads `मध्यरूपॱरचनाक्षेत्रसंज्ञा`",
     ),
     ("RA", "a register NAME; the port writes `पुनःस्थानम्` inline"),
+    (
+        "FLOAT_MOVE",
+        "`V-005`: a mnemonic WORD, `fsgnj.d`'s; the port writes `प्लवचिह्नारोपणम्` inline, as it writes `योगः` and `निधानम्`",
+    ),
     ("SP", "a register NAME; the port writes `स्तूपसूचकः` inline"),
+    (
+        "VECTOR_SET_LENGTH",
+        "`V-008` part 2: a mnemonic WORD, `vsetvli`'s; the port writes it inline, as it writes `योगः`",
+    ),
+    (
+        "VECTOR_REGISTER_STEM",
+        "`V-008` part 2: the vector register stem; the port writes it inline in its `vector_register` twin",
+    ),
+    (
+        "VECTOR_TYPE_E64_M8",
+        "`V-008` part 2: vtype 219 as a numeral; the port writes `२१९` inline",
+    ),
+    (
+        "MATRIX_KERNEL",
+        "`V-009` (ii): the kernel's readable rows, test-only; the compact table encodes them",
+    ),
+    (
+        "MATRIX_KERNEL_TABLE",
+        "`V-009` (ii): the compact table; the port writes the same letters as a literal in `यन्त्राव्यूहकायोत्सर्जनम्`",
+    ),
+    (
+        "MATRIX_KERNEL_OPERANDS",
+        "`V-009` (ii): the operand list; the port writes the same letters as a literal in `यन्त्राव्यूहपदसङ्केतः`",
+    ),
+    (
+        "matrix_kernel_rows",
+        "`V-009` (ii): the table decoded into rows; the port decodes each row inside `यन्त्राव्यूहकायोत्सर्जनम्`'s loop",
+    ),
+    (
+        "MATRIX_PRODUCT_SYMBOL",
+        "`V-009` (ii): the product kernel's symbol; the port reads `ir.t1`'s `मध्यरूपॱआव्यूहवृत्तिसंज्ञा`",
+    ),
+    (
+        "MATRIX_TRANSPOSE_SYMBOL",
+        "`V-009` (ii): the transpose kernel's symbol; the port reads `ir.t1`'s `मध्यरूपॱव्युत्क्रमवृत्तिसंज्ञा`",
+    ),
+    (
+        "VECTOR_LABEL_INFIX",
+        "`V-008` part 2: the expansion's label infix; the port writes `खण्ड` inline, and only Rust's branch-range census reads it",
+    ),
     (
         "FINISHER_HI",
         "the finisher's high half as a Devanagari literal; written inline by यन्त्रप्रवेशोत्सर्जनम्",
@@ -5650,12 +6064,22 @@ const RUST_ONLY: &[(&str, &str)] = &[
          `new`/`insert`/`get` are the map's rather than the emitter's — the \
          three `Names::` rows pair the PORT's routines against those \
          operations, and the alias itself has nothing to carry",
+    ), // `W-381` — first seen when the reader learned `const fn` (it had read
+    // `pub const fn fail_word` as a `const` named `fn`).
+    (
+        "fail_word",
+        "its twin is NOT in this port: the FAIL-form word `code << 16 | 0x3333` \
+         is built by ir.t1's `समापकविफलशब्दः` (module मध्यरूप), because both \
+         of ir.t1's refusal stores take it from the IR; the port's one other \
+         use, the vector refusal, CALLS that routine as `मध्यरूपॱसमापकविफलशब्दः`. A \
+         यन्त्र-prefixed copy here would be a second statement of the word. \
+         Pinned by the_fail_word_twin_is_ir_t1s_routine_and_the_port_calls_it",
     ),
 ];
 
 /// Every module-level NAMED DECLARATION `riscv64.rs` makes — `fn`, `struct`,
-/// `const`, `enum`, `type` — as `(kind, name)`, at column zero so a function
-/// nested inside another is not mistaken for port surface.
+/// `const`, `enum`, `type`, `static` — as `(kind, name)`, at column zero so a
+/// function nested inside another is not mistaken for port surface.
 ///
 /// THIS IS THE AUTHORITATIVE POPULATION for the guard below, and its scope is
 /// stated rather than implied: **`impl` blocks and `mod` are module-level and
@@ -5670,30 +6094,131 @@ fn riscv_rust_items() -> Vec<(String, String)> {
     let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/sadhana/src/t1/riscv64.rs");
     let text = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("{} must be readable: {e}", path.display()));
-    let mut out = Vec::new();
-    for line in text.lines() {
-        // Column zero only, and `pub` is not required: the port covers private
-        // helpers too — `temp` and `arg` are both in RISCV_SYMBOLS and neither
-        // is `pub`.
-        let rest = line.strip_prefix("pub ").unwrap_or(line);
-        if line.starts_with(' ') || line.starts_with('\t') {
-            continue;
-        }
-        for kind in ["fn ", "struct ", "const ", "enum ", "type "] {
-            let Some(after) = rest.strip_prefix(kind) else {
-                continue;
-            };
-            let name: String = after
-                .chars()
-                .take_while(|c| c.is_alphanumeric() || *c == '_')
-                .collect();
-            if !name.is_empty() {
-                out.push((kind.trim().to_string(), name));
-            }
-            break;
+    text.lines().filter_map(riscv_rust_item).collect()
+}
+
+/// One column-zero line of `riscv64.rs` as `(kind, name)`, or `None`.
+fn riscv_rust_item(line: &str) -> Option<(String, String)> {
+    // Column zero only, and `pub` is not required: the port covers private
+    // helpers too — `temp` and `arg` are both in RISCV_SYMBOLS and neither
+    // is `pub`.
+    if line.starts_with(' ') || line.starts_with('\t') {
+        return None;
+    }
+    // `W-381` — A RESTRICTED `pub` IS STILL AN ITEM. Only `pub ` was stripped,
+    // so `pub(crate) fn x` matched no kind and was SKIPPED, the silent miss
+    // this guard exists to refuse. None exists in riscv64.rs today (grep,
+    // 2026-10-06); the form is read so the first one is seen.
+    let rest = match line.strip_prefix("pub(") {
+        Some(after) => after.split_once(") ").map_or(line, |(_, r)| r),
+        None => line.strip_prefix("pub ").unwrap_or(line),
+    };
+    // `static ` ADDED BY `W-332`, AND IT WAS A REAL BLIND SPOT. The kind
+    // list was the population this guard can see, and a `static` at column
+    // zero was outside it — so the emitter could grow process state with no
+    // twin and nothing would say so. `W-264`'s own margin predicted this
+    // shape ("a guard cannot find its own blind spot") and the miss was
+    // found the way it says such things are found: by needing to add a
+    // `static` and asking whether the guard would notice. It discovered
+    // ZERO existing items when added, so this widened the question without
+    // moving any answer.
+    //
+    // THE ONE STATIC IT EVER CAUGHT HAS SINCE BEEN REMOVED, and the kind
+    // stays. `RELAXED_ROUTINES` was a process-global relaxation counter;
+    // `emit_module_and_relaxations` returns the labels per call instead, so
+    // there is no emitter static left for this arm to find. The arm is kept
+    // because its subject is the POPULATION the guard can see, not any
+    // member of it: removing it would restore the blind spot the moment the
+    // next `static` is written, and a guard narrowed because its one catch
+    // was fixed is a guard that only ever fires once.
+    // `W-381` — A QUALIFIED `fn` IS A `fn`. `pub const fn fail_word` was read
+    // as a `const` named `fn`: the item was still reported (the gate went red
+    // on it), but under the wrong kind and name, so no RISCV_SYMBOLS or
+    // RUST_ONLY row could ever answer it. The qualifiers a module-level `fn`
+    // can carry are stripped first, so the name read is the function's.
+    let mut rest = rest;
+    for qualifier in ["const ", "unsafe ", "async ", "extern \"C\" "] {
+        if let Some(after) = rest.strip_prefix(qualifier)
+            && (after.starts_with("fn ")
+                || after.starts_with("unsafe fn ")
+                || after.starts_with("extern \"C\" fn "))
+        {
+            rest = after;
         }
     }
-    out
+    for kind in ["fn ", "struct ", "const ", "enum ", "type ", "static "] {
+        let Some(after) = rest.strip_prefix(kind) else {
+            continue;
+        };
+        let name: String = after
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        return (!name.is_empty()).then(|| (kind.trim().to_string(), name));
+    }
+    None
+}
+
+/// `W-381` — the declaration reader names a QUALIFIED `fn` by its own name:
+/// `pub const fn fail_word` is the `fn` `fail_word`, never a `const` named `fn`.
+#[test]
+fn the_riscv_item_reader_names_a_const_fn_by_its_name() {
+    let item = |l: &str| riscv_rust_item(l).map(|(k, n)| format!("{k} {n}"));
+    assert_eq!(
+        item("pub const fn fail_word(code: u64) -> u64 {").as_deref(),
+        Some("fn fail_word")
+    );
+    assert_eq!(item("const fn helper() {}").as_deref(), Some("fn helper"));
+    assert_eq!(item("pub unsafe fn raw() {}").as_deref(), Some("fn raw"));
+    assert_eq!(
+        item("pub const FINISHER_HI: &str = \"\";").as_deref(),
+        Some("const FINISHER_HI")
+    );
+    assert_eq!(
+        item("pub fn emit_module(m: &Module) {").as_deref(),
+        Some("fn emit_module")
+    );
+    assert_eq!(
+        item("pub(crate) fn scoped() {}").as_deref(),
+        Some("fn scoped")
+    );
+    assert_eq!(
+        item("pub(super) const fn up() {}").as_deref(),
+        Some("fn up")
+    );
+    assert_eq!(item("async fn later() {}").as_deref(), Some("fn later"));
+    assert_eq!(
+        item("extern \"C\" fn c_abi() {}").as_deref(),
+        Some("fn c_abi")
+    );
+    // A method is not a module-level item: `impl` blocks are indented, and the
+    // `Routine::…`/`Frame::…` rows stay hand-listed (the margin above).
+    assert_eq!(item("    const fn indented() {}"), None);
+    assert_eq!(item("impl Frame {"), None);
+}
+
+/// `W-381` — `fail_word`'s RUST_ONLY reason, checked rather than asserted: ir.t1
+/// declares the routine, the port calls it, and the arithmetic is the FAIL form.
+#[test]
+fn the_fail_word_twin_is_ir_t1s_routine_and_the_port_calls_it() {
+    let src = |f: &str| {
+        let p = Path::new(env!("CARGO_MANIFEST_DIR")).join("src").join(f);
+        std::fs::read_to_string(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
+    };
+    let ir = src("ir.t1");
+    let start = ir
+        .find("सार्वजनिक वृत्तिः समापकविफलशब्दः आदाय")
+        .expect("ir.t1 declares the FAIL-word routine");
+    let body = &ir[start..start + ir[start..].find("\nइति").expect("its body ends")];
+    assert!(
+        body.contains("गुणनम् ६५५३६") && body.contains("योगः १३१०७"),
+        "the routine is no longer code × 65536 + 0x3333:\n{body}"
+    );
+    assert!(
+        riscv_text().contains("मध्यरूपॱसमापकविफलशब्दः"),
+        "the port no longer calls ir.t1's routine for its FAIL word"
+    );
+    assert_eq!(sadhana::t1::riscv64::fail_word(0x355), 0x0355_3333);
 }
 
 /// ॥ EVERY SYMBOL THE RUST EMITTER DECLARES IS PAIRED OR RECORDED ॥ `W-264`.
@@ -5766,4 +6291,173 @@ fn every_symbol_the_rust_emitter_declares_is_paired_or_recorded() {
     println!("METRIC riscv_rust_module_items {}", items.len());
     println!("METRIC riscv_pairs_listed {}", RISCV_SYMBOLS.len());
     println!("METRIC riscv_rust_only {}", RUST_ONLY.len());
+}
+
+// ══════════════════ `D-002i2` — THE TABLE READERS, BOTH DIRECTIONS ══════════════════
+
+/// Every table name a stretch of `.t1` code asks the embed store for, in source
+/// order.
+///
+/// **Comments are stripped first, and that is the whole instrument.**
+/// `shrinkhala.t1:790` writes `पदविभागॱसमावेशपाठः` inside a `॰` comment while
+/// reading no table at all, so a matcher over raw text reports a reader that is
+/// not there — which is not a hypothetical. `anita.rs`'s own margin records
+/// `निर्देशकोशः` going missing from `TABLES` while *"a `grep -c` looking for the
+/// name found the COMMENT above and reported it present"*, and two live readers
+/// sat with no table to resolve against. [`diagnostic_code_only`] is reused
+/// rather than re-written: it applies `lex.rs:295`'s rule — `॰` ends the line —
+/// and a second stripper is a second thing to get wrong.
+///
+/// The call is matched by its SHAPE, `<x>समावेशपाठः उक्तम् <name> इति`, over
+/// whitespace-separated words, so it spans a line break the way the parser does.
+/// The suffix match admits an unqualified call from inside `पदविभाग` itself
+/// without a second pattern, and it does not match the routine's own declaration
+/// at `lex.t1:236`, where the next word is `आदाय`.
+fn embed_reader_names(text: &str) -> Vec<String> {
+    let code = diagnostic_code_only(text);
+    let words: Vec<&str> = code.split_whitespace().collect();
+    let mut out = Vec::new();
+    for (i, w) in words.iter().enumerate() {
+        if !w.ends_with("समावेशपाठः") {
+            continue;
+        }
+        if words.get(i + 1) != Some(&"उक्तम्") || words.get(i + 3) != Some(&"इति")
+        {
+            continue;
+        }
+        if let Some(name) = words.get(i + 2) {
+            out.push((*name).to_string());
+        }
+    }
+    out
+}
+
+/// Every embed-store read in the port: the source it is written in, and the
+/// table it names.
+///
+/// **`sarani.t1` is excluded, and the exclusion is what keeps this measurable.**
+/// That file is GENERATED by `tools/mkspectables.py` and carries every table's
+/// name because it IS the store — it names all thirteen whatever the rest of the
+/// port does, so counting it would make both directions below pass over a port
+/// with no reader in it.
+fn embed_readers() -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for path in t1_sources() {
+        let file = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default()
+            .to_string();
+        if file == "sarani.t1" {
+            continue;
+        }
+        let text = std::fs::read_to_string(&path).expect("a .t1 source reads");
+        for name in embed_reader_names(&text) {
+            out.push((file.clone(), name));
+        }
+    }
+    out
+}
+
+/// **`D-002i2`: every table the embed reaches is read, and every read names a
+/// table.**
+///
+/// The row asks for the table readers the embed now reaches, and the tree
+/// answers it: measured here, thirteen names in `anita.rs`'s `TABLES` and thirty
+/// reads across six sources, none unread and none unknown. What was missing was
+/// not a reader — it was anything that would say so if one went away. This test
+/// is that, and it runs in both directions because each refuses a different
+/// defect:
+///
+/// **A table with no reader** is the state `TABLES` documents as impossible —
+/// *"every entry is here because a named reader in the tree is blocked on it,
+/// not because the file exists"* — and it has happened twice. `निर्देशकोशः` was
+/// written, verified, then lost to a routine-level union that took
+/// `vakyavibhaga.t1` wholesale from worktrees which never carried it. A count
+/// alone would not have noticed: the surviving sources still read twelve tables.
+///
+/// **A read naming no table** is the direction nothing else covers, and it fails
+/// SILENTLY. `lex.t1:238`'s `समावेशपाठः` walks `समावेशनामकोश` and, on a name the
+/// store does not hold, `प्रत्यागमनम् ०` — the nil word. It does not refuse, and
+/// `.t1` has no raise; the caller then walks an empty table and reports zero rows
+/// as an answer. The embed's own resolver cannot catch it either, because that
+/// resolver reads `समावेशः आरभ्य <name> समाप्तम्` at LEX time while this is a
+/// run-time lookup with a string argument, which is why the port reaches its own
+/// tables this way at all (`lex.t1:227`: compiled natively, nothing filled the
+/// store and the assembler had no mnemonics). So a misspelt name here is a
+/// reader that returns nothing forever, and this assertion is the only thing
+/// that would say the word is wrong.
+#[test]
+fn every_table_the_embed_reaches_is_read_by_the_port_and_every_read_names_a_table() {
+    let names = sadhana::t1::anita::table_names();
+    let readers = embed_readers();
+    let sources: BTreeSet<&str> = readers.iter().map(|(f, _)| f.as_str()).collect();
+    println!("METRIC t1_embed_tables {}", names.len());
+    println!("METRIC t1_embed_reads {}", readers.len());
+    println!("METRIC t1_embed_reading_sources {}", sources.len());
+
+    // THE INSTRUMENT IS CONTROLLED BEFORE IT IS BELIEVED, both ways round. The
+    // comment case is the one that actually misreported a reader once, and the
+    // live case is what says the matcher can still find one at all — a stripper
+    // that returned "" would pass the negative control and every direction
+    // below would then be vacuous.
+    let probe = names.first().expect("TABLES is not empty");
+    let commented = format!("॰ पदविभागॱसमावेशपाठः उक्तम् {probe} इति");
+    assert!(
+        embed_reader_names(&commented).is_empty(),
+        "the matcher counted a read written inside a ॰ comment; \
+         shrinkhala.t1:790 is exactly that line and reads no table"
+    );
+    let live = format!("चरः पाठ्यम् भवति पदविभागॱसमावेशपाठः उक्तम् {probe} इति ।");
+    assert_eq!(
+        embed_reader_names(&live),
+        vec![(*probe).to_string()],
+        "the matcher no longer finds a read it is given verbatim"
+    );
+
+    // Non-vacuity of the measurement itself: the port is the evidence.
+    assert!(
+        names.len() >= 13,
+        "only {} tables in anita.rs's TABLES; thirteen stood there for D-002i2",
+        names.len()
+    );
+    assert!(
+        readers.len() >= names.len() && sources.len() >= 4,
+        "{} reads across {} sources cannot cover {} tables",
+        readers.len(),
+        sources.len(),
+        names.len()
+    );
+
+    // A — every table has a reader.
+    let read: BTreeSet<&str> = readers.iter().map(|(_, t)| t.as_str()).collect();
+    let unread: Vec<&str> = names
+        .iter()
+        .copied()
+        .filter(|n| !read.contains(n))
+        .collect();
+    assert!(
+        unread.is_empty(),
+        "{} table(s) in anita.rs's TABLES have no reader in the port: {}\n\
+         Either a routine lost its read — निर्देशकोशः did, to a routine-level \
+         union — or the entry was added for a reader nobody wrote.",
+        unread.len(),
+        unread.join(", ")
+    );
+
+    // B — every read names a table. A miss returns ० and nothing refuses.
+    let known: BTreeSet<&str> = names.iter().copied().collect();
+    let unknown: Vec<String> = readers
+        .iter()
+        .filter(|(_, t)| !known.contains(t.as_str()))
+        .map(|(f, t)| format!("{f}: {t}"))
+        .collect();
+    assert!(
+        unknown.is_empty(),
+        "{} read(s) name a table anita.rs's TABLES does not hold:\n  {}\n\
+         समावेशपाठः answers ० for a name the store lacks and does not refuse, \
+         so this reader walks an empty table forever.",
+        unknown.len(),
+        unknown.join("\n  ")
+    );
 }

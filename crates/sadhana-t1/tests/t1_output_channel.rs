@@ -601,24 +601,21 @@ fn the_back_half_completes_interpreted_on_a_module_with_instructions() {
     );
 }
 
-/// **THE LENGTH OF A NIL ARENA OF RECORDS IS 1 ON BOTH SIDES.**
+/// **THE LENGTH OF A NIL ARENA OF RECORDS IS ० ON BOTH SIDES — SINCE `W-355`.**
 ///
-/// Measured, not assumed, and it REFUTES the mechanism I proposed for the
-/// `BadAccess { addr: 0 }` in `स्थानविन्यासः`. I predicted `०` interpreted against
-/// `१` natively — the callee's loop running once natively and not at all
-/// interpreted. **Both read 1.** So the length is not the divergence.
-///
-/// The prediction contradicted a fact already recorded: the INTERPRETER's zero
-/// run has one nil element, non-octet runs starting at length `१`. I had the
-/// note and applied it backwards, and `ir.t1`'s `खण्डदैर्घ्यरचना` adding
-/// `(दैर्घ्यफलम् == ०)` is the NATIVE side deliberately reproducing that, not
-/// diverging from it.
+/// Until 2026-10-03 it was 1 on both sides, measured, and that refuted the
+/// mechanism once proposed for the `BadAccess { addr: 0 }` in `स्थानविन्यासः`
+/// (० interpreted against १ natively): the interpreter's zero run held one nil
+/// element and `ir.t1`'s `खण्डदैर्घ्यरचना` added `(दैर्घ्यफलम् == ०)` to
+/// reproduce it natively. The owner ruled LENGTH ० (`W-355`): `zero_at` gives
+/// an empty arena and the native length is the header word, ० for the nil word.
+/// `crates/yantra/tests/w355_fresh_run.rs` measures the native side; this pins
+/// the interpreted one.
 ///
 /// Pinned here because it is the shared premise of anything built on arena
-/// lengths, and because a refuted hypothesis with a measurement behind it is
-/// worth more than an unrefuted one without.
+/// lengths.
 #[test]
-fn a_nil_arena_of_records_reads_length_one_on_both_sides() {
+fn a_nil_arena_of_records_reads_length_zero_on_both_sides() {
     const PROBE: &str = "\
 मण्डलम् दैर्घ्यपरीक्षा ॥
 
@@ -638,11 +635,11 @@ fn a_nil_arena_of_records_reads_length_one_on_both_sides() {
     println!("METRIC t1_nil_arena_length_interpreted {n:?}");
     assert_eq!(
         n,
-        Value::Int(1),
-        "a nil arena of records reads 1 INTERPRETED — the nil element is inside \
-         the length. Natively the same shape also reads 1, measured through the \
-         channel inside `स्थानविन्यासः`. If this ever reads 0, the two sides have \
-         come apart and every arena walk in the corpus is affected."
+        Value::Int(0),
+        "a nil arena of records reads ० INTERPRETED since W-355 — a fresh run \
+         is empty. १ is the old zero run of one nil; natively the same shape \
+         reads ० too (w355_fresh_run.rs), and if the two ever come apart every \
+         arena walk in the corpus is affected."
     );
 }
 

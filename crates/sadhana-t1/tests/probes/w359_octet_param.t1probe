@@ -1,0 +1,16 @@
+मण्डलम् अष्टकप्राचलपरीक्षण ॥
+
+॰ W-359 rule (2) on an OCTET-RUN parameter (`अङ्कः अन्तः अ८`): the caller's
+॰ run holds one octet; the non-returning callee writes index ३. Refused by
+॰ both engines with the same cause and finisher word as a word run's.
+वृत्तिः परलेखकः आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    पाठ अङ्कः ३ अन्तः भवति ६६ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः पाठ ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+    पाठ अङ्कः ० अन्तः भवति ६५ ।
+    चरः उ ॱॱ न६४ भवति परलेखकः पाठ ।
+    प्रत्यागमनम् पाठ अङ्कः ० अन्तः ।
+इति

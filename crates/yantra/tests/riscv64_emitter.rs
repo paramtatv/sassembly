@@ -78,7 +78,7 @@ fn run(module: &Module) -> (String, Halt, Vec<u8>) {
     (text, halt, out)
 }
 
-fn status(halt: &Halt) -> u32 {
+fn status(halt: &Halt) -> u64 {
     match halt {
         Halt::Finisher {
             status: Some(s), ..
@@ -381,12 +381,19 @@ fn two_string_literals_are_laid_out_with_their_two_header_words_between_them() {
     );
 
     // The octets are the ones asked for: म is U+092E, UTF-8 e0 a4 ae = 224 164 174.
+    // `SAS-011` (c): ONE WORD IS WRITTEN AS TEXT, so each single-letter literal
+    // is `उक्तम् म इति` — derived here from the octets, so the line still
+    // fails by value if the octets change.
+    let written = |octets: &[u8]| {
+        let word = core::str::from_utf8(octets).expect("a letter is UTF-8");
+        format!("॥ अष्टकाः उक्तम् {word} इति ॥")
+    };
     assert!(
-        text.contains("॥ अष्टकाः २२४ १६४ १७४ ॥"),
+        text.contains(&written(b"\xe0\xa4\xae")),
         "the first literal's octets are in the data section:\n{text}"
     );
     assert!(
-        text.contains("॥ अष्टकाः २२४ १६४ १६८ ॥"),
+        text.contains(&written(b"\xe0\xa4\xa8")),
         "the second literal's octets are too (न is e0 a4 a8):\n{text}"
     );
     // The address is materialised, not the octets: an addi completing the auipc,
@@ -470,8 +477,8 @@ fn two_string_literals_are_laid_out_with_their_two_header_words_between_them() {
 #[test]
 fn a_literals_length_header_is_the_word_below_its_address() {
     for (octets, len) in [
-        (b"\xe0\xa4\xae".to_vec(), 3u32),
-        (b"123456789".to_vec(), 9u32),
+        (b"\xe0\xa4\xae".to_vec(), 3u64),
+        (b"123456789".to_vec(), 9u64),
     ] {
         let main = SymbolId(1);
         let (s, eight, p, l) = (ValueId(0), ValueId(1), ValueId(2), ValueId(3));

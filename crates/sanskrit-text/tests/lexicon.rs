@@ -1,7 +1,7 @@
 //! Task `A-036` — lexicon validator.
 //!
 //! `spec/lexicon.tsv` is the vocabulary every diagnostic, every document and
-//! every Sankriti prompt resolves through (doc 01 §1.2.4). A term that means two
+//! every the host application prompt resolves through (doc 01 §1.2.4). A term that means two
 //! things here means two things everywhere, so the invariants are enforced
 //! rather than reviewed.
 

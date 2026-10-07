@@ -1,0 +1,18 @@
+मण्डलम् वृद्धिपरीक्षा ॥
+
+॰ W-356 Q1 PROBE: appends at RUNTIME, so the growth path actually executes.
+॰ fit240.t1 declares an array and returns, executing 6 instructions on both
+॰ trees — it cannot see the emitted side at all. This one runs 2000 appends
+॰ through `ॱ दैर्घ्य`, which is the idiom 3d905c37's inlining serves.
+॰ If the inlining buys the 24.7% emitted win, THIS is where it shows.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+
+    यावत् क्रमः न्यूनम् २००० आदि
+        सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति क्रमः ।
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+
+    प्रत्यागमनम् ० ।
+इति

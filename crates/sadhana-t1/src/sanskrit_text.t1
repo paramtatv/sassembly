@@ -528,58 +528,92 @@
 ॰     two ASCII letter classes, and nothing else.
 ॰
 ॰ ANSWERS AN OFFSET, NOT A BOOLEAN, because a gate that says only "no" cannot
-॰ name the character it refused. The offset of the FIRST inadmissible code point
-॰ is returned; a clean source answers `मूल ॱ दैर्घ्य`, one past the last octet and
-॰ therefore never a real position. One number tells the two apart.
+॰ name the character it refused. The offset of the FIRST refusing octet is
+॰ returned; a clean source answers `मूल ॱ दैर्घ्य`, one past the last octet and
+॰ therefore never a real position. One number tells the two apart, and
+॰ `परिधिदोषकारणम्` below says WHICH refusal it was.
 ॰
 ॰ IT LIVES HERE AND NOT IN `पदविभाग`, because `अक्षरकोश` ALREADY IMPORTS
 ॰ `पदविभाग` (line 8) and the reverse edge would be a CYCLE. The first version
 ॰ of this put the walk in `lex.t1` calling `अक्षरकोशॱसङ्केतमूल्यम्`, and Stage 1
 ॰ of the fixpoint PRODUCED NO IMAGE while `no_module_is_reached_without_being
-॰ _imported` named the cause. Here both halves are reachable with no new edge:
-॰ this module's own decoder and predicate, and `पदविभाग`'s word splitting.
+॰ _imported` named the cause. The SOURCE ENTRY that gates and then lexes,
+॰ `परिधिपदविभाग` below, lives here for the same reason.
 ॰
-॰ Every sign `पदविभाग` knows is three octets wide, so `पदविभागॱत्र्यष्टकसाम्यम्` — bounds
-॰ checked, already here — spells `आस्की` in five comparisons and `जाल` in three.
+॰ ── THE WALK IS STRING-AWARE, AND THAT WAS SETTLED BY RUNNING IT (W-304
+॰ replay, 2026-10-01) ── this routine used to bound each line at its first `॰`
+॰ with `पदविभागॱटिप्पणीसीमा`, the lexer's own cut. Twelve probe sources were run
+॰ through that walk, through `agent/tick`'s state machine and through Rust's
+॰ `lex_t1`. On every margin they agree. They part on a `॰` INSIDE
+॰ `उक्तम् … इति`: `उक्तम् ॰ SAS इति` scanned CLEAN here, because the cut
+॰ dropped `SAS` as margin, while `lex_t1` — which recognises a string FIRST
+॰ (ADR-0017) — refuses the `S`. And on `उक्तम् SAS` with no `इति`, this
+॰ refused for the REPERTOIRE where `lex_t1` refuses the unclosed STRING and
+॰ never looks at a word of the line. So the walk below is `agent/tick`'s, ported
+॰ onto these names, `न६४` and a zero-based answer: a `॰` starts a margin only
+॰ outside a literal, and a literal no `इति` closes is its own cause.
+॰
+॰ ── THE THREE STATES ── clean; an octet doc 15 does not admit
+॰ (`परिधिअक्षरदोषः`); a `उक्तम्` that no `इति` closes on its line
+॰ (`परिधिउक्तदोषः`, answered AT the `उक्तम्`). The second is a REPERTOIRE
+॰ verdict and the third a STRUCTURE one, which the lexer and the parser own and
+॰ report better — so the gate refuses on the second ONLY. A two-state answer
+॰ over this three-state truth is what made `agent/tick`'s first wiring empty
+॰ `ashtaka`'s `P22` diagnostic.
+सार्वजनिक चरः परिधिअक्षरदोषः ॱॱ न६४ भवति १ ।   ॰ an octet outside doc 15's repertoire
+सार्वजनिक चरः परिधिउक्तदोषः ॱॱ न६४ भवति २ ।   ॰ a उक्तम् no इति closes on its line
+सार्वजनिक चरः परिधिदोषकारणम् ॱॱ न६४ भवति ० ।   ॰ ० while the source is clean, reset on entry
 
-॰ whether the span [आरम्भः, सीमा) is exactly the word `आस्की`.
-सार्वजनिक वृत्तिः आस्कीपदम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति बूल आदि
-    यदि आरभ्य सीमा वियोगः आरम्भः समाप्तम् असमम् १५ आदि
-        प्रत्यागमनम् असत्यम् ।
+॰ ── WHAT BREAKS A WORD ── SPACE, TAB and LINE FEED, `split_whitespace` narrowed
+॰ to what R-15-1 admits. CARRIAGE RETURN is NOT one: `str ॱ lines` peels it off
+॰ a line end before any Rust check runs, and it is outside R-15-1 here and
+॰ refused — the one place a CRLF source reads differently from a LF one.
+वृत्तिः पदविरामः आदाय अष्टक ॱॱ अ८ ददाति बूल आदि
+    यदि अष्टक समम् ३२ आदि
+        प्रत्यागमनम् सत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६४ १३४ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
+    यदि अष्टक समम् ९ आदि
+        प्रत्यागमनम् सत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ३ समाप्तम् २२४ १६४ १८४ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
+    यदि अष्टक समम् १० आदि
+        प्रत्यागमनम् सत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ६ समाप्तम् २२४ १६५ १४१ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
-    इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ९ समाप्तम् २२४ १६४ १४९ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
-    इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः १२ समाप्तम् २२४ १६५ १२८ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
-    इति
-    प्रत्यागमनम् सत्यम् ।
+    प्रत्यागमनम् असत्यम् ।
 इति
 
-॰ whether the span [आरम्भः, सीमा) is exactly the word `जाल`.
-सार्वजनिक वृत्तिः जालपदम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति बूल आदि
-    यदि आरभ्य सीमा वियोगः आरम्भः समाप्तम् असमम् ९ आदि
+॰ ── IS THE WORD AT आरम्भः EXACTLY नमूना ? ── `word == "आस्की"`, not
+॰ `starts_with`. A word ENDS where the source runs out, where a separator
+॰ follows, or where the margin mark follows — `pieces` cuts a glued ॰ off the
+॰ word, so `आस्की॰क` IS the directive on the Rust path. U+0970 is २२४ १६५ १७६
+॰ and a three-octet compare is exact because UTF-8 is self-synchronising.
+वृत्तिः पदसमम् आदाय मूल ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ऽ नमूना ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः नमूनादैर्घ्यम् ॱॱ न६४ भवति नमूना ॱ दैर्घ्य ।
+    चरः परम् ॱॱ न६४ भवति आरम्भः योगः नमूनादैर्घ्यम् ।
+    यदि परम् अधिकम् सीमा आदि
         प्रत्यागमनम् असत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरम्भः २२४ १६४ १५६ समम् असत्यम् आदि
+
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् नमूनादैर्घ्यम् आदि
+        यदि मूल अङ्कः आरभ्य आरम्भः योगः क्रमः समाप्तम् अन्तः असमम् नमूना अङ्कः क्रमः अन्तः आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् ।
+    इति
+
+    यदि परम् समम् सीमा आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि पदविरामः मूल अङ्कः परम् अन्तः समम् सत्यम् आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि आरभ्य परम् योगः ३ समाप्तम् अधिकम् सीमा आदि
         प्रत्यागमनम् असत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ३ समाप्तम् २२४ १६४ १९० समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
+    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल परम् २२४ १६५ १७६ आदि
+        प्रत्यागमनम् सत्यम् ।
     इति
-    यदि पदविभागॱत्र्यष्टकसाम्यम् मूल आरभ्य आरम्भः योगः ६ समाप्तम् २२४ १६४ १७८ समम् असत्यम् आदि
-        प्रत्यागमनम् असत्यम् ।
-    इति
-    प्रत्यागमनम् सत्यम् ।
+    प्रत्यागमनम् असत्यम् ।
 इति
 
 ॰ `जाल` NARROWS the repertoire, it does not disable it. Exactly the twelve marks
@@ -638,74 +672,225 @@
     प्रत्यागमनम् असत्यम् ।
 इति
 
-॰ the offset of the first code point doc 15 does not admit, or `मूल ॱ दैर्घ्य`
-॰ when the source is clean.
+॰ the offset of the first refusing octet, or `मूल ॱ दैर्घ्य` when the source is
+॰ clean; `परिधिदोषकारणम्` says which of the two refusals it was.
 सार्वजनिक वृत्तिः परिधिदोषः आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    ॰ RESET ON ENTRY, the same rule the position itself obeys.
+    परिधिदोषकारणम् भवति ० ।
     चरः दैर्घ्य ॱॱ न६४ भवति मूल ॱ दैर्घ्य ।
-    चरः पङ्क्त्यारम्भः ॱॱ न६४ भवति ० ।
+    चरः स्थानम् ॱॱ न६४ भवति ० ।
+    चरः टिप्पणीगतम् ॱॱ बूल भवति असत्यम् ।
     चरः आस्कीस्थः ॱॱ बूल भवति असत्यम् ।
     चरः जालस्थः ॱॱ बूल भवति असत्यम् ।
+    चरः पदारम्भे ॱॱ बूल भवति सत्यम् ।
+    चरः अन्तिमसङ्केत ॱॱ अ६४ भवति ० ।
+    चरः आस्कीनमूना ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् आस्की इति ।
+    चरः जालनमूना ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् जाल इति ।
+    चरः उक्तनमूना ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् उक्तम् इति ।
+    चरः इतिनमूना ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् इति इति इति ।
+    चरः उक्तगतम् ॱॱ बूल भवति असत्यम् ।
+    चरः उक्तस्थानम् ॱॱ न६४ भवति ० ।
+    चरः इतिविषमम् ॱॱ बूल भवति असत्यम् ।
+    ॰ a violation INSIDE an open literal is HELD, not returned: if no इति closes
+    ॰ the literal on its line, `pieces` refuses the line at the उक्तम् and never
+    ॰ checks a word of it. `न६४` has no −१, so a बूल says whether one is held.
+    चरः लम्बितम् ॱॱ बूल भवति असत्यम् ।
+    चरः लम्बितस्थानम् ॱॱ न६४ भवति ० ।
 
-    यावत् पङ्क्त्यारम्भः न्यूनम् दैर्घ्य आदि
-        चरः पङ्क्त्यन्तः ॱॱ न६४ भवति पदविभागॱपङ्क्तिसीमा मूल पङ्क्त्यारम्भः ।
-        चरः सीमा ॱॱ न६४ भवति पदविभागॱटिप्पणीसीमा मूल पङ्क्त्यारम्भः पङ्क्त्यन्तः ।
-        चरः स्थितिः ॱॱ न६४ भवति पङ्क्त्यारम्भः ।
+    यावत् स्थानम् न्यूनम् दैर्घ्य आदि
+        चरः व्याप्तिः ॱॱ अ६४ भवति अष्टकविस्तारः मूल अङ्कः स्थानम् अन्तः ।
+        चरः अन्तिमम् ॱॱ न६४ भवति स्थानम् योगः व्याप्तिः ।
 
-        यावत् स्थितिः न्यूनम् सीमा आदि
-            चरः पदारम्भः ॱॱ न६४ भवति पदविभागॱपदादिः मूल स्थितिः सीमा ।
-            यदि पदारम्भः न्यूनम् सीमा आदि
-                चरः पदान्तः ॱॱ न६४ भवति पदविभागॱपदान्तिकम् मूल पदारम्भः सीमा ।
-                चरः शिरोन्तः ॱॱ न६४ भवति पदविभागॱपुच्छविरामः मूल पदारम्भः पदान्तः ।
-                चरः भेद ॱॱ न६४ भवति पदविभागॱविरामचिह्न मूल पदारम्भः शिरोन्तः ।
-                चरः पुच्छभेद ॱॱ न६४ भवति पदविभागॱविरामचिह्न मूल शिरोन्तः पदान्तः ।
+        यदि अन्तिमम् अधिकम् दैर्घ्य आदि
+            ॰ a lead octet promising octets the source does not have: refused AT
+            ॰ the lead, because `सङ्केतमूल्यम्` would index past the end and a
+            ॰ truncated sequence denotes no code point at all.
+            परिधिदोषकारणम् भवति परिधिअक्षरदोषः ।
+            प्रत्यागमनम् स्थानम् ।
+        इति
 
-                ॰ the directive OPENS on its own word, before any check.
-                यदि आस्कीपदम् मूल पदारम्भः शिरोन्तः आदि
-                    आस्कीस्थः भवति सत्यम् ।
+        चरः सङ्केत ॱॱ अ६४ भवति सङ्केतमूल्यम् मूल स्थानम् ।
+
+        यदि पदविरामः मूल अङ्कः स्थानम् अन्तः समम् सत्यम् आदि
+            ॰ A WORD ENDS HERE, and the directive's closing ॥ is the LAST code
+            ॰ point of its word — so the reset is read off the word that just
+            ॰ ended, AFTER that word was checked, as lex.rs's `punctuation(head)`.
+            यदि अन्तिमसङ्केत समम् २४०५ आदि
+                आस्कीस्थः भवति असत्यम् ।
+                जालस्थः भवति असत्यम् ।
+            इति
+            अन्तिमसङ्केत भवति ० ।
+            पदारम्भे भवति सत्यम् ।
+
+            ॰ LINE FEED closes a margin AND settles the literal, both ways. A
+            ॰ run of इति that ended ODD closed it; what is left open is
+            ॰ `pieces`'s own refusal, reported AT the उक्तम्.
+            यदि सङ्केत समम् १० आदि
+                टिप्पणीगतम् भवति असत्यम् ।
+                यदि उक्तगतम् समम् सत्यम् आदि
+                    यदि इतिविषमम् समम् सत्यम् आदि
+                        उक्तगतम् भवति असत्यम् ।
+                        इतिविषमम् भवति असत्यम् ।
+                        यदि लम्बितम् समम् सत्यम् आदि
+                            परिधिदोषकारणम् भवति परिधिअक्षरदोषः ।
+                            प्रत्यागमनम् लम्बितस्थानम् ।
+                        इति
+                    इति अन्यथा आदि
+                        परिधिदोषकारणम् भवति परिधिउक्तदोषः ।
+                        प्रत्यागमनम् उक्तस्थानम् ।
+                    इति
                 इति
-                यदि जालपदम् मूल पदारम्भः शिरोन्तः आदि
-                    जालस्थः भवति सत्यम् ।
-                इति
-
-                ॰ and the check runs over the HEAD only when not inside `आस्की`.
-                यदि आस्कीस्थः समम् असत्यम् आदि
-                    चरः अष्टकस्थानम् ॱॱ न६४ भवति पदारम्भः ।
-                    यावत् अष्टकस्थानम् न्यूनम् शिरोन्तः आदि
-                        चरः सङ्केताङ्क ॱॱ अ६४ भवति सङ्केतमूल्यम् मूल अष्टकस्थानम् ।
-                        चरः चौडा ॱॱ अ६४ भवति अष्टकविस्तारः मूल अङ्कः अष्टकस्थानम् अन्तः ।
-                        यदि परिधिस्थम् सङ्केताङ्क समम् असत्यम् आदि
-                            यदि जालस्थः समम् असत्यम् आदि
-                                प्रत्यागमनम् अष्टकस्थानम् ।
+            इति
+        इति अन्यथा आदि
+            यदि पदारम्भे समम् सत्यम् आदि
+                पदारम्भे भवति असत्यम् ।
+                ॰ BEFORE the word is checked, so आस्की is itself exempt — and not
+                ॰ inside a margin: a commented-out directive turns nothing on.
+                यदि टिप्पणीगतम् समम् असत्यम् आदि
+                    ॰ ADR-0011 FIRST: `string_value` takes a PAIR of इति as a
+                    ॰ literal इति and the first UNPAIRED one closes, so over a run
+                    ॰ of इति words the rule is parity, decided at the first word
+                    ॰ of the run that is not इति.
+                    यदि उक्तगतम् समम् सत्यम् आदि
+                        यदि पदसमम् मूल स्थानम् दैर्घ्य इतिनमूना समम् सत्यम् आदि
+                            यदि इतिविषमम् समम् सत्यम् आदि
+                                इतिविषमम् भवति असत्यम् ।
                             इति अन्यथा आदि
-                                यदि जालानुमतम् सङ्केताङ्क समम् असत्यम् आदि
-                                    प्रत्यागमनम् अष्टकस्थानम् ।
+                                इतिविषमम् भवति सत्यम् ।
+                            इति
+                        इति अन्यथा आदि
+                            यदि इतिविषमम् समम् सत्यम् आदि
+                                उक्तगतम् भवति असत्यम् ।
+                                इतिविषमम् भवति असत्यम् ।
+                                यदि लम्बितम् समम् सत्यम् आदि
+                                    परिधिदोषकारणम् भवति परिधिअक्षरदोषः ।
+                                    प्रत्यागमनम् लम्बितस्थानम् ।
                                 इति
                             इति
                         इति
-                        अष्टकस्थानम् भवति आरभ्य अष्टकस्थानम् योगः चौडा समाप्तम् ।
+                    इति
+
+                    ॰ A LITERAL IS NOT A DIRECTIVE AND DOES NOT NEST: Rust hands
+                    ॰ the whole `उक्तम् … इति` over as ONE word.
+                    यदि उक्तगतम् समम् असत्यम् आदि
+                        यदि पदसमम् मूल स्थानम् दैर्घ्य उक्तनमूना समम् सत्यम् आदि
+                            उक्तगतम् भवति सत्यम् ।
+                            उक्तस्थानम् भवति स्थानम् ।
+                            इतिविषमम् भवति असत्यम् ।
+                            लम्बितम् भवति असत्यम् ।
+                        इति अन्यथा आदि
+                            यदि पदसमम् मूल स्थानम् दैर्घ्य आस्कीनमूना समम् सत्यम् आदि
+                                आस्कीस्थः भवति सत्यम् ।
+                            इति अन्यथा आदि
+                                यदि पदसमम् मूल स्थानम् दैर्घ्य जालनमूना समम् सत्यम् आदि
+                                    जालस्थः भवति सत्यम् ।
+                                इति
+                            इति
+                        इति
                     इति
                 इति
+            इति
 
-                ॰ `॥` closes the directive, as a head sign or as a trailing one.
-                यदि भेद समम् पदविभागॱयुग्मदण्डभेद आदि
-                    आस्कीस्थः भवति असत्यम् ।
-                    जालस्थः भवति असत्यम् ।
+            ॰ ADR-0017: THE MARGIN MARK IS ONE ONLY OUTSIDE A LITERAL. U+0970 is
+            ॰ itself in R-15-1, so this arm changes no verdict for the mark —
+            ॰ only the STATE.
+            यदि सङ्केत समम् २४१६ आदि
+                यदि उक्तगतम् समम् असत्यम् आदि
+                    टिप्पणीगतम् भवति सत्यम् ।
                 इति
-                यदि पुच्छभेद समम् पदविभागॱयुग्मदण्डभेद आदि
-                    आस्कीस्थः भवति असत्यम् ।
-                    जालस्थः भवति असत्यम् ।
-                इति
-
-                स्थितिः भवति पदान्तः ।
             इति अन्यथा आदि
-                स्थितिः भवति सीमा ।
+                यदि टिप्पणीगतम् समम् असत्यम् आदि
+                    ॰ the word's last live code point, for the ॥ reset — recorded
+                    ॰ even under आस्की, or the directive could never close, but
+                    ॰ NOT inside a literal: a ॥ between the delimiters closes
+                    ॰ nothing.
+                    यदि उक्तगतम् समम् असत्यम् आदि
+                        अन्तिमसङ्केत भवति सङ्केत ।
+                    इति
+                    यदि आस्कीस्थः समम् असत्यम् आदि
+                        यदि परिधिस्थम् सङ्केत समम् असत्यम् आदि
+                            चरः क्षम्यम् ॱॱ बूल भवति असत्यम् ।
+                            यदि जालस्थः समम् सत्यम् आदि
+                                क्षम्यम् भवति जालानुमतम् सङ्केत ।
+                            इति
+                            यदि क्षम्यम् समम् असत्यम् आदि
+                                यदि उक्तगतम् समम् सत्यम् आदि
+                                    यदि लम्बितम् समम् असत्यम् आदि
+                                        लम्बितम् भवति सत्यम् ।
+                                        लम्बितस्थानम् भवति स्थानम् ।
+                                    इति
+                                इति अन्यथा आदि
+                                    परिधिदोषकारणम् भवति परिधिअक्षरदोषः ।
+                                    प्रत्यागमनम् स्थानम् ।
+                                इति
+                            इति
+                        इति
+                    इति
+                इति
             इति
         इति
 
-        पङ्क्त्यारम्भः भवति आरभ्य पङ्क्त्यन्तः योगः १ समाप्तम् ।
+        स्थानम् भवति अन्तिमम् ।
+    इति
+
+    ॰ THE SOURCE ENDED WITHOUT A LINE FEED: `str ॱ lines` still yields that
+    ॰ last line, so the same settlement as the line feed above.
+    यदि उक्तगतम् समम् सत्यम् आदि
+        यदि इतिविषमम् समम् सत्यम् आदि
+            यदि लम्बितम् समम् सत्यम् आदि
+                परिधिदोषकारणम् भवति परिधिअक्षरदोषः ।
+                प्रत्यागमनम् लम्बितस्थानम् ।
+            इति
+        इति अन्यथा आदि
+            परिधिदोषकारणम् भवति परिधिउक्तदोषः ।
+            प्रत्यागमनम् उक्तस्थानम् ।
+        इति
     इति
 
     प्रत्यागमनम् दैर्घ्य ।
+इति
+
+॰ ══════════════ THE GATED SOURCE ENTRY — `W-304`, a peer session's ruling ══════════════
+॰ A SOURCE's lexer: R-15-1 over the octets, THEN `पदविभागॱपदविभाग`. Both
+॰ source drivers come through here — `chain.rs`'s `Front::lex` calls this by
+॰ name, and `शृङ्खलाॱपठनम्` delegates to it — so there is ONE gate. Until this
+॰ the gate sat only in `पठनम्`, and `Front` (t1_build, frontend, the yantra
+॰ drivers) lexed ungated: `उक्तम् SAS इति` parsed there to one declaration.
+॰
+॰ `पदविभाग` ITSELF IS NOT GATED, ON PURPOSE. `वाक्यविभागॱसङ्कलनम्` lexes the
+॰ EMITTED `.sas` text through it, and a gate there would charge every module's
+॰ assembly a second walk and report an offset into text no author wrote. The
+॰ `.sas` path keeps its own guard in the assembler.
+॰
+॰ ONLY THE REPERTOIRE CAUSE REFUSES HERE. An unclosed `उक्तम्` falls through to
+॰ the lexer and the parser, which refuse it with the word and the line.
+॰
+॰ `न६४` IS UNSIGNED, so there is no −१ to mean "none" — hence a बूल beside the
+॰ offset rather than a sentinel inside it. Reset on entry, so a reader of a
+॰ second call never sees the first's refusal; `chain::refusal_site` reads both.
+सार्वजनिक चरः परिधिदोषस्थितम् ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः परिधिदोषस्थानम् ॱॱ न६४ भवति ० ।   ॰ the octet, meaningful only when the बूल above is सत्यम्
+
+सार्वजनिक वृत्तिः परिधिपदविभाग आदाय मूल ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि   ॰ how many tokens were written, ० on a refusal
+    परिधिदोषस्थितम् भवति असत्यम् ।
+    परिधिदोषस्थानम् भवति ० ।
+    चरः परिधिस्थानम् ॱॱ न६४ भवति परिधिदोषः मूल ।
+    ॰ CAUSE १ ONLY, ON PURPOSE — NOT A FORGOTTEN ARM. A `उक्तम्` no `इति`
+    ॰ closes (cause २, `परिधिउक्तदोषः`) is RECORDED by the walk and falls through
+    ॰ to `पदविभाग`. The third state exists to DISCRIMINATE, so that
+    ॰ `परिधिदोषस्थितम्` is never raised for a source with no foreign octet in it;
+    ॰ an unclosed string is a STRUCTURAL fault, and the lexer and the parser name
+    ॰ it with its word and line better than a repertoire offset could. The Rust
+    ॰ oracle agrees: `lex_t1` refuses `उक्तम् SAS` (the replay's probe B3) as
+    ॰ "opens a string that no `इति` closes on this line" and never as the
+    ॰ repertoire. Refusing cause २ here is what emptied `ashtaka`'s `P22` on
+    ॰ `agent/tick` (7c63c088).
+    यदि परिधिदोषकारणम् समम् परिधिअक्षरदोषः आदि
+        परिधिदोषस्थितम् भवति सत्यम् ।
+        परिधिदोषस्थानम् भवति परिधिस्थानम् ।
+        प्रत्यागमनम् ० ।
+    इति
+    प्रत्यागमनम् पदविभागॱपदविभाग मूल ।
 इति
 
 
@@ -1664,14 +1849,47 @@
 सार्वजनिक वृत्तिः सङ्ख्यामूलम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ अ६४ ऽ सीमा ॱॱ अ६४ ददाति अ६४ आदि
     चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्यारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
 
-    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ १६ समाप्तम् आदि
-        प्रत्यागमनम् १६ ।
+    ॰ ── THE PREFIXES ARE TRIED ONLY BEHIND A LEADING ० (SAS-011 fix 3) ──
+    ॰ Every radix prefix begins with ० — U+0966, octets २२४ १६५ १६६ — so a
+    ॰ word whose first character is anything else cannot carry one, and the
+    ॰ three उपसर्गसाम्यम् walks (two routine calls per octet each) were paid
+    ॰ by EVERY word for nothing: a Devanagari word always passes the २२४ and
+    ॰ often the १६५. Three inline octet compares decide instead. The margin
+    ॰ above still governs INSIDE the ० branch: the prefixes stay before the
+    ॰ bare-digit case there, or ०द्वि१ reads as decimal zero. उपसर्गसाम्यम्
+    ॰ bounds itself by सीमा and these three octets by पाठ ॱ दैर्घ्य, exactly
+    ॰ as अङ्कमूल्यम् does; a prefix needs स्थानम् योगः १५ within सीमा, so no
+    ॰ word this test calls ०-less could have matched one.
+    चरः शून्यादिः ॱॱ बूल भवति सत्यम् ।
+    यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् पाठ ॱ दैर्घ्य आदि
+        शून्यादिः भवति असत्यम् ।
     इति
-    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ २ समाप्तम् आदि
-        प्रत्यागमनम् २ ।
+    यदि शून्यादिः समम् सत्यम् आदि
+        यदि पाठ अङ्कः स्थानम् अन्तः असमम् २२४ आदि
+            शून्यादिः भवति असत्यम् ।
+        इति
     इति
-    यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ ८ समाप्तम् आदि
-        प्रत्यागमनम् ८ ।
+    यदि शून्यादिः समम् सत्यम् आदि
+        यदि पाठ अङ्कः आरभ्य स्थानम् योगः १ समाप्तम् अन्तः असमम् १६५ आदि
+            शून्यादिः भवति असत्यम् ।
+        इति
+    इति
+    यदि शून्यादिः समम् सत्यम् आदि
+        यदि पाठ अङ्कः आरभ्य स्थानम् योगः २ समाप्तम् अन्तः असमम् १६६ आदि
+            शून्यादिः भवति असत्यम् ।
+        इति
+    इति
+
+    यदि शून्यादिः समम् सत्यम् आदि
+        यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ १६ समाप्तम् आदि
+            प्रत्यागमनम् १६ ।
+        इति
+        यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ २ समाप्तम् आदि
+            प्रत्यागमनम् २ ।
+        इति
+        यदि उपसर्गसाम्यम् आरभ्य पाठ ऽ स्थानम् ऽ सीमा ऽ ८ समाप्तम् आदि
+            प्रत्यागमनम् ८ ।
+        इति
     इति
 
     ॰ Rust's `token.chars().next().filter(is_devanagari_digit)`. In radix
@@ -1782,19 +2000,52 @@
 इति
 
 ॰ numeral::value's Ok — the MAGNITUDE, ० to १८४४६७४४०७३७०९५५१६१५.
-॰ Read only after मानदोषः has answered ०; it answers ० for anything
-॰ else, which is a value and not a claim.
+॰ It answers ० for anything मानदोषः refuses, which is a value and not a
+॰ claim — ask मानदोषः when the two must be told apart. ONE WALK, NOT TWO
+॰ (SAS-011 fix 2): this used to call मानदोषः — a whole second walk — and
+॰ then read the digits again raw, so the दोषः-then-मानम् pair every
+॰ caller writes paid three walks per operand. The checks below are
+॰ मानदोषः's own, each refusal answering ० in place of its code, copied
+॰ VERBATIM including the overflow guard's shape — the signed-lowering
+॰ margin above मानदोषः says why that shape cannot change.
 सार्वजनिक वृत्तिः मानम् आदाय पाठ ॱॱ अङ्कः अन्तः अ८ ऽ आरम्भः ॱॱ न६४ ऽ सीमा ॱॱ न६४ ददाति न६४ आदि
-    यदि मानदोषः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् असमम् अङ्कनिर्दोषः आदि
+    यदि ऋणचिह्नम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् आदि
         प्रत्यागमनम् ० ।
     इति
 
     चरः मूलम् ॱॱ अ६४ भवति सङ्ख्यामूलम् आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    यदि मूलम् समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
     चरः स्थानम् ॱॱ अ६४ भवति सङ्ख्याङ्कारम्भः आरभ्य पाठ ऽ आरम्भः ऽ सीमा समाप्तम् ।
+    यदि स्थानम् समम् सीमा आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः सीमापदम् ॱॱ अ६४ भवति मूलसीमापदम् मूलम् ।
+    चरः सीमांशः ॱॱ अ६४ भवति मूलसीमांशः मूलम् ।
     चरः पदम् ॱॱ अ६४ भवति ० ।
 
     यावत् स्थानम् न्यूनम् सीमा आदि
+        यदि आरभ्य स्थानम् योगः ३ समाप्तम् अधिकम् सीमा आदि
+            प्रत्यागमनम् ० ।
+        इति
         चरः अङ्कमानम् ॱॱ अ६४ भवति अङ्कमूल्यम् आरभ्य पाठ ऽ स्थानम् ऽ मूलम् समाप्तम् ।
+        यदि अङ्कमानम् समम् ९९ आदि
+            प्रत्यागमनम् ० ।
+        इति
+        यदि पदम् न्यूनम् ० आदि
+            प्रत्यागमनम् ० ।
+        इति
+        यदि पदम् अधिकम् सीमापदम् आदि
+            प्रत्यागमनम् ० ।
+        इति
+        यदि पदम् समम् सीमापदम् आदि
+            यदि अङ्कमानम् अधिकम् सीमांशः आदि
+                प्रत्यागमनम् ० ।
+            इति
+        इति
         पदम् भवति आरभ्य आरभ्य पदम् गुणनम् मूलम् समाप्तम् योगः अङ्कमानम् समाप्तम् ।
         स्थानम् भवति आरभ्य स्थानम् योगः ३ समाप्तम् ।
     इति

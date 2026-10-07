@@ -1,0 +1,19 @@
+मण्डलम् परकर्तृ ॥
+
+॰ A peer session's FALSIFIER for the one-mechanism hypothesis, 2026-10-02.
+॰ callee.t1 unchanged EXCEPT one line: the caller writes index ० before the
+॰ call, so storage already exists and the callee's write at ५ need not
+॰ allocate. If the caller now reads ९९, callee.t1's divergence and the
+॰ 128/129 boundary are ONE mechanism — an allocation or reallocation in the
+॰ callee is invisible to the caller. If it still reads ०, there are TWO.
+वृत्तिः ख आदाय क ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    क अङ्कः ५ अन्तः भवति ९९ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः क ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    क अङ्कः ० अन्तः भवति ७ ।
+    चरः उ ॱॱ न६४ भवति ख क ।
+    प्रत्यागमनम् क अङ्कः ५ अन्तः ।
+इति

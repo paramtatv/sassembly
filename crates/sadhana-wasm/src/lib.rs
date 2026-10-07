@@ -102,3 +102,26 @@ pub extern "C" fn sadhana_err_ptr() -> u32 {
 pub extern "C" fn sadhana_err_len() -> u32 {
     ERROR.lock().expect("single-threaded").len() as u32
 }
+
+/// ॥ THE STAMP OF THE ASSEMBLER THIS MODULE WAS BUILT FROM ॥
+///
+/// `crates/sadhana-wasm/build.rs` seals `tools/src-rev.sh`'s 16-hex
+/// stamp over `crates/sadhana/src` in here at compile time, or `unknown` when
+/// no stamp could be taken. It is read back by `web/sadhana.mjs` and compared
+/// against the stamp `tools/build-sassembly-web.sh` recorded for the NATIVE
+/// `sadhana` that assembled the ELFs on the page — the figure that separates
+/// "the browser re-assembled these octets" from "the browser re-assembled
+/// these octets WITH THE SAME ASSEMBLER".
+static REV: &str = env!("SADHANA_SRC_REV");
+
+#[unsafe(no_mangle)]
+/// Where [`REV`] sits in this module's linear memory.
+pub extern "C" fn sadhana_rev_ptr() -> u32 {
+    REV.as_ptr() as u32
+}
+
+#[unsafe(no_mangle)]
+/// How many octets of [`REV`] there are — 16 for a stamp, 7 for `unknown`.
+pub extern "C" fn sadhana_rev_len() -> u32 {
+    REV.len() as u32
+}

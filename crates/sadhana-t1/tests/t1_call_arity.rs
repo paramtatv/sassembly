@@ -100,7 +100,11 @@ fn test_files() -> Vec<(String, String)> {
 /// authority for what a call site must pass — not the source text, which is a
 /// second reader that could itself be wrong.
 fn declared_arities() -> BTreeMap<String, usize> {
-    let sources = files_in(&crate_root().join("src"), "t1");
+    let mut sources = files_in(&crate_root().join("src"), "t1");
+    // The ENTRY modules under spec/entry/ (W-302's `पाठसेतुः`) are loaded
+    // beside the corpus by the tests that drive them, so their routines are
+    // declarations a call site may name.
+    sources.extend(files_in(&repo_root().join("spec/entry"), "t1"));
     let refs: Vec<(&str, &str)> = sources
         .iter()
         .map(|(n, t)| (n.as_str(), t.as_str()))
@@ -127,6 +131,22 @@ struct Site {
 ///
 /// Depth is counted over `[](){}` and both kinds of literal are skipped, so a
 /// `vec![Value::Octets(Octets::new(b"a, b"))]` is one argument and not three.
+///
+/// COMMENTS ARE SKIPPED, and `W-306` is why. An argument list annotated one
+/// line per parameter —
+///
+/// ```ignore
+/// vec![
+///     Value::Int(0),        // शर्तम् — location ०, no load
+///     Value::Bool(relaxed), // विश्रम्भ
+/// ],
+/// ```
+///
+/// — read as code counts the comment's own comma as an eighth argument AND
+/// lets the last comment's text re-arm `seen_value` after the trailing comma
+/// cleared it, so a SEVEN-argument site measured NINE. Both halves of that
+/// are this function's, not the site's: a comment separates no argument and
+/// holds none.
 fn vec_arity(body: &str) -> Option<usize> {
     let mut depth = 0usize;
     let mut args = 0usize;
@@ -170,6 +190,36 @@ fn vec_arity(body: &str) -> Option<usize> {
             }
             '\'' => {
                 seen_value = true;
+            }
+            '/' => {
+                // `//` to the newline, `/* … */` to its close; anything else
+                // after a `/` is division or a path and is code.
+                let mut peek = chars.clone();
+                match peek.next() {
+                    Some((_, '/')) => {
+                        for (_, d) in chars.by_ref() {
+                            if d == '\n' {
+                                break;
+                            }
+                        }
+                    }
+                    Some((_, '*')) => {
+                        chars.next();
+                        let mut prev = '\0';
+                        let mut closed = false;
+                        for (_, d) in chars.by_ref() {
+                            if prev == '*' && d == '/' {
+                                closed = true;
+                                break;
+                            }
+                            prev = d;
+                        }
+                        if !closed {
+                            return None;
+                        }
+                    }
+                    _ => seen_value = true,
+                }
             }
             c if !c.is_whitespace() => seen_value = true,
             _ => {}
@@ -421,10 +471,86 @@ fn the_argument_counter_counts_arguments_and_not_commas() {
         ("f(x, y), g(z)]", 2),
         ("vec![a, b], c]", 2),
         ("Value::Int(1), Value::Int(2), Value::Int(3)]", 3),
+        // A comment's comma separates nothing, and a comment after the
+        // trailing comma closes no argument. `W-306`'s two sites, minimised.
+        ("a, // one, two\n b, // three\n]", 2),
+        ("a, b, /* one, two */]", 2),
+        // A comment is not the whole of a line: the code before it still counts.
+        ("a, b // trailing\n]", 2),
+        // And a lone `/` is division, not a comment.
+        ("a / b, c]", 2),
     ] {
         assert_eq!(vec_arity(body), Some(want), "`vec![{body}` holds {want}");
     }
     assert_eq!(vec_arity("a, b"), None, "an unclosed vec is refused");
+    assert_eq!(
+        vec_arity("a, /* never closed ]"),
+        None,
+        "an unterminated block comment is refused, not read as a close"
+    );
+}
+
+/// `W-306` — AN ARGUMENT LIST ANNOTATED ONE COMMENT PER PARAMETER IS READ AS
+/// THE ARGUMENTS IT PASSES, AND A WRONG ONE IS STILL REFUSED.
+///
+/// This is the instrument's own red of 2026-09-30: `t1_relaxed_jump_measured`
+/// and `t1_relaxed_jump_recorded` each pass SEVEN `Value`s to
+/// `यन्त्रोत्सर्जनॱयन्त्रशाखावतरणम्` on seven commented lines, and both were
+/// measured at NINE. The fixture below is that shape, and the second site in
+/// it is the case that must STILL be named: same annotation, one argument
+/// short. An instrument that bought silence by ignoring commented lists would
+/// pass the first half of this test and fail the second.
+#[test]
+fn a_commented_argument_list_is_counted_by_its_arguments() {
+    let text = r#"
+fn right() {
+    it.call(
+        "यन्त्रोत्सर्जनॱयन्त्रशाखावतरणम्",
+        vec![
+            Value::Int(1),          // शाखापर्वम् — the BRANCHING block
+            Value::Int(0),          // शर्तम् — location ०, no load
+            Value::Int(2),          // तदा
+            Value::Int(7),          // अन्यत्
+            Value::Int(next_block), // अग्रिमम्
+            Value::Int(0),          // संयोज्यम् — no folded comparison
+            Value::Bool(relaxed),   // विश्रम्भ
+        ],
+        5_000_000,
+    );
+}
+fn wrong() {
+    it.call(
+        "यन्त्रोत्सर्जनॱयन्त्रशाखावतरणम्",
+        vec![
+            Value::Int(1), // शाखापर्वम्
+            Value::Int(0), // शर्तम् — location ०, no load
+            Value::Int(2), // तदा
+            Value::Int(7), // अन्यत्
+            Value::Int(0), // संयोज्यम् — no folded comparison
+            /* विश्रम्भ dropped, and this is the defect */
+        ],
+        5_000_000,
+    );
+}
+"#;
+    let (sites, _) = sites_in("synthetic.rs", text);
+    assert_eq!(sites.len(), 2, "both sites are found: {sites:?}");
+    assert_eq!(sites[0].args, 7, "seven `Value`s on seven commented lines");
+    assert_eq!(sites[1].args, 5, "and five is five, not seven");
+
+    let declared: BTreeMap<String, usize> = [("यन्त्रोत्सर्जनॱयन्त्रशाखावतरणम्".to_string(), 7)]
+        .into_iter()
+        .collect();
+    let wrong: Vec<&Site> = sites
+        .iter()
+        .filter(|s| declared.get(&s.name) != Some(&s.args))
+        .collect();
+    assert_eq!(
+        wrong.len(),
+        1,
+        "exactly the short site is refused: {wrong:?}"
+    );
+    assert_eq!(wrong[0].args, 5);
 }
 
 /// A call site written inside a raw-string FIXTURE is not a call site.

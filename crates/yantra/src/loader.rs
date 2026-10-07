@@ -41,12 +41,12 @@
 //!
 //! # Two measured limitations, stated rather than papered over
 //!
-//! - **`sadhana` emits exactly one `PT_LOAD`, `PF_R | PF_X`** (`kosha.rs`), covering text,
-//!   data and `.bss` together. So an application built by this toolchain gets a
-//!   *read-only* data section and its only writable memory is the stack this file maps.
-//!   The loader honours `p_flags` rather than widening them: a program that needs writable
-//!   data needs a second segment from the linker, which is a toolchain change and not a
-//!   loader one.
+//! - **The loader honours `p_flags` rather than widening them.** Until `W-363`, `sadhana`
+//!   emitted one `PT_LOAD`, `PF_R | PF_X`, covering text, data and `.bss`, so an
+//!   application's `.data` was read-only here. Both writers (`kosha.rs`, `kosha.t1`) now
+//!   emit the text `PF_R | PF_X` and, when there is data or `.bss`, a second segment
+//!   `PF_R | PF_W` at the page after the text (`tests/loader.rs`,
+//!   `a_linked_program_stores_into_its_own_data_under_enforced_permissions`).
 //! - **Handles are one page**, so [`MAX_HANDLES`] of them. A refusal, not a truncation.
 
 use crate::{Machine, PPN_MASK, PTE_A, PTE_D, PTE_R, PTE_U, PTE_V, PTE_W, PTE_X, SATP_SV39};

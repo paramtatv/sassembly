@@ -196,7 +196,7 @@ fn regenerating_changes_nothing() {
                 && w[8..10].iter().all(u8::is_ascii_digit)
         });
         assert!(!dated, "a date appears in the generated header: {line}");
-        for forbidden in ["/Users/", "/home/", "GMT"] {
+        for forbidden in [concat!("/Use", "rs/"), "/home/", "GMT"] {
             assert!(
                 !line.contains(forbidden),
                 "`{forbidden}` appears in the generated header: {line}"

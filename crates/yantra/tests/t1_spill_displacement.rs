@@ -167,7 +167,7 @@ fn deepest_spill(src: &str) -> usize {
         .iter()
         .map(|f| {
             let alloc = allocate_registers(f, riscv64::ALLOCATABLE);
-            riscv64::frame_layout(&alloc, riscv64::count_locals(f)).num_spills
+            riscv64::frame_layout(&alloc, None, riscv64::count_locals(f)).num_spills
         })
         .max()
         .unwrap_or(0)
@@ -270,7 +270,7 @@ fn a_frame_with_several_spill_slots_still_addresses_its_locals_correctly() {
     let status = match m.run(200_000_000, &mut out) {
         yantra::Halt::Finisher {
             status: Some(s), ..
-        } => u64::from(s),
+        } => s,
         other => panic!("the fixture did not finish: {other:?}"),
     };
 

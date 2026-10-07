@@ -62,11 +62,13 @@ const SBI_SHUTDOWN: u64 = 8;
 /// installed, in `mode`.
 fn calling(a7: u64, mode: Privilege) -> Machine {
     let mut m = Machine {
+        store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
         patra_path: None,
         patra_buffer: None,
+        virtio: Default::default(),
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,
@@ -78,6 +80,8 @@ fn calling(a7: u64, mode: Privilege) -> Machine {
         mode,
         time: 0,
         timecmp: None,
+        vec: Default::default(),
+        socket: None,
     };
     m.mem[0..4].copy_from_slice(&ECALL.to_le_bytes());
     m.csr.stvec = HANDLER;

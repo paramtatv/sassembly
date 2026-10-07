@@ -98,7 +98,7 @@
 //! and the ASCII letters, and nothing else. So the lexer ACCEPTS all ten
 //! `spec/*.sas` files with their 1,724 Latin characters, and REFUSES
 //! `crates/sadhana/src/t1/tests/repertoire.sas` and
-//! `crates/sankriti/src/text/*.t1`. One of those two populations is a pending
+//! `crates/textapp/src/text/*.t1`. One of those two populations is a pending
 //! ruling; the other is 13,442 characters of work R-15-1 has outstanding. A
 //! single figure could not tell a reader which of its numbers had moved.
 //!
@@ -131,7 +131,7 @@ const TEXT_CLOSE: &str = "इति";
 const GOVERNED_EXTENSIONS: &[&str] = &["सस", "sas", "t1"];
 
 /// U+0965 DEVANAGARI DOUBLE DANDA — the directive bracket. It CLOSES a text
-/// directive's operand: `lex.rs:678` and `:724` clear the exemption on this
+/// directive's operand: `lex.rs:704` and `:750` clear the exemption on this
 /// token, and the Latin after it is refused again (probed on the real lexer:
 /// `॥ आस्की ABC ॥ DEF` reds on the `D`).
 const DOUBLE_DANDA: char = '\u{0965}';

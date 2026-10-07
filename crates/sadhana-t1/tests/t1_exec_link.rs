@@ -103,6 +103,15 @@ fn as_text(v: &Value) -> String {
     }
 }
 
+/// A `बूल` global's value (`W-359`'s `निधानविफलम्`).
+fn truth(v: Option<&Value>) -> bool {
+    match v {
+        Some(Value::Bool(b)) => *b,
+        Some(v) => v.as_int().is_some_and(|i| i != 0),
+        None => false,
+    }
+}
+
 fn as_bytes(v: &Value) -> Vec<u8> {
     match v {
         Value::Octets(o) => o.as_slice().to_vec(),
@@ -146,10 +155,9 @@ fn record(fields: &[(&str, Value)]) -> Value {
 
 /// A zero-based arena, which is what `संयोजन` and `विश्लेषण` both build and
 /// walk — `वाक्यविभाग`'s one-based convention is that file's, not this one's.
+/// An EMPTY list is an empty arena, length ०, which is what a fresh `भवति ०`
+/// run is since `W-355`; until then it was one `Nil`, the old zero run.
 fn list(items: Vec<Value>) -> Value {
-    if items.is_empty() {
-        return Value::Arena(Rc::new(RefCell::new(vec![Value::Nil])));
-    }
     Value::Arena(Rc::new(RefCell::new(items)))
 }
 
@@ -723,8 +731,8 @@ fn a_pcrel_lo_that_reads_pc_minus_four_cannot_find_a_hi_that_is_not_adjacent() {
     // lets GNU `ld` read these objects. With the record ignored, the `nop`
     // between the two is enough to lose the `%pcrel_hi` entirely.
     let (image, raised) = link_mutated(
-        "        चरः लक्षितम् ॱॱ इ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।",
-        "        चरः लक्षितम् ॱॱ इ६४ भवति लेखः ॱ स्थानाङ्कः वियोगः ४ ।",
+        "        चरः लक्षितम् ॱॱ अ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।",
+        "        चरः लक्षितम् ॱॱ अ६४ भवति लेखः ॱ स्थानाङ्कः वियोगः ४ ।",
         vec![pair_caller().build(), pair_callee().build()],
     );
     assert!(image.is_nil(), "the pair can no longer be resolved");
@@ -778,8 +786,8 @@ fn dropping_the_addend_from_the_address_a_pcrel_lo_names_loses_its_hi() {
     // so a reader that drops it looks four octets past the `auipc` and finds
     // no `%pcrel_hi` at all.
     let (image, raised) = link_mutated(
-        "        चरः लक्षितम् ॱॱ इ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।",
-        "        चरः लक्षितम् ॱॱ इ६४ भवति संज्ञा ॱ मूल्यम् ।",
+        "        चरः लक्षितम् ॱॱ अ६४ भवति संज्ञा ॱ मूल्यम् योगः लेखः ॱ योज्यम् ।",
+        "        चरः लक्षितम् ॱॱ अ६४ भवति संज्ञा ॱ मूल्यम् ।",
         vec![pair_caller_with_addend().build(), pair_callee().build()],
     );
     assert!(
@@ -869,20 +877,27 @@ fn the_sections_are_laid_out_as_kosha_lays_an_image_out() {
             )
         })
         .collect();
+    // W-363: `.data` is its own writable segment at the page after the text.
     assert_eq!(
         names.get("घ"),
-        Some(&(LOAD + 8)),
-        "four octets of text, rounded up to eight, is where `.data` begins"
+        Some(&(LOAD + 4096)),
+        "four octets of text, rounded up to a page, is where `.data` begins"
     );
+    // `V-009` (i-b2): `.bss` starts on SIXTEEN, so the startup's stack — the
+    // first thing in it — keeps `sp` 16-aligned. `कोश` still places `.bss` at
+    // the data rounded to eight (4104), so the eight octets up to 4112 are
+    // reported as `.bss` too: `बीजम्` is the 5 reserved plus that pad, and
+    // `p_memsz` ends exactly at the reservation's end, 4117.
     assert_eq!(
         names.get("ङ"),
-        Some(&(LOAD + 16)),
-        "three octets of data at 8 ends at 11, rounded up to 16 for `.bss`"
+        Some(&(LOAD + 4096 + 16)),
+        "three octets of data end at 4099, rounded up to 4112 for `.bss`"
     );
     assert_eq!(
         member(&image, "बीजम्").as_int(),
-        Some(5),
-        "the reservation is carried, in memory and not in the file"
+        Some(5 + 8),
+        "the reservation is carried, in memory and not in the file, with the \
+         pad from the data's eight to the `.bss` start's sixteen"
     );
     assert_eq!(
         live(&member(&image, "सारणी"))
@@ -918,8 +933,10 @@ fn the_patcher_rebuilds_from_the_pattern_and_refuses_what_it_cannot_reach() {
             Value::Int(8),
         ],
     );
+    // `W-359`: the patcher ALWAYS answers the run, and reports a refusal in
+    // `संयोजनॱनिधानविफलम्` (it answered `शून्यम्` before the final ruling).
     assert!(
-        !patched.is_nil(),
+        !truth(it.global("निधानविफलम्")),
         "a reachable displacement must be written"
     );
     let word = u32::from_le_bytes(as_bytes(&patched)[0..4].try_into().expect("four octets"));
@@ -951,8 +968,8 @@ fn the_patcher_rebuilds_from_the_pattern_and_refuses_what_it_cannot_reach() {
         ],
     );
     assert!(
-        far.is_nil(),
-        "a displacement no `jal` can hold must be refused"
+        truth(it.global("निधानविफलम्")) && as_bytes(&far) == bytes,
+        "a displacement no `jal` can hold must be refused, the run unchanged"
     );
     assert_eq!(
         errors(&it).iter().map(|(c, _)| *c).collect::<Vec<_>>(),
@@ -973,7 +990,7 @@ fn the_patcher_rebuilds_from_the_pattern_and_refuses_what_it_cannot_reach() {
             Value::Int(8),
         ],
     );
-    assert!(nothing.is_nil());
+    assert!(truth(it.global("निधानविफलम्")) && as_bytes(&nothing) == le32(0xffff_ffff));
     assert_eq!(
         errors(&it).iter().map(|(c, _)| *c).collect::<Vec<_>>(),
         vec![7],
@@ -992,7 +1009,7 @@ fn the_patcher_rebuilds_from_the_pattern_and_refuses_what_it_cannot_reach() {
             Value::Int(8),
         ],
     );
-    assert!(past.is_nil());
+    assert!(truth(it.global("निधानविफलम्")) && as_bytes(&past) == [0, 0]);
     assert_eq!(
         errors(&it).iter().map(|(c, _)| *c).collect::<Vec<_>>(),
         vec![6],
@@ -1239,14 +1256,21 @@ fn treating_a_global_as_a_local_accepts_a_name_defined_twice() {
 }
 
 #[test]
-fn dropping_the_alignment_puts_data_where_the_text_ended() {
+fn dropping_the_alignment_puts_bss_where_the_data_ended() {
     // `अष्टकसंरेखणम्` rounds a length up to the next multiple of eight. Without
     // it `.bss` following unaligned data overlaps another object's initialised
-    // bytes, and a buffer written over live data still runs.
+    // bytes, and a buffer written over live data still runs. (Until W-363 this
+    // asserted `.data` at the text's end; `.data` is placed at the page after
+    // the text by `कोशॱदत्तपृष्ठाधारः` now, so the eight is read off `.bss`.)
     let obj = || ObjectSpec {
         text: vec![0x13, 0x00, 0x00, 0x00],
         data: vec![9; 3],
-        symbols: vec![null_symbol(), symbol("घ", 0, PLACE_DATA, true)],
+        bss: 5,
+        symbols: vec![
+            null_symbol(),
+            symbol("घ", 0, PLACE_DATA, true),
+            symbol("ङ", 0, PLACE_BSS, true),
+        ],
         ..ObjectSpec::default()
     };
     let (image, raised) = link_mutated(
@@ -1255,10 +1279,14 @@ fn dropping_the_alignment_puts_data_where_the_text_ended() {
         vec![obj().build()],
     );
     assert!(!image.is_nil(), "the mutated link still ran: {raised:?}");
+    // `V-009` (i-b2): `बीजाधारः` now steps the eight-aligned end on by eight
+    // when it is not on sixteen. With the eight gone, 4099 is not on sixteen
+    // and steps to 4107 — still odd, still not the 4112 the unmutated link
+    // gives, so the mutant stays caught.
     assert_eq!(
-        addresses(&image).get("घ"),
-        Some(&(LOAD + 4)),
-        "unaligned, `.data` begins where four octets of text ended"
+        addresses(&image).get("ङ"),
+        Some(&(LOAD + 4096 + 3 + 8)),
+        "unaligned, `.bss` begins at three octets of data plus the sixteen's step"
     );
 }
 
@@ -1284,8 +1312,8 @@ fn making_the_low_half_measure_from_its_own_pc_is_wrong_by_four() {
 
     let src = mutate(
         &source("samyojana.t1"),
-        "    चरः स्थानाङ्कः ॱॱ इ६४ भवति आधारः योगः संज्ञामूल्यम् ।",
-        "    चरः स्थानाङ्कः ॱॱ इ६४ भवति आधारः योगः संज्ञामूल्यम् योगः ४ ।",
+        "    चरः स्थानाङ्कः ॱॱ अ६४ भवति आधारः योगः संज्ञामूल्यम् ।",
+        "    चरः स्थानाङ्कः ॱॱ अ६४ भवति आधारः योगः संज्ञामूल्यम् योगः ४ ।",
     );
     let mut it = linker_with(&src);
     let bent = it
@@ -1341,4 +1369,446 @@ fn a_patch_that_does_not_start_from_the_pattern_is_not_what_this_module_does() {
         0x6f,
         "without the pattern the `jal` opcode is gone; the word is {word:#010x}"
     );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Symbol lookup step 2 — the linker's name table, characterised
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A linker name table driven through `नामस्थानयोजनम्` (insert) and
+/// `स्थानान्वेषणम्` (get), the two routines symbol-lookup step 2 rewrites.
+///
+/// **IT RUNS ON BOTH SIDES OF THE REWRITE.** Before step 2 the insert takes four
+/// arguments and scans; after it, a fifth — the table's hash index, from
+/// `नामसूचीरचना` — and probes. The arity is read off the loaded routine, so one
+/// test pins the answers of both.
+struct NameTable {
+    it: Interpreter,
+    table: Value,
+    index: Option<Value>,
+    count: i128,
+}
+
+impl NameTable {
+    fn with(samyojana: &str, capacity: i128, fuel: u64) -> Result<Self, String> {
+        let mut it = linker_with(samyojana);
+        let arity = it
+            .routines()
+            .find(|r| r.name == "नामस्थानयोजनम्")
+            .expect("the insert is declared")
+            .arity();
+        let index = match arity {
+            4 => None,
+            5 => Some(
+                it.call("संयोजनॱनामसूचीरचना", vec![Value::Int(capacity)], fuel)
+                    .map_err(|e| format!("the index builds: {e}"))?,
+            ),
+            n => panic!("`नामस्थानयोजनम्` takes {n} arguments, neither 4 nor 5"),
+        };
+        Ok(NameTable {
+            it,
+            table: list(Vec::new()),
+            index,
+            count: 0,
+        })
+    }
+
+    fn new(capacity: i128) -> Self {
+        Self::with(&source("samyojana.t1"), capacity, FUEL).expect("the table is made")
+    }
+
+    fn try_insert(&mut self, name: &[u8], at: i128, fuel: u64) -> Result<(), String> {
+        let mut args = vec![
+            self.table.clone(),
+            Value::Int(self.count),
+            octets(name),
+            Value::Int(at),
+        ];
+        if let Some(ix) = &self.index {
+            args.push(ix.clone());
+        }
+        self.table = self
+            .it
+            .call("संयोजनॱनामस्थानयोजनम्", args, fuel)
+            .map_err(|e| format!("insert {:?}: {e}", String::from_utf8_lossy(name)))?;
+        self.count = self
+            .it
+            .global("नामस्थानगणना")
+            .and_then(Value::as_int)
+            .expect("the insert publishes its count");
+        Ok(())
+    }
+
+    fn insert(&mut self, name: &[u8], at: i128) {
+        self.try_insert(name, at, FUEL)
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+
+    fn try_get(&mut self, name: &[u8], fuel: u64) -> Result<Option<i128>, String> {
+        let v = self
+            .it
+            .call(
+                "संयोजनॱस्थानान्वेषणम्",
+                vec![self.table.clone(), octets(name)],
+                fuel,
+            )
+            .map_err(|e| format!("get {:?}: {e}", String::from_utf8_lossy(name)))?;
+        Ok(if v.is_nil() {
+            None
+        } else {
+            Some(v.as_int().expect("an address is a number"))
+        })
+    }
+
+    fn get(&mut self, name: &[u8]) -> Option<i128> {
+        self.try_get(name, FUEL).unwrap_or_else(|e| panic!("{e}"))
+    }
+
+    /// The arena, in order: every entry's name and address.
+    fn rows(&self) -> Vec<(Vec<u8>, i128)> {
+        arena(&self.table)
+            .iter()
+            .map(|e| {
+                (
+                    as_bytes(&member(e, "नाम")),
+                    member(e, "स्थान").as_int().expect("an address"),
+                )
+            })
+            .collect()
+    }
+}
+
+/// **`नामस्थानयोजनम्` AND `स्थानान्वेषणम्` ANSWER THE SAME BEFORE AND AFTER THE
+/// HASH INDEX** (symbol-lookup step 2, characterisation).
+///
+/// Replace-or-append is `BTreeMap::insert`: a name already present keeps its
+/// place and takes the new address, a new one is appended at the count, and the
+/// count the insert publishes moves only on an append. Get answers the
+/// address, or nothing. Pinned on: an empty table, appends, a replace, the
+/// first-inserted name found after many later ones, an absent name, a byte
+/// prefix of a present name, a name one octet longer, a name differing in its
+/// last octet only, and the EMPTY name (absent, then inserted and replaced).
+/// The arena's ORDER and CONTENTS are asserted whole after every phase.
+#[test]
+fn the_name_table_answers_the_same_on_every_edge() {
+    let first = "मुख्यम्".as_bytes().to_vec();
+    let second = "सहायः".as_bytes().to_vec();
+    let mut longer = first.clone();
+    longer.extend_from_slice(&second);
+    let mut last_off = first.clone();
+    *last_off.last_mut().unwrap() ^= 1;
+    let prefix = first[..first.len() - 1].to_vec();
+    let many: Vec<Vec<u8>> = (0..40).map(|i| format!("चक्रः{i}").into_bytes()).collect();
+
+    let mut t = NameTable::new(64);
+    // (1) the EMPTY table
+    assert_eq!(t.get(&first), None, "an empty table holds nothing");
+    assert_eq!(t.get(b""), None, "not even the empty name");
+
+    // (2) appends
+    t.insert(&first, 10);
+    assert_eq!(t.count, 1, "an append counts");
+    t.insert(&second, 20);
+    t.insert(&longer, 30);
+    t.insert(&last_off, 40);
+    assert_eq!(t.count, 4);
+    let mut want: Vec<(Vec<u8>, i128)> = vec![
+        (first.clone(), 10),
+        (second.clone(), 20),
+        (longer.clone(), 30),
+        (last_off.clone(), 40),
+    ];
+    assert_eq!(t.rows(), want, "appended in order");
+    for (name, at) in &want {
+        assert_eq!(
+            t.get(name),
+            Some(*at),
+            "{:?}",
+            String::from_utf8_lossy(name)
+        );
+    }
+    assert_eq!(t.get("अन्यत्".as_bytes()), None, "an absent name");
+    assert_eq!(t.get(&prefix), None, "a byte prefix of a present name");
+    assert_eq!(t.get(b""), None, "the empty name, not inserted");
+
+    // (3) a REPLACE keeps the place and the count
+    t.insert(&second, 99);
+    assert_eq!(t.count, 4, "a replace does not count");
+    want[1].1 = 99;
+    assert_eq!(t.rows(), want, "replaced in place");
+    assert_eq!(t.get(&second), Some(99));
+    assert_eq!(t.get(&first), Some(10), "its neighbours keep theirs");
+    assert_eq!(t.get(&longer), Some(30));
+
+    // (4) the empty NAME is a name like any other
+    t.insert(b"", 7);
+    assert_eq!(t.count, 5);
+    assert_eq!(t.get(b""), Some(7));
+    t.insert(b"", 8);
+    assert_eq!(t.count, 5, "the empty name replaced, not appended twice");
+    assert_eq!(t.get(b""), Some(8));
+    want.push((Vec::new(), 8));
+
+    // (5) the first-inserted name is still found after many later ones
+    for (i, name) in many.iter().enumerate() {
+        t.insert(name, 1000 + i as i128);
+        want.push((name.clone(), 1000 + i as i128));
+    }
+    assert_eq!(t.count, 45);
+    assert_eq!(t.rows(), want, "order and contents, whole");
+    for (name, at) in &want {
+        assert_eq!(
+            t.get(name),
+            Some(*at),
+            "{:?}",
+            String::from_utf8_lossy(name)
+        );
+    }
+    assert_eq!(t.get(&prefix), None);
+    assert_eq!(t.get("चक्रः40".as_bytes()), None, "one past the last");
+    println!("METRIC t1_name_table_edges {}", want.len());
+}
+
+/// `नामसारः` as the margin states it: every octet masked to eight bits, and the
+/// running value to TWENTY on every step, so nothing passes २^२५ on either
+/// engine. A reference model and not a second copy of the routine: the
+/// routine is asked, and this is what it must answer.
+fn name_hash_model(name: &[u8]) -> i128 {
+    name.iter()
+        .fold(0i128, |h, b| (h * 31 + i128::from(*b)) & 0xF_FFFF)
+}
+
+/// The whole collision scenario against one version of the linker, as a
+/// `Result` so a mutant can be required to FAIL — on a wrong answer or on a
+/// run that does not end within `fuel` (a probe that never reaches an empty
+/// slot is a hang, and a hang must be a red, not a stuck test).
+fn name_index_scenario(samyojana: &str, fuel: u64) -> Result<usize, String> {
+    // (1) the hash, against the model, on names long enough that an unmasked
+    //     step would leave twenty bits within a few octets
+    let mut t = NameTable::with(samyojana, 4, fuel)?;
+    let long: Vec<Vec<u8>> = vec![
+        vec![0xff; 300],
+        "सार्वजनिकवृत्तिःनामस्थानयोजनम्".repeat(6).into_bytes(),
+        Vec::new(),
+        vec![0x80],
+    ];
+    for name in &long {
+        let got =
+            t.it.call("संयोजनॱनामसारः", vec![octets(name)], fuel)
+                .map_err(|e| format!("hash: {e}"))?
+                .as_int()
+                .ok_or("the hash is not a number")?;
+        if got != name_hash_model(name) {
+            return Err(format!(
+                "hash of {} octets is {got:#x}, the model {:#x}",
+                name.len(),
+                name_hash_model(name)
+            ));
+        }
+    }
+
+    // (2) the index's size: a power of two at least twice the names
+    let slots = match &t.index {
+        Some(ix) => arena(ix).len() as i128,
+        None => return Err("no index".into()),
+    };
+    if slots != 8 {
+        return Err(format!("an index for 4 names has {slots} slots, not 8"));
+    }
+
+    // (3) SIX names that land in ONE slot of eight: five inserted, so the
+    //     chain is five long — longer than the slots of one parity, which is
+    //     what a probe stepping by two can reach — and the sixth asked for
+    //     and absent
+    let mut by_slot: HashMap<i128, Vec<Vec<u8>>> = HashMap::new();
+    let mut same = Vec::new();
+    for i in 0..10_000 {
+        let name = format!("क{i}").into_bytes();
+        let b = by_slot
+            .entry(name_hash_model(&name) & (slots - 1))
+            .or_default();
+        b.push(name);
+        if b.len() == 6 {
+            same = b.clone();
+            break;
+        }
+    }
+    if same.len() != 6 {
+        return Err("no six names share a slot".into());
+    }
+    for (i, name) in same[..5].iter().enumerate() {
+        t.try_insert(name, 100 + i as i128, fuel)?;
+    }
+    if t.count != 5 || !errors(&t.it).is_empty() {
+        return Err(format!(
+            "five sharing names counted {}, refusals {:?}",
+            t.count,
+            errors(&t.it)
+        ));
+    }
+    for (i, name) in same[..5].iter().enumerate() {
+        let got = t.try_get(name, fuel)?;
+        if got != Some(100 + i as i128) {
+            return Err(format!("name {i} of a shared slot answered {got:?}"));
+        }
+    }
+    let absent = t.try_get(&same[5], fuel)?;
+    if absent.is_some() {
+        return Err(format!(
+            "an absent name in a full chain answered {absent:?}"
+        ));
+    }
+    // a replace in the MIDDLE of the chain keeps place and count
+    t.try_insert(&same[2], 7, fuel)?;
+    if t.count != 5 {
+        return Err(format!("a replace in the chain counted {}", t.count));
+    }
+    let want: Vec<(Vec<u8>, i128)> = same[..5]
+        .iter()
+        .enumerate()
+        .map(|(i, n)| (n.clone(), if i == 2 { 7 } else { 100 + i as i128 }))
+        .collect();
+    if t.rows() != want {
+        return Err("the table's order or contents moved".into());
+    }
+    for (name, at) in &want {
+        let got = t.try_get(name, fuel)?;
+        if got != Some(*at) {
+            return Err(format!(
+                "after the replace, a chained name answered {got:?}"
+            ));
+        }
+    }
+    Ok(same.len())
+}
+
+/// **NAMES THAT SHARE A SLOT ARE TOLD APART BY THEIR OCTETS** (symbol-lookup
+/// step 2). Five names hashing to one slot of eight, inserted, found, one
+/// replaced mid-chain; a sixth of the same slot is absent. Plus the hash
+/// against its model and the index's size.
+#[test]
+fn the_name_index_tells_apart_names_that_share_a_slot() {
+    let n = name_index_scenario(&source("samyojana.t1"), FUEL).unwrap_or_else(|e| panic!("{e}"));
+    for (cap, slots) in [(0, 1), (1, 2), (3, 8), (4, 8), (5, 16), (64, 128)] {
+        let t = NameTable::new(cap);
+        let ix = t.index.as_ref().expect("the insert takes an index");
+        assert_eq!(arena(ix).len(), slots, "an index for {cap} names");
+        assert!(
+            arena(ix).iter().all(|c| c.as_int() == Some(0)),
+            "built empty"
+        );
+    }
+    println!("METRIC t1_name_index_shared_slot {n}");
+}
+
+/// Each of the three mutants the step was asked to refute goes RED on the
+/// scenario above: the slot mask one too wide, the twenty-bit hash mask
+/// widened, the probe stepping by two (half the slots, so a chain of five
+/// overfills its parity and the fifth insert finds no slot), and a hash hit taken
+/// as a match without comparing the names.
+#[test]
+fn the_name_index_mutants_go_red() {
+    let src = source("samyojana.t1");
+    for (what, from, to) in [
+        (
+            "the slot mask is the length, not the length less one",
+            "    चरः सीमा ॱॱ न६४ भवति नामसूचीकोश ॱ दैर्घ्य वियोगः १ ।",
+            "    चरः सीमा ॱॱ न६४ भवति नामसूचीकोश ॱ दैर्घ्य ।",
+        ),
+        (
+            "the hash is masked to twenty-four bits, not twenty",
+            "        फलम् भवति फलम् युक् १०४८५७५ ।",
+            "        फलम् भवति फलम् युक् १६७७७२१५ ।",
+        ),
+        (
+            "the probe steps by two",
+            "        क्रमः भवति आरभ्य क्रमः योगः १ समाप्तम् युक् सीमा ।",
+            "        क्रमः भवति आरभ्य क्रमः योगः २ समाप्तम् युक् सीमा ।",
+        ),
+        (
+            "a hash hit is taken without comparing the names",
+            "        यदि प्रविष्टिः ॱ नाम समम् नाम आदि",
+            "        यदि प्रविष्टिः असमम् शून्यम् आदि",
+        ),
+    ] {
+        let mutant = mutate(&src, from, to);
+        match name_index_scenario(&mutant, 50_000_000) {
+            Ok(_) => panic!("mutant `{what}` passed the scenario"),
+            Err(e) => println!("mutant `{what}`: red — {e}"),
+        }
+    }
+}
+
+/// **A FULL INDEX ANSWERS, AND AN OVER-FULL ONE REFUSES — NEITHER HANGS**
+/// (review finding 1, symbol-lookup step 2). Every caller sizes its index to at
+/// least twice its names, so no link fills one; this pins what a future
+/// undersized caller would meet. An index of EIGHT slots (built for four names)
+/// is filled with eight: all are found, and an absent name answers absent after
+/// probing every slot. An index of ONE slot (built for none) takes one name, and
+/// the second insert is REFUSED through the linker's refusal records (code १४),
+/// the table and its count unchanged. Fuel is bounded, so a hang is a red.
+#[test]
+fn a_full_name_index_answers_absent_and_an_overfull_one_refuses() {
+    let fuel = 50_000_000;
+    let names: Vec<Vec<u8>> = (0..8).map(|i| format!("पूर्णम्{i}").into_bytes()).collect();
+    let mut t = NameTable::with(&source("samyojana.t1"), 4, fuel).expect("the table is made");
+    assert_eq!(arena(t.index.as_ref().expect("an index")).len(), 8);
+    for (i, name) in names.iter().enumerate() {
+        t.try_insert(name, 10 + i as i128, fuel)
+            .unwrap_or_else(|e| panic!("{e}"));
+    }
+    assert_eq!(t.count, 8, "eight names fill eight slots");
+    assert!(errors(&t.it).is_empty(), "{:?}", errors(&t.it));
+    for (i, name) in names.iter().enumerate() {
+        assert_eq!(t.try_get(name, fuel), Ok(Some(10 + i as i128)));
+    }
+    assert_eq!(
+        t.try_get("अन्यत्".as_bytes(), fuel),
+        Ok(None),
+        "an absent name in a FULL index is absent, not a hang"
+    );
+
+    let mut t = NameTable::with(&source("samyojana.t1"), 0, fuel).expect("the table is made");
+    t.try_insert("क".as_bytes(), 1, fuel)
+        .unwrap_or_else(|e| panic!("{e}"));
+    assert_eq!(t.count, 1);
+    t.try_insert("ख".as_bytes(), 2, fuel)
+        .unwrap_or_else(|e| panic!("the second insert must refuse, not hang: {e}"));
+    assert_eq!(t.count, 1, "a refused insert does not count");
+    assert_eq!(
+        errors(&t.it),
+        vec![(14, "ख".to_string())],
+        "refused by name, code १४"
+    );
+    assert_eq!(t.rows(), vec![("क".as_bytes().to_vec(), 1)]);
+    assert_eq!(t.try_get("क".as_bytes(), fuel), Ok(Some(1)));
+    assert_eq!(t.try_get("ख".as_bytes(), fuel), Ok(None));
+}
+
+/// The characterisation above, AT SCALE: 1,000 and 10,000 names, every
+/// seventh one re-inserted with a new address after all are in, then the
+/// arena's order and contents asserted whole and every name looked up. Runs on
+/// both sides of the rewrite, so the probing path is pinned where chains form.
+#[test]
+fn the_name_table_answers_the_same_at_scale() {
+    for n in [1_000usize, 10_000] {
+        let mut t = NameTable::new(n as i128);
+        let mut want: Vec<(Vec<u8>, i128)> = Vec::with_capacity(n);
+        for i in 0..n {
+            let name = format!("नाम{i}").into_bytes();
+            t.insert(&name, i as i128);
+            want.push((name, i as i128));
+        }
+        for i in (0..n).step_by(7) {
+            t.insert(&want[i].0.clone(), 1_000_000 + i as i128);
+            want[i].1 = 1_000_000 + i as i128;
+        }
+        assert_eq!(t.count, n as i128, "replaces do not count, n = {n}");
+        assert!(t.rows() == want, "order and contents, whole, n = {n}");
+        for (name, at) in &want {
+            assert_eq!(t.get(name), Some(*at), "n = {n}");
+        }
+        assert_eq!(t.get(format!("नाम{n}").as_bytes()), None, "n = {n}");
+        println!("METRIC t1_name_table_scale {n}");
+    }
 }

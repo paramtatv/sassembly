@@ -72,6 +72,32 @@
 ॰ EM_RISCV. The browser VM runs the SAME artefact QEMU does, so a different
 ॰ machine number means a different artefact — `loader.rs` refuses it by name.
 सार्वजनिक चरः यन्त्रभेदः ॱॱ न६४ भवति २४३ ।
+॰ e_flags, W-302 — `kosha.rs`'s `abi_flags`, the `norvc` and `rvc` rows of
+॰ spec/elf-abi-riscv64.tsv. This wrote ० until then, which claims SOFT float:
+॰ not what kosha.rs writes, and what `ld` refuses to merge with double float.
+सार्वजनिक चरः प्लवध्वजाः ॱॱ न६४ भवति ४ ।           ॰ norvc — double-float ABI
+सार्वजनिक चरः सङ्कुचितप्लवध्वजाः ॱॱ न६४ भवति ५ ।    ॰ rvc — double float plus compressed
+
+॰ a page — where the writable segment begins, relative to the load address
+॰ (W-363). `kosha.rs`'s `PAGE`.
+सार्वजनिक चरः पृष्ठमानम् ॱॱ न६४ भवति ४०९६ ।
+
+॰ ॥ दत्तपृष्ठाधारः ॥ where the data begins relative to the load address, for
+॰ पाठदैर्घ्यम् octets of text — `kosha.rs`'s `data_base`, W-363.
+॰
+॰ THE TEXT ROUNDED UP TO A PAGE, so the data and `.bss` are their own
+॰ `PT_LOAD`, `PF_R | PF_W`, while the text stays `PF_R | PF_X`. Until W-363 it
+॰ was the text rounded to eight and one segment labelled `R E` held both: a
+॰ loader that installs protections from `p_flags` (`load_application`) faulted
+॰ on the first store to `.data`. ONE STATEMENT: the linker's `दत्ताधारः`
+॰ answers with this, and the writer below places the segment by it.
+सार्वजनिक वृत्तिः दत्तपृष्ठाधारः आदाय पाठदैर्घ्यम् ॱॱ न६४ ददाति न६४ आदि
+    चरः अवशिष्टम् ॱॱ न६४ भवति पाठदैर्घ्यम् युक् ४०९५ ।
+    यदि अवशिष्टम् समम् ० आदि
+        प्रत्यागमनम् पाठदैर्घ्यम् ।
+    इति
+    प्रत्यागमनम् पाठदैर्घ्यम् योगः आरभ्य पृष्ठमानम् वियोगः अवशिष्टम् समाप्तम् ।
+इति
 
 ॰ two octets, least significant first.
 सार्वजनिक वृत्तिः प्रतिबिम्बद्व्यष्टकम् आदाय मूल्यम् ॱॱ अ६४ ददाति न६४ आदि
@@ -104,34 +130,62 @@
     प्रत्यागमनम् प्रतिबिम्बचतुरष्टकम् उच्चम् ।
 इति
 
+॰ e_flags for THIS text — `kosha.rs`'s `abi_flags(text_has_compressed(text))`.
+॰ The file answers for itself rather than taking the target from a caller: a
+॰ halfword whose low two bits are not ३ begins a 16-bit instruction
+॰ (`विश्लेषणॱआज्ञादैर्घ्यम्`), and those bits sit in the halfword's FIRST octet
+॰ because it is little-endian. A 32-bit one is stepped over whole.
+सार्वजनिक वृत्तिः प्रतिबिम्बध्वजाः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः क्रमः ॱॱ अ६४ भवति ० ।
+    यावत् आरभ्य क्रमः योगः १ समाप्तम् न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
+        चरः अष्टकम् ॱॱ अ८ भवति पाठ्यम् अङ्कः क्रमः अन्तः ।
+        यदि आरभ्य अष्टकम् युक् ३ समाप्तम् असमम् ३ आदि
+            प्रत्यागमनम् सङ्कुचितप्लवध्वजाः ।
+        इति
+        क्रमः भवति क्रमः योगः ४ ।
+    इति
+    प्रत्यागमनम् प्लवध्वजाः ।
+इति
+
 ॰ ॥ प्रतिबिम्बलेखनम् ॥ THE IMAGE — text, data and a bss reservation, at a load
 ॰ address, as octets `yantra` will load.
 ॰
 ॰ `kosha.rs`'s `write_debuggable_at` without the section table: the same header
-॰ fields, the same single `PT_LOAD` covering text AND data, the same eight-octet
-॰ alignment between them, and the same `p_memsz` — the span rounded up, plus the
-॰ bss the file does not carry, which the loader zeroes.
+॰ fields and the same program headers — the text's `PT_LOAD`, `PF_R | PF_X`, and,
+॰ when there is data or bss, a second, `PF_R | PF_W`, at `दत्तपृष्ठाधारः`, whose
+॰ `p_memsz` is the data rounded up to eight plus the bss the file does not carry,
+॰ which the loader zeroes.
 ॰
-॰ THE DATA SHARES THE SEGMENT RATHER THAN TAKING ONE OF ITS OWN, which is
-॰ `kosha.rs:834`'s decision and not a simplification here: a bare-metal image has
-॰ no dynamic loader to honour separate permissions, so a second `PT_LOAD` would
-॰ cost a header and buy nothing.
+॰ THE DATA TAKES A SEGMENT OF ITS OWN SINCE W-363. It shared the text's `R E`
+॰ one on the argument that a bare-metal image has no loader to honour
+॰ permissions; `load_application` is one, and it faulted on the first store. In
+॰ the FILE the data stays packed eight-aligned behind the text — only its
+॰ ADDRESS moves to the page, so `p_align` is eight.
 सार्वजनिक वृत्तिः प्रतिबिम्बलेखनम् आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८ ऽ दत्तम् ॱॱ अङ्कः अन्तः अ८ ऽ शून्यक्षेत्रम् ॱॱ अ६४ ऽ भारः ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः पाठदैर्घ्यम् ॱॱ अ६४ भवति पाठ्यम् ॱ दैर्घ्य ।
     चरः दत्तदैर्घ्यम् ॱॱ अ६४ भवति दत्तम् ॱ दैर्घ्य ।
+    ॰ TWO PROGRAM HEADERS WHEN THERE IS ANYTHING TO WRITE (W-363): data or
+    ॰ bss. An image with neither has nothing writable and keeps the one.
+    चरः शीर्षसंख्या ॱॱ अ६४ भवति १ ।
+    चरः लेखनीयम् ॱॱ अ६४ भवति दत्तदैर्घ्यम् योगः शून्यक्षेत्रम् ।
     चरः पाठस्थानम् ॱॱ अ६४ भवति आरभ्य शीर्षमानम् योगः कार्यक्रमशीर्षमानम् समाप्तम् ।
+    यदि लेखनीयम् अधिकम् ० आदि
+        शीर्षसंख्या भवति २ ।
+        पाठस्थानम् भवति आरभ्य पाठस्थानम् योगः कार्यक्रमशीर्षमानम् समाप्तम् ।
+    इति
 
-    ॰ data begins eight-aligned after the text, and only when there is data —
-    ॰ padding a segment that ends at the text would lengthen the image for
-    ॰ nothing.
+    ॰ data begins eight-aligned after the text IN THE FILE, and only when there
+    ॰ is a writable segment — padding an image that ends at the text would
+    ॰ lengthen it for nothing.
     चरः दत्तस्थानम् ॱॱ अ६४ भवति आरभ्य पाठस्थानम् योगः पाठदैर्घ्यम् समाप्तम् ।
-    यदि दत्तदैर्घ्यम् अधिकम् ० आदि
+    यदि लेखनीयम् अधिकम् ० आदि
         यदि आरभ्य दत्तस्थानम् शेषः ८ समाप्तम् अधिकम् ० आदि
             दत्तस्थानम् भवति आरभ्य दत्तस्थानम् योगः आरभ्य ८ वियोगः आरभ्य दत्तस्थानम् शेषः ८ समाप्तम् समाप्तम् समाप्तम् ।
         इति
     इति
-    चरः भारमानम् ॱॱ अ६४ भवति आरभ्य आरभ्य दत्तस्थानम् वियोगः पाठस्थानम् समाप्तम् योगः दत्तदैर्घ्यम् समाप्तम् ।
-    चरः स्मृतिमानम् ॱॱ अ६४ भवति भारमानम् ।
+    ॰ and IN MEMORY at the page after the text — `दत्तपृष्ठाधारः`.
+    चरः दत्तभारः ॱॱ अ६४ भवति आरभ्य भारः योगः दत्तपृष्ठाधारः पाठदैर्घ्यम् समाप्तम् ।
+    चरः स्मृतिमानम् ॱॱ अ६४ भवति दत्तदैर्घ्यम् ।
     यदि आरभ्य स्मृतिमानम् शेषः ८ समाप्तम् अधिकम् ० आदि
         स्मृतिमानम् भवति आरभ्य स्मृतिमानम् योगः आरभ्य ८ वियोगः आरभ्य स्मृतिमानम् शेषः ८ समाप्तम् समाप्तम् समाप्तम् ।
     इति
@@ -167,23 +221,36 @@
     ॰ e_shoff ० AND e_shnum ० — there is no section table, and a reader that
     ॰ wants one must be told there is none rather than sent to offset zero.
     चरः अवगणनण ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् ० ।             ॰ e_shoff
-    चरः अवगणनत ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ० ।             ॰ e_flags
+    चरः ध्वजाः ॱॱ न६४ भवति प्रतिबिम्बध्वजाः पाठ्यम् ।
+    चरः अवगणनत ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ध्वजाः ।             ॰ e_flags — W-302, was ०
     चरः अवगणनथ ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् शीर्षमानम् ।     ॰ e_ehsize
     चरः अवगणनद ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् कार्यक्रमशीर्षमानम् । ॰ e_phentsize
-    चरः अवगणनध ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् १ ।            ॰ e_phnum
+    चरः अवगणनध ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् शीर्षसंख्या ।  ॰ e_phnum — W-363, was १
     चरः अवगणनन ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ६४ ।           ॰ e_shentsize
     चरः अवगणनप ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ० ।            ॰ e_shnum
     चरः अवगणनफ ॱॱ न६४ भवति प्रतिबिम्बद्व्यष्टकम् ० ।            ॰ e_shstrndx
 
-    ॰ ── the one program header, fifty-six octets ──
+    ॰ ── the text's program header, fifty-six octets: read and execute ──
     चरः अवगणनब ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् १ ।     ॰ PT_LOAD
     चरः अवगणनभ ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ५ ।     ॰ PF_R | PF_X
     चरः अवगणनम ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् पाठस्थानम् ।  ॰ p_offset
     चरः अवगणनय ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारः ।        ॰ p_vaddr
     चरः अवगणनर ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारः ।        ॰ p_paddr
-    चरः अवगणनल ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् भारमानम् ।     ॰ p_filesz
-    चरः अवगणनव ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् स्मृतिमानम् ।   ॰ p_memsz
+    चरः अवगणनल ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् पाठदैर्घ्यम् ।   ॰ p_filesz
+    चरः अवगणनव ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् पाठदैर्घ्यम् ।   ॰ p_memsz
     चरः अवगणनश ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् ४ ।           ॰ p_align
+
+    ॰ ── the data's, when there is one: read and write, never execute (W-363) ──
+    यदि लेखनीयम् अधिकम् ० आदि
+        चरः दत्तशीर्षक ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् १ ।          ॰ PT_LOAD
+        चरः दत्तशीर्षख ॱॱ न६४ भवति प्रतिबिम्बचतुरष्टकम् ६ ।          ॰ PF_R | PF_W
+        चरः दत्तशीर्षग ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् दत्तस्थानम् ।   ॰ p_offset
+        चरः दत्तशीर्षघ ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् दत्तभारः ।      ॰ p_vaddr
+        चरः दत्तशीर्षङ ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् दत्तभारः ।      ॰ p_paddr
+        चरः दत्तशीर्षच ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् दत्तदैर्घ्यम् ।  ॰ p_filesz
+        चरः दत्तशीर्षछ ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् स्मृतिमानम् ।   ॰ p_memsz
+        चरः दत्तशीर्षज ॱॱ न६४ भवति प्रतिबिम्बाष्टाष्टकम् ८ ।            ॰ p_align
+    इति
 
     ॰ ── the contents ──
     चरः अवगणनष ॱॱ न६४ भवति अष्टकॱअष्टकपाठयोजनम् पाठ्यम् ० पाठदैर्घ्यम् ।

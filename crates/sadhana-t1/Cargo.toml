@@ -1,5 +1,6 @@
 [package]
 name = "sadhana-t1"
+license.workspace = true
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -14,6 +15,10 @@ repository.workspace = true
 # can say whether a `.t1` file is inside the language.
 [dev-dependencies]
 sadhana = { path = "../sadhana" }
+# `tests/w304-pass-zero-scan.rs` grades `अक्षरकोशॱपरिधिदोषः` against
+# `repertoire::in_repertoire`, which is the oracle R-15-1 is actually written in.
+# A table of expected answers in the test would be a second transcription.
+sanskrit-text = { path = "../sanskrit-text" }
 
 [lints]
 workspace = true

@@ -579,7 +579,7 @@ mod tests {
                 insts: vec![
                     (addr, Instruction::AddrOfGlobal(SymbolId(0))),
                     (val, Instruction::ConstInt(7)),
-                    (st, Instruction::StoreAt(addr, val)),
+                    (st, Instruction::StoreAt(addr, val, 8)),
                 ],
                 terminator: Some(Terminator::Return(None)),
             },
@@ -602,8 +602,8 @@ mod tests {
         // let DCE delete whatever computed the value while keeping the store
         // that writes it — a store of an undefined register, silent again.
         for make in [
-            |g| Instruction::StoreAt(ValueId(0), g),
-            |g| Instruction::StoreAt(g, ValueId(1)),
+            |g| Instruction::StoreAt(ValueId(0), g, 8),
+            |g| Instruction::StoreAt(g, ValueId(1), 8),
             |g| Instruction::LoadAt(g),
         ] {
             let ghost = ValueId(77);

@@ -19,7 +19,7 @@
 //! the pre-fix reading reproduced by mutation so the assertion is known to be able to fail.
 
 use sadhana::t1::ast::SymbolId;
-use sadhana::t1::ir::{Block, BlockId, CmpOp, Function, Instruction, Terminator, ValueId};
+use sadhana::t1::ir::{Block, BlockId, CmpOp, FloatOp, Function, Instruction, Terminator, ValueId};
 use sadhana::t1::nirvahana::{Interpreter, Octets, Value};
 use sadhana::t1::riscv64::{self, Module, Names, Refusal};
 use std::collections::HashMap;
@@ -138,7 +138,7 @@ fn first_divergence(t1: &str, rust: &str) -> Option<String> {
     None
 }
 
-/// `Refusal`'s variant as the T1 module numbers them (`यन्त्र…निषेधभेद`, १..१०
+/// `Refusal`'s variant as the T1 module numbers them (`यन्त्र…निषेधभेद`, १..१२
 /// in declaration order).
 fn refusal_kind(r: &Refusal) -> i128 {
     match r {
@@ -152,6 +152,9 @@ fn refusal_kind(r: &Refusal) -> i128 {
         Refusal::FrameTooLarge { .. } => 8,
         Refusal::EntryTakesParameters { .. } => 9,
         Refusal::BranchOutOfRange { .. } => 10,
+        Refusal::JumpOutOfRange { .. } => 11,
+        Refusal::StoreWidthUnnamed { .. } => 12,
+        Refusal::FileMismatch { .. } => 13,
     }
 }
 
@@ -480,15 +483,54 @@ fn module_name(src: &str) -> String {
 /// from the same rule. Answers the Rust module and the instruction count.
 /// The T1 instruction kind's Rust twin for the ten binary kinds and `Cmp`, as `ir.t1`
 /// numbers them (`W-245`).
-fn binary_kind(kind: i128, l: ValueId, r: ValueId, sub: i128) -> Option<Instruction> {
+fn binary_kind(kind: i128, l: ValueId, r: ValueId, sub: i128, mark: i128) -> Option<Instruction> {
     Some(match kind {
         3 => Instruction::Add(l, r),
         4 => Instruction::Sub(l, r),
         6 => Instruction::Mul(l, r),
-        7 => Instruction::Div(l, r),
-        8 => Instruction::Rem(l, r),
+        // `W-381` stage 3 (ruling (b)) — KINDS ७ AND ८ ARE TWO INSTRUCTIONS EACH,
+        // told apart by `ध्रुवमूल्यम्` as kind १० is: ० signed, १ unsigned (a name
+        // declared unsigned on either side). `if`, and the signed variant first,
+        // for the kind-table reader's reason given at kind १०.
+        7 => {
+            if mark == 0 {
+                Instruction::Div(l, r)
+            } else if mark == 1 {
+                Instruction::DivU(l, r)
+            } else {
+                return None;
+            }
+        }
+        8 => {
+            if mark == 0 {
+                Instruction::Rem(l, r)
+            } else if mark == 1 {
+                Instruction::RemU(l, r)
+            } else {
+                return None;
+            }
+        }
         9 => Instruction::Shl(l, r),
-        10 => Instruction::Shr(l, r),
+        // `W-333` — KIND १० IS TWO INSTRUCTIONS, TOLD APART BY `ध्रुवमूल्यम्`: ० the
+        // arithmetic shift, १ the logical one `मध्यरूप` builds for a left operand
+        // that is a name declared unsigned. Any other value is refused: a
+        // decoder that guessed would build `Shr` and compile.
+        //
+        // WRITTEN AS `if`, NOT AS A NESTED `match mark { 0 => …, 1 => … }`:
+        // `t1_transcriptions.rs` reads every `N => Family::Variant` arm in the
+        // tree as a row of a kind table, nested ones included, so a nested
+        // match here was scanned as "Instruction 0 is `Shr`, Instruction 1 is
+        // `ShrL`" and reddened the guard. `Shr` stays FIRST for the same
+        // reader: it takes the first variant in the arm as kind १०'s.
+        10 => {
+            if mark == 0 {
+                Instruction::Shr(l, r)
+            } else if mark == 1 {
+                Instruction::ShrL(l, r)
+            } else {
+                return None;
+            }
+        }
         11 => Instruction::And(l, r),
         12 => Instruction::Or(l, r),
         13 => Instruction::Xor(l, r),
@@ -578,10 +620,31 @@ fn read_module(it: &mut Interpreter, module: &str) -> Result<(Module, usize), Ho
                                 })?;
                             list.push(ValueId(k - 1));
                         }
-                        Instruction::Call(SymbolId(usize::try_from(s).unwrap_or(0)), list)
+                        // `V-005`: `उपभेद` १ is a callee answering `प६४`.
+                        if int_of(&ins, "उपभेद") != 1 {
+                            Instruction::Call(SymbolId(usize::try_from(s).unwrap_or(0)), list)
+                        } else {
+                            Instruction::CallFloat(SymbolId(usize::try_from(s).unwrap_or(0)), list)
+                        }
                     }
-                    5 => Instruction::Param(usize::try_from(int_of(&ins, "प्राचलक्रम")).unwrap_or(0)),
-                    15 => Instruction::Load(usize::try_from(int_of(&ins, "स्थानक्रम")).unwrap_or(0)),
+                    // `V-005`: `उपभेद` १ is a `प६४` parameter.
+                    5 => {
+                        let k = usize::try_from(int_of(&ins, "प्राचलक्रम")).unwrap_or(0);
+                        if int_of(&ins, "उपभेद") != 1 {
+                            Instruction::Param(k)
+                        } else {
+                            Instruction::ParamFloat(k)
+                        }
+                    }
+                    // `V-005`: `उपभेद` १ is a `प६४` local's read, the FLOAT load.
+                    15 => {
+                        let k = usize::try_from(int_of(&ins, "स्थानक्रम")).unwrap_or(0);
+                        if int_of(&ins, "उपभेद") != 1 {
+                            Instruction::Load(k)
+                        } else {
+                            Instruction::LoadFloat(k)
+                        }
+                    }
                     // `W-278`: a module-level global read — the word at the
                     // global's own exported label, named by its symbol.
                     // `W-field`: a record field read — one word at a byte offset from
@@ -589,9 +652,12 @@ fn read_module(it: &mut Interpreter, module: &str) -> Result<(Module, usize), Ho
                     // in `स्थानक्रम`, which is a FRAME INDEX the emitter scales by ८
                     // and the frame-sizing pass maxes over — a byte offset there is
                     // wrong twice and loud neither time.
+                    // `W-381` stage 4: the offset may be NEGATIVE (the bound check reads a run's
+                    // length word at base − 8), carried as an i64's bits as `chain.rs` does; the
+                    // old `u64::try_from(..).unwrap_or(0)` turned −8 into a silent 0.
                     19 => Instruction::LoadField(
                         ValueId(need(&ins, "वाम", &at)?),
-                        u64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).unwrap_or(0),
+                        i64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).map_or(0, i64::cast_unsigned),
                     ),
                     // BOTH operands are values here, where the kind above takes one
                     // value and a constant. A decoder that read `ध्रुवमूल्यम्`
@@ -669,10 +735,37 @@ fn read_module(it: &mut Interpreter, module: &str) -> Result<(Module, usize), Ho
                         }
                         Instruction::AddrOfGlobal(SymbolId(usize::try_from(s).unwrap_or(0)))
                     }
-                    22 => Instruction::LoadAt(ValueId(need(&ins, "वाम", &at)?)),
+                    // `V-008`: `उपभेद` १ is a `प६४` slot's read (a run element, a field
+                    // or a global declared `प६४`), into the FLOAT file — `LoadAt` first,
+                    // as kind २२'s own (the transcription guard reads the first variant).
+                    22 => {
+                        let a = ValueId(need(&ins, "वाम", &at)?);
+                        if int_of(&ins, "उपभेद") != 1 {
+                            Instruction::LoadAt(a)
+                        } else {
+                            Instruction::LoadAtFloat(a)
+                        }
+                    }
+                    // `W-306c` — AND `ध्रुवमूल्यम्` IS THE WIDTH IN OCTETS, a third
+                    // thing beside the two values, exactly as it is on kind 20. A
+                    // decoder that read it as an OPERAND would store at the
+                    // address held in value ०.
+                    //
+                    // THE ० -> ८ MAPPING IS COPIED FROM KIND 20 DELIBERATELY, not
+                    // re-derived: two decoders that default differently are worse
+                    // than two that default wrongly together, because only the
+                    // first kind of disagreement is invisible to a twin
+                    // comparison. `ir.t1` does not write this field yet, so every
+                    // instruction in the corpus arrives here as ० and leaves as ८
+                    // — a whole word, today's behaviour, and the bare `निधानम्`.
                     23 => Instruction::StoreAt(
                         ValueId(need(&ins, "वाम", &at)?),
                         ValueId(need(&ins, "दक्षिण", &at)?),
+                        match u64::try_from(int_of(&ins, "ध्रुवमूल्यम्")).unwrap_or(0)
+                        {
+                            0 => 8,
+                            w => w,
+                        },
                     ),
                     // `W-284` — THE STORAGE THE OTHER FIVE KINDS ADDRESS. 24
                     // allocates it, 25 and 26 form addresses INTO it, and 22/23
@@ -693,6 +786,66 @@ fn read_module(it: &mut Interpreter, module: &str) -> Result<(Module, usize), Ho
                         ValueId(need(&ins, "वाम", &at)?),
                         ValueId(need(&ins, "दक्षिण", &at)?),
                     ),
+                    // `V-005` — a float op: `उपभेद` is the op (from १), `वाम` and
+                    // `दक्षिण` its first two operands, `fmadd`'s third the one
+                    // entry of its `आदानकोश` run (`chain.rs` decodes the same).
+                    27 => {
+                        let code = int_of(&ins, "उपभेद");
+                        let op = FloatOp::from_code(code).ok_or_else(|| {
+                            Hole(format!("{at}: float op {code} is not one of the thirteen"))
+                        })?;
+                        let mut list = vec![ValueId(need(&ins, "वाम", &at)?)];
+                        if op.arity() >= 2 {
+                            list.push(ValueId(need(&ins, "दक्षिण", &at)?));
+                        }
+                        if op.arity() == 3 {
+                            let a0 = usize::try_from(int_of(&ins, "आदानारम्भ")).unwrap_or(0);
+                            let arg = args.borrow()[a0].clone();
+                            let k = int_of(&arg, "क्रमाङ्क");
+                            let k =
+                                usize::try_from(k).ok().filter(|k| *k > 0).ok_or_else(|| {
+                                    Hole(format!(
+                                        "{at}: fmadd's third operand is the absent value ०"
+                                    ))
+                                })?;
+                            list.push(ValueId(k - 1));
+                        }
+                        Instruction::Float(op, list)
+                    }
+                    // `V-008` part 2 — a vector op: `उपभेद` the op (१..४, add, sub,
+                    // mul, div), `वाम` the result run, `दक्षिण` the first operand run,
+                    // the second the one entry of its `आदानकोश` run (`chain.rs`).
+                    28 => {
+                        let code = int_of(&ins, "उपभेद");
+                        let op = FloatOp::from_code(code)
+                            .filter(|op| {
+                                matches!(
+                                    op,
+                                    FloatOp::Add | FloatOp::Sub | FloatOp::Mul | FloatOp::Div
+                                )
+                            })
+                            .ok_or_else(|| {
+                                Hole(format!(
+                                    "{at}: vector op {code} is not add, sub, mul or div"
+                                ))
+                            })?;
+                        let a0 = usize::try_from(int_of(&ins, "आदानारम्भ")).unwrap_or(0);
+                        let arg = args.borrow()[a0].clone();
+                        let k = int_of(&arg, "क्रमाङ्क");
+                        let k = usize::try_from(k).ok().filter(|k| *k > 0).ok_or_else(|| {
+                            Hole(format!(
+                                "{at}: a vector op's second operand is the absent value ०"
+                            ))
+                        })?;
+                        Instruction::Vector(
+                            op,
+                            vec![
+                                ValueId(need(&ins, "वाम", &at)?),
+                                ValueId(need(&ins, "दक्षिण", &at)?),
+                                ValueId(k - 1),
+                            ],
+                        )
+                    }
                     16 => Instruction::Store(
                         usize::try_from(int_of(&ins, "स्थानक्रम")).unwrap_or(0),
                         ValueId(need(&ins, "वाम", &at)?),
@@ -719,6 +872,7 @@ fn read_module(it: &mut Interpreter, module: &str) -> Result<(Module, usize), Ho
                         ValueId(need(&ins, "वाम", &at)?),
                         ValueId(need(&ins, "दक्षिण", &at)?),
                         int_of(&ins, "उपभेद"),
+                        int_of(&ins, "ध्रुवमूल्यम्"),
                     )
                     .unwrap_or_else(|| panic!("instruction kind {kind} is not one of the sixteen")),
                 };
@@ -961,7 +1115,7 @@ fn measure_corpus_twin_emit() {
         .collect();
     names.sort();
     // `W-281`: NINE, and `sanchaya.t1` is the ninth. This list held eight until
-    // 2026-09-10 — the same eight `pradarshana`'s `CHAIN` held, element for element,
+    // 2026-09-10 — the same eight `frontend`'s `CHAIN` held, element for element,
     // and the same defect. `artha.t1:153` imports the module as `घोषणासञ्चय` and uses
     // it at 13 sites; unloaded, `घोषणासञ्चयॱप्रविष्टिभेदः` parses as a FIELD ACCESS on
     // a local of that name, which is legal, and then resolves wrong. None of the 13
@@ -1019,6 +1173,22 @@ fn measure_corpus_twin_emit() {
     let (mut agree_emit, mut agree_refuse) = (0, 0);
     let mut unmeasurable = 0;
     let mut divergent: Vec<String> = Vec::new();
+    // `W-332` RESIDUE: THE RELAXATION CENSUS HAD NO CORPUS READER. The instrument
+    // existed from the day it landed and was read ONLY by its own synthetic test — one
+    // routine built with ~2,000 filler lines to force a far branch. So the question it
+    // was built to answer, *how much does the REAL corpus relax*, stayed unmeasured
+    // while the instrument sat in the emitter.
+    //
+    // COLLECTED PER SOURCE AND NAMED, not read-before-and-subtracted. The first version
+    // of this residue read a process-global `AtomicUsize` as a difference across the
+    // loop, because that counter was cumulative by design — a reset would have been a
+    // second writer, and two tests emitting concurrently would have raced it. So the
+    // figure was attributable only because this test happened to be the sole emitter of
+    // the whole corpus, which is a property of the SUITE and not of the measurement.
+    // `emit_module_and_relaxations` returns the labels for one call, so each relaxation
+    // is now tagged with the source that produced it and the figure is attributable on
+    // its own terms.
+    let mut relaxed_labels: Vec<String> = Vec::new();
     for n in &names {
         let src = std::fs::read_to_string(dir.join(n)).unwrap();
         let mut it = load_with(&chain, None);
@@ -1093,7 +1263,13 @@ fn measure_corpus_twin_emit() {
         } else {
             built += 1;
         }
-        let rust = riscv64::emit_module(&rust_module);
+        // `W-332`: the census comes back WITH the text, per call, so a relaxation
+        // is attributed to the SOURCE that relaxed. The process-global counter
+        // this replaced could only answer "how many since the process started".
+        let rust = riscv64::emit_module_and_relaxations(&rust_module).map(|(text, rel)| {
+            relaxed_labels.extend(rel.into_iter().map(|label| format!("{n}:{label}")));
+            text
+        });
         let t1_started = std::time::Instant::now();
         let t1 = match it.call("यन्त्रोत्सर्जनॱयन्त्रमण्डलोत्सर्जनम्", vec![], 60_000_000_000)
         {
@@ -1168,6 +1344,41 @@ fn measure_corpus_twin_emit() {
     println!("METRIC paradigm_encode_twin_agreement_emit {agree_emit}/{built}");
     println!("METRIC paradigm_encode_twin_agreement_refuse {agree_refuse}/{built}");
     println!("METRIC paradigm_encode_twin_agreement_partial {partial_agree}/{partial_built}");
+    // `W-332` RESIDUE — RELAXATIONS DURING PER-MODULE EMISSION, AND THE NAME SAYS
+    // `per_module` BECAUSE THAT IS THE ONLY THING THIS LOOP CAN MEASURE.
+    //
+    // **MEASURED 0, AND 0 WAS PREDICTED BEFORE THE RUN AS EVIDENCE OF MISPLACEMENT
+    // RATHER THAN AS AN ANSWER.** This loop calls `emit_module` on one source at a
+    // time. `W-330`'s refusal was LOAD-DEPENDENT: `ir.t1` compiles ALONE and refused
+    // only at 21 LINKED sources (`tools/t1-census.sh ir` gave `typecheck ok` on its
+    // own). So per-module emission is exactly the condition under which nothing is
+    // far enough from its target to need relaxing, and a 0 here says nothing about
+    // the linked image.
+    //
+    // WHAT IT IS GOOD FOR, which is why it stays rather than being deleted: it is a
+    // real baseline for the ISOLATED case. A RISE above 0 would mean a single module
+    // has grown a conditional past ±4 KiB on its own, which has never happened and
+    // would be new.
+    //
+    // STILL OWED: the LINKED census. The question `W-332` built the instrument to
+    // answer — how much does the 21-source image relax — needs it read on the
+    // `t1_image` path, not here. Not in this change.
+    //
+    // THE NAMES ARE PRINTED AND NOT ONLY THE COUNT, because a bare 0 cannot be told
+    // from an instrument that is not wired. A non-empty list says WHICH source and
+    // WHICH routine, which is the reading a rise above 0 would need to be actionable.
+    println!(
+        "METRIC paradigm_encode_relaxed_routines_per_module {}",
+        relaxed_labels.len()
+    );
+    if relaxed_labels.is_empty() {
+        println!("NOTE   no source relaxed a routine when emitted ALONE (the predicted reading)");
+    } else {
+        println!(
+            "NOTE   relaxed when emitted alone: {}",
+            relaxed_labels.join(", ")
+        );
+    }
     println!(
         "METRIC paradigm_encode_twin_emit_seconds {:.0}",
         started.elapsed().as_secs_f64()
@@ -1261,5 +1472,135 @@ fn the_compressed_decoder_twin_names_x8_as_decode16_does() {
     );
     println!(
         "REFUSED pre-fix reading of 0x6080: registers {regs_before:?}, decode16 says {rust_regs:?}"
+    );
+}
+
+// ── W-368: THIS FILE'S DECODER, REACHED BY THE GATE FOR THE FIRST TIME ───────
+//
+// `binary_kind` above is reached only through `read_module`, and until this
+// test `read_module` had ONE caller: `measure_corpus_twin_emit`, which is
+// `#[ignore]`d. So the gate never ran this decoder, for any kind — it was
+// graded only by a census nobody's landing runs. `W-333` then gave kind १० a
+// second instruction chosen by `ध्रुवमूल्यम्`, and a decoder that read the kind
+// and dropped the field would have compiled, stayed green and built `Shr` for
+// both.
+//
+// The fix the row first named — a fifteenth form in the forms fixture — does
+// not reach it: the forms test compares the T1 emitter with
+// `riscv64::fixture_forms()`, a Rust-built `Module`, and decodes nothing.
+// So the decoder is fed through its OWN read path: a source compiled to IR by
+// the chain, read back by `read_module`.
+
+/// The chain `measure_corpus_twin_emit` loads, in its order.
+const READ_CHAIN: &[&str] = &[
+    "lex.t1",
+    "ast.t1",
+    "parse.t1",
+    "artha.t1",
+    "sanchaya.t1",
+    "sanskrit_text.t1",
+    "ir.t1",
+    "utsarjana.t1",
+    "yantrotsarjana.t1",
+];
+
+/// `src` compiled to IR by the chain and read back by THIS file's
+/// `read_module`: how many arithmetic and how many logical right shifts it
+/// decoded. The walk is the driver's (`chain.rs`, `Front`): lex, parse,
+/// resolve, TYPECHECK, build. The census above skips the typecheck; the
+/// product does not, and the shift's mark is read off a type.
+fn shifts_read_back(src: &str) -> (usize, usize) {
+    let mut it = load_with(READ_CHAIN, None);
+    let toks = call(&mut it, "पदविभागॱपदविभाग", vec![octets(src)], 2_000_000_000);
+    let parsed = call(
+        &mut it,
+        "व्याकरॱकार्यक्रमपठनम्",
+        vec![Value::Int(toks.as_int().unwrap_or(0))],
+        4_000_000_000,
+    )
+    .as_int()
+    .unwrap_or(0);
+    assert!(parsed > 0, "the fixture parses to declarations");
+    let resolver = call(&mut it, "अर्थॱनिर्णायकारम्भः", vec![], 5_000_000);
+    assert!(
+        matches!(
+            call(
+                &mut it,
+                "अर्थॱकार्यक्रमनिर्णयः",
+                vec![resolver.clone(), Value::Int(parsed)],
+                4_000_000_000,
+            ),
+            Value::Bool(true)
+        ),
+        "the fixture resolves"
+    );
+    call(&mut it, "अर्थॱप्रकारपरीक्षकारम्भः", vec![resolver], 5_000_000);
+    assert!(
+        matches!(
+            call(
+                &mut it,
+                "अर्थॱकार्यक्रमप्रकारपरीक्षा",
+                vec![Value::Int(parsed)],
+                4_000_000_000,
+            ),
+            Value::Bool(true)
+        ),
+        "the fixture typechecks"
+    );
+    call(&mut it, "मध्यरूपॱआरम्भः", vec![], 5_000_000);
+    call(
+        &mut it,
+        "मध्यरूपॱकार्यक्रमरचना",
+        vec![Value::Int(parsed)],
+        4_000_000_000,
+    );
+    let (module, _) = match read_module(&mut it, &module_name(src)) {
+        Ok(read) => read,
+        Err(Hole(why)) => panic!("this file's read_module refused the fixture: {why}"),
+    };
+    let (mut arithmetic, mut logical) = (0, 0);
+    for f in &module.functions {
+        for b in f.blocks.values() {
+            for (_, inst) in &b.insts {
+                match inst {
+                    Instruction::Shr(..) => arithmetic += 1,
+                    Instruction::ShrL(..) => logical += 1,
+                    _ => {}
+                }
+            }
+        }
+    }
+    (arithmetic, logical)
+}
+
+fn shift_fixture(decl: &str, shift: &str) -> String {
+    format!(
+        "मण्डलम् सरणपरीक्षा ॥\n\
+         सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि\n\
+         {decl}    प्रत्यागमनम् {shift} ।\nइति\n"
+    )
+}
+
+/// A name declared unsigned decodes to `ShrL`; a signed name decodes to
+/// `Shr`. The second half is the control: a decoder that answered `ShrL` for
+/// every kind-१० record would pass the first.
+#[test]
+fn this_files_decoder_reads_the_shift_mark_off_kind_ten() {
+    assert_eq!(
+        shifts_read_back(&shift_fixture(
+            "    चरः क ॱॱ न६४ भवति ऋण१ ।\n",
+            "क दक्षिणसृ ६३"
+        )),
+        (0, 1),
+        "(Shr, ShrL) for a name declared `न६४`: a decoder that drops \
+         `ध्रुवमूल्यम्` answers (1, 0)"
+    );
+    assert_eq!(
+        shifts_read_back(&shift_fixture(
+            "    चरः स ॱॱ अ६४ भवति ऋण८ ।\n",
+            "स दक्षिणसृ १"
+        )),
+        (1, 0),
+        "(Shr, ShrL) for a name declared `अ६४`"
     );
 }

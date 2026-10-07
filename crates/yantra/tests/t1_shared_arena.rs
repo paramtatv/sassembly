@@ -341,7 +341,7 @@ fn assemble(text: &str, name: &str) -> Result<Vec<u8>, String> {
 fn build_and_run(
     sources: &[(&str, &str)],
     modules: &[&str],
-) -> Result<(Option<u32>, String), String> {
+) -> Result<(Option<u64>, String), String> {
     // Entry object first — the order every other probe here uses, kept so their
     // readings stay comparable with each other.
     build_and_run_ordered(sources, modules, true)
@@ -357,7 +357,7 @@ fn build_and_run_ordered(
     sources: &[(&str, &str)],
     modules: &[&str],
     entry_first: bool,
-) -> Result<(Option<u32>, String), String> {
+) -> Result<(Option<u64>, String), String> {
     let (entry_name, dep_names) = modules
         .split_last()
         .ok_or_else(|| "no modules named".to_string())?;
@@ -927,7 +927,7 @@ fn measure_a_cross_module_global_scalar_against_its_own_module() {
     // global scalar must answer 77; if that breaks, arm 2's reading means nothing.
     assert_eq!(
         own_status,
-        Some(u32::try_from(WRITTEN).unwrap()),
+        Some(u64::try_from(WRITTEN).unwrap()),
         "a module read its OWN global scalar, initialised {WRITTEN}, as {own_status:?} \
          — the initialiser does not reach storage even within one module, and the \
          cross-module arm below is measuring that instead"
@@ -940,7 +940,7 @@ fn measure_a_cross_module_global_scalar_against_its_own_module() {
     // `None` means it never got that far (`chain.rs`'s name table, or the link).
     // A single `assert_eq!` would report both as "expected 77".
     match foreign_status {
-        Some(w) if w == u32::try_from(WRITTEN).unwrap() => {
+        Some(w) if w == u64::try_from(WRITTEN).unwrap() => {
             println!("  cross-module read answers {WRITTEN}, the value अन्यत् declares");
         }
         Some(0) => panic!(
@@ -1447,7 +1447,7 @@ fn control_one_module_writes_then_reads_its_own_arena() {
     println!("METRIC shared_arena_control_same_module {how}");
     assert_eq!(
         status,
-        Some(u32::try_from(WRITTEN).unwrap()),
+        Some(u64::try_from(WRITTEN).unwrap()),
         "a module wrote {WRITTEN} into its OWN global arena at index १ and read \
          index १ back as {status:?}. `None` means it never reached the finisher; \
          `Some(0)` means the arena answered its initialiser, so global arena \
@@ -1530,12 +1530,20 @@ fn probe_one_module_writes_and_another_reads() {
 ///
 /// Expects 0 — and 0 is the INTERESTING answer for once, because it is the only
 /// one under which control 1 measured what it claims to.
+///
+/// `W-381` STAGE 4: index २ is WRITTEN (०) first, so the read is IN BOUNDS (the
+/// run has length ३). It read past the length of a run of two until then, and a
+/// read past the length is now refused natively (`0x355`, status 853) as the
+/// interpreter refuses it — that refusal is not what this control is for. It
+/// still proves the same thing: the ७७ written LAST, at index १, must not come
+/// back from index २; if every index aliased one address, the last write would.
 #[test]
 fn control_a_write_at_one_index_is_not_read_at_another() {
     let src = concat!(
         "मण्डलम् परीक्षा ॥\n",
         "सार्वजनिक चरः कोशः ॱॱ अङ्कः अन्तः न६४ भवति ० ।\n",
         "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि\n",
+        "    कोशः अङ्कः २ अन्तः भवति ० ।\n",
         "    कोशः अङ्कः १ अन्तः भवति ७७ ।\n",
         "    प्रत्यागमनम् कोशः अङ्कः २ अन्तः ।\n",
         "इति\n",

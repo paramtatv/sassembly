@@ -37,6 +37,9 @@ pub mod parse;
 pub mod resolve;
 
 pub mod abi;
+/// `W-381` — the interpreter/native agreement rule, ONE copy, read by
+/// `t1_image`'s differential gate and by the engine-agreement ratchet.
+pub mod agreement;
 pub mod build;
 /// `W-256`'s driver: the T1 front end driven from library code, source to
 /// emittable module. Lifted from `paradigm_encode.rs`, which was the only

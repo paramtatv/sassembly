@@ -1,0 +1,20 @@
+# W-359 red-first: every w359_* probe on the tree BEFORE the change (89bfe15b, origin/main),
+# compiled by that tree's .t1 compiler in the interpreter (CHAIN) and run on yantra; 2026-10-04,
+# A Linux x86-64 host, release. Every probe the change refuses ANSWERED here; dropped diverged (1 vs 0).
+# After the change: crates/yantra/tests/w359_param_growth.rs.
+tag	probe	interpreted	native
+BASE	w359_past_end	Int(7)	Finisher { value: 471859, status: Some(7) }
+BASE	w359_fresh_param	Int(42)	Finisher { value: 2765619, status: Some(42) }
+BASE	w359_within	Int(105)	Finisher { value: 6894387, status: Some(105) }
+BASE	w359_kosha_shape	Int(27)	Finisher { value: 1782579, status: Some(27) }
+BASE	w359_dropped	Int(1)	Finisher { value: 21845, status: Some(0) }
+BASE	w359_bound	Int(2)	Finisher { value: 144179, status: Some(2) }
+BASE	w359_bound_elsewhere	Int(1)	Finisher { value: 78643, status: Some(1) }
+BASE	w359_tail_return	Int(3)	Finisher { value: 209715, status: Some(3) }
+BASE	w359_bad_tail	Int(1)	Finisher { value: 78643, status: Some(1) }
+BASE	w359_alias	Int(5)	Finisher { value: 340787, status: Some(5) }
+BASE	w359_alias_read	Int(7)	Finisher { value: 471859, status: Some(7) }
+BASE	w359_octet_param	Int(65)	Finisher { value: 4272947, status: Some(65) }
+BASE	w359_two_params	Int(74)	Finisher { value: 4862771, status: Some(74) }
+BASE	w359_two_params_past	Int(30)	Finisher { value: 1979187, status: Some(30) }
+BASE	w359_nil_return	Int(2)	Finisher { value: 144179, status: Some(2) }

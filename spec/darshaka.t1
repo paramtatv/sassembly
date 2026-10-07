@@ -1,0 +1,453 @@
+मण्डलम् दर्शक ॥
+आयातः अष्टक ।
+
+॰ दर्शक — THE DRIVER: CARRY A FINISHED PICTURE TO THE SCREEN. Row C-015
+॰ (VIRTIO-GPU 2D), unified on the GPU-driver project's v0.5.0 driver by the owner's ruling of
+॰ 2026-10-06; the GPU-driver project's chitra.t1 and spec/virtio-gpu-draw.t1 both call it. It is
+॰ graded by TWO devices that share no code: yantra's model and QEMU's real
+॰ virtio-gpu (tools/check-virtio-gpu-t1.sh).
+॰
+॰ The caller decides every pixel; this module only moves them. It talks to the
+॰ yantra machine's virtio-gpu (Sassembly W-351, the legacy virtio-mmio transport;
+॰ W-378, the device that serves the 2D commands) through the two four-octet
+॰ device intrinsics in ashtaka.t1, which lower to a plain sw / lw at the address.
+॰ The interpreter refuses them by name, so this module runs only natively, and
+॰ every caller reaches it only when given an argument asking for the screen —
+॰ never in the build-time interpreter run.
+॰
+॰ THE REGION, fixed, at ०xA८००_०००० (२८१८५७२२८८): above every image's declared
+॰ span (the compiler's heap is a 512 MiB .bss tail from ०x८०००_००००, growing UP,
+॰ and the stack is file-backed, so nothing reaches here). The run must give the
+॰ machine RAM past it: YANTRA_RAM >= ६७२ MiB. If it does not, the FIRST frame
+॰ store faults (BadAccess at R + ६५५३६) — loud, and before any device register is
+॰ touched. Code ६ is the device's own check of the same thing, should the frame
+॰ ever move below the queue.
+॰
+॰   R + ०         descriptor table, 8 x 16 octets       (QueuePFN = R / ४०९६)
+॰   R + १२८       available ring
+॰   R + ४०९६      used ring (QueueAlign ४०९६, virtio 1.2 §2.7.2)
+॰   R + ८१९२      request, up to ६४ octets
+॰   R + ८४४८      reply, ४०८ octets (GET_DISPLAY_INFO's)
+॰   R + ६५५३६     the frame, W x H x ४ octets, B8G8R8X8
+॰
+॰ A pixel ०x००RRGGBB stored as a le32 is the octets BB GG RR ००, which
+॰ is B8G8R8X8 with no conversion.
+॰
+॰ THE SIX COMMANDS are the GPU-driver project reference/virtio_gpu.py's (a private repository),
+॰ field for field, for any W x H, with the
+॰ backing at R + ६५५३६ (that file's BACKING is the same address). Their octets'
+॰ checksum, in that file's hash, is printed so the harness can compare it with
+॰ the oracle's.
+॰
+॰ RESULT, printed as  "G <code>"  then  "C <checksum>":
+॰   ० drawn            १ no slot's MagicValue is "virt"   २ Version is not १
+॰   ३ no virt slot holds DeviceID १६ (a GPU)       ४ QueueNumMax < ८
+॰   ५ the frame's FIRST word read back differs from the picture's
+॰   ६ the queue was refused (QueuePFN read back as ०: RAM too small)
+॰   ७ the frame's LAST word read back differs
+॰   ८ the frame's first NON-BACKGROUND word read back differs (both ends of a
+॰     centred fold are background, so ५ and ७ alone cannot see the picture)
+॰   ९ the picture is refused before ANY store: विस्तारः or उच्चता is under १६
+॰     (QEMU's virtio-gpu refuses a smaller scanout, so the two devices would
+॰     disagree) or over ४०९६, or विस्तारः x उच्चता is over ८३७२२२४ (the frame
+॰     must end by ०xAA००_००००, the ६७२ MiB stated above), or is not the number
+॰     of pixels in पटः
+॰   १०+k  command k returned no used entry within १०⁷ reads of the used index
+॰     (a device that never completes is this code, never a hang)
+॰   २०+k  command k's reply type was not the one the spec gives on success
+॰ (k = ० display info, १ create, २ attach, ३ scanout, ४ transfer, ५ flush)
+॰
+॰ WHERE THE DEVICE IS: the first of the eight virtio-mmio slots, ०x१०००_१००० +
+॰ i · ०x१०००, whose MagicValue is "virt" and DeviceID १६, scanned from slot ०
+॰ and stopping at the first GPU. yantra's GPU is slot ०, so yantra reads no
+॰ other slot; QEMU puts an unpinned -device in the highest free slot, and its
+॰ empty slots answer "virt" with DeviceID ० (the spec's "no device").
+॰
+॰ .t1 LANDMINES THIS IS SHAPED BY: W-355 (an array declared "भवति ०" holds one
+॰ element) and W-359 (a callee cannot grow its caller's array) — so the command
+॰ words are sized in प्रदर्शनम् itself, sixteen of them, and the routine that
+॰ fills them writes existing indices only.
+
+॰ one octet to the console
+वृत्तिः अक्षरलेखः आदाय वर्णः ॱॱ न६४ ददाति न६४ आदि
+    चरः उत्तरम् ॱॱ न६४ भवति अष्टकॱमुद्रणम् वर्णः ।
+    प्रत्यागमनम् उत्तरम् ।
+इति
+
+॰ a न६४ in decimal, then a newline
+वृत्तिः दशाङ्कलेखः आदाय मानम् ॱॱ न६४ ददाति न६४ आदि
+    चरः अङ्कावली ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः अङ्कसङ्ख्या ॱॱ न६४ भवति ० ।
+    चरः अवशिष्टम् ॱॱ न६४ भवति मानम् ।
+    चरः चलति ॱॱ न६४ भवति १ ।
+    यावत् चलति समम् १ आदि
+        चरः अन्त्याङ्कः ॱॱ न६४ भवति अवशिष्टम् शेषः १० ।
+        अङ्कावली अङ्कः अङ्कसङ्ख्या अन्तः भवति अन्त्याङ्कः ।
+        अङ्कसङ्ख्या भवति अङ्कसङ्ख्या योगः १ ।
+        अवशिष्टम् भवति अवशिष्टम् विभाजनम् १० ।
+        यदि अवशिष्टम् समम् ० आदि
+            चलति भवति ० ।
+        इति
+    इति
+    यावत् अङ्कसङ्ख्या अधिकम् ० आदि
+        अङ्कसङ्ख्या भवति अङ्कसङ्ख्या वियोगः १ ।
+        चरः वर्णाङ्कः ॱॱ न६४ भवति अङ्कावली अङ्कः अङ्कसङ्ख्या अन्तः ।
+        वर्णाङ्कः भवति वर्णाङ्कः योगः ४८ ।
+        चरः लिखितम् ॱॱ न६४ भवति अक्षरलेखः वर्णाङ्कः ।
+    इति
+    चरः पङ्क्त्यन्तः ॱॱ न६४ भवति अक्षरलेखः १० ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ a four-octet store / load at an absolute address
+वृत्तिः निधा आदाय लक्ष्यम् ॱॱ न६४ ऽ मूल्यम् ॱॱ न६४ ददाति न६४ आदि
+    चरः उत्तरम् ॱॱ न६४ भवति अष्टकॱउपकरणचतुरष्टकनिधानम् आरभ्य लक्ष्यम् ऽ मूल्यम् समाप्तम् ।
+    प्रत्यागमनम् उत्तरम् ।
+इति
+
+वृत्तिः आहर आदाय लक्ष्यम् ॱॱ न६४ ददाति न६४ आदि
+    प्रत्यागमनम् अष्टकॱउपकरणचतुरष्टकाहारः लक्ष्यम् ।
+इति
+
+॰ the oracle's hash over one word's four octets, low first:
+॰ h = (h · १०००००३ + octet) mod २१४७४८३६४७
+वृत्तिः शब्दसारः आदाय सारः ॱॱ न६४ ऽ शब्दः ॱॱ न६४ ददाति न६४ आदि
+    चरः नवः ॱॱ न६४ भवति सारः ।
+    चरः अवशिष्टम् ॱॱ न६४ भवति शब्दः ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् ४ आदि
+        चरः अष्टकम् ॱॱ न६४ भवति अवशिष्टम् युक् २५५ ।
+        नवः भवति नवः गुणनम् १०००००३ ।
+        नवः भवति नवः योगः अष्टकम् ।
+        नवः भवति नवः शेषः २१४७४८३६४७ ।
+        अवशिष्टम् भवति अवशिष्टम् दक्षिणसृ ८ ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् नवः ।
+इति
+
+॰ COMMAND k's words into शब्दाः (sixteen, sized by the caller), answering its
+॰ length in octets. virtio_gpu_ctrl_hdr is six words: type, flags, fence_id
+॰ (two), ctx_id, ring_idx with its padding — all ० but the type.
+॰ The rectangle is the whole विस्तारः x उच्चता frame; resource १, scanout ०.
+वृत्तिः आदेशशब्दाः आदाय शब्दाः ॱॱ अङ्कः अन्तः न६४ ऽ क्रमाङ्कः ॱॱ न६४ ऽ पटस्थानम् ॱॱ न६४ ऽ विस्तारः ॱॱ न६४ ऽ उच्चता ॱॱ न६४ ऽ पटाष्टकाः ॱॱ न६४ ददाति न६४ आदि
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् १६ आदि
+        शब्दाः अङ्कः क्रमः अन्तः भवति ० ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    ॰ GET_DISPLAY_INFO, header only
+    यदि क्रमाङ्कः समम् ० आदि
+        शब्दाः अङ्कः ० अन्तः भवति २५६ ।
+        प्रत्यागमनम् २४ ।
+    इति
+    ॰ RESOURCE_CREATE_2D: resource १, format २ (B8G8R8X8), W x H
+    यदि क्रमाङ्कः समम् १ आदि
+        शब्दाः अङ्कः ० अन्तः भवति २५७ ।
+        शब्दाः अङ्कः ६ अन्तः भवति १ ।
+        शब्दाः अङ्कः ७ अन्तः भवति २ ।
+        शब्दाः अङ्कः ८ अन्तः भवति विस्तारः ।
+        शब्दाः अङ्कः ९ अन्तः भवति उच्चता ।
+        प्रत्यागमनम् ४० ।
+    इति
+    ॰ RESOURCE_ATTACH_BACKING: resource १, one entry, the frame, W·H·४ octets
+    यदि क्रमाङ्कः समम् २ आदि
+        शब्दाः अङ्कः ० अन्तः भवति २६२ ।
+        शब्दाः अङ्कः ६ अन्तः भवति १ ।
+        शब्दाः अङ्कः ७ अन्तः भवति १ ।
+        शब्दाः अङ्कः ८ अन्तः भवति पटस्थानम् ।
+        शब्दाः अङ्कः १० अन्तः भवति पटाष्टकाः ।
+        प्रत्यागमनम् ४८ ।
+    इति
+    ॰ SET_SCANOUT: rect, scanout ०, resource १
+    यदि क्रमाङ्कः समम् ३ आदि
+        शब्दाः अङ्कः ० अन्तः भवति २५९ ।
+        शब्दाः अङ्कः ८ अन्तः भवति विस्तारः ।
+        शब्दाः अङ्कः ९ अन्तः भवति उच्चता ।
+        शब्दाः अङ्कः ११ अन्तः भवति १ ।
+        प्रत्यागमनम् ४८ ।
+    इति
+    ॰ TRANSFER_TO_HOST_2D: rect, offset ० (two words), resource १, padding
+    यदि क्रमाङ्कः समम् ४ आदि
+        शब्दाः अङ्कः ० अन्तः भवति २६१ ।
+        शब्दाः अङ्कः ८ अन्तः भवति विस्तारः ।
+        शब्दाः अङ्कः ९ अन्तः भवति उच्चता ।
+        शब्दाः अङ्कः १२ अन्तः भवति १ ।
+        प्रत्यागमनम् ५६ ।
+    इति
+    ॰ RESOURCE_FLUSH: rect, resource १, padding
+    शब्दाः अङ्कः ० अन्तः भवति २६० ।
+    शब्दाः अङ्कः ८ अन्तः भवति विस्तारः ।
+    शब्दाः अङ्कः ९ अन्तः भवति उच्चता ।
+    शब्दाः अङ्कः १० अन्तः भवति १ ।
+    प्रत्यागमनम् ४८ ।
+इति
+
+॰ CARRY पटः (विस्तारः x उच्चता pixels, row-major, ०x००RRGGBB) TO THE SCREEN.
+॰ Answers the result code in the margin and prints it, then the commands'
+॰ checksum. the GPU-driver project's chitra.t1 calls it with १६० x १६०, C-009's picture with ६४ x ३२.
+सार्वजनिक वृत्तिः प्रदर्शनम् आदाय पटः ॱॱ अङ्कः अन्तः न६४ ऽ विस्तारः ॱॱ न६४ ऽ उच्चता ॱॱ न६४ ददाति न६४ आदि
+    चरः उपकरणम् ॱॱ न६४ भवति ० ।
+    चरः बिन्दवः ॱॱ न६४ भवति विस्तारः गुणनम् उच्चता ।
+    चरः पटाष्टकाः ॱॱ न६४ भवति बिन्दवः गुणनम् ४ ।
+    चरः अन्तिमसूची ॱॱ न६४ भवति बिन्दवः वियोगः १ ।
+    ॰ the copy's bound, a name of its own so a mutant can shorten the copy alone
+    चरः सञ्चयसीमा ॱॱ न६४ भवति बिन्दवः ।
+    चरः क्षेत्रम् ॱॱ न६४ भवति २८१८५७२२८८ ।
+    चरः उपलब्धम् ॱॱ न६४ भवति क्षेत्रम् योगः १२८ ।
+    चरः प्रयुक्तम् ॱॱ न६४ भवति क्षेत्रम् योगः ४०९६ ।
+    चरः अनुरोधः ॱॱ न६४ भवति क्षेत्रम् योगः ८१९२ ।
+    चरः उत्तरस्थानम् ॱॱ न६४ भवति क्षेत्रम् योगः ८४४८ ।
+    चरः पटस्थानम् ॱॱ न६४ भवति क्षेत्रम् योगः ६५५३६ ।
+    चरः फलम् ॱॱ न६४ भवति ० ।
+    चरः उपेक्षा ॱॱ न६४ भवति ० ।
+
+    ॰ the command words, sized HERE (W-359), sixteen
+    चरः शब्दाः ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् १६ आदि
+        शब्दाः अङ्कः क्रमः अन्तः भवति ० ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+
+    ॰ 0. the picture's shape, refused (code ९) before the first store: the frame
+    ॰ is W x H x ४ octets from R + ६५५३६ = ०xA८०१_००००, which must end by
+    ॰ ०xAA००_०००० (६७२ MiB of RAM): W x H ≤ (०xAA००_०००० − ०xA८०१_००००) / ४ =
+    ॰ ८३७२२२४; each side at least १६ and at most ४०९६; पटः holds exactly W x H
+    चरः आकारदोषः ॱॱ न६४ भवति ० ।
+    यदि विस्तारः न्यूनम् १६ आदि
+        आकारदोषः भवति १ ।
+    इति
+    यदि उच्चता न्यूनम् १६ आदि
+        आकारदोषः भवति १ ।
+    इति
+    यदि बिन्दवः अधिकम् ८३७२२२४ आदि
+        आकारदोषः भवति १ ।
+    इति
+    यदि विस्तारः अधिकम् ४०९६ आदि
+        आकारदोषः भवति १ ।
+    इति
+    यदि उच्चता अधिकम् ४०९६ आदि
+        आकारदोषः भवति १ ।
+    इति
+    चरः पटमात्रा ॱॱ न६४ भवति पटः ॱ दैर्घ्य ।
+    यदि बिन्दवः असमम् पटमात्रा आदि
+        आकारदोषः भवति १ ।
+    इति
+    यदि आकारदोषः समम् १ आदि
+        उपेक्षा भवति अक्षरलेखः ७१ ।
+        उपेक्षा भवति अक्षरलेखः ३२ ।
+        उपेक्षा भवति दशाङ्कलेखः ९ ।
+        उपेक्षा भवति अक्षरलेखः ६७ ।
+        उपेक्षा भवति अक्षरलेखः ३२ ।
+        उपेक्षा भवति दशाङ्कलेखः ० ।
+        प्रत्यागमनम् ९ ।
+    इति
+
+    ॰ 1. the frame, then read its first and last word back
+    क्रमः भवति ० ।
+    यावत् क्रमः न्यूनम् सञ्चयसीमा आदि
+        चरः लक्ष्यम् ॱॱ न६४ भवति क्रमः गुणनम् ४ ।
+        लक्ष्यम् भवति पटस्थानम् योगः लक्ष्यम् ।
+        उपेक्षा भवति निधा आरभ्य लक्ष्यम् ऽ पटः अङ्कः क्रमः अन्तः समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः प्रथमपठितम् ॱॱ न६४ भवति आहर पटस्थानम् ।
+    चरः प्रथमबिन्दुः ॱॱ न६४ भवति पटः अङ्कः ० अन्तः ।
+    यदि प्रथमपठितम् असमम् प्रथमबिन्दुः आदि
+        फलम् भवति ५ ।
+    इति
+    चरः अन्तिमस्थानम् ॱॱ न६४ भवति अन्तिमसूची गुणनम् ४ ।
+    अन्तिमस्थानम् भवति पटस्थानम् योगः अन्तिमस्थानम् ।
+    चरः अन्तिमपठितम् ॱॱ न६४ भवति आहर अन्तिमस्थानम् ।
+    चरः अन्तिमबिन्दुः ॱॱ न६४ भवति पटः अङ्कः अन्तिमसूची अन्तः ।
+    यदि फलम् समम् ० आदि
+        यदि अन्तिमपठितम् असमम् अन्तिमबिन्दुः आदि
+            फलम् भवति ७ ।
+        इति
+    इति
+    ॰ and the FIRST NON-WHITE pixel, found in पटः itself: the first and last
+    ॰ pixels of a centred fold are background white, so on their own they say
+    ॰ nothing about the picture
+    चरः रङ्गसूची ॱॱ न६४ भवति ० ।
+    यावत् रङ्गसूची न्यूनम् बिन्दवः आदि
+        चरः इदम् ॱॱ न६४ भवति पटः अङ्कः रङ्गसूची अन्तः ।
+        यदि इदम् असमम् १६७७७२१५ आदि
+            ॰ found: stop the scan
+            इदम् भवति रङ्गसूची ।
+            रङ्गसूची भवति बिन्दवः योगः इदम् ।
+        इति
+        रङ्गसूची भवति रङ्गसूची योगः १ ।
+    इति
+    ॰ the loop leaves बिन्दवः + index + १ when it found one, बिन्दवः when it did not
+    यदि फलम् समम् ० आदि
+        यदि रङ्गसूची अधिकम् बिन्दवः आदि
+            चरः रङ्गबिन्दुसूची ॱॱ न६४ भवति रङ्गसूची वियोगः बिन्दवः ।
+            रङ्गबिन्दुसूची भवति रङ्गबिन्दुसूची वियोगः १ ।
+            चरः रङ्गस्थानम् ॱॱ न६४ भवति रङ्गबिन्दुसूची गुणनम् ४ ।
+            रङ्गस्थानम् भवति पटस्थानम् योगः रङ्गस्थानम् ।
+            चरः रङ्गपठितम् ॱॱ न६४ भवति आहर रङ्गस्थानम् ।
+            चरः रङ्गबिन्दुः ॱॱ न६४ भवति पटः अङ्कः रङ्गबिन्दुसूची अन्तः ।
+            यदि रङ्गपठितम् असमम् रङ्गबिन्दुः आदि
+                फलम् भवति ८ ।
+            इति
+        इति
+    इति
+
+    ॰ 2. who is there (virtio 1.2 §4.2.2, the legacy table §4.2.4): the first
+    ॰ slot that is virtio-mmio AND a GPU (WHERE THE DEVICE IS, above)
+    यदि फलम् समम् ० आदि
+        चरः जादुमिलितम् ॱॱ न६४ भवति ० ।
+        चरः खण्डः ॱॱ न६४ भवति ० ।
+        यावत् खण्डः न्यूनम् ८ आदि
+            चरः खण्डाधारः ॱॱ न६४ भवति खण्डः गुणनम् ४०९६ ।
+            खण्डाधारः भवति खण्डाधारः योगः २६८४३९५५२ ।
+            चरः जादुः ॱॱ न६४ भवति आहर खण्डाधारः ।
+            यदि जादुः समम् १९५३६५५१५८ आदि
+                जादुमिलितम् भवति १ ।
+                चरः खण्डयन्त्रम् ॱॱ न६४ भवति खण्डाधारः योगः ८ ।
+                चरः खण्डयन्त्रपठितम् ॱॱ न६४ भवति आहर खण्डयन्त्रम् ।
+                यदि खण्डयन्त्रपठितम् समम् १६ आदि
+                    उपकरणम् भवति खण्डाधारः ।
+                    खण्डः भवति ८ ।
+                इति
+            इति
+            खण्डः भवति खण्डः योगः १ ।
+        इति
+        यदि जादुमिलितम् समम् ० आदि
+            फलम् भवति १ ।
+        इति अन्यथा आदि
+            यदि उपकरणम् समम् ० आदि
+                फलम् भवति ३ ।
+            इति
+        इति
+    इति
+    यदि फलम् समम् ० आदि
+        चरः संस्करणम् ॱॱ न६४ भवति उपकरणम् योगः ४ ।
+        चरः संस्करणपठितम् ॱॱ न६४ भवति आहर संस्करणम् ।
+        यदि संस्करणपठितम् असमम् १ आदि
+            फलम् भवति २ ।
+        इति
+    इति
+
+    ॰ 3. reset, ACKNOWLEDGE | DRIVER, then queue ० by §4.2.4 steps 1-7
+    चरः स्थितिः ॱॱ न६४ भवति उपकरणम् योगः ११२ ।
+    यदि फलम् समम् ० आदि
+        उपेक्षा भवति निधा आरभ्य स्थितिः ऽ ० समाप्तम् ।
+        उपेक्षा भवति निधा आरभ्य स्थितिः ऽ ३ समाप्तम् ।
+        चरः पृष्ठम् ॱॱ न६४ भवति उपकरणम् योगः ४० ।
+        उपेक्षा भवति निधा आरभ्य पृष्ठम् ऽ ४०९६ समाप्तम् ।
+        चरः चयनम् ॱॱ न६४ भवति उपकरणम् योगः ४८ ।
+        उपेक्षा भवति निधा आरभ्य चयनम् ऽ ० समाप्तम् ।
+        चरः अधिकतमम् ॱॱ न६४ भवति उपकरणम् योगः ५२ ।
+        चरः अधिकतमपठितम् ॱॱ न६४ भवति आहर अधिकतमम् ।
+        यदि अधिकतमपठितम् न्यूनम् ८ आदि
+            फलम् भवति ४ ।
+        इति
+    इति
+    यदि फलम् समम् ० आदि
+        ॰ the rings start empty: avail flags/idx, its eight heads (all ०), used flags/idx
+        क्रमः भवति ० ।
+        यावत् क्रमः न्यूनम् ६ आदि
+            चरः वलयस्थानम् ॱॱ न६४ भवति क्रमः गुणनम् ४ ।
+            वलयस्थानम् भवति उपलब्धम् योगः वलयस्थानम् ।
+            उपेक्षा भवति निधा आरभ्य वलयस्थानम् ऽ ० समाप्तम् ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+        उपेक्षा भवति निधा आरभ्य प्रयुक्तम् ऽ ० समाप्तम् ।
+        ॰ descriptor ०: the request, NEXT, then १; descriptor १: the reply, WRITE
+        उपेक्षा भवति निधा आरभ्य क्षेत्रम् ऽ अनुरोधः समाप्तम् ।
+        चरः स्थानद्वितीयम् ॱॱ न६४ भवति क्षेत्रम् योगः ४ ।
+        उपेक्षा भवति निधा आरभ्य स्थानद्वितीयम् ऽ ० समाप्तम् ।
+        चरः स्थानचतुर्थम् ॱॱ न६४ भवति क्षेत्रम् योगः १२ ।
+        उपेक्षा भवति निधा आरभ्य स्थानचतुर्थम् ऽ ६५५३७ समाप्तम् ।
+        चरः वर्णकद्वयम् ॱॱ न६४ भवति क्षेत्रम् योगः १६ ।
+        उपेक्षा भवति निधा आरभ्य वर्णकद्वयम् ऽ उत्तरस्थानम् समाप्तम् ।
+        वर्णकद्वयम् भवति क्षेत्रम् योगः २० ।
+        उपेक्षा भवति निधा आरभ्य वर्णकद्वयम् ऽ ० समाप्तम् ।
+        वर्णकद्वयम् भवति क्षेत्रम् योगः २४ ।
+        उपेक्षा भवति निधा आरभ्य वर्णकद्वयम् ऽ ४०८ समाप्तम् ।
+        वर्णकद्वयम् भवति क्षेत्रम् योगः २८ ।
+        उपेक्षा भवति निधा आरभ्य वर्णकद्वयम् ऽ २ समाप्तम् ।
+
+        चरः सङ्ख्यास्थानम् ॱॱ न६४ भवति उपकरणम् योगः ५६ ।
+        उपेक्षा भवति निधा आरभ्य सङ्ख्यास्थानम् ऽ ८ समाप्तम् ।
+        चरः संरेखणम् ॱॱ न६४ भवति उपकरणम् योगः ६० ।
+        उपेक्षा भवति निधा आरभ्य संरेखणम् ऽ ४०९६ समाप्तम् ।
+        चरः पृष्ठाङ्कः ॱॱ न६४ भवति उपकरणम् योगः ६४ ।
+        उपेक्षा भवति निधा आरभ्य पृष्ठाङ्कः ऽ ६८८१२८ समाप्तम् ।
+        चरः पृष्ठाङ्कपठितम् ॱॱ न६४ भवति आहर पृष्ठाङ्कः ।
+        यदि पृष्ठाङ्कपठितम् असमम् ६८८१२८ आदि
+            फलम् भवति ६ ।
+        इति
+        उपेक्षा भवति निधा आरभ्य स्थितिः ऽ ७ समाप्तम् ।
+    इति
+
+    ॰ 4. the six commands, each one chain, each checked
+    चरः सारः ॱॱ न६४ भवति ० ।
+    चरः सूचना ॱॱ न६४ भवति उपकरणम् योगः ८० ।
+    चरः आदेशः ॱॱ न६४ भवति ० ।
+    यावत् आदेशः न्यूनम् ६ आदि
+        चरः दीर्घता ॱॱ न६४ भवति आदेशशब्दाः आरभ्य शब्दाः ऽ आदेशः ऽ पटस्थानम् ऽ विस्तारः ऽ उच्चता ऽ पटाष्टकाः समाप्तम् ।
+        चरः शब्दसङ्ख्या ॱॱ न६४ भवति दीर्घता विभाजनम् ४ ।
+        क्रमः भवति ० ।
+        यावत् क्रमः न्यूनम् शब्दसङ्ख्या आदि
+            चरः शब्दस्थानम् ॱॱ न६४ भवति क्रमः गुणनम् ४ ।
+            शब्दस्थानम् भवति अनुरोधः योगः शब्दस्थानम् ।
+            उपेक्षा भवति निधा आरभ्य शब्दस्थानम् ऽ शब्दाः अङ्कः क्रमः अन्तः समाप्तम् ।
+            सारः भवति शब्दसारः आरभ्य सारः ऽ शब्दाः अङ्कः क्रमः अन्तः समाप्तम् ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+        चरः लम्बाईस्थानम् ॱॱ न६४ भवति क्षेत्रम् योगः ८ ।
+        उपेक्षा भवति निधा आरभ्य लम्बाईस्थानम् ऽ दीर्घता समाप्तम् ।
+        ॰ the reply's type word starts as ०xffffffff, so silence cannot pass
+        उपेक्षा भवति निधा आरभ्य उत्तरस्थानम् ऽ ४२९४९६७२९५ समाप्तम् ।
+        चरः नवसूची ॱॱ न६४ भवति आदेशः योगः १ ।
+        चरः सूचीशब्दः ॱॱ न६४ भवति नवसूची वामसृ १६ ।
+        यदि फलम् समम् ० आदि
+            उपेक्षा भवति निधा आरभ्य उपलब्धम् ऽ सूचीशब्दः समाप्तम् ।
+            उपेक्षा भवति निधा आरभ्य सूचना ऽ ० समाप्तम् ।
+            ॰ POLL the used index, bounded: virtio 1.2 §2.7.13-14 does not
+            ॰ promise the chain is used by the time the notify store returns.
+            ॰ yantra's model completes it inside the store, so one read sufficed
+            ॰ there; QEMU's device completes it later (ioeventfd and a bottom
+            ॰ half), and a single read failed command १ as G ११ on QEMU 10.1.
+            ॰ Running out of reads is still code १० + k.
+            चरः पठनानि ॱॱ न६४ भवति ० ।
+            चरः प्रयुक्तप्राप्तम् ॱॱ न६४ भवति ० ।
+            यावत् पठनानि न्यूनम् १००००००० आदि
+                चरः प्रयुक्तसूची ॱॱ न६४ भवति आहर प्रयुक्तम् ।
+                प्रयुक्तसूची भवति प्रयुक्तसूची दक्षिणसृ १६ ।
+                यदि प्रयुक्तसूची समम् नवसूची आदि
+                    प्रयुक्तप्राप्तम् भवति १ ।
+                    पठनानि भवति १००००००० ।
+                इति अन्यथा आदि
+                    पठनानि भवति पठनानि योगः १ ।
+                इति
+            इति
+            यदि प्रयुक्तप्राप्तम् समम् ० आदि
+                फलम् भवति १० योगः आदेशः ।
+            इति
+        इति
+        यदि फलम् समम् ० आदि
+            चरः अपेक्षितम् ॱॱ न६४ भवति ४३५२ ।
+            यदि आदेशः समम् ० आदि
+                अपेक्षितम् भवति ४३५३ ।
+            इति
+            चरः उत्तरप्रकारः ॱॱ न६४ भवति आहर उत्तरस्थानम् ।
+            यदि उत्तरप्रकारः असमम् अपेक्षितम् आदि
+                फलम् भवति २० योगः आदेशः ।
+            इति
+        इति
+        आदेशः भवति आदेशः योगः १ ।
+    इति
+
+    ॰ "G <code>" and "C <checksum>"
+    उपेक्षा भवति अक्षरलेखः ७१ ।
+    उपेक्षा भवति अक्षरलेखः ३२ ।
+    उपेक्षा भवति दशाङ्कलेखः फलम् ।
+    उपेक्षा भवति अक्षरलेखः ६७ ।
+    उपेक्षा भवति अक्षरलेखः ३२ ।
+    उपेक्षा भवति दशाङ्कलेखः सारः ।
+    प्रत्यागमनम् फलम् ।
+इति

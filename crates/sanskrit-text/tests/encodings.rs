@@ -273,7 +273,7 @@ fn every_register_slot_maps_five_bits() {
             continue; // compressed fields are three bits, or two, by design
         }
         for s in slots_of(&row) {
-            if s.kind == "reg" || s.kind == "freg" {
+            if s.kind == "reg" || s.kind == "freg" || s.kind == "vreg" {
                 assert_eq!(
                     s.map.len(),
                     5,

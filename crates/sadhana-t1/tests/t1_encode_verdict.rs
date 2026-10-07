@@ -44,7 +44,10 @@
 //!
 //! # The native half, measured 2026-09-18 and recorded rather than run here
 //!
-//! A native image is ~30 minutes and cannot be a landing gate. Taken on
+//! A native image was ~30 minutes through `t1_image` and could not be a landing gate.
+//! (N-003, 2026-10-03: the 30 minutes is retired as a planning premise; for the whole
+//! corpus through `tools/fanout-build.sh` cite the RANGE in that file's header, not a
+//! single run.) Taken on
 //! `379d48e1` with `tools/t1-image.sh`, run under `yantra-run` with
 //! `YANTRA_STEPS=200000000000`:
 //!
@@ -119,7 +122,8 @@ fn load_chain() -> Interpreter {
 /// What one build says about itself — every field read, none derived from another.
 #[derive(Debug, PartialEq, Eq)]
 struct Verdict {
-    /// `वस्तुरचनाविरामभेद`: ० सिद्ध, १ वाक्य, २ रिक्त, ३ अष्टक, ४ नारब्ध.
+    /// `वस्तुरचनाविरामभेद`: ० सिद्ध, १ वाक्य, २ रिक्त, ३ अष्टक, ४ नारब्ध, ५ वाक्यदोष
+    /// (W-302: the splitter refused a statement).
     exit: i128,
     /// Whether `पाठवस्तुरचना` handed back an object at all.
     built: bool,

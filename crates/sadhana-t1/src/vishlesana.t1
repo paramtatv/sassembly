@@ -157,21 +157,21 @@
 ॰ सङ्केतन ॱ अवकाशविस्तारः, which is the same maximum over न्यास that Rust
 ॰ writes as map.iter().map(|(f, _)| *f).max().
 ॰ how many (value bit, encoding bit) pairs a slot's map carries.
-॰ THE MAP CAN BE EMPTY AND THE ARENA HOLDING IT CANNOT. `fixed:0x00000000`,
-॰ which is how the eight compressed rows that fold an implicit sp into the
-॰ encoding write their first slot, has no map at all — Rust reads it as
-॰ `p.get(2).map(…).unwrap_or_default()`. An `अङ्कः अन्तः T` in this language
-॰ is born with one slot and nothing shrinks it, so a map of ० pairs and a map
-॰ of १ both report ॱ दैर्घ्य १, and entry ० is what separates them: शून्यम् in
-॰ the first, a record in the second.
-॰ WITHOUT THIS, उद्धरणम् asks a शून्यम् for its मूलांश and the eight rows are
-॰ undecodable. It is the same reading मूल्यसंख्या and अवकाशमूल्यानि give one
-॰ level up, and it is a fact about the LANGUAGE and not about this table.
+॰ THE MAP CAN BE EMPTY. `fixed:0x00000000`, which is how the eight compressed
+॰ rows that fold an implicit sp into the encoding write their first slot, has
+॰ no map at all — Rust reads it as `p.get(2).map(…).unwrap_or_default()`.
+॰ An empty `अङ्कः अन्तः T` has LENGTH ० on both engines (`W-355`), so the
+॰ length alone answers it. Before `W-355` an arena was born with one slot, a
+॰ map of ० pairs and a map of १ both reported ॱ दैर्घ्य १, and a second test
+॰ of entry ० against शून्यम् told them apart; that test is gone (`W-355`
+॰ step 3) — न्यासरचना fills न्यास densely from ०, and no row of
+॰ spec/encodings-riscv64.tsv has a malformed first pair before a valid one,
+॰ so entry ० is शून्यम् exactly when the length is ०.
+॰ WITHOUT THIS COUNT, उद्धरणम् asks a शून्यम् for its मूलांश and the eight rows
+॰ are undecodable. It is the same reading मूल्यसंख्या and अवकाशमूल्यानि give
+॰ one level up.
 सार्वजनिक वृत्तिः न्याससंख्या आदाय अवकाशः ॱॱ सङ्केतनॱअवकाश ददाति अ६४ आदि
     यदि अवकाशः ॱ न्यास ॱ दैर्घ्य समम् ० आदि
-        प्रत्यागमनम् ० ।
-    इति
-    यदि अवकाशः ॱ न्यास अङ्कः ० अन्तः समम् शून्यम् आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् अवकाशः ॱ न्यास ॱ दैर्घ्य ।
@@ -278,14 +278,12 @@
 ॰ two are told apart by asking सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य first, which is
 ॰ what a caller sizing the slice has already done.
 सार्वजनिक वृत्तिः अवकाशमूल्यानि आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत पदम् ॱॱ अ३२ मूल्यानि ॱॱ अङ्कः अन्तः अ६४ ददाति न६४ आदि
-    ॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY, and that is why the ० case
-    ॰ is asked FIRST and not by दैर्घ्य. `चरः x ॱॱ अङ्कः अन्तः T भवति ०` gives
-    ॰ a store of one slot and nothing shrinks it, so an encoding with NO
-    ॰ operands and one with ONE both report ॱ दैर्घ्य १. They are told apart by
-    ॰ entry ०, which is शून्यम् in the first and a record in the second. ecall,
-    ॰ ebreak, fence.i and c.nop are the four rows this distinguishes; without
-    ॰ it the loop below asks उद्धरणम् for the slots of a शून्यम्.
-    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+    ॰ THE ० CASE IS ASKED FIRST. An encoding with NO operands — ecall, ebreak,
+    ॰ fence.i and c.nop — has an EMPTY slot arena, and without this the loop
+    ॰ below asks उद्धरणम् for the slots of a शून्यम्. An empty arena says so
+    ॰ by its LENGTH, ०, on both engines (`W-355`); the entry-० test that read
+    ॰ the old one-nil-slot shape is gone (`W-355` step 3).
+    यदि सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
 
@@ -311,8 +309,8 @@
 ॰ to get them. Together the two fill one विश्लिष्टम् ॱ मूल्यानि.
 सार्वजनिक वृत्तिः अवकाशभेदाः आदाय सङ्केतः ॱॱ सङ्केतनॱसङ्केत भेदाः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
     ॰ the same empty-arena reading अवकाशमूल्यानि gives above, for the same
-    ॰ four rows.
-    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
+    ॰ four rows: the length, ० for an empty arena.
+    यदि सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य समम् ० आदि
         प्रत्यागमनम् ० ।
     इति
 
@@ -760,6 +758,10 @@
     यदि प्रथमम् समम् १०० आदि
         प्रत्यागमनम् सङ्केतनॱअन्तरभेद ।
     इति
+    ॰ `V-008` part 2: ११८ is `v`, a `vreg` slot.
+    यदि प्रथमम् समम् ११८ आदि
+        प्रत्यागमनम् सङ्केतनॱव्यूहकोष्ठभेद ।
+    इति
     यदि प्रथमम् समम् १०२ आदि
         यदि आरभ्य आदिः योगः १ समाप्तम् न्यूनम् अवसानम् आदि
             यदि पाठ्यम् अङ्कः आरभ्य आदिः योगः १ समाप्तम् अन्तः समम् ११४ आदि
@@ -898,9 +900,9 @@
 ॰ encodings(), for ONE line.
 ॰ THE SLOT LIST IS ZERO-BASED for the reason न्यासरचना gives: the three
 ॰ routines that walk अवकाशाः — स्थापनम्, उद्धरणम् and अवकाशमूल्यानि — count
-॰ from ०. A row with no slots leaves entry ० शून्यम्, which is the only way
-॰ this language can say "none": an arena is born with one slot and nothing
-॰ shrinks it. अवकाशमूल्यानि asks that question first, and says so.
+॰ from ०. A row with no slots leaves the arena EMPTY — length ० since
+॰ `W-355`; before it, one slot holding शून्यम्, then this language's only
+॰ way to say "none". अवकाशमूल्यानि asks that question first, and says so.
 ॰ ॥ PROBE — THE SAME WRITE, FROM A DIFFERENT MODULE ॥ (2026-09-18)
 ॰ `सङ्केतनॱखण्डलेखनपरीक्षा` does exactly this and answers ६००३ NATIVELY: a record
 ॰ local declared ०, a slice-derived run, the field write. It lives in `सङ्केतन`,
@@ -1075,15 +1077,13 @@
 इति
 
 ॰ how many operands a विश्लिष्टम् carries.
-॰ AN ARENA IN THIS LANGUAGE CANNOT BE EMPTY, so ० operands and १ operand
-॰ both read ॱ दैर्घ्य १, and entry ० is what separates them. This is the same
-॰ reading अवकाशमूल्यानि opens with, named once so that पुनःसंयोजनम् and a
-॰ test can both ask it.
+॰ ० operands is an EMPTY arena, length ० since `W-355`. Before it an arena
+॰ could not be empty, ० operands and १ both read ॱ दैर्घ्य १, and a test of
+॰ entry ० told them apart; that test is gone (`W-355` step 3), the operands
+॰ being filled densely from ०. This is the same reading अवकाशमूल्यानि opens
+॰ with, named once so that पुनःसंयोजनम् and a test can both ask it.
 सार्वजनिक वृत्तिः मूल्यसंख्या आदाय विश्लिष्टः ॱॱ विश्लिष्टम् ददाति अ६४ आदि
     यदि विश्लिष्टः ॱ मूल्यानि ॱ दैर्घ्य समम् ० आदि
-        प्रत्यागमनम् ० ।
-    इति
-    यदि विश्लिष्टः ॱ मूल्यानि अङ्कः ० अन्तः समम् शून्यम् आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् विश्लिष्टः ॱ मूल्यानि ॱ दैर्घ्य ।
@@ -1098,10 +1098,11 @@
 ॰ same instruction. Rust's tests/roundtrip.rs asserts this never returns two,
 ॰ and that assertion is the reason candidates is public in Rust at all.
 ॰
-॰ ZERO-BASED, and NO MATCH IS A STORE WHOSE ENTRY ० IS शून्यम् — an arena
-॰ here is born with one slot and cannot be shrunk, so ॱ दैर्घ्य १ is what both
-॰ "none" and "one" report and only entry ० tells them apart. A caller that
-॰ reads ॱ दैर्घ्य alone invents a candidate for every undefined word.
+॰ ZERO-BASED, and NO MATCH IS AN EMPTY STORE — length ० since `W-355`.
+॰ Before it an arena was born with one slot, so ॱ दैर्घ्य १ was what both
+॰ "none" and "one" reported and only entry ० told them apart; a caller
+॰ that read ॱ दैर्घ्य alone then invented a candidate for every undefined
+॰ word. `सम्भाविसंख्या` answers the count without building the store.
 सार्वजनिक वृत्तिः सम्भाविनः आदाय पदम् ॱॱ अ३२ ददाति अङ्कः अन्तः सङ्केतनॱसङ्केत आदि
     चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
     चरः फलम् ॱॱ अङ्कः अन्तः सङ्केत भवति ० ।
@@ -1131,9 +1132,10 @@
 इति
 
 ॰ how many encodings claim पदम् — the LENGTH of Rust's candidates, without
-॰ building them. सम्भाविनः cannot report ० through a store that cannot be
-॰ empty; this can, and it is what a caller checking the table for ambiguity
-॰ actually wants.
+॰ building them. Before `W-355` सम्भाविनः could not report ० through a store
+॰ that could not be empty; since then its length can, and this still answers
+॰ the count without allocating, which is what a caller checking the table for
+॰ ambiguity actually wants.
 सार्वजनिक वृत्तिः सम्भाविसंख्या आदाय पदम् ॱॱ अ३२ अपेक्षितांशाः ॱॱ अ३२ ददाति अ६४ आदि
     चरः सूचीसंख्या ॱॱ अ६४ भवति सङ्केतन ॱ सूचितसङ्केतसंख्या ।
     चरः सूचीक्रमः ॱॱ अ६४ भवति १ ।

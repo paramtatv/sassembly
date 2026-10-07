@@ -149,8 +149,8 @@
 ॰
 ॰ WHY `न६४` HERE WOULD BE A CORRECTNESS DEFECT AND NOT A STYLE ONE: the
 ॰ same two lines over the same bits give three different answers at the
-॰ three spellings available. `दक्षिणसृ` on a signed value is arithmetic
-॰ and on an unsigned one is logical, so a backwards reference — offset
+॰ three spellings available. `दक्षिणसृ` over a NAME declared signed is arithmetic and over a NAME declared unsigned is logical — TRUE SINCE `W-333` (2026-10-03). This line read "`दक्षिणसृ` on a signed value is arithmetic
+॰ and on an unsigned one is logical" for the nineteen days in which BOTH engines shifted every operand arithmetically, so its second clause was false while it stood; and it is still not true of an unnamed operand, which stays arithmetic whatever its type. So a backwards reference — offset
 ॰ ऋण०षोड्१००० — has उपरिखण्डम् answer ऋण१ signed and something near 2^52
 ॰ unsigned. The guard demonstrates that rather than asserting it.
 ॰
@@ -875,6 +875,7 @@
 आयातः वास्तु ।   ॰ the object record this file now BUILDS, not merely encodes for
 आयातः पदविभाग ।   ॰ the spec-table store: `समावेशपाठः` answers a table by name (2026-09-14)
 आयातः अष्टक ।   ॰ the OUTPUT CHANNEL, for `विन्यासमुद्रणम्` — zero imports, nothing cycles
+आयातः कोश ।   ॰ `दत्तपृष्ठाधारः`, where `.data` begins (W-363) — कोश imports only अष्टक, nothing cycles
 
 ॰ ══ the three register fields, identified by where they sit ══
 ॰ RD  = 0x0000_0f80, RS1 = 0x000f_8000, RS2 = 0x01f0_0000.
@@ -908,6 +909,9 @@
 सार्वजनिक चरः नामाङ्कभेद ॱॱ न६४ भवति ५ ।         ॰ label
 सार्वजनिक चरः स्थिरभेद ॱॱ न६४ भवति ६ ।           ॰ fixed
 सार्वजनिक चरः अन्तरभेद ॱॱ न६४ भवति ७ ।           ॰ disp
+॰ `V-008` part 2 — `vreg`, a VECTOR register field. The table spells it `vreg`
+॰ and `vishlesana.t1`'s reader maps its first octet, ११८ `v`, onto this.
+सार्वजनिक चरः व्यूहकोष्ठभेद ॱॱ न६४ भवति ८ ।        ॰ vreg
 
 ॰ ══ which section a relocation offset counts from ══
 ॰ mirrors कोश ॱ RelSection — Text, Data, Debug(name).
@@ -961,10 +965,10 @@
 ॰ `वाक्यविभाग` is one-based because a `…योजनम्` returns the index it wrote
 ॰ at and ० has to mean ABSENT there. Nothing appends to this one: a caller
 ॰ builds it whole and hands it over, exactly as `सङ्केत ॱ अवकाशाः` is built
-॰ whole by `पङ्क्तिसङ्केतः` and is zero-based for the same reason. An arena
-॰ is born holding one शून्यम्, so an EMPTY table is one slot holding
-॰ शून्यम् — which is Rust's `&BTreeMap::new()`, what `सङ्केतनम्` passes —
-॰ and `चिह्नस्थानम्` asks that of every entry before reading it.
+॰ whole by `पङ्क्तिसङ्केतः` and is zero-based for the same reason. An EMPTY
+॰ table — Rust's `&BTreeMap::new()`, what `सङ्केतनम्` passes — is a fresh
+॰ arena, length ० since `W-355` (before it, one slot holding शून्यम्), and
+॰ `चिह्नस्थानम्` walks to the length and skips a शून्यम् entry.
 सार्वजनिक संरचना चिह्नस्थान आरभ्य
   नाम ॱॱ अङ्कः अन्तः अ८ ऽ           ॰ the label
   स्थान ॱॱ अ३२                     ॰ the address it stands at
@@ -1092,6 +1096,9 @@
         प्रत्यागमनम् सत्यम् ।
     इति
     यदि भेद समम् प्लवकोष्ठभेद आदि
+        प्रत्यागमनम् सत्यम् ।
+    इति
+    यदि भेद समम् व्यूहकोष्ठभेद आदि
         प्रत्यागमनम् सत्यम् ।
     इति
     प्रत्यागमनम् असत्यम् ।
@@ -1290,7 +1297,7 @@
 ॰ returns the count as the not-found answer, T1 having no reference to return.
 सार्वजनिक वृत्तिः आवरणावकाशः आदाय सङ्केतः ॱॱ सङ्केत आवरणम् ॱॱ अ३२ ददाति न६४ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
-    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    चरः दैर्घ्य ॱॱ न६४ भवति अवकाशसंख्या सङ्केतः ।    ॰ W-302: not ॱ दैर्घ्य — see अवकाशसंख्या
 
     यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
         चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
@@ -1310,7 +1317,7 @@
 सार्वजनिक वृत्तिः नियततत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत क्रमः ॱॱ न६४ ददाति न६४ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     चरः संख्यानम् ॱॱ न६४ भवति ० ।
-    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    चरः दैर्घ्य ॱॱ न६४ भवति अवकाशसंख्या सङ्केतः ।    ॰ W-302: not ॱ दैर्घ्य — see अवकाशसंख्या
 
     यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
         चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
@@ -1335,7 +1342,7 @@
 सार्वजनिक वृत्तिः कोष्ठसंख्यानम् आदाय सङ्केतः ॱॱ सङ्केत ददाति न६४ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
     चरः संख्यानम् ॱॱ न६४ भवति ० ।
-    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    चरः दैर्घ्य ॱॱ न६४ भवति अवकाशसंख्या सङ्केतः ।    ॰ W-302: not ॱ दैर्घ्य — see अवकाशसंख्या
 
     यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
         चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
@@ -1353,9 +1360,9 @@
 ॰ and every other instruction takes one. handing both to the first slot made
 ॰ them collide, which the corpus found the moment the CSR families became
 ॰ nameable (B-060). पूरितानि holds the masks already filled.
-सार्वजनिक वृत्तिः अग्रिमतत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत पूरितानि ॱॱ अङ्कः अन्तः अ३२ ददाति न६४ आदि
+सार्वजनिक वृत्तिः अग्रिमतत्कालावकाशः आदाय सङ्केतः ॱॱ सङ्केत पूरितानि ॱॱ अङ्कः अन्तः न३२ ददाति न६४ आदि
     चरः सूचकाङ्क ॱॱ न६४ भवति ० ।
-    चरः दैर्घ्य ॱॱ न६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
+    चरः दैर्घ्य ॱॱ न६४ भवति अवकाशसंख्या सङ्केतः ।    ॰ W-302: not ॱ दैर्घ्य — see अवकाशसंख्या
     चरः पूर्तिदैर्घ्य ॱॱ न६४ भवति पूरितानि ॱ दैर्घ्य ।
 
     यावत् सूचकाङ्क न्यूनम् दैर्घ्य आदि
@@ -1565,7 +1572,7 @@
 ॰ every one of the three is interpolated VERBATIM into a sentence by
 ॰ `निदान ॱ विवरणम्`. Devanagari digits would be a different string, so this
 ॰ is not the place ADR-0023's digits belong.
-सार्वजनिक वृत्तिः सङ्ख्यापाठः आदाय सङ्ख्या ॱॱ इ६४ ददाति अङ्कः अन्तः अ८ आदि
+सार्वजनिक वृत्तिः सङ्ख्यापाठः आदाय सङ्ख्या ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
 
     यदि सङ्ख्या समम् ० आदि
@@ -1573,7 +1580,7 @@
         प्रत्यागमनम् पाठ्यम् ।
     इति
 
-    चरः मानम् ॱॱ इ६४ भवति सङ्ख्या ।
+    चरः मानम् ॱॱ अ६४ भवति सङ्ख्या ।
     चरः ऋणम् ॱॱ बूल भवति असत्यम् ।
     यदि मानम् न्यूनम् ० आदि
         ऋणम् भवति सत्यम् ।
@@ -2498,7 +2505,7 @@
 सार्वजनिक वृत्तिः सङ्कोचनिषेधः आदाय सङ्केतः ॱॱ सङ्केत मूल्यानि ॱॱ अङ्कः अन्तः अ६४ ददाति बूल आदि
     चरः गन्तृक्रमः ॱॱ न६४ भवति आवरणावकाशः सङ्केतः गन्तृक्षेत्र ।
 
-    यदि गन्तृक्रमः समम् सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य आदि
+    यदि गन्तृक्रमः समम् अवकाशसंख्या सङ्केतः आदि
         प्रत्यागमनम् असत्यम् ।
     इति
     यदि आरभ्य गन्तृक्रमः न्यूनम् मूल्यानि ॱ दैर्घ्य समाप्तम् समम् असत्यम् आदि
@@ -2602,6 +2609,10 @@
 सार्वजनिक चरः कोष्ठसूचीसीमाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।        ॰ and its end, as पङ्क्तिसीमा answers
 सार्वजनिक चरः कोष्ठसूचीनामादिकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।      ॰ field ० (the register's name) begins
 सार्वजनिक चरः कोष्ठसूचीनामान्तकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।     ॰ and ends
+॰ `V-009` (i) — whether the row's class, field ३, begins with ११८ `v`: १ a
+॰ VECTOR register, ० not (an empty field is ०). `कोष्ठव्यूहः`'s answer for
+॰ the row, read once here instead of re-parsing the row on every call.
+सार्वजनिक चरः कोष्ठसूचीव्यूहकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 
 ॰ build the register index if it is not built, and answer its row count.
 ॰ The filter is कोष्ठपङ्क्तिः's own, unchanged: not a comment or blank
@@ -2624,6 +2635,15 @@
                 कोष्ठसूचीसीमाकोश अङ्कः कोष्ठसूचीसंख्या अन्तः भवति सीमा ।
                 कोष्ठसूचीनामादिकोश अङ्कः कोष्ठसूचीसंख्या अन्तः भवति क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ० ।
                 कोष्ठसूचीनामान्तकोश अङ्कः कोष्ठसूचीसंख्या अन्तः भवति क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ० ।
+                चरः वर्गादिः ॱॱ न६४ भवति क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+                चरः वर्गान्तः ॱॱ न६४ भवति क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+                चरः व्यूहवर्गः ॱॱ न६४ भवति ० ।
+                यदि वर्गादिः असमम् वर्गान्तः आदि
+                    यदि पाठ्यम् अङ्कः वर्गादिः अन्तः समम् ११८ आदि
+                        व्यूहवर्गः भवति १ ।
+                    इति
+                इति
+                कोष्ठसूचीव्यूहकोश अङ्कः कोष्ठसूचीसंख्या अन्तः भवति व्यूहवर्गः ।
             इति
         इति
 
@@ -2644,6 +2664,26 @@
 ॰ it cannot match — and उपेक्ष्यपङ्क्तिः has already dropped the `#`
 ॰ comments and the blank lines that are the rest of Rust's filter.
 सार्वजनिक वृत्तिः कोष्ठपङ्क्तिः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
+    चरः सूचीक्रमः ॱॱ न६४ भवति कोष्ठसूचीक्रमः नाम ।
+
+    यदि सूचीक्रमः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+
+    चरः आरम्भः ॱॱ न६४ भवति कोष्ठसूच्यादिकोश अङ्कः सूचीक्रमः अन्तः ।
+    प्रत्यागमनम् आरम्भः योगः १ ।
+इति
+
+॰ `V-009` (i) — the INDEX SLOT of a named register, ONE-BASED like the index
+॰ arenas; ० when the table has no such name. This is the walk `कोष्ठपङ्क्तिः`
+॰ did, unchanged — the first row whose name matches — answering the slot
+॰ rather than the row's offset, so that ONE walk can serve every question a
+॰ caller has about the same name: `कोष्ठसूच्यङ्कः` its number and
+॰ `कोष्ठसूचीव्यूहः` whether it is a vector register, each read off the slot.
+॰ `V-008` part 2 put a SECOND walk per register operand into `स्थानसङ्केतनम्`
+॰ (`कोष्ठव्यूहः` after `कोष्ठाङ्कः` on the same name) and that walk was most of
+॰ the compiler's +7.72% on an unchanged input.
+सार्वजनिक वृत्तिः कोष्ठसूचीक्रमः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति न६४ आदि
     चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् कोष्ठकोशः इति ।
     चरः सूचीसंख्या ॱॱ न६४ भवति कोष्ठसूचीरचना ।
     चरः सूचीक्रमः ॱॱ न६४ भवति १ ।
@@ -2653,8 +2693,7 @@
         चरः नामान्तः ॱॱ न६४ भवति कोष्ठसूचीनामान्तकोश अङ्कः सूचीक्रमः अन्तः ।
 
         यदि परिधिसाम्यम् पाठ्यम् नामादिः नामान्तः नाम समम् सत्यम् आदि
-            चरः आरम्भः ॱॱ न६४ भवति कोष्ठसूच्यादिकोश अङ्कः सूचीक्रमः अन्तः ।
-            प्रत्यागमनम् आरम्भः योगः १ ।
+            प्रत्यागमनम् सूचीक्रमः ।
         इति
 
         सूचीक्रमः भवति सूचीक्रमः योगः १ ।
@@ -2669,15 +2708,23 @@
 ॰ hardwired zero, so a raw number reports the most-used register in the
 ॰ ISA as an unknown name.
 सार्वजनिक वृत्तिः कोष्ठाङ्कः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति सम्भाव्य अ३२ आदि
-    चरः पङ्क्तिः ॱॱ न६४ भवति कोष्ठपङ्क्तिः नाम ।
+    चरः सूचीक्रमः ॱॱ न६४ भवति कोष्ठसूचीक्रमः नाम ।
+    प्रत्यागमनम् कोष्ठसूच्यङ्कः सूचीक्रमः ।
+इति
 
-    यदि पङ्क्तिः समम् ० आदि
+॰ `V-009` (i) — `कोष्ठाङ्कः` for a name whose index slot `कोष्ठसूचीक्रमः`
+॰ already found: the same one-based number, `शून्यम्` for slot ० (no such
+॰ name). The row's bounds come from the index — `कोष्ठसूचीसीमाकोश` holds the
+॰ `पङ्क्तिसीमा` the row-finder's caller used to recompute — and the field is
+॰ parsed exactly as before.
+सार्वजनिक वृत्तिः कोष्ठसूच्यङ्कः आदाय सूचीक्रमः ॱॱ न६४ ददाति सम्भाव्य अ३२ आदि
+    यदि सूचीक्रमः समम् ० आदि
         प्रत्यागमनम् शून्यम् ।
     इति
 
     चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् कोष्ठकोशः इति ।
-    चरः आरम्भः ॱॱ न६४ भवति पङ्क्तिः वियोगः १ ।
-    चरः सीमा ॱॱ न६४ भवति पङ्क्तिसीमा पाठ्यम् आरम्भः ।
+    चरः आरम्भः ॱॱ न६४ भवति कोष्ठसूच्यादिकोश अङ्कः सूचीक्रमः अन्तः ।
+    चरः सीमा ॱॱ न६४ भवति कोष्ठसूचीसीमाकोश अङ्कः सूचीक्रमः अन्तः ।
     चरः क्षेत्रादिः ॱॱ न६४ भवति क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा २ ।
     चरः क्षेत्रान्तः ॱॱ न६४ भवति क्षेत्रसीमा पाठ्यम् आरम्भः सीमा २ ।
 
@@ -2709,6 +2756,31 @@
     इति
 
     प्रत्यागमनम् आरभ्य पाठ्यम् अङ्कः क्षेत्रादिः अन्तः समम् १०२ समाप्तम् ।
+इति
+
+॰ `V-008` part 2 — whether a named register is a VECTOR one: `f[3] ==
+॰ "vector"`, by its first octet, ११८ `v`, as `कोष्ठप्लवः` reads `float`'s
+॰ १०२ — the table's schema has three classes and they differ in their first
+॰ octet. `encode.rs`'s `is_vector_register`. असत्यम् for an unknown name.
+॰ WITHOUT IT A `व्यूह<n>` READS AS AN INTEGER REGISTER: `कोष्ठप्लवः` answers
+॰ "not a float" and `कोष्ठाङ्कः` answers its number, so it would fill an `x`
+॰ field as register n with nothing to say so.
+॰ `V-009` (i): the class is read once per row at index time
+॰ (`कोष्ठसूचीव्यूहकोश`, the same field ३ test this routine made per call).
+सार्वजनिक वृत्तिः कोष्ठव्यूहः आदाय नाम ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः सूचीक्रमः ॱॱ न६४ भवति कोष्ठसूचीक्रमः नाम ।
+    प्रत्यागमनम् कोष्ठसूचीव्यूहः सूचीक्रमः ।
+इति
+
+॰ `V-009` (i) — `कोष्ठव्यूहः` for a slot `कोष्ठसूचीक्रमः` already found;
+॰ असत्यम् for slot ० (no such name).
+सार्वजनिक वृत्तिः कोष्ठसूचीव्यूहः आदाय सूचीक्रमः ॱॱ न६४ ददाति बूल आदि
+    यदि सूचीक्रमः समम् ० आदि
+        प्रत्यागमनम् असत्यम् ।
+    इति
+
+    चरः व्यूहवर्गः ॱॱ न६४ भवति कोष्ठसूचीव्यूहकोश अङ्कः सूचीक्रमः अन्तः ।
+    प्रत्यागमनम् आरभ्य व्यूहवर्गः समम् १ समाप्तम् ।
 इति
 
 
@@ -3127,9 +3199,10 @@
 ॰     WHAT IT COST TO WRITE, for whoever sizes the remaining five: the
 ॰     ~250 lines were accurate, and so were the two SIGNATURE debts. What
 ॰     the estimate did not carry were the three routines the body needs
-॰     that had no reason to exist before it — `अवकाशसंख्या` (an arena is
-॰     born with one शून्यम्, so a slotless row reports दैर्घ्य १ and every
-॰     walk written before this one would read that शून्यम् as a slot),
+॰     that had no reason to exist before it — `अवकाशसंख्या` (an arena was
+॰     then born with one शून्यम्, so a slotless row reported दैर्घ्य १ and
+॰     every walk written before this one would read that शून्यम् as a slot;
+॰     since `W-355` a fresh arena is empty and the length is the count),
 ॰     `सङ्ख्यापाठः` (a diagnostic argument is interpolated verbatim, so a
 ॰     count must be ASCII digits and not ADR-0023's), and the two views of
 ॰     one 64-bit pattern that `अन्तर्भावः` takes separately because T1 has
@@ -3252,6 +3325,31 @@
 सार्वजनिक चरः सङ्केतसूच्यावरणकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।        ॰ field ४ (mask) as a number
 सार्वजनिक चरः सङ्केतसूचीरूपसिद्धकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।     ॰ १ when BOTH parsed as hex; ० on the header row, whose fields are words
 
+॰ N-001 — THE PRATYĀHĀRA SIGNATURES, the encoder's instruction-selection
+॰ model (owner ruling P4, 2026-10-05; research/n001-pratyahara-masks-design.md
+॰ §2, approved 2026-10-06). Every candidate row is decided by ONE compare,
+॰ `सङ्केतयोग्यम्`: ((S_row XOR D) AND C AND C_row) == ०. Slot १ holds the
+॰ instruction's demand D and slot २ its care mask C, written by
+॰ `आज्ञाप्रत्याहारः` once per instruction; index row k holds its signature S_row
+॰ at २k+१ and its care mask C_row at २k+२, written by `सङ्केतप्रत्याहारः`
+॰ when `सूचितसङ्केतः` parses the row. EACH FEATURE IS A NAMED FIELD AT A FIXED
+॰ PLACE, so a new table row never shifts a bit:
+॰   bits ०-५    registers, any file      `कोष्ठसंख्यानम्`'s count
+॰   bits ६-११   vector registers
+॰   bits १२-१७  displacements            what a label fills
+॰   bits १८-२३  immediate slots          cared when a domain set is written
+॰   bit  २४     has an immediate         cared when none is
+॰   bit  २५     the rd file is f         the rd file is x when २५ and २६ are clear;
+॰   bit  २६     the rd file is v         NONE is a C_row with both clear
+॰   bit  २७     wants floats             cared off a conversion row, for a typed class
+॰   bit  २८     an address in a vector register — no row has one
+॰   bits २९-३०  types written: ० one or none, १ a pair, २ more
+॰   bits ३१-४२  the pair's first half, class × १०२४ + width
+॰   bits ४३-५४  its second half          both cared on a conversion row only
+॰ A demand's count saturates at ६३. A row's is packed as it is: the table guard
+॰ (`t1_exec_encode.rs`, N-001) refuses a row with more than ६३ of one kind.
+सार्वजनिक चरः सङ्केतसूचीप्रत्याहारकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+
 ॰ THE LAST FAMILY ASKED FOR, REMEMBERED. The family loops call कुलसङ्केताः once and
 ॰ कुलसङ्केतः once per candidate — six walks of the whole index per instruction for
 ॰ the SAME family (measured: परिधिसाम्यम् 375,011 calls on ashtaka.t1's 217
@@ -3286,6 +3384,8 @@
 
     चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् सङ्केतकोशः इति ।
     चरः आरम्भः ॱॱ अ६४ भवति ० ।
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः १ अन्तः भवति ० ।   ॰ N-001: the demand D, then its care C
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः २ अन्तः भवति ० ।
 
     यावत् आरम्भः न्यूनम् पाठ्यम् ॱ दैर्घ्य आदि
         चरः सीमा ॱॱ अ६४ भवति पङ्क्तिसीमा पाठ्यम् आरम्भः ।
@@ -3307,6 +3407,11 @@
                     सङ्केतसूच्यंशकोश अङ्कः सङ्केतसूचीसंख्या अन्तः भवति अंशमूल्यम् ।
                 इति
                 सङ्केतसूचीविश्लेषितम् अङ्कः सङ्केतसूचीसंख्या अन्तः भवति ० ।   ॰ not parsed yet; a read cannot grow an arena, a write can
+                चरः मुद्रास्थानम् ॱॱ अ६४ भवति सङ्केतसूचीसंख्या योगः सङ्केतसूचीसंख्या ।
+                मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+                सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः भवति ० ।   ॰ S_row, once the row is parsed
+                मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+                सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः भवति ० ।   ॰ C_row
                 चरः आकृतिः ॱॱ सम्भाव्य अ६४ भवति विश्लेषणॱक्षेत्रषोडशाङ्कः पाठ्यम् आरम्भः सीमा ३ ।
                 चरः आवरणम् ॱॱ सम्भाव्य अ६४ भवति विश्लेषणॱक्षेत्रषोडशाङ्कः पाठ्यम् आरम्भः सीमा ४ ।
                 सङ्केतसूच्याकृतिकोश अङ्कः सङ्केतसूचीसंख्या अन्तः भवति ० ।
@@ -3428,7 +3533,98 @@
     इति
     सङ्केतसूचीविश्लेषितकोश अङ्कः सूचीक्रमः अन्तः भवति नव ।
     सङ्केतसूचीविश्लेषितम् अङ्कः सूचीक्रमः अन्तः भवति १ ।
+    सङ्केतप्रत्याहारः सूचीक्रमः नव ।   ॰ N-001: the row's signature, once, beside its record
     प्रत्यागमनम् नव ।
+इति
+
+॰ N-001 — THE ROW SIGNATURE: S_row and C_row of one indexed row, written to
+॰ `सङ्केतसूचीप्रत्याहारकोश` at २k+१ and २k+२ (the field table is at its declaration).
+॰ Every field is what the check chain this replaced asked of the row per
+॰ candidate: the register, vector, displacement and immediate slot counts,
+॰ the file of the rd field, whether any slot is a float register, and a
+॰ conversion's pair. C_row clears the rd bits when the row has no rd field
+॰ (and the v bit when rd is not a register field), the float bit on a
+॰ conversion row, and the pair on every other row. Answers S_row.
+सार्वजनिक वृत्तिः सङ्केतप्रत्याहारः आदाय सूचीक्रमः ॱॱ अ६४ सङ्केतः ॱॱ सङ्केत ददाति अ६४ आदि
+    चरः अवकाशाः ॱॱ अ६४ भवति अवकाशसंख्या सङ्केतः ।
+    चरः कोष्ठाः ॱॱ अ६४ भवति ० ।
+    चरः व्यूहकोष्ठाः ॱॱ अ६४ भवति ० ।
+    चरः अन्तराणि ॱॱ अ६४ भवति ० ।
+    चरः तत्कालावकाशाः ॱॱ अ६४ भवति ० ।
+    चरः प्लवः ॱॱ बूल भवति असत्यम् ।
+
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् अवकाशाः आदि
+        चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि कोष्ठवाचकः अवकाशः ॱ भेद समम् सत्यम् आदि
+            कोष्ठाः भवति कोष्ठाः योगः १ ।
+        इति
+        यदि अवकाशः ॱ भेद समम् व्यूहकोष्ठभेद आदि
+            व्यूहकोष्ठाः भवति व्यूहकोष्ठाः योगः १ ।
+        इति
+        यदि अवकाशः ॱ भेद समम् अन्तरभेद आदि
+            अन्तराणि भवति अन्तराणि योगः १ ।
+        इति
+        यदि तत्कालवाचकः अवकाशः ॱ भेद समम् सत्यम् आदि
+            तत्कालावकाशाः भवति तत्कालावकाशाः योगः १ ।
+        इति
+        यदि अवकाशः ॱ भेद समम् प्लवकोष्ठभेद आदि
+            प्लवः भवति सत्यम् ।
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+
+    चरः मुद्रा ॱॱ अ६४ भवति कोष्ठाः ।
+    चरः योजकम् ॱॱ अ६४ भवति व्यूहकोष्ठाः वामसृ ६ ।
+    मुद्रा भवति मुद्रा विकल्प योजकम् ।
+    योजकम् भवति अन्तराणि वामसृ १२ ।
+    मुद्रा भवति मुद्रा विकल्प योजकम् ।
+    यदि तत्कालावकाशाः अधिकम् ० आदि
+        मुद्रा भवति मुद्रा विकल्प १६७७७२१६ ।   ॰ bit २४
+    इति
+    योजकम् भवति तत्कालावकाशाः वामसृ १८ ।
+    मुद्रा भवति मुद्रा विकल्प योजकम् ।
+    चरः अवधानम् ॱॱ अ६४ भवति १९१२६०२६२३ ।   ॰ bits ०-२४, २८, २९-३०
+
+    ॰ the rd field's file.
+    चरः गन्तृक्रमः ॱॱ अ६४ भवति आवरणावकाशः सङ्केतः गन्तृक्षेत्र ।
+    यदि गन्तृक्रमः न्यूनम् अवकाशाः आदि
+        चरः गन्तृअवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः गन्तृक्रमः अन्तः ।
+        अवधानम् भवति अवधानम् विकल्प ३३५५४४३२ ।   ॰ bit २५
+        यदि गन्तृअवकाशः ॱ भेद समम् प्लवकोष्ठभेद आदि
+            मुद्रा भवति मुद्रा विकल्प ३३५५४४३२ ।
+        इति
+        यदि कोष्ठवाचकः गन्तृअवकाशः ॱ भेद समम् सत्यम् आदि
+            अवधानम् भवति अवधानम् विकल्प ६७१०८८६४ ।   ॰ bit २६
+            यदि गन्तृअवकाशः ॱ भेद समम् व्यूहकोष्ठभेद आदि
+                मुद्रा भवति मुद्रा विकल्प ६७१०८८६४ ।
+            इति
+        इति
+    इति
+
+    यदि प्लवः समम् सत्यम् आदि
+        मुद्रा भवति मुद्रा विकल्प १३४२१७७२८ ।   ॰ bit २७
+    इति
+    यदि सङ्केतः ॱ परिवर्तनस्रोतः समम् शून्यम् आदि
+        अवधानम् भवति अवधानम् विकल्प १३४२१७७२८ ।
+    इति
+    यदि सङ्केतः ॱ परिवर्तनस्रोतः असमम् शून्यम् आदि
+        मुद्रा भवति मुद्रा विकल्प ५३६८७०९१२ ।   ॰ bits २९-३०: a pair
+        अवधानम् भवति अवधानम् विकल्प ३६०२८७९४८७१४८०३२० ।   ॰ bits ३१-५४
+        चरः कूटम् ॱॱ अ६४ भवति प्रकारकूटः सङ्केतः ॱ परिवर्तनस्रोतः ।
+        कूटम् भवति कूटम् वामसृ ३१ ।
+        मुद्रा भवति मुद्रा विकल्प कूटम् ।
+        कूटम् भवति प्रकारकूटः सङ्केतः ॱ परिवर्तनगन्तृ ।
+        कूटम् भवति कूटम् वामसृ ४३ ।
+        मुद्रा भवति मुद्रा विकल्प कूटम् ।
+    इति
+
+    चरः मुद्रास्थानम् ॱॱ अ६४ भवति सूचीक्रमः योगः सूचीक्रमः ।
+    मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः भवति मुद्रा ।
+    मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः भवति अवधानम् ।
+    प्रत्यागमनम् मुद्रा ।
 इति
 
 ॰ the k-th (zero-based क्रमः) row of a family as an INDEX position, one-based;
@@ -3788,19 +3984,19 @@
 इति
 
 ॰ how many slots this encoding really has — Rust's `e.slots.len()`.
-॰ NOT `अवकाशाः ॱ दैर्घ्य`, AND THE DIFFERENCE IS ONE ROW SHAPE. The arena
-॰ is zero-based and `पङ्क्तिसङ्केतः` fills it from ०, but an arena is BORN
-॰ holding one शून्यम् — so a row with no operand at all, which is what
-॰ `(none)` in field ६ spells, reports दैर्घ्य १ and entry ० is not a slot.
-॰ `ecall` and `ebreak` are those rows. Every walk over अवकाशाः must ask
-॰ this; the three that were written before encode_collecting had a caller
-॰ ask ॱ दैर्घ्य and would read a शून्यम् as a slot.
+॰ The arena is zero-based and `पङ्क्तिसङ्केतः` fills it from ०. A row with no
+॰ operand at all, which is what `(none)` in field ६ spells — `ecall` and
+॰ `ebreak` — leaves it EMPTY, and since `W-355` that is length ० on both
+॰ engines. BEFORE `W-355` an arena was BORN holding one शून्यम्, so such a
+॰ row reported दैर्घ्य १ and entry ० was not a slot, and an entry-० test here
+॰ read that; it is gone (`W-355` step 3), the slots being filled densely from
+॰ ०. Every walk over अवकाशाः asks this rather than ॱ दैर्घ्य, which since
+॰ `W-355` gives the same number.
+॰ W-302: five sites asked ॱ दैर्घ्य instead (four walks and सङ्कोचनिषेधः's
+॰ comparison); `आज्ञापनम् ।` reached them. tests/w302_encoder.rs grades each row.
 सार्वजनिक वृत्तिः अवकाशसंख्या आदाय सङ्केतः ॱॱ सङ्केत ददाति अ६४ आदि
     चरः दैर्घ्य ॱॱ अ६४ भवति सङ्केतः ॱ अवकाशाः ॱ दैर्घ्य ।
     यदि दैर्घ्य समम् ० आदि
-        प्रत्यागमनम् ० ।
-    इति
-    यदि सङ्केतः ॱ अवकाशाः अङ्कः ० अन्तः समम् शून्यम् आदि
         प्रत्यागमनम् ० ।
     इति
     प्रत्यागमनम् दैर्घ्य ।
@@ -4092,6 +4288,44 @@
     प्रत्यागमनम् ० ।
 इति
 
+॰ N-001 — THE CODE OF A TYPE TEXT, for the pratyāhāra signatures' conversion
+॰ pair: class × १०२४ + width, ० when the text is not CANONICAL — one class
+॰ letter (`प्रकारवर्गः`), then one to three digits with no leading ०. Two
+॰ canonical texts are the same octets exactly when their codes are equal.
+॰ `सङ्केतप्रत्याहारः` keeps ० (a row); `आज्ञाप्रत्याहारः` maps it to ४०९५,
+॰ which no row can have.
+सार्वजनिक वृत्तिः प्रकारकूटः आदाय प्रकारनाम ॱॱ अङ्कः अन्तः अ८ ददाति अ६४ आदि
+    चरः वर्गः ॱॱ अ६४ भवति प्रकारवर्गः प्रकारनाम ।
+    यदि वर्गः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः दैर्घ्यम् ॱॱ अ६४ भवति प्रकारनाम ॱ दैर्घ्य ।
+    यदि दैर्घ्यम् न्यूनम् ६ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि दैर्घ्यम् अधिकम् १२ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः विस्तारः ॱॱ अ६४ भवति ० ।
+    चरः अङ्कस्थानम् ॱॱ अ६४ भवति ३ ।
+    यावत् अङ्कस्थानम् न्यूनम् दैर्घ्यम् आदि
+        चरः अङ्कमानम् ॱॱ अ६४ भवति अक्षरकोशॱअङ्कमूल्यम् आरभ्य प्रकारनाम ऽ अङ्कस्थानम् ऽ १० समाप्तम् ।
+        यदि अङ्कमानम् अधिकम् ९ आदि
+            प्रत्यागमनम् ० ।
+        इति
+        यदि अङ्कस्थानम् समम् ३ आदि
+            यदि अङ्कमानम् समम् ० आदि
+                प्रत्यागमनम् ० ।
+            इति
+        इति
+        विस्तारः भवति विस्तारः गुणनम् १० ।
+        विस्तारः भवति विस्तारः योगः अङ्कमानम् ।
+        अङ्कस्थानम् भवति अङ्कस्थानम् योगः ३ ।
+    इति
+    चरः कूटम् ॱॱ अ६४ भवति वर्गः गुणनम् १०२४ ।
+    प्रत्यागमनम् कूटम् योगः विस्तारः ।
+इति
+
 ॰ the separator `ॱ` U+0971, as its three octets. It is a MARK and not a
 ॰ word, so no ADR-0017 literal can carry it — `वाक्यविभाग ॱ संज्ञासीमा`
 ॰ says the same at the same sign.
@@ -4114,7 +4348,7 @@
 ॰ which `Slot::fits` performs on its own argument. `अन्तर्भावः` takes the
 ॰ two views SEPARATELY, T1 having no reinterpreting cast, so the caller
 ॰ does here what Rust does inside.
-सार्वजनिक वृत्तिः चिह्नितमूल्यम् आदाय मूल्यम् ॱॱ अ६४ ददाति इ६४ आदि
+सार्वजनिक वृत्तिः चिह्नितमूल्यम् आदाय मूल्यम् ॱॱ अ६४ ददाति अ६४ आदि
     यदि मूल्यम् न्यूनम् ० आदि
         प्रत्यागमनम् मूल्यम् ।
     इति
@@ -4128,7 +4362,7 @@
 इति
 
 ॰ and the other way — Rust's `value as u64` on an `i64` offset.
-सार्वजनिक वृत्तिः अचिह्नितमूल्यम् आदाय चिह्नितम् ॱॱ इ६४ ददाति अ६४ आदि
+सार्वजनिक वृत्तिः अचिह्नितमूल्यम् आदाय चिह्नितम् ॱॱ अ६४ ददाति अ६४ आदि
     यदि चिह्नितम् न्यूनम् ० आदि
         प्रत्यागमनम् चिह्नितम् योगः आरभ्य २ गुणनम् आरभ्य १ वामसृ ६३ समाप्तम् समाप्तम् ।
     इति
@@ -4204,7 +4438,7 @@
 ॰ where in पूरितानि a mask already sits, or संख्यानम् when it does not —
 ॰ Rust's `filled.iter().find(|(m, _)| *m == mask)`, whose answer is used
 ॰ twice: as a yes/no and, at E16, to name the operand that got there first.
-सार्वजनिक वृत्तिः पूरितम् आदाय पूरितानि ॱॱ अङ्कः अन्तः अ३२ संख्यानम् ॱॱ अ६४ आवरणम् ॱॱ अ३२ ददाति अ६४ आदि
+सार्वजनिक वृत्तिः पूरितम् आदाय पूरितानि ॱॱ अङ्कः अन्तः न३२ संख्यानम् ॱॱ अ६४ आवरणम् ॱॱ अ३२ ददाति अ६४ आदि
     चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
     यावत् सूचकाङ्क न्यूनम् संख्यानम् आदि
         यदि पूरितानि अङ्कः सूचकाङ्क अन्तः समम् आवरणम् आदि
@@ -4233,6 +4467,34 @@
     इति
 
     प्रत्यागमनम् सत्यम् ।
+इति
+
+॰ `V-008` part 2 — the slot a VECTOR SOURCE fills: the first `vreg` slot in
+॰ the table's written order that is neither filled nor, when a destination is
+॰ written (`गन्तृयुक्तम्`), the one at rd's mask. `अवकाशसंख्या` — the not-found
+॰ answer `आवरणावकाशः` gives — when there is none, which E15 then names.
+सार्वजनिक वृत्तिः व्यूहस्रोतःक्रमः आदाय सङ्केतः ॱॱ सङ्केत गन्तृयुक्तम् ॱॱ बूल पूरितानि ॱॱ अङ्कः अन्तः न३२ पूर्तिसंख्या ॱॱ अ६४ ददाति अ६४ आदि
+    चरः अवकाशाः ॱॱ अ६४ भवति अवकाशसंख्या सङ्केतः ।
+    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
+    यावत् सूचकाङ्क न्यूनम् अवकाशाः आदि
+        चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
+        यदि अवकाशः ॱ भेद समम् व्यूहकोष्ठभेद आदि
+            चरः योग्यम् ॱॱ बूल भवति सत्यम् ।
+            यदि गन्तृयुक्तम् समम् सत्यम् आदि
+                यदि अवकाशः ॱ आवरण समम् गन्तृक्षेत्र आदि
+                    योग्यम् भवति असत्यम् ।
+                इति
+            इति
+            यदि पूरितम् पूरितानि पूर्तिसंख्या अवकाशः ॱ आवरण न्यूनम् पूर्तिसंख्या आदि
+                योग्यम् भवति असत्यम् ।
+            इति
+            यदि योग्यम् समम् सत्यम् आदि
+                प्रत्यागमनम् सूचकाङ्क ।
+            इति
+        इति
+        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
+    इति
+    प्रत्यागमनम् अवकाशाः ।
 इति
 
 ॰ whether ANY candidate operates on floats — Rust's
@@ -4345,128 +4607,149 @@
     प्रत्यागमनम् पाठयोगः फलम् आज्ञाम् ॱ द्वितीयप्रकार ।
 इति
 
-॰ whether one candidate fits what was written — every filter of
-॰ encode_collecting's selection loop EXCEPT the width, which the caller
-॰ keeps because it decides BREAK from KEEP-THE-FIRST.
-सार्वजनिक वृत्तिः सङ्केतयोग्यम् आदाय सङ्केतः ॱॱ सङ्केत आज्ञाम् ॱॱ वाक्यविभागॱआज्ञा कोष्ठाः ॱॱ अ६४ नामाङ्काः ॱॱ अ६४ तत्कालाः ॱॱ अ६४ क्षेत्राणि ॱॱ अ६४ ददाति बूल आदि
-    यदि कोष्ठसंख्यानम् सङ्केतः असमम् कोष्ठाः आदि
-        प्रत्यागमनम् असत्यम् ।
+॰ N-001 — THE DEMAND: D and C of one instruction, written to `सङ्केतसूचीप्रत्याहारकोश`
+॰ slots १ and २, once, before the selection loop asks any row. Its inputs are
+॰ what `स्थानसङ्केतनम्`'s operand loop already counted, plus two things that
+॰ loop now captures because the check chain used to ask the register table for
+॰ them PER CANDIDATE: the index slot of the destination register (० for none),
+॰ whose file is read here from the index, and whether an address (अपादान ३,
+॰ सम्प्रदान ४) is a vector register. C is what the instruction can say: the
+॰ immediate count is cared when a domain set is written and "has an immediate"
+॰ when none is (a load's offset is shared, `fence`'s two are not); the rd file
+॰ when a register is the destination; the float bit when the first type has a
+॰ class. Answers D.
+सार्वजनिक वृत्तिः आज्ञाप्रत्याहारः आदाय आज्ञाम् ॱॱ वाक्यविभागॱआज्ञा कोष्ठाः ॱॱ अ६४ नामाङ्काः ॱॱ अ६४ तत्कालाः ॱॱ अ६४ क्षेत्राणि ॱॱ अ६४ व्यूहकोष्ठाः ॱॱ अ६४ गन्तृकोष्ठः ॱॱ न६४ स्थानव्यूहः ॱॱ बूल ददाति अ६४ आदि
+    चरः सूचीसंख्या ॱॱ अ६४ भवति सङ्केतसूचीरचना ।   ॰ slots १ and २ exist once the index does
+
+    चरः मुद्रा ॱॱ अ६४ भवति कोष्ठाः ।
+    यदि मुद्रा अधिकम् ६३ आदि
+        मुद्रा भवति ६३ ।
+    इति
+    चरः योजकम् ॱॱ अ६४ भवति व्यूहकोष्ठाः ।
+    यदि योजकम् अधिकम् ६३ आदि
+        योजकम् भवति ६३ ।
+    इति
+    योजकम् भवति योजकम् वामसृ ६ ।
+    मुद्रा भवति मुद्रा विकल्प योजकम् ।
+    योजकम् भवति नामाङ्काः ।
+    यदि योजकम् अधिकम् ६३ आदि
+        योजकम् भवति ६३ ।
+    इति
+    योजकम् भवति योजकम् वामसृ १२ ।
+    मुद्रा भवति मुद्रा विकल्प योजकम् ।
+    चरः अवधानम् ॱॱ अ६४ भवति ३६०२८७९६७५०७९०६५५ ।   ॰ bits ०-१७, २८, २९-५४
+
+    यदि क्षेत्राणि अधिकम् ० आदि
+        योजकम् भवति तत्कालाः योगः क्षेत्राणि ।
+        यदि योजकम् अधिकम् ६३ आदि
+            योजकम् भवति ६३ ।
+        इति
+        योजकम् भवति योजकम् वामसृ १८ ।
+        मुद्रा भवति मुद्रा विकल्प योजकम् ।
+        अवधानम् भवति अवधानम् विकल्प १६५१५०७२ ।   ॰ bits १८-२३
+    इति
+    यदि क्षेत्राणि समम् ० आदि
+        यदि तत्कालाः अधिकम् ० आदि
+            मुद्रा भवति मुद्रा विकल्प १६७७७२१६ ।   ॰ bit २४
+        इति
+        अवधानम् भवति अवधानम् विकल्प १६७७७२१६ ।
     इति
 
-    चरः अवकाशाः ॱॱ अ६४ भवति अवकाशसंख्या सङ्केतः ।
-    चरः अन्तराणि ॱॱ अ६४ भवति ० ।
-    चरः तत्कालावकाशाः ॱॱ अ६४ भवति ० ।
-    चरः प्लवः ॱॱ बूल भवति असत्यम् ।
-
-    चरः सूचकाङ्क ॱॱ अ६४ भवति ० ।
-    यावत् सूचकाङ्क न्यूनम् अवकाशाः आदि
-        चरः अवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः सूचकाङ्क अन्तः ।
-        यदि अवकाशः ॱ भेद समम् अन्तरभेद आदि
-            अन्तराणि भवति अन्तराणि योगः १ ।
-        इति
-        यदि तत्कालवाचकः अवकाशः ॱ भेद समम् सत्यम् आदि
-            तत्कालावकाशाः भवति तत्कालावकाशाः योगः १ ।
-        इति
-        यदि अवकाशः ॱ भेद समम् प्लवकोष्ठभेद आदि
-            प्लवः भवति सत्यम् ।
-        इति
-        सूचकाङ्क भवति सूचकाङ्क योगः १ ।
-    इति
-
-    ॰ A label is not a register: counting one as a register made `beq` look
-    ॰ like a three-register instruction and match nothing.
-    यदि अन्तराणि असमम् नामाङ्काः आदि
-        प्रत्यागमनम् असत्यम् ।
-    इति
-
-    ॰ The destination's register CLASS chooses among encodings that differ
-    ॰ only in direction. `प्लवसंचारः` covers four — two write a float
-    ॰ register from an integer one and two do the reverse — and the operands
-    ॰ already say which, so the direction needs no name (`B-074`).
-    चरः गन्तृसूचकः ॱॱ अ६४ भवति वाक्यविभागॱकारकानुसारम् आज्ञाम् १ ।
-    यदि गन्तृसूचकः असमम् ० आदि
-        चरः गन्तृपदम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः गन्तृसूचकः अन्तः ।
-        चरः गन्तृमूलम् ॱॱ अङ्कः अन्तः अ८ भवति गन्तृपदम् ॱ मूलपाठ ।
-        यदि कोष्ठाङ्कः गन्तृमूलम् असमम् शून्यम् आदि
-            चरः गन्तृक्रमः ॱॱ अ६४ भवति आवरणावकाशः सङ्केतः गन्तृक्षेत्र ।
-            यदि गन्तृक्रमः न्यूनम् अवकाशाः आदि
-                चरः गन्तृअवकाशः ॱॱ अवकाश भवति सङ्केतः ॱ अवकाशाः अङ्कः गन्तृक्रमः अन्तः ।
-                चरः क्षेत्रप्लवः ॱॱ बूल भवति गन्तृअवकाशः ॱ भेद समम् प्लवकोष्ठभेद ।
-                यदि क्षेत्रप्लवः असमम् आरभ्य कोष्ठप्लवः गन्तृमूलम् समाप्तम् आदि
-                    प्रत्यागमनम् असत्यम् ।
-                इति
+    ॰ the destination's file, read off its index row as `कोष्ठप्लवः` read it
+    ॰ (field ३'s first octet, १०२ `f`) and `कोष्ठसूचीव्यूहः` answers it.
+    यदि गन्तृकोष्ठः असमम् ० आदि
+        अवधानम् भवति अवधानम् विकल्प ३३५५४४३२ ।   ॰ bit २५
+        अवधानम् भवति अवधानम् विकल्प ६७१०८८६४ ।   ॰ bit २६
+        चरः पाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱसमावेशपाठः उक्तम् कोष्ठकोशः इति ।
+        चरः आरम्भः ॱॱ न६४ भवति कोष्ठसूच्यादिकोश अङ्कः गन्तृकोष्ठः अन्तः ।
+        चरः सीमा ॱॱ न६४ भवति कोष्ठसूचीसीमाकोश अङ्कः गन्तृकोष्ठः अन्तः ।
+        चरः क्षेत्रादिः ॱॱ न६४ भवति क्षेत्रारम्भः पाठ्यम् आरम्भः सीमा ३ ।
+        चरः क्षेत्रान्तः ॱॱ न६४ भवति क्षेत्रसीमा पाठ्यम् आरम्भः सीमा ३ ।
+        यदि क्षेत्रादिः असमम् क्षेत्रान्तः आदि
+            यदि पाठ्यम् अङ्कः क्षेत्रादिः अन्तः समम् १०२ आदि
+                मुद्रा भवति मुद्रा विकल्प ३३५५४४३२ ।
             इति
         इति
+        यदि कोष्ठसूचीव्यूहः गन्तृकोष्ठः समम् सत्यम् आदि
+            मुद्रा भवति मुद्रा विकल्प ६७१०८८६४ ।
+        इति
+    इति
+
+    ॰ `V-008` part 2 — AN ADDRESS (अपादान ३, सम्प्रदान ४) IS NEVER A VECTOR
+    ॰ REGISTER: no encoding of the subset reads an address from one, so no row
+    ॰ has bit २८ and an instruction that sets it matches nothing.
+    यदि स्थानव्यूहः समम् सत्यम् आदि
+        मुद्रा भवति मुद्रा विकल्प २६८४३५४५६ ।   ॰ bit २८
     इति
 
     ॰ A conversion is chosen by the PAIR of types written after its name and
-    ॰ by nothing else (`B-075`) — and only a conversion takes two, so a
-    ॰ second suffix on `योगः` is a mistake and not a request to drop.
+    ॰ by nothing else (`B-075`), and only a conversion takes two (bits २९-३०).
+    ॰ The type's CLASS must match what the encoding operates on (`B-077`):
+    ॰ `योगःॱप३२` is not an integer `addw` (bit २७).
     चरः प्रकाराः ॱॱ अ६४ भवति आज्ञाम् ॱ प्रकारसंख्यान ।
-    यदि सङ्केतः ॱ परिवर्तनस्रोतः असमम् शून्यम् आदि
-        यदि प्रकाराः असमम् २ आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
-        यदि समानपाठः आज्ञाम् ॱ प्रथमप्रकार सङ्केतः ॱ परिवर्तनस्रोतः समम् असत्यम् आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
-        यदि समानपाठः आज्ञाम् ॱ द्वितीयप्रकार सङ्केतः ॱ परिवर्तनगन्तृ समम् असत्यम् आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
+    यदि प्रकाराः समम् २ आदि
+        मुद्रा भवति मुद्रा विकल्प ५३६८७०९१२ ।
     इति
-    यदि सङ्केतः ॱ परिवर्तनस्रोतः समम् शून्यम् आदि
-        यदि प्रकाराः अधिकम् १ आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
+    यदि प्रकाराः अधिकम् २ आदि
+        मुद्रा भवति मुद्रा विकल्प १०७३७४१८२४ ।
     इति
-
-    ॰ Most instructions have at most one immediate and several operands can
-    ॰ share it — a load's offset. `fence` has two and each domain set needs
-    ॰ one of its own, so the count is exact there and capped here.
-    यदि क्षेत्राणि अधिकम् ० आदि
-        यदि तत्कालावकाशाः असमम् तत्कालाः योगः क्षेत्राणि आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
-    इति
-    यदि क्षेत्राणि समम् ० आदि
-        चरः एकम् ॱॱ अ६४ भवति ० ।
-        यदि तत्कालावकाशाः अधिकम् ० आदि
-            एकम् भवति १ ।
-        इति
-        चरः वाञ्छितम् ॱॱ अ६४ भवति तत्कालाः ।
-        यदि वाञ्छितम् अधिकम् १ आदि
-            वाञ्छितम् भवति १ ।
-        इति
-        यदि एकम् असमम् वाञ्छितम् आदि
-            प्रत्यागमनम् असत्यम् ।
-        इति
-    इति
-
-    ॰ The type's CLASS must match what the encoding operates on. Until
-    ॰ `B-077` the letter was validated and then thrown away, so `योगःॱप३२`
-    ॰ — "add, 32-bit float" — assembled as an integer `addw`. A conversion
-    ॰ is exempt: ADR-0010 gives it an explicit pair whose written half names
-    ॰ the destination, which for `fcvt.w.s` is an integer.
-    यदि सङ्केतः ॱ परिवर्तनस्रोतः समम् शून्यम् आदि
-        यदि प्रकाराः अधिकम् ० आदि
-            चरः वर्गः ॱॱ अ६४ भवति प्रकारवर्गः आज्ञाम् ॱ प्रथमप्रकार ।
-            यदि वर्गः अधिकम् ० आदि
-                चरः प्लवापेक्षा ॱॱ बूल भवति वर्गः समम् ३ ।
-                यदि प्लवः असमम् प्लवापेक्षा आदि
-                    प्रत्यागमनम् असत्यम् ।
-                इति
+    यदि प्रकाराः अधिकम् ० आदि
+        चरः वर्गः ॱॱ अ६४ भवति प्रकारवर्गः आज्ञाम् ॱ प्रथमप्रकार ।
+        यदि वर्गः अधिकम् ० आदि
+            अवधानम् भवति अवधानम् विकल्प १३४२१७७२८ ।   ॰ bit २७
+            यदि वर्गः समम् ३ आदि
+                मुद्रा भवति मुद्रा विकल्प १३४२१७७२८ ।
             इति
         इति
     इति
+    यदि प्रकाराः समम् २ आदि
+        ॰ ० is "not canonical", which a demand turns into ४०९५: no row has it.
+        चरः कूटम् ॱॱ अ६४ भवति प्रकारकूटः आज्ञाम् ॱ प्रथमप्रकार ।
+        यदि कूटम् समम् ० आदि
+            कूटम् भवति ४०९५ ।
+        इति
+        कूटम् भवति कूटम् वामसृ ३१ ।
+        मुद्रा भवति मुद्रा विकल्प कूटम् ।
+        कूटम् भवति प्रकारकूटः आज्ञाम् ॱ द्वितीयप्रकार ।
+        यदि कूटम् समम् ० आदि
+            कूटम् भवति ४०९५ ।
+        इति
+        कूटम् भवति कूटम् वामसृ ४३ ।
+        मुद्रा भवति मुद्रा विकल्प कूटम् ।
+    इति
 
-    प्रत्यागमनम् सत्यम् ।
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः १ अन्तः भवति मुद्रा ।
+    सङ्केतसूचीप्रत्याहारकोश अङ्कः २ अन्तः भवति अवधानम् ।
+    प्रत्यागमनम् मुद्रा ।
+इति
+
+॰ whether one candidate fits what was written — every filter of
+॰ encode_collecting's selection loop EXCEPT the width, which the caller
+॰ keeps because it decides BREAK from KEEP-THE-FIRST.
+॰ N-001: ONE COMPARE, ((S_row XOR D) AND C AND C_row) == ०, over the row's
+॰ signature (`सङ्केतप्रत्याहारः`) and the instruction's demand
+॰ (`आज्ञाप्रत्याहारः`). It was a chain of checks with a register-table walk per
+॰ candidate in it, 6,772,594 steps on ashtaka.t1 (1,922 calls).
+सार्वजनिक वृत्तिः सङ्केतयोग्यम् आदाय सूचीक्रमः ॱॱ अ६४ ददाति बूल आदि
+    चरः मुद्रास्थानम् ॱॱ अ६४ भवति सूचीक्रमः योगः सूचीक्रमः ।
+    मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+    चरः मुद्रा ॱॱ अ६४ भवति सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः ।
+    मुद्रास्थानम् भवति मुद्रास्थानम् योगः १ ।
+    चरः अवधानम् ॱॱ अ६४ भवति सङ्केतसूचीप्रत्याहारकोश अङ्कः मुद्रास्थानम् अन्तः ।
+    चरः आज्ञामुद्रा ॱॱ अ६४ भवति सङ्केतसूचीप्रत्याहारकोश अङ्कः १ अन्तः ।
+    चरः आज्ञावधानम् ॱॱ अ६४ भवति सङ्केतसूचीप्रत्याहारकोश अङ्कः २ अन्तः ।
+    ॰ C AND C_row, then each side under it: the bits that differ under the
+    ॰ mask are the bits where (S_row XOR D) AND C AND C_row is not ०.
+    अवधानम् भवति अवधानम् युक् आज्ञावधानम् ।
+    चरः भेदः ॱॱ अ६४ भवति मुद्रा युक् अवधानम् ।
+    चरः आज्ञाभेदः ॱॱ अ६४ भवति आज्ञामुद्रा युक् अवधानम् ।
+    प्रत्यागमनम् आरभ्य भेदः समम् आज्ञाभेदः समाप्तम् ।
 इति
 
 
 ॰ encode one instruction — encode.
-॰ `encode_at inst ० {}` and nothing else, and the empty map is written the
-॰ only way this language can write one: an arena is born holding a single
-॰ शून्यम्, and `चिह्नस्थानम्` asks that of every entry before reading it.
+॰ `encode_at inst ० {}` and nothing else, and the empty map is a fresh
+॰ arena — length ० since `W-355` — which `चिह्नस्थानम्` walks not at all.
 सार्वजनिक वृत्तिः सङ्केतनम् आदाय आज्ञाम् ॱॱ वाक्यविभागॱआज्ञा ददाति दोषयुक्त अ३२ आदि
     चरः चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान भवति ० ।
     प्रत्यागमनम् स्थानसङ्केतनम् आज्ञाम् ० चिह्नानि ।
@@ -4550,6 +4833,12 @@
     चरः नामाङ्काः ॱॱ अ६४ भवति ० ।
     चरः कोष्ठाः ॱॱ अ६४ भवति ० ।
     चरः तत्कालाः ॱॱ अ६४ भवति ० ।
+    चरः व्यूहकोष्ठाः ॱॱ अ६४ भवति ० ।    ॰ `V-008` part 2: the vector registers written
+    ॰ N-001: the destination's register-index slot (० for none) and whether an
+    ॰ address is a vector register, captured here for the demand.
+    चरः गन्तृसूचकः ॱॱ अ६४ भवति वाक्यविभागॱकारकानुसारम् आज्ञाम् १ ।
+    चरः गन्तृकोष्ठः ॱॱ न६४ भवति ० ।
+    चरः स्थानव्यूहः ॱॱ बूल भवति असत्यम् ।
 
     चरः गणकः ॱॱ अ६४ भवति ० ।
     यावत् गणकः न्यूनम् पदसंख्या आदि
@@ -4557,7 +4846,11 @@
         चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति पदम् ॱ मूलपाठ ।
         चरः सङ्ख्यात्वम् ॱॱ बूल भवति पदम् ॱ सङ्ख्यात्व ।
         चरः क्षेत्रम् ॱॱ बूल भवति क्षेत्रपदम् पदम् क्षेत्रयोग्यम् ।
-        चरः कोष्ठम् ॱॱ सम्भाव्य अ६४ भवति कोष्ठाङ्कः मूलम् ।
+        ॰ `V-009` (i) — ONE register-table walk per operand: the slot answers
+        ॰ both `कोष्ठाङ्कः` (here) and `कोष्ठव्यूहः` (below), which `V-008`
+        ॰ part 2 had asking the table twice for the same name.
+        चरः कोष्ठसूचकः ॱॱ न६४ भवति कोष्ठसूचीक्रमः मूलम् ।
+        चरः कोष्ठम् ॱॱ सम्भाव्य अ६४ भवति कोष्ठसूच्यङ्कः कोष्ठसूचकः ।
         ॰ 9103 — `कोष्ठाङ्कः` returned: the register lookup survived.
         यदि विन्यासमुद्रणार्हम् समम् सत्यम् आदि
             चरः अवगणन९१०३ ॱॱ न६४ भवति चतुरष्टकमुद्रणम् ९१०३ ।
@@ -4575,6 +4868,22 @@
         यदि सङ्ख्यात्वम् समम् असत्यम् आदि
             यदि कोष्ठम् असमम् शून्यम् आदि
                 कोष्ठाः भवति कोष्ठाः योगः १ ।
+            इति
+            यदि कोष्ठसूचीव्यूहः कोष्ठसूचकः समम् सत्यम् आदि
+                व्यूहकोष्ठाः भवति व्यूहकोष्ठाः योगः १ ।
+                यदि पदम् ॱ कारक अधिकम् २ आदि
+                    यदि पदम् ॱ कारक न्यूनम् ५ आदि
+                        स्थानव्यूहः भवति सत्यम् ।
+                    इति
+                इति
+            इति
+        इति
+        यदि गन्तृसूचकः असमम् ० आदि
+            चरः पदसूचकः ॱॱ अ६४ भवति पदारम्भः योगः गणकः ।
+            यदि पदसूचकः समम् गन्तृसूचकः आदि
+                यदि कोष्ठम् असमम् शून्यम् आदि
+                    गन्तृकोष्ठः भवति कोष्ठसूचकः ।
+                इति
             इति
         इति
 
@@ -4664,6 +4973,8 @@
     ॰ order and says so at its own declaration. An encoding that STATES a
     ॰ width wins outright and ends the walk; one that states none is kept
     ॰ only until something better arrives.
+    ॰ N-001 — the demand, once, for every candidate below.
+    आज्ञाप्रत्याहारः आज्ञाम् कोष्ठाः नामाङ्काः तत्कालाः क्षेत्राणि व्यूहकोष्ठाः गन्तृकोष्ठः स्थानव्यूहः ।
     चरः अपेक्षितांशाः ॱॱ अ६४ भवति वाक्यविभागॱव्याप्त्यंशाः आज्ञाम् ॱ व्याप्ति ।
     चरः वृतम् ॱॱ बूल भवति असत्यम् ।
     चरः निश्चितम् ॱॱ बूल भवति असत्यम् ।
@@ -4672,8 +4983,9 @@
 
     यावत् क्रमः न्यूनम् सङ्केतसंख्या आदि
         यदि निश्चितम् समम् असत्यम् आदि
-            चरः सङ्केतः ॱॱ सङ्केत भवति कुलसङ्केतः कुलम् ३२ क्रमः ।
-            यदि सङ्केतयोग्यम् सङ्केतः आज्ञाम् कोष्ठाः नामाङ्काः तत्कालाः क्षेत्राणि समम् सत्यम् आदि
+            चरः सूचीक्रमः ॱॱ अ६४ भवति कुलसङ्केतसूचीक्रमः कुलम् ३२ क्रमः ।
+            चरः सङ्केतः ॱॱ सङ्केत भवति सूचितसङ्केतः सूचीक्रमः ।
+            यदि सङ्केतयोग्यम् सूचीक्रमः समम् सत्यम् आदि
                 चरः विस्तारः ॱॱ सम्भाव्य अ६४ भवति सङ्केतः ॱ विस्तार ।
                 चरः स्वीकार्यम् ॱॱ बूल भवति सत्यम् ।
                 यदि विस्तारः असमम् शून्यम् आदि
@@ -4785,7 +5097,7 @@
     ॰ t0 and sp into register 7 — a valid store of the wrong register from
     ॰ the wrong base, which nothing rejected because every individual step
     ॰ succeeded (`B-044`).
-    चरः पूरितानि ॱॱ अङ्कः अन्तः अ३२ भवति ० ।
+    चरः पूरितानि ॱॱ अङ्कः अन्तः न३२ भवति ० ।
     चरः पूरितपदानि ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
     चरः पूर्तिसंख्या ॱॱ अ६४ भवति ० ।
 
@@ -4847,9 +5159,9 @@
                     इति
                 इति
 
-                चरः आधारः ॱॱ इ६४ भवति स्थानाधारः क्रमसूचकः उपरि ।
-                चरः अन्तरम् ॱॱ इ६४ भवति लक्ष्यस्थानम् वियोगः आधारः ।
-                चरः अंशमूल्यम् ॱॱ इ६४ भवति स्थानमूल्यम् अन्तरम् उपरि ।
+                चरः आधारः ॱॱ अ६४ भवति स्थानाधारः क्रमसूचकः उपरि ।
+                चरः अन्तरम् ॱॱ अ६४ भवति लक्ष्यस्थानम् वियोगः आधारः ।
+                चरः अंशमूल्यम् ॱॱ अ६४ भवति स्थानमूल्यम् अन्तरम् उपरि ।
                 चरः तत्कालः ॱॱ अवकाश भवति वृतसङ्केतः ॱ अवकाशाः अङ्कः तत्कालक्रमः अन्तः ।
 
                 ॰ E06
@@ -4920,7 +5232,7 @@
                         इति
 
                         चरः अन्तरः ॱॱ अवकाश भवति वृतसङ्केतः ॱ अवकाशाः अङ्कः अन्तरक्रमः अन्तः ।
-                        चरः दूरम् ॱॱ इ६४ भवति लक्ष्यम् वियोगः क्रमसूचकः ।
+                        चरः दूरम् ॱॱ अ६४ भवति लक्ष्यम् वियोगः क्रमसूचकः ।
 
                         ॰ E07
                         यदि अन्तर्भावः अन्तरः आरभ्य अचिह्नितमूल्यम् दूरम् समाप्तम् दूरम् समम् असत्यम् आदि
@@ -5040,6 +5352,32 @@
             यदि भूमिका समम् ३ आदि करणम् भवति असत्यम् । इति
             यदि भूमिका समम् ४ आदि करणम् भवति असत्यम् । इति
             यदि भूमिका समम् ५ आदि करणम् भवति असत्यम् । इति
+
+            ॰ `V-008` part 2 — A VECTOR SOURCE fills the encoding's vector slots in
+            ॰ the order the table records them, GNU's: `vfsub.vv vd, vs2, vs1` is
+            ॰ `vs2 - vs1`, so the FIRST source written is `vs2` and `कन खन` reads
+            ॰ क then ख as the scalar form does. With a destination written, the
+            ॰ slot at rd's mask is the destination's; with none — `vse64.v`, whose
+            ॰ stored register sits at rd's mask — it is the source's.
+            ॰ `V-009` (i): asked only when a vector register was COUNTED — this
+            ॰ loop walks the operand span the counting loop walked, under the
+            ॰ same not-a-numeral test, so with none counted the answer is
+            ॰ असत्यम् for every operand and the table walk is not paid.
+            यदि करणम् समम् सत्यम् आदि
+                यदि सङ्ख्यात्वम् समम् असत्यम् आदि
+                    यदि व्यूहकोष्ठाः अधिकम् ० आदि
+                        यदि कोष्ठव्यूहः मूलम् समम् सत्यम् आदि
+                            करणम् भवति असत्यम् ।
+                            चरः गन्तृयुक्तम् ॱॱ बूल भवति असत्यम् ।
+                            चरः व्यूहगन्तृसूचकः ॱॱ अ६४ भवति वाक्यविभागॱकारकानुसारम् आज्ञाम् १ ।
+                            यदि व्यूहगन्तृसूचकः असमम् ० आदि
+                                गन्तृयुक्तम् भवति सत्यम् ।
+                            इति
+                            अवकाशक्रमः भवति व्यूहस्रोतःक्रमः वृतसङ्केतः गन्तृयुक्तम् पूरितानि पूर्तिसंख्या ।
+                        इति
+                    इति
+                इति
+            इति
 
             यदि करणम् समम् सत्यम् आदि
                 यदि सङ्ख्यात्वम् समम् सत्यम् आदि
@@ -5529,11 +5867,11 @@
 ॰ one run, growing it in place. NOT `पाठयोगः` — see the note below on why a
 ॰ section built by copying both sides is quadratic in its own length.
 ॰
-॰ AN EMPTY NAME ANSWERS ONE ZERO OCTET AND NOT AN EMPTY RUN, because `भवति ०`
-॰ gives ONE slot and not none — the same fact `स्थानविन्यासः` records about
-॰ `पूर्वाणि`. That is harmless HERE and is written down rather than fixed:
-॰ `समानपाठः` compares `दैर्घ्य` first, so a one-octet run never matches a real
-॰ name, and the parser gives no label an empty name.
+॰ AN EMPTY NAME ANSWERS AN EMPTY RUN: `भवति ०` gives no slot, and the loop
+॰ below does not run. This margin used to say it answered one zero octet,
+॰ because `भवति ०` gave ONE slot; that premise is gone (`W-355`, and an
+॰ `अ८` run was empty on both engines even before it). The parser gives no
+॰ label an empty name in any case.
 सार्वजनिक वृत्तिः चिह्ननाम आदाय स्रोतः ॱॱ अङ्कः अन्तः अ८ आरम्भः ॱॱ अ६४ सीमा ॱॱ अ६४ ददाति अङ्कः अन्तः अ८ आदि
     चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
     चरः सूचकाङ्क ॱॱ अ६४ भवति आरम्भः ।
@@ -5642,9 +5980,9 @@
 ॰     name, `reduce`, `kept.len() != e.slots.len()`, and the placement loop
 ॰     that `पदरचना` already was.
 ॰
-॰ ONE DIVERGENCE, AND IT IS THE ARENA'S: a row with NO slot — `ebreak`,
-॰ whose form is `c.ebreak` — has `अवकाशाः` of length १ holding शून्यम्, and
-॰ `पदरचना` cannot walk that. `रूपसङ्कोचः` asks `अवकाशसंख्या` and answers
+॰ ONE DIVERGENCE, AND IT WAS THE ARENA'S: a row with NO slot — `ebreak`,
+॰ whose form is `c.ebreak` — had `अवकाशाः` of length १ holding शून्यम्
+॰ until `W-355` (length ० since), and `पदरचना` cannot walk that. `रूपसङ्कोचः` asks `अवकाशसंख्या` and answers
 ॰ the pattern itself when both counts are ०, which is exactly what Rust's
 ॰ loop over zero slots leaves in `half`.
 
@@ -5703,8 +6041,8 @@
     इति
 
     ॰ `kept.len() != e.slots.len()` (:820), asked HERE for the two shapes
-    ॰ `पदरचना` cannot tell apart: an arena holding one शून्यम् has length १
-    ॰ whether it means no slot or no operand.
+    ॰ `पदरचना` could not tell apart before `W-355`: an arena holding one
+    ॰ शून्यम् had length १ whether it meant no slot or no operand.
     चरः अवकाशगणना ॱॱ न६४ भवति अवकाशसंख्या सङ्केतः ।
     यदि अवकाशगणना असमम् शिष्टसंख्या आदि
         प्रत्यागमनम् शून्यम् ।
@@ -5845,7 +6183,7 @@
 ॰ THE BLAST RADIUS IS EVERY `गणना` IN THE CORPUS — every `भेद` discriminant
 ॰ compared with `समम्`, in every native run ever taken.
 ॰
-॰ (sansos-4f found it in a minimal form and refined it twice; this is the
+॰ (a peer session found it in a minimal form and refined it twice; this is the
 ॰ confirmation at the real site, run because a claim that wide was about to
 ॰ become a change to `ir.t1`'s lowering.)
 ॰
@@ -5862,7 +6200,7 @@
 ॰ at the site measured individually correct: **the arguments were fine and the
 ॰ callee was running code that should not run.**
 ॰
-॰ sansos-4f reproduced it in a minimal form, both modules collected:
+॰ A peer session reproduced it in a minimal form, both modules collected:
 ॰   गणना लक्ष्यक { अकुञ्चितम् ऽ कुञ्चितम् }, passed as an argument
 ॰   interpreted  विस्तारः = ४   the correct branch
 ॰   native       विस्तारः = २   the कुञ्चितम् branch on an अकुञ्चितम् argument
@@ -5912,8 +6250,15 @@
     ॰ address past the final instruction, which is exactly Rust's `pc` here.
     चरः पाठसीमा ॱॱ अ६४ भवति स्थानानि अङ्कः संख्यानम् अन्तः ।
 
-    ॰ data_base = pc.next_multiple_of(8), said as pc + the pad to 8.
-    चरः दत्ताधारः ॱॱ अ६४ भवति पाठसीमा योगः संरेखान्तरम् पाठसीमा ८ ।
+    ॰ data_base = kosha::data_base(pc) — the page after the text, asked of
+    ॰ `कोश` rather than restated (W-363; it was pc + the pad to 8). ONLY for
+    ॰ the whole-program path: the object path (`पाठमात्रम्`) places no data
+    ॰ label, exactly as `encode_object_for` computes no data base, so it does
+    ॰ not need `कोश` loaded to run.
+    चरः दत्ताधारः ॱॱ अ६४ भवति पाठसीमा ।
+    यदि पाठमात्रम् समम् असत्यम् आदि
+        दत्ताधारः भवति कोशॱदत्तपृष्ठाधारः पाठसीमा ।
+    इति
 
     ॰ data_len — the octets of every `ॱदत्त` entry, summed.
     चरः दत्तदैर्घ्यम् ॱॱ अ६४ भवति ० ।
@@ -6622,8 +6967,8 @@
 ॰ would. Both have. The map is `चिह्नसङ्ग्रहः कार्यक्रमः स्थानानि सत्यम्`,
 ॰ rebuilt after every round from that round's addresses and handed to the
 ॰ next — TEXT LABELS ONLY, which is encode.rs:1814-1818 exactly; the arm is
-॰ `आज्ञाविस्तारः`. Round ० runs against an empty table, as Rust's does: an
-॰ arena born holding one शून्यम्, which `चिह्नस्थानम्` skips.
+॰ `आज्ञाविस्तारः`. Round ० runs against an empty table, as Rust's does: a
+॰ fresh arena, length ० since `W-355` (one skipped शून्यम् before it).
 ॰
 ॰ The note also said this routine's ARITY would change. It did not:
 ॰ `layout_addresses(program, target)` builds its map inside its own loop,
@@ -6700,10 +7045,10 @@
         ॰
         ॰ An emit BEFORE a statement establishes the fault is AT OR AFTER it, never
         ॰ that it IS it. I had written "the bind itself yields address zero" on
-        ॰ exactly that evidence. (sansos-4f named the gap before the run.)
+        ॰ exactly that evidence. (a peer session named the gap before the run.)
         ॰
         ॰ **AND "A CROSS-MODULE ELEMENT READ FAULTS" IS TOO STRONG — REFUTED
-        ॰ 2026-09-14 within the hour it was written.** sansos-4f built the minimal
+        ॰ 2026-09-14 within the hour it was written.** A peer session built the minimal
         ॰ form in a full corpus copy so both modules are collected: a cross-module
         ॰ SCALAR global, an arena LENGTH, a scalar ELEMENT, a RECORD-arena length,
         ॰ and a RECORD ELEMENT bound to a record local with a field read after.
@@ -6722,7 +7067,7 @@
         ॰ (`अर्थॱसंज्ञाप्रकारकोश ॱ दैर्घ्य`) and found it sound. A cross-module
         ॰ ELEMENT read bound into a record is a different operation, and the gap
         ॰ between lengths and elements is the same gap that sat between reads and
-        ॰ writes. (sansos-4f, by reading.)
+        ॰ writes. (a peer session, by reading.)
         यदि विन्यासमुद्रणार्हम् समम् सत्यम् आदि
             चरः कोशमापएक ॱॱ न६४ भवति चतुरष्टकमुद्रणम् १ ।
             चरः कोशमापद्वि ॱॱ न६४ भवति चतुरष्टकमुद्रणम् ७२०० ।
@@ -6755,7 +7100,7 @@
         ॰ length, a scalar element, a record-arena length, a record element bound
         ॰ to a record local, a field read after it, a foreign record passed as an
         ॰ argument, and a NIL arena of records passed as one. `चिह्नानि` IS nil on
-        ॰ iteration ०. (sansos-4f)
+        ॰ iteration ०. (a peer session)
         ॰
         ॰ THREE CANDIDATE SETS WERE ENUMERATED AND ALL THREE REFUTED — the
         ॰ exemplar, five differences, three reordered ones. Every localisation
@@ -6777,9 +7122,11 @@
     चरः संख्यानम् ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञासंख्यान ।
 
     ॰ both are ONE longer than the instruction count: the last slot is the
-    ॰ address past the final instruction. An arena cannot be empty — भवति ०
-    ॰ gives one slot — and a program with no instruction wants exactly that
-    ॰ one slot holding ०, which is Rust's empty vector plus its `push(pc)`.
+    ॰ address past the final instruction, written by `विन्यासावृत्तिः` at
+    ॰ index `संख्यानम्` — so a program with no instruction gets one slot
+    ॰ holding ०, which is Rust's empty vector plus its `push(pc)`. The
+    ॰ declarations below are EMPTY (length ० since `W-355`); this margin used
+    ॰ to say `भवति ०` gave that one slot, and the write is what gives it.
     चरः स्थानानि ॱॱ अङ्कः अन्तः अ३२ भवति ० ।
     चरः पूर्वाणि ॱॱ अङ्कः अन्तः अ३२ भवति ० ।
     चरः आवृत्तिः ॱॱ अ६४ भवति ० ।
@@ -6803,11 +7150,14 @@
         ॰     round ०: interpreted १, native १
         ॰     round १: interpreted ३, native ३
         ॰
-        ॰ `nirvahana.rs`'s `zero_at` says the same by reading: a `Ty::Slice` of
-        ॰ anything but अ८ is `Arena(vec![Value::Nil])`, LENGTH १ — so `भवति ०` is
-        ॰ १ interpreted as well, and `खण्डदैर्घ्यरचना`'s `+ (दैर्घ्यफलम् == ०)`
-        ॰ reproduces it rather than diverging from it. The NIL run (never
-        ॰ assigned) reads ० and is a different value from the ZERO run.
+        ॰ `nirvahana.rs`'s `zero_at` said the same by reading: a `Ty::Slice` of
+        ॰ anything but अ८ was `Arena(vec![Value::Nil])`, LENGTH १ — so `भवति ०`
+        ॰ was १ interpreted as well, and `खण्डदैर्घ्यरचना`'s then
+        ॰ `+ (दैर्घ्यफलम् == ०)` reproduced it rather than diverging from it.
+        ॰ SINCE `W-355` (2026-10-03) BOTH ARE ०: `zero_at` gives `vec![]` and
+        ॰ the length lowering answers the header word, ० for the nil word. So
+        ॰ round ० now prints ० on both engines where the reading above says १;
+        ॰ the readings are kept as measured, under the rule they were taken on.
         ॰
         ॰ KEEP THE PRINTS. They are the control that refuted this, and the whole
         ॰ 292-record native stream agrees with the interpreted one — the fault is
@@ -6831,11 +7181,14 @@
             चरः कुलचिह्नद्वि ॱॱ न६४ भवति चतुरष्टकमुद्रणम् ७१०२ ।
         इति
 
-        ॰ THE FIRST ROUND MUST NOT COMPARE. पूर्वाणि is `भवति ०`, which is
-        ॰ ONE SLOT and not none, so a one-instruction program would find
-        ॰ the lengths equal on round ० and could report a fixpoint it has
-        ॰ not reached. Rust's `previous` starts genuinely empty and cannot;
-        ॰ the round counter is what stands in for that here.
+        ॰ THE FIRST ROUND MUST NOT COMPARE. पूर्वाणि is `भवति ०`, which was
+        ॰ ONE SLOT and not none until `W-355`, so a one-instruction program
+        ॰ would have found the lengths equal on round ० and could report a
+        ॰ fixpoint it had not reached. Rust's `previous` starts genuinely
+        ॰ empty, and since `W-355` so does this, so on round ० the lengths
+        ॰ already differ. The round counter was kept while a fixpoint's
+        ॰ Stage 1 still ran this under the old length rule; it now only says
+        ॰ in words what the empty पूर्वाणि says by its length.
         यदि आवृत्तिः अधिकम् ० आदि
             यदि विन्याससाम्यम् स्थानानि पूर्वाणि समम् सत्यम् आदि
                 प्रत्यागमनम् स्थानानि ।
@@ -6916,14 +7269,17 @@
 ॰ is this name one of the program's `॥ वैश्विकम् ॥` pushes? A symbol only a
 ॰ linker outside this object may resolve has to be STB_GLOBAL; one that is not
 ॰ is local and another object may reuse its name.
+॰ EACH CANDIDATE IS COMPARED IN PLACE (symbol-lookup step 1, 2026-10-06): it
+॰ was sliced first, and a slice is a fresh block with its octets copied — 6.12G
+॰ of this routine's 7.1G Stage 2 instructions. `परिधिसाम्यम्` answers the same
+॰ question — equal length, then every octet — over [आरम्भ, सीमा) of the text.
 सार्वजनिक वृत्तिः वैश्विकत्वम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम ऽ नाम ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
     चरः आदिः ॱॱ न६४ भवति कार्यक्रमः ॱ वैश्विकारम्भ ।
     चरः सीमा ॱॱ न६४ भवति आदिः योगः कार्यक्रमः ॱ वैश्विकसंख्यान ।
     चरः क्रमः ॱॱ न६४ भवति आदिः ।
     यावत् क्रमः न्यूनम् सीमा आदि
         चरः अंशः ॱॱ वाक्यविभागॱपाठांश भवति वाक्यविभागॱवैश्विककोश अङ्कः क्रमः अन्तः ।
-        चरः वैश्विकनाम ॱॱ अङ्कः अन्तः अ८ भवति आरभ्य अंशः ॱ पाठ अङ्कः अंशः ॱ आरम्भ अन्तः अंशः ॱ सीमा समाप्तम् ।
-        यदि वैश्विकनाम समम् नाम आदि
+        यदि परिधिसाम्यम् अंशः ॱ पाठ अंशः ॱ आरम्भ अंशः ॱ सीमा नाम समम् सत्यम् आदि
             प्रत्यागमनम् सत्यम् ।
         इति
         क्रमः भवति क्रमः योगः १ ।
@@ -7170,13 +7526,11 @@
 ॰ answered 4 where reading gives 6, which is this margin's own lesson arriving
 ॰ again: a count cannot see shape, only a pairing can.
 सार्वजनिक वृत्तिः वस्तुपुनःस्थापनानि आदाय संज्ञासूची ॱॱ अङ्कः अन्तः वास्तुॱवस्तुसंज्ञा ददाति अङ्कः अन्तः वास्तुॱपुनःस्थापनम् आदि
-    ॰ BORN HOLDING ONE शून्यम्, which is this corpus's empty arena — the shape
-    ॰ `चिह्नस्थान`'s own margin states ("is born holding one शून्यम्, so an
-    ॰ EMPTY table is one slot holding शून्यम्") and `t1_exec_link.rs` builds by
-    ॰ hand. A `भवति ०` left unwritten is `Int(0)`, and every consumer that asks
-    ॰ it for `ॱ दैर्घ्य` faults instead of reading zero.
+    ॰ A FRESH RUN IS THE EMPTY ARENA, length ० on both engines (`W-355`).
+    ॰ Until `W-355` the empty shape was one शून्यम् at slot ०, and this line
+    ॰ was followed by a write of शून्यम् there to build it; the consumers walk
+    ॰ `सूचकाङ्क न्यूनम् ॱ दैर्घ्य` and skip a शून्यम्, so they read both shapes.
     चरः फलम् ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति ० ।
-    फलम् अङ्कः ० अन्तः भवति शून्यम् ।
     चरः लेखः ॱॱ न६४ भवति ० ।
     चरः क्रमः ॱॱ न६४ भवति १ ।
 
@@ -7274,7 +7628,6 @@
     ॰ used NOWHERE — one occurrence in the corpus, its own declaration, while its
     ॰ three siblings are all used. The constant was cut and never fitted.
     चरः दत्तलेखाः ॱॱ अङ्कः अन्तः वास्तुॱपुनःस्थापनम् भवति ० ।
-    दत्तलेखाः अङ्कः ० अन्तः भवति शून्यम् ।
     ॰ ZERO-BASED, matching `वस्तुपुनःस्थापनानि` above and `दत्तपुनःस्थापनम्`'s
     ॰ own walk in `samyojana.t1`, which starts its cursor at ०.
     चरः दत्तलेखक्रमः ॱॱ न६४ भवति ० ।
@@ -7340,12 +7693,11 @@
     ॰ no debug sections and no .rela.data: this assembler records no data
     ॰ pending, which is the R_RISCV_64 site Rust has at encode.rs:1034 and
     ॰ this corpus does not.
-    ॰ Each is an arena holding one शून्यम् rather than ०, for the reason above:
-    ॰ the linker walks these and asks their length.
+    ॰ Each is a fresh, EMPTY arena — length ० since `W-355` — and the linker
+    ॰ walks these and asks their length. Before `W-355` each was given one
+    ॰ शून्यम् at slot ० here, which was then this corpus's empty shape.
     चरः रिक्तशोधनम् ॱॱ अङ्कः अन्तः वास्तुॱशोधनखण्डः भवति ० ।
-    रिक्तशोधनम् अङ्कः ० अन्तः भवति शून्यम् ।
     चरः रिक्तशोधनलेखाः ॱॱ अङ्कः अन्तः वास्तुॱशोधनपुनःस्थापनखण्डः भवति ० ।
-    रिक्तशोधनलेखाः अङ्कः ० अन्तः भवति शून्यम् ।
     वस्तु ॱ शोधनम् भवति रिक्तशोधनम् ।
     वस्तु ॱ शोधनपुनःस्थापनानि भवति रिक्तशोधनलेखाः ।
     ॰ W-293: was `रिक्तदत्तलेखाः`, an empty arena built two lines above this and
