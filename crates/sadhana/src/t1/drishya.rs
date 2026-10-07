@@ -1,6 +1,6 @@
 //! **दृश्यम्** — the T2 UI sub-language, doc 07 §4.2, task `F-004f`.
 //!
-//! Decision D-07-B (doc 07 §4.1, `research/07-…:76`) reads *"Sassembly-web is
+//! Decision D-07-B (doc 07 §4.1, `research/07-…:76`) reads *"the web frontend is
 //! T1 with a declarative UI sub-language — structure as expressions, style as
 //! typed values, and a pure `स्थिति → दृश्यम्` render function. No DOM, no
 //! mutation API, no CSS cascade."* This module is the **sub-language** half of
@@ -239,7 +239,7 @@ impl Vinyasa {
     ///
     /// Returns [`None`] if `antara` is negative. A negative gap would place a
     /// child before the one preceding it, and there is no z-order in a
-    /// Sassembly-web view to resolve the overlap with.
+    /// web-frontend view to resolve the overlap with.
     #[must_use]
     pub const fn new(antara: i32, samrekha: Samrekha) -> Option<Self> {
         if antara < 0 {

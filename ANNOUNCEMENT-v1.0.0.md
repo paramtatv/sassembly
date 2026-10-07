@@ -60,14 +60,18 @@ letter. On the measured data that is 35% smaller.
 **The same answer everywhere yantra runs.** One image executes the same number of
 instructions on x86-64, on aarch64 and in the browser through `yantra-wasm`.
 
-**Devices a program can reach from yantra.** A file window (`पत्रम्`), threads,
-sockets and virtio-gpu 2D. The file window is a device a store completes, not a
-new instruction, so the compiler gained no new kind of operation. The fixpoint images are
-*checked* never to use them: `tools/fixpoint.sh` fails if Stage 2 touches the
-socket, reads the retired-instruction counter, or declares threads, because any of
-those would make Stage 2 a statement about its environment instead of its input.
-These devices answer the question [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md)
-(ADR-0040) asked; that document is kept as the record of the question.
+**Devices a program can reach from yantra.** A file window (`पत्रम्`) that reads
+and writes files under a root directory the host grants, command-line arguments,
+a clock, one host socket, cooperative threads, and virtio-gpu 2D. The clock, the
+socket and the threads follow one rule: outside events are delivered only at an
+explicit wait and are recorded in an event log, so a run can be replayed exactly,
+with no network or clock needed. Threads are switched by the host only at waits,
+never preempted. The fixpoint images are *checked* never to use these:
+`tools/fixpoint.sh` fails if Stage 2 touches the socket, reads the
+retired-instruction counter, or declares threads, because any of those would make
+Stage 2 a statement about its environment instead of its input. There is no TLS,
+DNS or HTTP. [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040) is kept as
+the record of the question these answer.
 
 ## Tests
 

@@ -49,7 +49,7 @@ itself.
 | **Stage 2 == Stage 1** | byte-identical, `922,146` octets |
 | **the compiler** | 21 `.t1` sources, 46,794 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
-| **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — 476 KB of wasm, no server |
+| **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-07, from this repository |
 | **status** | v1.0.0 — the language and its compiler are complete |
 
@@ -169,8 +169,9 @@ that possible still compiles itself to the same bytes.
 * **Symbol lookup.** The linker keeps a hashed name table.
 * **The same answer everywhere.** One image executes the same instruction count on
   x86-64, on aarch64 and in the browser through `yantra-wasm`.
-* **Devices.** A file window (`पत्रम्`), threads, sockets and virtio-gpu 2D, all
-  on `yantra`. The fixpoint script refuses any compiler image that touches the
+* **Devices.** On `yantra`: a file window (`पत्रम्`) that reads and writes,
+  command-line arguments, a clock and a socket delivered at waits, cooperative
+  threads, and virtio-gpu 2D. The fixpoint script refuses any compiler image that touches the
   socket, reads the retired-instruction counter or declares threads, so none of
   them can make the fixpoint a statement about its environment.
 * **A smaller image.** The fixpoint image is **922,146 octets**, 34.1% smaller than
@@ -186,21 +187,23 @@ Not in this release: compiling Sanskrit to web pages, and a GPU compute path
 Stated first, and in full, because a self-hosting compiler invites the
 assumption that a general-purpose toolchain comes with it. It does not.
 
-| capability | available today |
-|---|---|
-| **open and read a file** | yes, on `yantra`, through the file window (`पत्रम्`) |
-| **write a file** | no |
-| **command-line arguments** | no |
-| **network** | sockets exist on `yantra`; there is no TLS, no DNS, no HTTP |
-| **threads** | yes, on `yantra`; a fixpoint image may not use them |
-| **clock** | no |
-| **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it |
+| capability | available today | shown by |
+|---|---|---|
+| **open and read a named file** | yes, on `yantra`, through the file window (`पत्रम्`), under a root directory the host grants; a path that escapes the root is refused | `t1_file_end_to_end.rs`: `a_sassembly_program_reads_a_file_it_named`; `t1_file_window.rs`: `the_window_refuses_a_path_that_escapes_its_root_and_says_so` |
+| **write a file** | yes, same window, `PATRA_PUT` | `t1_file_end_to_end.rs`: `a_sassembly_program_writes_a_file_and_reads_it_back` |
+| **command-line arguments** | yes, on `yantra-run`; an image that does not declare the argument globals is refused | `t1_arguments.rs`: `a_program_reads_the_arguments_it_was_given`, `the_binary_hands_a_program_its_command_line` |
+| **clock** | yes, but only as a value delivered at a wait and recorded in an event log, so a run can be replayed exactly | `w375_clock.rs` |
+| **threads** | cooperative only: the host switches threads at waits and never preempts; the schedule is in the event log | `w376_threads.rs` |
+| **sockets** | one host socket, served at waits; live it serves one client, and the log replays without a network | `w377_sockets.rs` |
+| **TLS, DNS, HTTP** | no | — |
+| **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it | — |
 
 These are `yantra` features: the device windows are part of the emulator, and
 the same program on bare metal has none of them. The question of how a program
-that cannot wait could ever use a network is recorded in
-[WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040). That document is kept as
-the history of the question; the socket and thread work above is its answer.
+that cannot wait could use a network is recorded in
+[WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040), which is kept as the
+history of that question. The clock, thread and socket rows follow its option
+of delivering outside events only at an explicit wait.
 
 ---|---|
 | **name or open a file** | no |
@@ -255,7 +258,7 @@ Two footnotes that will otherwise cost you an afternoon:
 
 ## It runs in a browser
 
-New in v0.3.0 and unchanged since, and the shortest way to see the thing work:
+New in v0.3.0, and the shortest way to see the thing work:
 
 **<https://paramtatv.github.io/sassembly/playground.html>** — type Devanagari
 assembly, press चालय, and the page assembles it and executes it in your tab.
@@ -264,8 +267,8 @@ Two crates compiled to wasm do the whole of it:
 
 | | | |
 |---|---|---|
-| `crates/sadhana-wasm` | **401 KB** | Devanagari assembly → ELF |
-| `crates/yantra-wasm` | **75 KB** | an RV64 machine that runs the ELF |
+| `crates/sadhana-wasm` | **420 KB** (430,275 bytes) | Devanagari assembly → ELF |
+| `crates/yantra-wasm` | **192 KB** (196,737 bytes) | an RV64 machine that runs the ELF |
 
 Both are instantiated with an **empty import object**. That is the claim rather
 than an omission: the page grants them no syscalls, no clock and no network,
@@ -278,17 +281,20 @@ rustup target add wasm32-unknown-unknown
 tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
 ```
 
-**Measured 2026-09-27, in a fresh clone of this repository**, 54 s from cold:
+**Measured 2026-10-07 with `tools/build-sassembly-web.sh` on a Linux x86-64
+host, from this repository's tree:**
 
 ```
-  namaste      proof 848 bytes  sha256 bf2bca26637bc84d
-  bare-metal   proof 856 bytes  sha256 d92d476f3ede6e90
-  atithi       app   720 bytes  sha256 68655059ec1ab5ba
-  wasm         75314 bytes
-wrote sassembly.html (109576 bytes) — open it directly, no server needed
+  namaste      proof 904 bytes  sha256 4032492520bbed48
+  bare-metal   proof 912 bytes  sha256 7b0e6802889d7b01
+  atithi       app   776 bytes  sha256 445524aa772c833b
+  wasm         196737 bytes
+  sadhana-wasm 430275 bytes
+wrote sassembly.html (1422025 bytes) — open it directly, no server needed
 ```
 
-Those three hashes are the same bytes the upstream tree produces.
+The sizes depend on the Rust toolchain that built them (this one was a nightly),
+so expect them to differ by a few percent elsewhere.
 
 > [!NOTE]
 > **The browser assembles `.sas`, not `.t1`.** This is Sassembly *assembly* —
