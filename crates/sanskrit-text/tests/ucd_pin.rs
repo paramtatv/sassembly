@@ -114,7 +114,7 @@ fn header_version(rel: &str) -> Option<String> {
 /// the file is missing and NAME the remedy (`run research/specs/fetch-specs.sh`),
 /// so that failure is covered there; this reports the skip and says so.
 #[test]
-#[ignore = "blocked: needs research/specs (the Unicode fetch script and data) not in the public repository"]
+#[ignore = "census: needs research/specs (the Unicode fetch script and data) not in the public repository"]
 fn the_ucd_corpus_on_disk_matches_the_pinned_version() {
     let pinned = pinned_version();
     println!("METRIC ucd_pinned_version {pinned}");

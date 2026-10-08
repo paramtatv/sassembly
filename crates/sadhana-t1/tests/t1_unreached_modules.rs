@@ -299,7 +299,7 @@ const UNASKED_MODULES: &[(&str, &str, State, usize)] = &[
 ];
 
 #[test]
-#[ignore = "blocked: needs the full development repository's .t1 and tools/ census not in the public repository"]
+#[ignore = "census: needs the full development repository's .t1 and tools/ census not in the public repository"]
 fn every_declared_module_no_source_asks_for_is_named_and_says_whether_it_is_a_root() {
     let units = corpus();
     let calls = host_call_targets();
@@ -427,7 +427,7 @@ fn the_three_states_partition_the_declared_set_and_none_of_them_is_vacuous() {
 /// Asserted on the real line, not a fixture: a fixture would prove the lexer
 /// and not the corpus.
 #[test]
-#[ignore = "blocked: needs the full development repository's .t1 and tools/ census not in the public repository"]
+#[ignore = "census: needs the full development repository's .t1 and tools/ census not in the public repository"]
 fn neither_a_longer_name_nor_a_field_of_the_same_spelling_rescues_a_dead_module() {
     assert!(
         calls_into("सारणीॱसारणीपूरणम्", "सारणी"),
@@ -496,7 +496,7 @@ fn neither_a_longer_name_nor_a_field_of_the_same_spelling_rescues_a_dead_module(
 /// a check that could not find a banner or a generator anywhere fails here
 /// first.
 #[test]
-#[ignore = "blocked: needs the full development repository's .t1 and tools/ census not in the public repository"]
+#[ignore = "census: needs the full development repository's .t1 and tools/ census not in the public repository"]
 fn the_textapp_text_sources_are_neither_bannered_nor_named_by_any_generator() {
     let banner = |p: &str| -> bool {
         let text = std::fs::read_to_string(repo_root().join(p))
@@ -710,7 +710,7 @@ fn a_module_that_only_its_own_files_name_is_still_unasked() {
 /// check. A dead module is one thing; a dead module whose routines are stubs of
 /// live ones is not a port anybody is midway through.
 #[test]
-#[ignore = "blocked: needs the full development repository's .t1 and tools/ census not in the public repository"]
+#[ignore = "census: needs the full development repository's .t1 and tools/ census not in the public repository"]
 fn each_dead_textapp_source_is_a_transliteration_of_a_live_sanskrit_text_module() {
     let rust_stem = |stem: &str| -> bool {
         repo_root()

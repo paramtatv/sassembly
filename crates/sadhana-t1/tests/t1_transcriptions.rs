@@ -3417,7 +3417,7 @@ fn an_index_at_or_past_a_pools_bound_is_refused() {
 /// disagreements in four files, found by the gate and not by me. They are
 /// written with `if` now, `Shr` first.
 #[test]
-#[ignore = "blocked: needs the full development repository's source copies not in the public repository"]
+#[ignore = "census: needs the full development repository's source copies not in the public repository"]
 fn every_copy_of_the_instruction_table_names_both_shifts_under_kind_ten() {
     let mut seen = Vec::new();
     let mut silent = Vec::new();

@@ -4746,7 +4746,7 @@ fn one_latin_letter_in_the_emitted_text_is_refused_by_the_assembler_with_its_lin
 
 /// The `.सस` are counted and not run: 16, 0 readable by design (`W-238`).
 #[test]
-#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "census: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn the_sas_programs_are_counted_and_none_is_readable_by_design() {
     assert_eq!(sas_programs(), pins::SAS_PROGRAMS);
     println!("METRIC paradigm_encode_sas_programs {}", sas_programs());

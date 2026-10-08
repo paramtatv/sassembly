@@ -53,7 +53,7 @@ fn corpus() -> Vec<(String, Vec<u8>)> {
 }
 
 #[test]
-#[ignore = "blocked: needs fuzz/corpus (the fuzz seed corpus) not in the public repository"]
+#[ignore = "census: needs fuzz/corpus (the fuzz seed corpus) not in the public repository"]
 fn every_corpus_input_holds_every_invariant() {
     let files = corpus();
     assert!(

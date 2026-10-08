@@ -183,7 +183,7 @@ fn every_governed_source_naming_a_text_directive_lexes_clean() {
 /// past its bracket these stop being errors, the two populations collapse into
 /// one, and the split stops meaning anything.
 #[test]
-#[ignore = "blocked: needs the development repository's tracked source tree not in the public repository"]
+#[ignore = "census: needs the development repository's tracked source tree not in the public repository"]
 fn a_source_outside_a_text_directive_is_still_refused() {
     let root = root();
     for path in [
