@@ -52,10 +52,11 @@ Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembl
 | Linux x86-64 | [`sassembly-v1.0.0-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-linux-x86_64.tar.gz) | `3795461fc56616f7bcc7614aa82045847a14b52631c7ff9c993b32b34f8a11ff` |
 | Linux aarch64 | [`sassembly-v1.0.0-linux-aarch64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-linux-aarch64.tar.gz) | `500ebcfeac31cce9e23bcb6d011852977afd2d08609792589b307d6f6c6a5a59` |
 | macOS arm64 (Apple silicon) | [`sassembly-v1.0.0-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-macos-arm64.tar.gz) | `699b067a23c4064f93e8650e8bf70a94b5d3718773cefcadaebcdda6b6b95775` |
-| macOS x86-64 | no binary published | [build from source](#build-from-source-rust) |
-| Windows | no binary published | [build from source](#build-from-source-rust) |
+| macOS x86-64 (Intel) | [`sassembly-v1.0.0-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-macos-x86_64.tar.gz) | `e129d484931e251f8b353ea021225825a660b37005b5329d5dfa16cc5cd4da85` |
+| Windows arm64 | [`sassembly-v1.0.0-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-windows-arm64.zip) | `558536b18a6c120494ccb8f5b64818b44a1bef6693340ad8f9db0b8a1cf3c1af` |
+| Windows x86-64 | [`sassembly-v1.0.0-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-windows-x86_64.zip) | `69e2a79ce5e2e791619673c8481815a0de4b669549d897eb50bd903079e8b247` |
 
-The sha256s are those in the release's `SHA256SUMS-binaries`. Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64` or `macos-arm64`.
+The sha256s are those in the release's `SHA256SUMS-binaries` (macOS x86-64: `SHA256SUMS-binaries.macos-x86_64`; Windows: `SHA256SUMS-binaries.windows`). Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64`, `macos-arm64` or `macos-x86_64` (for `macos-x86_64`, download and check `SHA256SUMS-binaries.macos-x86_64` instead of `SHA256SUMS-binaries`).
 
 ```sh
 V=v1.0.0; T=sassembly-$V-OS_ARCH.tar.gz
@@ -68,6 +69,21 @@ export PATH="$HOME/.local/bin:$PATH"      # add to ~/.profile or ~/.zshrc
 # macOS only, if Gatekeeper blocks the binaries (downloaded via a browser):
 xattr -d com.apple.quarantine ~/.local/bin/sadhana ~/.local/bin/yantra-run
 ```
+
+**Windows (PowerShell).** Use `arm64` or `x86_64` (the x86-64 build also runs on Windows on ARM under x64 emulation).
+
+```powershell
+$V='v1.0.0'; $A='x86_64'          # or arm64
+$T="sassembly-$V-windows-$A.zip"; $R="https://github.com/paramtatv/sassembly/releases/download/$V"
+curl.exe -sSLO "$R/$T"; curl.exe -sSLO "$R/SHA256SUMS-binaries.windows"
+(Get-FileHash $T).Hash.ToLower()  # compare with the line for $T in SHA256SUMS-binaries.windows
+Expand-Archive $T .; $B="$PWD\sassembly-$V-windows-$A"; $env:Path="$B;$env:Path"
+chcp 65001                        # UTF-8 console, for Devanagari output
+sadhana.exe namaste.sas n.elf; yantra-run.exe n.elf
+```
+
+In PowerShell, redirect binary output with `cmd /c "... > file"`: PowerShell's own `>` re-encodes and corrupts it.
+To build from source on Windows, clone with `git clone -c core.autocrlf=false`; CRLF line endings break the `.sas` sources.
 
 Then run a `.sas` program with `sadhana prog.sas prog.elf && yantra-run prog.elf`. A `.t1` program is compiled by `sassembly-v1.0.0-stage1.elf`: the next section shows both, step by step.
 
