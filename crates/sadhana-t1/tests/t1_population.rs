@@ -123,6 +123,141 @@ const COUNTED_BY_NOTHING: &[(&str, &str)] = &[
         "spec/demo/समविषमम्.t1",
         "even or odd — a demonstration program",
     ),
+    // ॥ `examples/` — probes a user runs with the RELEASED stage1.elf (v1.0.1) ॥ They are
+    // compiled by `examples/limits/run.sh` and `examples/networking/run.sh`, not by any
+    // instrument of this crate, so none counts them.
+    (
+        "examples/limits/args.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/chk_add.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/chk_mul.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/chk_shl.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/chk_sub.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/counter.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/echo.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/file_read.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/file_write.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/hello.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p12.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p14.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p15.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p16.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p17.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p18.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p19.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p20.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p21.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p22.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/int_p23.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/mem_grow_256m.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/mem_grow_384m.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/mem_runs_500k.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/mem_runs_540k.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/thr2.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/thr64.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/thr65.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/wait0.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/wait3.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/wart_module.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/limits/wart_routine.t1",
+        "limits probe run by examples/limits/run.sh",
+    ),
+    (
+        "examples/networking/echo.t1",
+        "networking example run by examples/networking/run.sh",
+    ),
     // ॥ `spec/rung/` — W-279's cross-module measurement, and why it is not in
     // `spec/demo/` ॥ The demonstration's driver links ONE module object beside
     // the startup (`frontend/src/lib.rs:1079`), so a program spanning two
