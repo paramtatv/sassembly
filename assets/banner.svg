@@ -1,0 +1,19 @@
+<svg xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2560" height="640" viewBox="0 0 2560 640">
+<!-- Editable source of banner.png. Fonts: Tiro Devanagari Sanskrit, Spectral, IBM Plex Mono (all SIL OFL 1.1), installed, not embedded. -->
+<defs><radialGradient id="w" gradientUnits="userSpaceOnUse" cx="205" cy="0" r="1536" gradientTransform="translate(205 0) scale(1 0.75) translate(-205 0)"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.6" stop-color="#FFFFFF" stop-opacity="0"/></radialGradient></defs>
+<rect width="2560" height="640" fill="#FBF8F3"/>
+<rect width="2560" height="640" fill="url(#w)"/>
+<rect x="1840" y="0" width="2" height="640" fill="#E6DDCE"/>
+<mask id="f"><rect x="120" y="80" width="400" height="430" fill="#fff"/></mask><linearGradient id="fx"><stop offset="0" stop-color="#000"/><stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><linearGradient id="fy" x2="0" y2="1"><stop offset="0" stop-color="#000"/><stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient><mask id="mx" maskContentUnits="userSpaceOnUse"><rect x="120" y="80" width="400" height="430" fill="url(#fx)"/></mask><mask id="my"><rect x="120" y="80" width="400" height="430" fill="url(#fy)"/></mask>
+<g mask="url(#my)"><image x="120" y="80" width="400" height="430" xlink:href="banner-photo.png" mask="url(#mx)"/></g>
+<text x="320" y="535" text-anchor="middle" font-family="'Tiro Devanagari Sanskrit'" font-size="25" fill="#877C6D">सद्गुरुचरणेषु समर्पणम्</text>
+<text x="640" y="145" font-family="'IBM Plex Mono'" font-size="22" letter-spacing="3.4" fill="#A8351C" fill-opacity=".62">V1.0.0 · SELF‑HOSTING · LINUX · MACOS · WINDOWS · BROWSER</text>
+<text x="640" y="276" font-family="'Tiro Devanagari Sanskrit'" font-size="116" fill="#46423D">संस्कृतयन्त्रम्</text>
+<text x="640" y="366" font-family="Spectral" font-weight="300" font-size="40" letter-spacing="17.6" fill="#A29886">SASSEMBLY</text>
+<text x="640" y="458" font-family="'Tiro Devanagari Sanskrit'" font-size="37" fill="#7C2413">सव्याकरणो निर्देशसमुच्चयः</text>
+<text x="640" y="506" font-family="Spectral" font-style="italic" font-size="27" fill="#877C6D">a grammar-based instruction set</text>
+<text x="2440" y="221" text-anchor="end" font-family="'IBM Plex Mono'" font-size="22" letter-spacing="2.9" fill="#0F5A54">STAGE 2   ==   STAGE 1</text>
+<text x="2440" y="320" text-anchor="end" font-family="'IBM Plex Mono'" font-weight="500" font-size="88" letter-spacing="-0.9" fill="#16140F">922,146</text>
+<text x="2440" y="369" text-anchor="end" font-family="Spectral" font-style="italic" font-size="27" fill="#877C6D">octets, byte for byte</text>
+<text x="2440" y="435" text-anchor="end" font-family="'IBM Plex Mono'" font-size="22" letter-spacing="1.2" fill="#A29886">21 / 21 modules · self‑hosting</text>
+</svg>
