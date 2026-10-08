@@ -1,8 +1,8 @@
 #!/bin/sh
-# Reproduces the NETWORKING.md example with the v1.0.0 release binaries. Needs: tar, nc, python3.
+# Reproduces the NETWORKING.md example with the v1.0.1 release binaries. Needs: tar, nc, python3.
 # Usage: ./run.sh [dir-containing-tarball-and-stage1.elf]   (default: .)
 set -e
-D=${1:-.}; V=v1.0.0; T=sassembly-$V-linux-x86_64
+D=${1:-.}; V=v1.0.1; T=sassembly-$V-linux-x86_64
 HERE=$(cd "$(dirname "$0")" && pwd)
 cd "$D"
 [ -f $T.tar.gz ] || gh release download $V -R paramtatv/sassembly -p "$T.tar.gz" -p SHA256SUMS-binaries

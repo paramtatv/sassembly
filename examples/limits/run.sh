@@ -6,7 +6,7 @@
 #   arguments after a literal -- go to the program, after the image.
 # Environment (all optional):
 #   YANTRA_RUN  path to the release yantra-run       (default: yantra-run on PATH)
-#   STAGE1      path to sassembly-v1.0.0-stage1.elf  (default: ./sassembly-v1.0.0-stage1.elf)
+#   STAGE1      path to sassembly-v1.0.1-stage1.elf  (default: ./sassembly-v1.0.1-stage1.elf)
 # Other YANTRA_* variables (for example YANTRA_STEPS) apply to the probe's run, not to the compile.
 #   MODULE      module name sent to the compiler     (default: शृङ्खला, the only one the prebuilt compiler builds)
 #   KEEP_ELF    if set, also copy the built image to this path
@@ -14,7 +14,7 @@ set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 P=${1:?usage: run.sh <probe> [yantra-run args]}; shift
 P=${P%.t1}
-Y=${YANTRA_RUN:-yantra-run}; S=${STAGE1:-./sassembly-v1.0.0-stage1.elf}
+Y=${YANTRA_RUN:-yantra-run}; S=${STAGE1:-./sassembly-v1.0.1-stage1.elf}
 W=$(mktemp -d); trap 'rm -rf "$W"' EXIT
 { printf '%s\0' "${MODULE:-शृङ्खला}"; cat "$HERE/$P.t1"; printf '\0'; } > "$W/blob"
 env YANTRA_INPUT="$W/blob" YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 \

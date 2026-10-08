@@ -242,6 +242,14 @@ fn resolve(
 ) -> Result<std::path::PathBuf, Status> {
     let root = root.ok_or(Status::Refused)?;
     let real_root = root.canonicalize().map_err(|_| Status::Refused)?;
+    // AN ABSOLUTE OR DRIVE-QUALIFIED PATH IS REFUSED OUTRIGHT, even one that would land
+    // inside the root: `Path::join` REPLACES the root with such a path, so the only
+    // thing left to stop it is the prefix check below, and a root-relative window should
+    // not depend on one check. On Windows this is the drive letter (`C:\x`, `C:x`), the
+    // UNC path (`\\host\share`, `\\?\C:\x`) and the rooted `\x`; on unix it is a leading `/`.
+    if escapes_by_form(std::path::Path::new(path_str)) {
+        return Err(Status::Refused);
+    }
     let joined = root.join(path_str);
     if !for_write {
         let real = joined.canonicalize().map_err(|_| Status::NotFound)?;
@@ -258,7 +266,143 @@ fn resolve(
     if !real_parent.starts_with(&real_root) {
         return Err(Status::Refused);
     }
-    Ok(real_parent.join(name))
+    let target = real_parent.join(name);
+    // A SYMLINK AT THE LEAF: `std::fs::write` FOLLOWS it, so a link inside the root
+    // naming a file outside would write through. If anything exists at the target, it
+    // must resolve under the root; a dangling link cannot be resolved and is refused.
+    if std::fs::symlink_metadata(&target).is_ok() {
+        let real = target.canonicalize().map_err(|_| Status::Refused)?;
+        if !real.starts_with(&real_root) {
+            return Err(Status::Refused);
+        }
+        return Ok(real);
+    }
+    Ok(target)
+}
+
+/// `O_NOFOLLOW` for the targets this crate is built for, spelled out because the workspace
+/// takes no `libc` dependency and denies `unsafe`. Zero where the value is not known: the
+/// leaf check in `resolve` is the primary defence and this is the second.
+#[cfg(unix)]
+const O_NOFOLLOW: i32 = if cfg!(any(
+    target_os = "macos",
+    target_os = "ios",
+    target_os = "freebsd"
+)) {
+    0x100
+} else if cfg!(all(
+    target_os = "linux",
+    any(target_arch = "aarch64", target_arch = "arm")
+)) {
+    0x8000
+} else if cfg!(all(
+    target_os = "linux",
+    any(
+        target_arch = "x86_64",
+        target_arch = "x86",
+        target_arch = "riscv64"
+    )
+)) {
+    0x2_0000
+} else {
+    0
+};
+
+/// Write `body` to `path`, truncating, and on unix REFUSE to follow a symlink at the final
+/// component (`O_NOFOLLOW`). DEFENCE IN DEPTH: `resolve` has already refused a leaf link, so
+/// this closes only the window in which a link is swapped in between that check and this
+/// open. It does not detect a swapped parent directory or a hard link (the threat model:
+/// DIR must not be concurrently writable by an untrusted party; `--help` says so).
+fn write_nofollow(path: &std::path::Path, body: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut o = std::fs::OpenOptions::new();
+    o.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        o.custom_flags(O_NOFOLLOW);
+    }
+    o.open(path)?.write_all(body)
+}
+
+/// True when `p` names a place by something other than a path under the root: a root
+/// (`/x`, `\x`) or a Windows prefix (drive letter, UNC, verbatim). Components are
+/// parsed by `std::path`, so on unix only a leading `/` qualifies and `C:\x` is an
+/// ordinary relative name there, which is correct for that platform.
+fn escapes_by_form(p: &std::path::Path) -> bool {
+    p.components().any(|c| {
+        matches!(
+            c,
+            std::path::Component::Prefix(_) | std::path::Component::RootDir
+        )
+    })
+}
+
+#[cfg(test)]
+mod form_tests {
+    use super::escapes_by_form;
+    use std::path::Path;
+
+    #[test]
+    fn a_leading_slash_is_a_root() {
+        assert!(escapes_by_form(Path::new("/etc/passwd")));
+        assert!(!escapes_by_form(Path::new("a/b.txt")));
+        assert!(!escapes_by_form(Path::new("../a")));
+    }
+
+    // WINDOWS: the drive letter, the drive-relative form, UNC and verbatim paths. `std::path`
+    // parses prefixes only on Windows, so these run only there (this repository's gate
+    // hosts are unix; the cases are pinned for a Windows build).
+    #[cfg(all(
+        unix,
+        any(
+            target_os = "macos",
+            all(
+                target_os = "linux",
+                any(
+                    target_arch = "x86_64",
+                    target_arch = "aarch64",
+                    target_arch = "riscv64"
+                )
+            )
+        )
+    ))]
+    #[test]
+    fn the_final_open_refuses_a_symlink_even_when_the_earlier_check_is_bypassed() {
+        // No clock here (`w375_clock` ratchets `std::time` in this crate's src): the name is
+        // pid plus this test's own thread, and a stale directory is removed first.
+        let d = std::env::temp_dir().join(format!(
+            "patra-nofollow-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::remove_dir_all(&d).ok();
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("target"), b"KEEP").unwrap();
+        std::os::unix::fs::symlink(d.join("target"), d.join("link")).unwrap();
+        // Called DIRECTLY, with no `resolve` in front of it: this is the second defence alone.
+        assert!(super::write_nofollow(&d.join("link"), b"X").is_err());
+        assert_eq!(std::fs::read(d.join("target")).unwrap(), b"KEEP");
+        // CONTROL: a plain file, new or existing, is written.
+        super::write_nofollow(&d.join("plain"), b"ab").unwrap();
+        super::write_nofollow(&d.join("plain"), b"abc").unwrap();
+        assert_eq!(std::fs::read(d.join("plain")).unwrap(), b"abc");
+        std::fs::remove_dir_all(&d).ok();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn drive_letters_and_unc_paths_are_refused_by_form() {
+        for p in [
+            "C:\\Windows\\win.ini",
+            "C:win.ini",
+            "\\\\host\\share\\f",
+            "\\\\?\\C:\\f",
+            "\\rooted",
+        ] {
+            assert!(escapes_by_form(Path::new(p)), "{p} was not refused by form");
+        }
+    }
 }
 
 /// Serve a WRITE: the buffer run's octets become the file's contents.
@@ -304,7 +448,7 @@ fn put_inner(
     // it, so a short write is not a state this interface can report — which is
     // deliberate: a partial write reported as success is the failure a file
     // channel must not have.
-    match std::fs::write(&real, body) {
+    match write_nofollow(&real, body) {
         Ok(()) => Status::Wrote(buf_len),
         Err(_) => Status::NotWritten,
     }

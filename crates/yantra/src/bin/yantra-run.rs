@@ -81,6 +81,12 @@ struct Unpacked {
 /// are named in the `input:` report line.
 type Input<'a> = (std::borrow::Cow<'a, [u8]>, Vec<u8>, String, String);
 
+/// The header line a log RECORDED under `--files` carries (v1.0.1). A `#` line, so every
+/// reader skips it; the replay path looks for it and refuses a run without `--files`.
+/// The directory is deliberately not recorded: the fact of the grant is what a replay needs.
+const FILES_GRANT_LINE: &str =
+    "# yantra-run --files: this run was granted a file root; replay it with --files DIR";
+
 fn main() -> ExitCode {
     // ॥ `--version` IS RECOGNISED ONLY AS THE SOLE ARGUMENT — W-347 ॥
     //
@@ -138,6 +144,41 @@ fn main() -> ExitCode {
     // With it the file is ALWAYS parsed as a Saṃpuṭa archive, so a wrong magic is S1; without
     // it a file is an archive only when its first four octets are "SMPT". An archive takes no
     // event log (refused below), so `--smp` sharing the one slot loses nothing.
+    // ॥ `--files DIR` GRANTS THE PROGRAM A FILE ROOT — v1.0.1 ॥
+    //
+    // Recognised ONLY as the very first argument (before `--events`, `--record-events`,
+    // `--smp` or the image), for the reason every flag here is: everything after the
+    // image is the program's. Without it `patra_root` stays `None` and every file request
+    // is REFUSED BY NAME (`Status::Refused`), as before. With it the program's file
+    // window reads and writes inside DIR only (`patra::resolve`: `..`, absolute paths and
+    // symlinks that leave DIR are refused). DIR is canonicalised HERE, and a missing or
+    // non-directory DIR refuses at load (exit 1), before anything runs. File requests are
+    // not events: they are not logged, so a replay (`--events`) re-reads DIR and needs
+    // `--files DIR` again. An archive (`--smp` or "SMPT") is refused with `--files` (64).
+    let (files_root, argv): (Option<std::path::PathBuf>, Vec<String>) =
+        if argv.get(1).map(String::as_str) == Some("--files") {
+            let Some(dir) = argv.get(2) else {
+                eprintln!("usage: yantra-run --files DIR [other flags] <program.elf> [args...]");
+                return ExitCode::FAILURE;
+            };
+            match std::fs::canonicalize(dir) {
+                Ok(c) if c.is_dir() => {
+                    let mut rest = vec![argv[0].clone()];
+                    rest.extend_from_slice(&argv[3..]);
+                    (Some(c), rest)
+                }
+                Ok(_) => {
+                    eprintln!("files: {dir}: not a directory (refused at load; nothing ran)");
+                    return ExitCode::FAILURE;
+                }
+                Err(e) => {
+                    eprintln!("files: {dir}: {e} (refused at load; nothing ran)");
+                    return ExitCode::FAILURE;
+                }
+            }
+        } else {
+            (None, argv)
+        };
     let (events_path, live, forced_smp, rest): (Option<&String>, bool, bool, &[String]) =
         match argv.get(1).map(String::as_str) {
             Some(flag @ ("--events" | "--record-events")) => match argv.get(2) {
@@ -188,9 +229,22 @@ fn main() -> ExitCode {
         eprintln!(
             "usage: yantra-run [--events <log> | --record-events <log> [--listen 127.0.0.1:PORT]] \
              <program.elf> [args...]\n\
+             \x20      yantra-run --files DIR [the forms above]   (grants a file root)\n\
              \x20      yantra-run [--smp] <archive.smp>\n\
              \x20      yantra-run --version   (only as the SOLE argument; prints on STDERR)\n\
              \x20      yantra-run --source-stamp   (the same; the content stamp, W-381)\n\
+             \n\
+             \x20--files DIR (v1.0.1), only as the FIRST argument, grants the program a file\n\
+             \x20root: its file window (patra) reads and writes inside DIR and nowhere else\n\
+             \x20(`..`, absolute paths and symlinks leaving DIR are refused). DIR must be an\n\
+             \x20existing directory or the run refuses at load (exit 1). Without the flag\n\
+             \x20every file request is refused by name. File requests are not logged as\n\
+             \x20events: a replay needs --files DIR again, and a log RECORDED under --files\n\
+             \x20says so in a `# yantra-run --files` header line, so replaying it without the\n\
+             \x20flag refuses at load. Not allowed with an archive (64).\n\
+             \x20THREAT MODEL: DIR must not be concurrently writable by an untrusted party\n\
+             \x20(path swaps and hard links between check and open are not detected; on unix\n\
+             \x20a write also refuses to follow a symlink at the file itself).\n\
              \n\
              \x20--events <log> REPLAYS a recorded event log (W-371): at each WAIT the\n\
              \x20next record is written into the word after the image's SASEVENT tag\n\
@@ -292,6 +346,13 @@ fn main() -> ExitCode {
             eprintln!(
                 "smp: {path}: REFUSED — {flag} feeds data into the program, and nothing but the \
                  payload and the input name reaches an archive's decoder (nothing ran)"
+            );
+            return ExitCode::from(64);
+        }
+        if files_root.is_some() {
+            eprintln!(
+                "smp: {path}: REFUSED — --files grants a file root, and nothing but the payload \
+                 and the input name reaches an archive's decoder (nothing ran)"
             );
             return ExitCode::from(64);
         }
@@ -419,6 +480,7 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+    m.patra_root = files_root.clone();
     // THE SCREEN (`W-378`): `YANTRA_SCANOUT=<path>` is where the virtio-gpu device writes
     // scanout 0 as a PPM on each RESOURCE_FLUSH of the resource it shows — overwritten
     // each time, so the file is the last frame. Unset, nothing is written. An environment
@@ -463,6 +525,20 @@ fn main() -> ExitCode {
     // A socket run is `--listen`, or a replay whose log's FIRST RECORD starts `s=`
     // (addendum §2). Decided here, before the threads, because a threaded image with a
     // socket is refused at load in this row (§3, owner ruling Q6).
+    // A LOG RECORDED UNDER `--files` IS REPLAYED UNDER `--files` (v1.0.1): the program's
+    // file reads are not in the log, so a replay with no root would run a different
+    // program. Refused at load, by name, before anything runs.
+    if !live
+        && files_root.is_none()
+        && let Some(log) = events_path
+        && std::fs::read_to_string(log).is_ok_and(|t| t.lines().any(|l| l == FILES_GRANT_LINE))
+    {
+        eprintln!(
+            "events: refused — the log {log:?} was recorded with --files (a file root was \
+             granted) and this replay has none; pass --files DIR (nothing ran)"
+        );
+        return ExitCode::FAILURE;
+    }
     let socket_mode = listen.is_some()
         || (!live
             && events_path
@@ -654,6 +730,18 @@ fn main() -> ExitCode {
         },
         _ => None,
     };
+    // The grant is recorded in the header of a non-socket log; a socket log writes it
+    // itself after its own header (`serve_live`), because that header must stay first.
+    if let Some(log) = live_log.as_mut()
+        && files_root.is_some()
+        && !socket_mode
+    {
+        use std::io::Write;
+        if let Err(e) = writeln!(log, "{FILES_GRANT_LINE}").and_then(|()| log.flush()) {
+            eprintln!("events: refused — cannot write the live log header: {e}");
+            return ExitCode::FAILURE;
+        }
+    }
     // THE INPUT CHANNEL (`yantra::input`) — a file placed in RAM before the
     // first instruction, for a program that declares the interface. No new
     // `ecall`: the machine still answers exactly two. `YANTRA_INPUT` is the file,
@@ -791,7 +879,8 @@ fn main() -> ExitCode {
             let tag = socket_tag.expect("guarded");
             match (listener.take(), live_log.as_mut()) {
                 (Some(l), Some(log)) => {
-                    let (end, delivered) = serve_live(&mut m, tag, l, steps, &mut sink, log);
+                    let (end, delivered) =
+                        serve_live(&mut m, tag, l, steps, &mut sink, log, files_root.is_some());
                     socket_delivered = delivered;
                     match end {
                         Ok(halt) => {
@@ -1280,13 +1369,23 @@ fn serve_live(
     steps: u64,
     sink: &mut Sink,
     log: &mut impl std::io::Write,
+    granted_files: bool,
 ) -> (Result<Halt, (String, Halt)>, usize) {
     use std::io::Read;
     let idle = core::time::Duration::from_secs(IDLE_SECONDS);
     let start = m.time;
     let mut delivered = 0;
     let io = |e: std::io::Error| format!("writing the socket log: {e}");
-    if let Err(e) = writeln!(log, "{}", socket::SOCKET_LOG_HEADER).and_then(|()| log.flush()) {
+    if let Err(e) = writeln!(log, "{}", socket::SOCKET_LOG_HEADER)
+        .and_then(|()| {
+            if granted_files {
+                writeln!(log, "{FILES_GRANT_LINE}")
+            } else {
+                Ok(())
+            }
+        })
+        .and_then(|()| log.flush())
+    {
         return (Err((io(e), Halt::Wait { pc: m.pc })), 0);
     }
     let mut reader: Option<std::net::TcpStream> = None;

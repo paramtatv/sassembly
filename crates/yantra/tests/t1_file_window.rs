@@ -239,3 +239,122 @@ fn a_file_larger_than_the_buffer_is_refused_rather_than_truncated() {
 
     std::fs::remove_dir_all(&dir).ok();
 }
+
+// ── v1.0.1 PATH SAFETY, ONE TEST PER ESCAPE ────────────────────────────────────
+//
+// `--files DIR` makes the window reachable, so each way out of DIR is pinned here
+// with a SECRET OUTSIDE THE ROOT that really exists: a refusal must be `Refused`,
+// not `NotFound`, and the secret must be untouched (a test that targets a missing
+// file passes when the check is absent).
+
+fn fresh(tag: &str) -> std::path::PathBuf {
+    let base = std::env::temp_dir().join(format!(
+        "patra-{tag}-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("a clock after 1970")
+            .as_nanos()
+    ));
+    std::fs::create_dir_all(base.join("root")).expect("temp dir");
+    std::fs::write(base.join("secret.txt"), b"SECRET").expect("secret");
+    std::fs::write(base.join("root/inside.txt"), b"ok").expect("inside");
+    base
+}
+
+fn read_status(base: &std::path::Path, path: &str) -> Status {
+    let mut mem = ram(0x1000);
+    let r = lay_out(&mut mem, path, 64);
+    let root = base.join("root");
+    patra::serve(&mut mem, BASE, r.path, r.buffer, r.status, Some(&root))
+}
+
+fn write_status(base: &std::path::Path, path: &str, body: &[u8]) -> Status {
+    let mut mem = ram(0x1000);
+    let r = lay_out(&mut mem, path, body.len() as u64);
+    let off = (r.buffer - BASE) as usize;
+    mem[off..off + body.len()].copy_from_slice(body);
+    let root = base.join("root");
+    patra::put(&mut mem, BASE, r.path, r.buffer, r.status, Some(&root))
+}
+
+#[test]
+fn control_a_file_inside_the_root_reads_and_a_write_lands() {
+    let b = fresh("ctl");
+    assert_eq!(read_status(&b, "inside.txt"), Status::Read(2));
+    assert_eq!(write_status(&b, "new.txt", b"hi"), Status::Wrote(2));
+    assert_eq!(std::fs::read(b.join("root/new.txt")).unwrap(), b"hi");
+    std::fs::remove_dir_all(&b).ok();
+}
+
+#[test]
+fn dotdot_to_a_real_file_outside_is_refused_for_read_and_write() {
+    let b = fresh("dd");
+    assert_eq!(read_status(&b, "../secret.txt"), Status::Refused);
+    assert_eq!(read_status(&b, "sub/../../secret.txt"), Status::NotFound);
+    std::fs::create_dir_all(b.join("root/sub")).unwrap();
+    assert_eq!(read_status(&b, "sub/../../secret.txt"), Status::Refused);
+    assert_eq!(write_status(&b, "../secret.txt", b"X"), Status::Refused);
+    assert_eq!(write_status(&b, "../new.txt", b"X"), Status::Refused);
+    assert_eq!(std::fs::read(b.join("secret.txt")).unwrap(), b"SECRET");
+    assert!(!b.join("new.txt").exists());
+    std::fs::remove_dir_all(&b).ok();
+}
+
+#[test]
+fn an_absolute_path_is_refused_even_when_it_names_a_file_inside_the_root() {
+    let b = fresh("abs");
+    let outside = b.join("secret.txt");
+    let inside = b.join("root/inside.txt");
+    assert_eq!(read_status(&b, outside.to_str().unwrap()), Status::Refused);
+    assert_eq!(read_status(&b, inside.to_str().unwrap()), Status::Refused);
+    assert_eq!(
+        write_status(&b, outside.to_str().unwrap(), b"X"),
+        Status::Refused
+    );
+    assert_eq!(std::fs::read(&outside).unwrap(), b"SECRET");
+    std::fs::remove_dir_all(&b).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlink_inside_the_root_pointing_outside_is_refused() {
+    let b = fresh("ln");
+    std::os::unix::fs::symlink(b.join("secret.txt"), b.join("root/link.txt")).unwrap();
+    assert_eq!(read_status(&b, "link.txt"), Status::Refused);
+    // THE WRITE THROUGH THE LEAF LINK: `fs::write` follows it, so without the leaf check
+    // this overwrites the secret.
+    assert_eq!(write_status(&b, "link.txt", b"X"), Status::Refused);
+    assert_eq!(std::fs::read(b.join("secret.txt")).unwrap(), b"SECRET");
+    // A DANGLING link cannot be shown to stay inside, so a write is refused too.
+    std::os::unix::fs::symlink(b.join("nowhere.txt"), b.join("root/dangling.txt")).unwrap();
+    assert_eq!(write_status(&b, "dangling.txt", b"X"), Status::Refused);
+    assert!(!b.join("nowhere.txt").exists());
+    // CONTROL: a link that stays inside is fine.
+    std::os::unix::fs::symlink(b.join("root/inside.txt"), b.join("root/ok.txt")).unwrap();
+    assert_eq!(read_status(&b, "ok.txt"), Status::Read(2));
+    std::fs::remove_dir_all(&b).ok();
+}
+
+#[cfg(unix)]
+#[test]
+fn a_symlinked_parent_directory_pointing_outside_is_refused() {
+    let b = fresh("lp");
+    std::fs::create_dir_all(b.join("outdir")).unwrap();
+    std::fs::write(b.join("outdir/x.txt"), b"OUT").unwrap();
+    std::os::unix::fs::symlink(b.join("outdir"), b.join("root/dir")).unwrap();
+    assert_eq!(read_status(&b, "dir/x.txt"), Status::Refused);
+    assert_eq!(write_status(&b, "dir/x.txt", b"X"), Status::Refused);
+    assert_eq!(write_status(&b, "dir/new.txt", b"X"), Status::Refused);
+    assert_eq!(std::fs::read(b.join("outdir/x.txt")).unwrap(), b"OUT");
+    assert!(!b.join("outdir/new.txt").exists());
+    std::fs::remove_dir_all(&b).ok();
+}
+
+#[test]
+fn a_non_utf8_or_empty_path_is_not_a_way_out() {
+    let b = fresh("odd");
+    assert_ne!(read_status(&b, ""), Status::Read(2));
+    assert_eq!(read_status(&b, "/"), Status::Refused);
+    std::fs::remove_dir_all(&b).ok();
+}

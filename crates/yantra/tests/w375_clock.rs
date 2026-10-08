@@ -378,3 +378,65 @@ fn a_program_that_never_waits_gets_no_time_value() {
         text.unwrap_or_else(|| panic!("live mode writes its log even with no waits:\n{err}"));
     assert!(logged_times(&text).is_empty(), "no record:\n{text}");
 }
+
+/// v1.0.1: the FACT of a `--files` grant is recorded in the log header, and a replay
+/// without `--files` refuses at load, by name. The program here has the event interface.
+#[test]
+fn a_log_recorded_with_files_refuses_a_replay_without_the_flag() {
+    let dir = scratch("files");
+    let root = dir.join("root");
+    std::fs::create_dir_all(&root).unwrap();
+    let image = dir.join("clock.elf");
+    std::fs::write(&image, kosha::write(&program(2))).unwrap();
+    let log = dir.join("granted.log");
+    let go = |args: &[&std::ffi::OsStr]| {
+        Command::new(env!("CARGO_BIN_EXE_yantra-run"))
+            .args(args)
+            .output()
+            .expect("yantra-run runs")
+    };
+    let os = std::ffi::OsStr::new;
+    let rec = go(&[
+        os("--files"),
+        root.as_os_str(),
+        os("--record-events"),
+        log.as_os_str(),
+        image.as_os_str(),
+    ]);
+    assert_eq!(rec.status.code(), Some(0), "{}", stderr(&rec));
+    let text = std::fs::read_to_string(&log).unwrap();
+    assert!(
+        text.lines().any(|l| l.starts_with("# yantra-run --files")),
+        "the header does not say a root was granted:\n{text}"
+    );
+    assert_eq!(
+        logged_times(&text).len(),
+        2,
+        "the grant line disturbed the records"
+    );
+    // REPLAY WITHOUT THE FLAG: refused loudly, nothing ran.
+    let bad = go(&[os("--events"), log.as_os_str(), image.as_os_str()]);
+    let err = stderr(&bad);
+    assert_eq!(bad.status.code(), Some(1), "{err}");
+    assert!(err.contains("recorded with --files"), "{err}");
+    assert!(!err.contains("halt:"), "it ran:\n{err}");
+    // REPLAY WITH IT: the same values, count and digest as the recording.
+    let ok = go(&[
+        os("--files"),
+        root.as_os_str(),
+        os("--events"),
+        log.as_os_str(),
+        image.as_os_str(),
+    ]);
+    assert_eq!(ok.status.code(), Some(0), "{}", stderr(&ok));
+    assert_eq!(printed(&ok), printed(&rec));
+    assert_eq!(retired(&ok), retired(&rec));
+    // CONTROL: a log recorded WITHOUT the flag has no grant line and replays without it.
+    let plain = dir.join("plain.log");
+    let rec2 = go(&[os("--record-events"), plain.as_os_str(), image.as_os_str()]);
+    assert_eq!(rec2.status.code(), Some(0));
+    assert!(!std::fs::read_to_string(&plain).unwrap().contains("--files"));
+    let ok2 = go(&[os("--events"), plain.as_os_str(), image.as_os_str()]);
+    assert_eq!(ok2.status.code(), Some(0), "{}", stderr(&ok2));
+    let _ = std::fs::remove_dir_all(&dir);
+}

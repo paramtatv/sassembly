@@ -159,6 +159,8 @@ const DIAGNOSTIC_PREFIXES: &[&str] = &[
     "SURFACE: ",
     "note: ",
     "usage: ",
+    // `yantra-run --files DIR` refusing a missing or non-directory DIR at load (v1.0.1).
+    "files: ",
     // `yantra-run.rs`, always on: "steps: {} executed instructions" — the
     // benchmark metric row `T-102` ratified. Enrolled in the same commit that
     // added it, because the margin below already recorded `ram: high water`
