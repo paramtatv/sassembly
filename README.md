@@ -42,6 +42,255 @@ itself.
 > [What this cannot do](#what-this-cannot-do), which is deliberately placed
 > before the tutorial.
 
+## Install
+
+Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembler) and `yantra-run` (the RV64 machine). They are attached to the
+[v1.0.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.0).
+
+| OS | tarball | sha256 |
+|---|---|---|
+| Linux x86-64 | [`sassembly-v1.0.0-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-linux-x86_64.tar.gz) | `3795461fc56616f7bcc7614aa82045847a14b52631c7ff9c993b32b34f8a11ff` |
+| Linux aarch64 | [`sassembly-v1.0.0-linux-aarch64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-linux-aarch64.tar.gz) | `500ebcfeac31cce9e23bcb6d011852977afd2d08609792589b307d6f6c6a5a59` |
+| macOS arm64 (Apple silicon) | [`sassembly-v1.0.0-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.0/sassembly-v1.0.0-macos-arm64.tar.gz) | `699b067a23c4064f93e8650e8bf70a94b5d3718773cefcadaebcdda6b6b95775` |
+| macOS x86-64 | no binary published | [build from source](#build-from-source-rust) |
+| Windows | no binary published | [build from source](#build-from-source-rust) |
+
+The sha256s are those in the release's `SHA256SUMS-binaries`. Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64` or `macos-arm64`.
+
+```sh
+V=v1.0.0; T=sassembly-$V-OS_ARCH.tar.gz
+gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-binaries -p sassembly-$V-stage1.elf -p SHA256SUMS
+# verify (Linux: sha256sum; macOS: shasum -a 256)
+grep " $T\$" SHA256SUMS-binaries | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
+grep stage1 SHA256SUMS | sha256sum -c -
+tar xzf $T && mkdir -p ~/.local/bin && cp sassembly-$V-OS_ARCH/{sadhana,yantra-run} ~/.local/bin/
+export PATH="$HOME/.local/bin:$PATH"      # add to ~/.profile or ~/.zshrc
+# macOS only, if Gatekeeper blocks the binaries (downloaded via a browser):
+xattr -d com.apple.quarantine ~/.local/bin/sadhana ~/.local/bin/yantra-run
+```
+
+Then run a `.sas` program with `sadhana prog.sas prog.elf && yantra-run prog.elf`. A `.t1` program is compiled by `sassembly-v1.0.0-stage1.elf`: the next section shows both, step by step.
+
+`yantra-run` exits non-zero whenever the program's halt status is non-zero; that is a report, not a failure of the tool.
+
+---
+
+## Write your first program in Sanskrit
+
+Sassembly has two layers. **`.sas`** is the assembler form (T0): one instruction per line, operands marked by kāraka sigils. **`.t1`** is the systems language (T1): routines, loops, arrays, modules. Everything below was run on **v1.0.0**; the outputs are real.
+
+Two facts first.
+
+* **The prebuilt `sadhana` assembles `.sas` only.** A `.t1` is compiled by `sassembly-v1.0.0-stage1.elf`, the self-hosted compiler, run on `yantra-run`. That image has a **fixed entry**: your source must be module `शृङ्खला` with routine `स्वपरीक्षास्वप्रतिबिम्बम्`. Building from source with `t1_image` lets you name any module and routine instead.
+* **`yantra-run` exits 1 whenever the program's halt status is not 0.** That is a report, not a tool failure: compiling with `stage1.elf` ends with status `1200` (BUILT), so it always exits 1; your own program returns the status you give it.
+
+### 0. Get the tools
+
+**Release assets (no Rust).** From <https://github.com/paramtatv/sassembly/releases/tag/v1.0.0> download `sassembly-v1.0.0-stage1.elf`, `SHA256SUMS`, and the tarball for your machine (`sassembly-v1.0.0-linux-x86_64.tar.gz`, `-linux-aarch64`, or `-macos-arm64`) with `SHA256SUMS-binaries`. Check and unpack:
+
+```console
+$ grep -F sassembly-v1.0.0-stage1.elf SHA256SUMS | sha256sum -c -
+sassembly-v1.0.0-stage1.elf: OK
+$ grep -F sassembly-v1.0.0-linux-x86_64.tar.gz SHA256SUMS-binaries | sha256sum -c -
+sassembly-v1.0.0-linux-x86_64.tar.gz: OK
+```
+
+(macOS: `shasum -a 256 -c -` in place of `sha256sum -c -`.) The tarball holds `sadhana` and `yantra-run`.
+
+**From source.** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.0 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
+
+### 1. The smallest program, in `.t1`
+
+Save as `शृङ्खला.t1`. It prints a message one octet at a time and returns 0.
+
+```
+मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  The routine's name is fixed by stage1.elf.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति
+```
+
+Compile and run with the release assets (from the unpacked tarball directory, with `sassembly-v1.0.0-stage1.elf` copied beside the binaries):
+
+```console
+$ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf > sink
+[exit status 1]
+halt: Finisher { status: Some(1200) }
+$ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
+$ ./yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+नमस्ते संसार
+[exit status 0]
+```
+
+`1200` means built. The ELF is the `sink` file minus one octet at each end; that is what the `dd` line cuts out.
+
+### 2. A loop and an array, in `.t1`
+
+Save as `शृङ्खला.t1` (a new directory). It puts the squares of 1 to 8 into a growing array, then walks the array, printing and summing.
+
+```
+मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a number in decimal: the leading digits first (recursion), then the last one.
+वृत्तिः अङ्कमुद्रणम् आदाय मान ॱॱ न६४ ददाति न६४ आदि
+    यदि मान अधिकम् ९ आदि
+        चरः अग्रिम ॱॱ न६४ भवति मान विभाजनम् १० ।
+        चरः क ॱॱ न६४ भवति अङ्कमुद्रणम् अग्रिम ।
+    इति
+    चरः अन्तिम ॱॱ न६४ भवति मान शेषः १० ।
+    चरः कोड ॱॱ न६४ भवति ४८ योगः अन्तिम ।
+    चरः ख ॱॱ न६४ भवति अष्टकॱमुद्रणम् कोड ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Squares of 1..8 go into a growing array; then the array is walked and summed.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् ९ आदि
+        चरः वर्ग ॱॱ न६४ भवति क्रमः गुणनम् क्रमः ।
+        सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति वर्ग ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः सञ्चयः ॱॱ न६४ भवति ० ।
+    चरः सूचक ॱॱ न६४ भवति ० ।
+    यावत् सूचक न्यूनम् सूची ॱ दैर्घ्य आदि
+        चरः मान ॱॱ न६४ भवति सूची अङ्कः सूचक अन्तः ।
+        चरः ख ॱॱ न६४ भवति अङ्कमुद्रणम् मान ।
+        चरः विराम ॱॱ न६४ भवति अष्टकॱमुद्रणम् ३२ ।
+        सञ्चयः भवति सञ्चयः योगः मान ।
+        सूचक भवति सूचक योगः १ ।
+    इति
+    चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् ६१ ।
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् ३२ ।
+    चरः ङ ॱॱ न६४ भवति अङ्कमुद्रणम् सञ्चयः ।
+    चरः च ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति
+```
+
+```console
+$ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf > sink
+[exit status 1]
+halt: Finisher { status: Some(1200) }
+$ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
+$ ./yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+1 4 9 16 25 36 49 64 = 204
+[exit status 0]
+```
+
+### 3. The same idea in `.sas`
+
+`.sas` is assembled by `sadhana`, no compiler image needed. Save as `namaste.sas` (it is `spec/namaste.sas` in the repository). It loops over a string of octets and writes each to the console.
+
+```
+॰ नमस्ते — पहला देवनागरी कार्यक्रम जो धातु पर बोलता है
+॰
+॰ सन्देश दत्त-कोष्ठक में है; यह उसे एक-एक अष्टक करके UART को लिखता है।
+॰ QEMU virt का UART ०x10000000 पर, समापक ०x100000 पर।
+
+॰ UART का पता
+उपरिभारः क्षणिक०म् ०षोड्१००००न ।
+
+॰ सन्देश का पता, स्थान-सापेक्ष
+स्थानसापेक्षयोगः क्षणिक१म् सन्देशःॱउपरिन ।
+योगः क्षणिक१म् क्षणिक१न सन्देशःॱअधःन ।
+
+मुद्रणम्ॱॱ
+आहारःॱअ८ क्षणिक२म् क्षणिक१त् ०न ।
+समलङ्घनम् क्षणिक२न शून्यःत् समाप्तिःय् ।
+निधानम्ॱअ८ क्षणिक०य् ०न क्षणिक२न ।
+योगः क्षणिक१म् क्षणिक१न १न ।
+लङ्घनम् शून्यःम् मुद्रणम्य् ।
+
+समाप्तिःॱॱ
+॰ समापक को ०x5555 — निकास ०
+उपरिभारः क्षणिक४म् ०षोड्१००न ।
+उपरिभारः क्षणिक५म् ०षोड्५न ।
+योगः क्षणिक५म् क्षणिक५न ०षोड्५५५न ।
+निधानम्ॱअ३२ क्षणिक४य् ०न क्षणिक५न ।
+
+चक्रःॱॱ
+लङ्घनम् शून्यःम् चक्रःय् ।
+
+॥ कोष्ठकम् ॱदत्त ॥
+सन्देशःॱॱ
+॥ अष्टकाः उक्तम् नमस्ते संसार इति ॥
+॥ अष्टकाः १० ० ॥
+```
+
+```console
+$ ./sadhana namaste.sas namaste.elf
+namaste.elf: 1 file(s) assembled, entry 0x80000000
+$ ./yantra-run namaste.elf
+नमस्ते संसार
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 184 executed instructions
+```
+
+### 4. From source
+
+With the cargo-built binaries the commands above work unchanged (`target/release/yantra-run` in place of `./yantra-run`). `t1_image` is the faster route when you build from source, because the entry is yours to name. Save this as `नमस्कारः.t1`:
+
+```
+मण्डलम् नमस्कारः ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  Here the entry is the one you name to t1_image.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति
+```
+
+```console
+$ target/release/sadhana spec/namaste.sas namaste.elf
+namaste.elf: 1 file(s) assembled, entry 0x80000000
+$ target/release/yantra-run namaste.elf
+नमस्ते संसार
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 184 executed instructions
+$ target/release/t1_image --compiler crates/sadhana-t1/src --load नमस्कारः.t1 --entry नमस्कारः मुख्यम् -o prog.elf नमस्कारः.t1
+[exit status 0]
+build:    0 source(s) failed to compile, 2 object(s) linked (startup included)
+steps:    36157967
+predict:  finished, status 0; 35 octet(s) printed
+write:    634 octets of ELF -> prog.elf
+$ target/release/yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+नमस्ते संसार
+[exit status 0]
+```
+
+The build also interprets your program and compares it with the native run (`predict: finished, status 0`), and refuses the image if they disagree.
+
+### Where next
+
+The larger worked examples (audio, image, protein, video) are at <https://paramtatv.github.io/sassembly/learn.html>.
+
+---
+
 ### At a glance
 
 | | |
@@ -55,6 +304,7 @@ itself.
 
 ### Contents
 
+0. [Install](#install) · [Write your first program in Sanskrit](#write-your-first-program-in-sanskrit)
 1. [The claim, and how to check it](#the-claim-and-how-to-check-it)
 2. [What is new since v0.4.0](#what-is-new-since-v040)
 3. [What this cannot do](#what-this-cannot-do)
@@ -68,6 +318,7 @@ itself.
 11. [Status and stability](#status-and-stability)
 12. [The study group](#the-study-group)
 13. [Licence](#licence)
+14. [Build from source (Rust)](#build-from-source-rust) · [Networking](#networking)
 
 ---
 
@@ -112,10 +363,9 @@ byte of any source or spec table differs.
 | image size | **922,146 octets** (v0.4.0: 1,399,434) |
 | sources | **21** `.t1` files, 46,794 lines |
 
-Reproduce it:
+Reproduce it (needs the Rust build in [Build from source](#build-from-source-rust)):
 
 ```sh
-cargo build --release -p sadhana -p yantra   # builds t1_image and yantra-run
 tools/fixpoint.sh
 ```
 
@@ -199,30 +449,10 @@ assumption that a general-purpose toolchain comes with it. It does not.
 | **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it | — |
 
 These are `yantra` features: the device windows are part of the emulator, and
-the same program on bare metal has none of them. The question of how a program
-that cannot wait could use a network is recorded in
-[WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040), which is kept as the
-history of that question. The clock, thread and socket rows follow its option
-of delivering outside events only at an explicit wait.
-
----|---|
-| **name or open a file** | no |
-| **write a file** | no |
-| **command-line arguments** | no |
-| **network, sockets, servers** | no — and *undesigned*, not merely unbuilt |
-| **threads, concurrency** | no |
-| **clock** | no |
-| **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it |
-
-Networking is the one that is not a matter of effort. **Nothing in the language
-can express "not yet."** A file read has two outcomes, a byte or the end; a
-socket read has three, and the third has no representation — no sentinel, no
-blocking call, no way to yield. `ecall` appears **zero** times as something a
-program can emit. Before a socket device can exist, someone has to decide
-whether a Sassembly program may be *suspended at all* — and every measurement
-this project owns is shaped as "run it and read the status", which assumes a run
-that ends. [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040)
-records the question and the two candidate answers, and adopts neither.
+the same program on bare metal has none of them. What the clock, thread and socket windows do, and do not do, is set out in
+[NETWORKING.md](NETWORKING.md). The earlier question of how a program that
+cannot wait could use a network is kept as history in
+[WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040).
 
 ---
 
@@ -274,12 +504,7 @@ Both are instantiated with an **empty import object**. That is the claim rather
 than an omission: the page grants them no syscalls, no clock and no network,
 because there is nothing for them to ask for.
 
-Build the standalone page yourself — one self-contained file, no server:
-
-```sh
-rustup target add wasm32-unknown-unknown
-tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
-```
+Build the standalone page yourself, as one self-contained file with no server: see [Build from source](#build-from-source-rust).
 
 **Measured 2026-10-07 with `tools/build-sassembly-web.sh` on a Linux x86-64
 host, from this repository's tree:**
@@ -449,6 +674,12 @@ needs no new linker symbols.
 
 ---
 
+## Networking
+
+A program can serve one TCP client on the loopback interface under `yantra-run`, with every outside event recorded in a log that replays exactly. There is no TCP/IP stack, no TLS, DNS or HTTP. [NETWORKING.md](NETWORKING.md) states what exists, what does not, and a verified echo example under [`examples/networking/`](examples/networking/).
+
+---
+
 ## Verification
 
 ```sh
@@ -576,6 +807,26 @@ one.
 
 ---
 
+## Build from source (Rust)
+
+The prebuilt binaries above are enough to assemble, compile and run programs. To build the toolchain yourself, or to re-check the fixpoint, you need a Rust toolchain:
+
+```sh
+cargo build --release -p sadhana -p yantra   # builds sadhana, t1_image and yantra-run
+tools/fixpoint.sh                            # Stage 1, Stage 2, and the byte comparison
+```
+
+For the browser build of the assembler and the machine:
+
+```sh
+rustup target add wasm32-unknown-unknown
+tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
+```
+
+Once built, the Sanskrit programs in the quickstart run unchanged with `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`; `t1_image` lets you name your own module and entry routine. The test suite is `cargo test --workspace --release --no-fail-fast`; see [Verification](#verification) for what it measured.
+
+---
+
 ## Licence
 
 **MIT.** See [LICENSE](LICENSE).
@@ -590,6 +841,7 @@ fixpoint — and nothing else.
   <br>
   <a href="https://paramtatv.github.io/sassembly/">docs</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
+  <a href="NETWORKING.md">networking</a> ·
   <a href="WHY-NO-NETWORKING.md">ADR-0040</a> ·
   <a href="ANNOUNCEMENT-v1.0.0.md">v1.0.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·

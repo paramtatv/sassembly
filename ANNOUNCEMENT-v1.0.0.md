@@ -9,6 +9,11 @@ matrices, one integer meaning on every engine, a one-octet-per-letter data
 literal, a hashed symbol table in the linker, and the devices a program needs to
 talk to the outside world — files, threads, sockets and a 2D GPU.
 
+**Start here:** [Install](README.md#install) (prebuilt binaries for Linux x86-64,
+Linux aarch64 and macOS arm64, no Rust needed), then
+[Write your first program in Sanskrit](README.md#write-your-first-program-in-sanskrit),
+then [Networking](README.md#networking) ([NETWORKING.md](NETWORKING.md)).
+
 ## The claim, and how to check it yourself
 
 ```
@@ -70,8 +75,9 @@ never preempted. The fixpoint images are *checked* never to use these:
 `tools/fixpoint.sh` fails if Stage 2 touches the socket, reads the
 retired-instruction counter, or declares threads, because any of those would make
 Stage 2 a statement about its environment instead of its input. There is no TLS,
-DNS or HTTP. [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040) is kept as
-the record of the question these answer.
+DNS or HTTP. [NETWORKING.md](NETWORKING.md) states what exists and what does not, with a
+verified echo example; [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040) is
+kept as the record of the question these answer.
 
 ## Measured, in a fresh clone of this repository
 
@@ -139,6 +145,17 @@ sha256sum -c SHA256SUMS
 71d06d6649a861c1c6205c95a59fd362f48914b377c6ace9e612bef827415480  sassembly-v1.0.0-stage1.elf
 35bc530183591b96dd9a9eb84620dc23ceb37e285941d50f2545cfee47ce98ff  stage1.provenance.txt
 ```
+
+Prebuilt tarballs (`sadhana` and `yantra-run`, no Rust needed; see
+[Install](README.md#install)) are attached too, with `SHA256SUMS-binaries`:
+
+```
+500ebcfeac31cce9e23bcb6d011852977afd2d08609792589b307d6f6c6a5a59  sassembly-v1.0.0-linux-aarch64.tar.gz
+3795461fc56616f7bcc7614aa82045847a14b52631c7ff9c993b32b34f8a11ff  sassembly-v1.0.0-linux-x86_64.tar.gz
+699b067a23c4064f93e8650e8bf70a94b5d3718773cefcadaebcdda6b6b95775  sassembly-v1.0.0-macos-arm64.tar.gz
+```
+
+macOS x86-64 and Windows have no binary; build from source.
 
 To rebuild the image yourself from source instead of trusting it:
 
