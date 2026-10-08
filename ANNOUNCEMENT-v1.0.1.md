@@ -55,7 +55,7 @@ The prebuilt compiler still builds only module `शृङ्खला` with rout
 
 ## Assets
 
-Prebuilt binaries for Linux (x86-64, aarch64), macOS (arm64, x86-64) and Windows
+Prebuilt binaries for Linux x86-64, macOS (arm64, x86-64) and Windows
 (arm64, x86-64), plus `sassembly-v1.0.1-stage1.elf`. See the
 [README](README.md#install) for the checksums and [LIMITS.md](LIMITS.md) for what
-was verified. The Linux aarch64 build was cross-compiled and smoke-tested under qemu-aarch64 user-mode, not on aarch64 hardware. The v1.0.0 release stays available.
+was verified. linux-aarch64: coming once tested natively. The v1.0.0 release stays available.

@@ -51,13 +51,13 @@ Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembl
 | OS | archive | sha256 |
 |---|---|---|
 | Linux x86-64 | [`sassembly-v1.0.1-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-linux-x86_64.tar.gz) | `91caa09f6e02ca147fcbfca1af79c410124f890c0a946b1650af90b5aa7e2c46` |
-| Linux aarch64 | [`sassembly-v1.0.1-linux-aarch64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-linux-aarch64.tar.gz) | `7a7ccaf4a043ee457390e1db35f55a319d27b56c7f9386d50c20ee77772022bc` |
+| Linux aarch64 | coming once tested natively | n/a |
 | macOS arm64 (Apple silicon) | [`sassembly-v1.0.1-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-macos-arm64.tar.gz) | `dbc8c8c8688d159f48054940b63d68347304d1872340aa78a8267855ce013170` |
 | macOS x86-64 (Intel) | [`sassembly-v1.0.1-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-macos-x86_64.tar.gz) | `1794d227e19d2c748f0cf5a123cf4051e6c9b31699dc3e138af6f8f66a33cefb` |
 | Windows arm64 | [`sassembly-v1.0.1-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-windows-arm64.zip) | `9a256dc65c165a29964517d5e20a2a26ae8ce44fdbe16c8b5558b1d5d4295719` |
 | Windows x86-64 | [`sassembly-v1.0.1-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-windows-x86_64.zip) | `960788f913a255d98d98a473531633fb68dcb2cc933b201f72d416b43ce2edc7` |
 
-The sha256s are those in the release's `SHA256SUMS-v1.0.1`, which also covers `sassembly-v1.0.1-stage1.elf` (the same compiler image as v1.0.0, sha256 `71d06d66…15480`). The `linux-aarch64` build was cross-compiled and smoke-tested under qemu-aarch64 user-mode, not on aarch64 hardware. Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64`, `macos-arm64` or `macos-x86_64`.
+The sha256s are those in the release's `SHA256SUMS-v1.0.1`, which also covers `sassembly-v1.0.1-stage1.elf` (the same compiler image as v1.0.0, sha256 `71d06d66…15480`). linux-aarch64: coming once tested natively. Replace `OS_ARCH` below with `linux-x86_64`, `macos-arm64` or `macos-x86_64`.
 
 ```sh
 V=v1.0.1; T=sassembly-$V-OS_ARCH.tar.gz
@@ -708,18 +708,18 @@ cargo test --workspace --release --no-fail-fast
 ```
 
 **Measured 2026-10-08, on a Linux x86-64 host: 261 test binaries, 2,455 passed,
-54 failed, 68 ignored.**
+0 failed, 122 ignored.**
 
-All 54 failures are the same kind: a test that
-measures the *whole development repository* and so cannot run on this one. They
-read `research/` (the Unicode data files and design notes), `docs/adr`,
+54 of the ignored tests are marked `#[ignore = "needs ... not in the public repository"]`.
+Each measures the *whole development repository* and so cannot run on this one:
+it reads `research/` (the Unicode data files and design notes), `docs/adr`,
 `tests/corpus/`, `tests/levels/`, `fuzz/corpus/`, `BACKLOG.tsv`, a tree-sitter
-grammar crate, or they count every `.t1`/`.sas` file in a repository that has
-more of them than this one. None of those ship here. Nothing that fails is a test
-of the compiler, the machine or the fixpoint, and a failing test here says "the
-file is not in this repository", never "the answer is wrong". This is the same
-position as v0.3.0 and v0.4.0, which left 61 such failures; this release has 54
-and 2,455 passes (v0.4.0: 1,634; v1.0.0: 56 and 2,431).
+grammar crate, or counts every `.t1`/`.sas` file in a repository that has more of
+them than this one. None of those ship here. None of them tests the compiler, the
+machine or the fixpoint. The other 68 ignored tests were already ignored (slow or
+host-specific). `cargo test -- --ignored` runs them and shows each reason; in this
+repository the 54 will fail because the files are absent. Earlier releases left
+failures here: v0.3.0 and v0.4.0 left 61, v1.0.0 left 56 (v1.0.0: 2,431 passed).
 
 Two test groups from earlier releases are not in this repository at all because
 they depend on code that does not ship here: a test comparing two renderer types,
