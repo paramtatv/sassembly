@@ -418,7 +418,7 @@ Some(0) }`, 1,763 s.
 
 `v1.0.0` completes the language. For a reader new to the project, the short
 version is that a Sassembly program can now do arithmetic safely, use vectors,
-read and write files, and talk over a socket, and the compiler that makes all of
+read and write files (from a host that grants a root directory; see the note below), and talk over a socket, and the compiler that makes all of
 that possible still compiles itself to the same bytes.
 
 * **Vectors and matrices.** The RISC-V V extension runs in `yantra`, the compiler
@@ -435,7 +435,8 @@ that possible still compiles itself to the same bytes.
 * **Symbol lookup.** The linker keeps a hashed name table.
 * **The same answer everywhere.** One image executes the same instruction count on
   x86-64, on aarch64 and in the browser through `yantra-wasm`.
-* **Devices.** On `yantra`: a file window (`पत्रम्`) that reads and writes,
+* **Devices.** On `yantra`: a file window (`पत्रम्`) that reads and writes **only when the host grants a root directory** —
+  the release `yantra-run` grants none, so it refuses every file request (a fix is proposed for v1.0.1),
   command-line arguments, a clock and a socket delivered at waits, cooperative
   threads, and virtio-gpu 2D. The fixpoint script refuses any compiler image that touches the
   socket, reads the retired-instruction counter or declares threads, so none of
@@ -455,8 +456,8 @@ assumption that a general-purpose toolchain comes with it. It does not.
 
 | capability | available today | shown by |
 |---|---|---|
-| **open and read a named file** | yes, on `yantra`, through the file window (`पत्रम्`), under a root directory the host grants; a path that escapes the root is refused | `t1_file_end_to_end.rs`: `a_sassembly_program_reads_a_file_it_named`; `t1_file_window.rs`: `the_window_refuses_a_path_that_escapes_its_root_and_says_so` |
-| **write a file** | yes, same window, `PATRA_PUT` | `t1_file_end_to_end.rs`: `a_sassembly_program_writes_a_file_and_reads_it_back` |
+| **open and read a named file** | **not with the release `yantra-run`**: it grants no root directory, so every file request is refused (a fix is proposed for v1.0.1). It works when `yantra` is used as a library with a root (`Machine.patra_root`); a path that escapes the root is refused | `t1_file_end_to_end.rs`: `a_sassembly_program_reads_a_file_it_named` (library, with a root) and `without_a_root_the_same_program_is_refused_and_says_so`; `t1_file_window.rs`: `the_window_refuses_a_path_that_escapes_its_root_and_says_so` |
+| **write a file** | **not with the release `yantra-run`**, same cause; the same window (`PATRA_PUT`) writes when a library caller grants a root | `t1_file_end_to_end.rs`: `a_sassembly_program_writes_a_file_and_reads_it_back` (library, with a root) |
 | **command-line arguments** | yes, on `yantra-run`; an image that does not declare the argument globals is refused | `t1_arguments.rs`: `a_program_reads_the_arguments_it_was_given`, `the_binary_hands_a_program_its_command_line` |
 | **clock** | yes, but only as a value delivered at a wait and recorded in an event log, so a run can be replayed exactly | `w375_clock.rs` |
 | **threads** | cooperative only: the host switches threads at waits and never preempts; the schedule is in the event log | `w376_threads.rs` |
@@ -484,14 +485,13 @@ be checked rather than taken:
 | **read the input it was given** | `status: Some(2289)`, the exact octet sum of a 25-byte file | [`t1_user_input_interface.rs`](crates/yantra/tests/t1_user_input_interface.rs) |
 | **allocate dynamically** | a run grown to 5,000 elements and summed | [`t1_user_allocation.rs`](crates/yantra/tests/t1_user_allocation.rs) |
 | **print to the console** | `HI!\n`, asserted from **both** engines | [`t1_user_console.rs`](crates/yantra/tests/t1_user_console.rs) |
-| return a result | the finisher status — **sixteen bits** | — |
+| return a result | the finisher status — **48 bits** (the finisher word above its low 16 bits) | a run: status `281474976710652` = 2^48 − 4 |
 
 Two footnotes that will otherwise cost you an afternoon:
 
 > [!CAUTION]
-> **The status is sixteen bits.** A correct answer above 65535 looks like
-> garbage. Compare modulo 65536 before concluding anything is broken: a fixture
-> summing 0..4999 = 12,497,500 reports 45,660, and that is right.
+> **The status is 48 bits.** It is the finisher word shifted right by 16, so an answer up to
+> 2^48 − 1 comes back exactly; the low 16 bits of the word are the pass/fail code (`0x5555`, `0x3333`).
 
 > [!NOTE]
 > **"Reading input" is not a file API.** The host writes the file's octets *into
