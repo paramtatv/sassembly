@@ -710,7 +710,7 @@ cargo test --workspace --release --no-fail-fast
 **Measured 2026-10-08, on a Linux x86-64 host: 261 test binaries, 2,455 passed,
 0 failed, 122 ignored.**
 
-54 of the ignored tests are marked `#[ignore = "needs ... not in the public repository"]`.
+54 of the ignored tests are marked `#[ignore = "census: needs ... not in the public repository"]`.
 Each measures the *whole development repository* and so cannot run on this one:
 it reads `research/` (the Unicode data files and design notes), `docs/adr`,
 `tests/corpus/`, `tests/levels/`, `fuzz/corpus/`, `BACKLOG.tsv`, a tree-sitter
