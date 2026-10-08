@@ -667,7 +667,7 @@ fn observed_abi(c: &Census) -> BTreeSet<String> {
 /// is one the corpus touches. Registers the doc names outside the convention
 /// and the corpus never touches are reported, not refused.
 #[test]
-#[ignore = "needs research/02 (the design notes) not in the public repository"]
+#[ignore = "blocked: needs research/02 (the design notes) not in the public repository"]
 fn every_register_doc_02_gives_a_convention_role_is_observed_in_the_corpus() {
     let numbers = register_numbers();
     let doc = doc_02();
@@ -711,7 +711,7 @@ fn every_register_doc_02_gives_a_convention_role_is_observed_in_the_corpus() {
 /// `doc 02 §2.4 names no register for the ecall number; the census observes a7
 /// written last before the ecall at 170 of 175 sites (row 2.4.4 open)`.
 #[test]
-#[ignore = "needs research/02 (the design notes) not in the public repository"]
+#[ignore = "blocked: needs research/02 (the design notes) not in the public repository"]
 fn the_ecall_number_register_doc_02_names_is_the_one_the_census_observes() {
     let c = census();
     let names = abi_names();

@@ -743,7 +743,7 @@ fn ebnf_terminals() -> Vec<String> {
 /// The version this replaces would have failed on `समर्पय`, which is in none of
 /// the three and occurs nowhere else in the repository.
 #[test]
-#[ignore = "needs crates/tree-sitter-t1 (the tree-sitter grammar) not in the public repository"]
+#[ignore = "blocked: needs crates/tree-sitter-t1 (the tree-sitter grammar) not in the public repository"]
 fn the_tree_sitter_grammar_speaks_the_corpus_dialect() {
     let c = census();
     let terminals = ebnf_terminals();

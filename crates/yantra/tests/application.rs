@@ -416,7 +416,7 @@ fn exactly_one_program_is_an_application() {
 /// Every clause the table names is a clause the ADR defines. This is the join that keeps
 /// the table and the definition from drifting apart in either direction.
 #[test]
-#[ignore = "needs docs/adr (the design records) not in the public repository"]
+#[ignore = "blocked: needs docs/adr (the design records) not in the public repository"]
 fn every_clause_the_table_names_is_defined_by_the_adr() {
     let adr = std::fs::read_to_string(
         root().join("docs/adr/0015-an-application-is-a-u-mode-program-with-an-environment.md"),

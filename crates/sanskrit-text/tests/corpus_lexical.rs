@@ -73,7 +73,7 @@ const SYNTAX_SIGNS: &[char] = &[
 ];
 
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn every_program_passes_the_repertoire_gate() {
     let mut bad = Vec::new();
     for (name, src) in programs() {
@@ -93,7 +93,7 @@ fn every_program_passes_the_repertoire_gate() {
 }
 
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn every_program_is_nfc() {
     for (name, src) in programs() {
         assert!(is_nfc(&src), "{name} is not in NFC (doc 01 D-01-B)");
@@ -101,7 +101,7 @@ fn every_program_is_nfc() {
 }
 
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn every_program_segments_cleanly() {
     for (name, src) in programs() {
         let mut total = 0;
@@ -117,7 +117,7 @@ fn every_program_segments_cleanly() {
 /// check available without a parser, and it catches the realistic mistake:
 /// writing a keyword or name that the lexer will later refuse.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn every_word_is_a_valid_identifier() {
     let mut bad: BTreeSet<String> = BTreeSet::new();
 
@@ -152,7 +152,7 @@ fn every_word_is_a_valid_identifier() {
 /// The catalogue and the corpus must not drift apart: every program named in
 /// `CATALOG.tsv` has to exist, or a claimed capability is covered by nothing.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn catalogue_matches_the_corpus() {
     let catalog = corpus_dir().parent().unwrap().join("CATALOG.tsv");
     let text = std::fs::read_to_string(&catalog).unwrap();
@@ -214,7 +214,7 @@ fn catalogue_matches_the_corpus() {
 /// Report coverage, so the completeness question has a number rather than a
 /// feeling. Printed with `--nocapture`.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn report_capability_coverage() {
     let catalog = corpus_dir().parent().unwrap().join("CATALOG.tsv");
     let text = std::fs::read_to_string(&catalog).unwrap();
@@ -312,7 +312,7 @@ fn retired_dialect_refusals(dir: &Path) -> Vec<String> {
 /// frozen grammar's routine head. A file that stops satisfying any of the
 /// three fails here by name.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn the_corpus_is_a_retired_dialect_by_decision() {
     let refused = retired_dialect_refusals(&corpus_dir());
     assert!(
@@ -328,7 +328,7 @@ fn the_corpus_is_a_retired_dialect_by_decision() {
 /// copies of the 16, is refused **by its file name** — twice, once for the
 /// count and once for the missing marker.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn an_unmarked_seventeenth_program_is_refused_by_name() {
     let tmp = std::env::temp_dir().join(format!(
         "w238-seventeenth-{}-{}",

@@ -65,7 +65,7 @@ fn ratified_signs() -> Vec<(String, String)> {
 /// like a pass. Seven roles are ratified in ADR-0003 §"Assignments"; fewer means
 /// the format moved and this test stopped looking.
 #[test]
-#[ignore = "needs docs/adr (the design records) not in the public repository"]
+#[ignore = "blocked: needs docs/adr (the design records) not in the public repository"]
 fn the_adr_still_lists_its_signs() {
     let signs = ratified_signs();
     assert!(
@@ -77,7 +77,7 @@ fn the_adr_still_lists_its_signs() {
 }
 
 #[test]
-#[ignore = "needs docs/adr (the design records) not in the public repository"]
+#[ignore = "blocked: needs docs/adr (the design records) not in the public repository"]
 fn every_ratified_sign_is_within_the_keystroke_budget() {
     for (role, sign) in ratified_signs() {
         let mut typed = String::new();

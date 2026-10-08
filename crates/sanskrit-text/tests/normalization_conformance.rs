@@ -89,7 +89,7 @@ fn load_cases() -> Vec<Case> {
 /// implemented (see `normalize.rs`) — except that c4 and c5 must already be
 /// stable under the canonical forms.
 #[test]
-#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
+#[ignore = "blocked: needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn normalization_test_conformance() {
     let cases = load_cases();
     let mut failures: Vec<String> = Vec::new();
@@ -141,7 +141,7 @@ fn normalization_test_conformance() {
 /// in `@Part1` must be unchanged by both canonical forms. Line-by-line testing
 /// alone would miss a table that wrongly maps something it should leave alone.
 #[test]
-#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
+#[ignore = "blocked: needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn unlisted_codepoints_are_unchanged() {
     let listed: std::collections::HashSet<char> = load_cases()
         .iter()

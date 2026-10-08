@@ -366,7 +366,7 @@ fn every_decoder_of_a_width_bearing_kind_reads_the_width() {
 /// `W-283`'s first pass found only three by grepping. A claim with three
 /// decoders is a partial landing.
 #[test]
-#[ignore = "needs the full development repository's source census not in the public repository"]
+#[ignore = "blocked: needs the full development repository's source census not in the public repository"]
 fn the_width_claim_scan_is_not_vacuous() {
     let claims = width_claims();
     assert!(

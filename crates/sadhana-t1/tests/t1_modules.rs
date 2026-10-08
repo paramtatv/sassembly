@@ -126,7 +126,7 @@ fn corpus() -> Vec<(String, Unit)> {
 
 /// **Exactly the recorded sources have lines the T1 lexer refuses.**
 #[test]
-#[ignore = "needs the full development repository's .t1 census not in the public repository"]
+#[ignore = "blocked: needs the full development repository's .t1 census not in the public repository"]
 fn the_only_t1_lines_the_t1_lexer_refuses_are_the_ones_recorded() {
     let (units, refused) = read_corpus();
     println!(
@@ -657,7 +657,7 @@ fn every_module_imported_by_a_loaded_module_is_itself_loaded() {
 /// that `सारणी` really is a declared module, and that `samyojana.t1` really
 /// writes it before the annotation mark.
 #[test]
-#[ignore = "needs the full development repository's .t1 census not in the public repository"]
+#[ignore = "blocked: needs the full development repository's .t1 census not in the public repository"]
 fn a_field_named_like_a_module_is_not_a_reach_into_that_module() {
     let units = corpus();
 
@@ -756,7 +756,7 @@ const IMPORTS_NAMING_NO_DECLARED_MODULE: &[(&str, &str, usize)] = &[
 ];
 
 #[test]
-#[ignore = "needs the full development repository's .t1 census not in the public repository"]
+#[ignore = "blocked: needs the full development repository's .t1 census not in the public repository"]
 fn every_import_that_names_no_declared_module_is_recorded() {
     let units = corpus();
     let found = mandala::unknown_imports(&units);
@@ -788,7 +788,7 @@ fn every_import_that_names_no_declared_module_is_recorded() {
 /// this row's, and `mandala::Import::danda_terminated` is the field that makes
 /// the divergence countable rather than a silence.
 #[test]
-#[ignore = "needs the full development repository's .t1 census not in the public repository"]
+#[ignore = "blocked: needs the full development repository's .t1 census not in the public repository"]
 fn the_imports_that_do_not_close_with_the_danda_are_named() {
     let units = corpus();
     let mut odd: Vec<String> = units

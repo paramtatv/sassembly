@@ -64,7 +64,7 @@ fn t1_sources() -> Vec<PathBuf> {
 }
 
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn the_t1_corpus_exists_and_this_test_is_not_vacuous() {
     // Without this, deleting or renaming the corpus would make every assertion below pass
     // by having nothing to assert over — and a green suite would then be evidence FOR a

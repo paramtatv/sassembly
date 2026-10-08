@@ -299,7 +299,7 @@ fn census(root: &Path) -> BTreeMap<String, (State, Vec<String>)> {
 }
 
 #[test]
-#[ignore = "needs the full development repository's .sas tree not in the public repository"]
+#[ignore = "blocked: needs the full development repository's .sas tree not in the public repository"]
 fn the_sas_census_reports_four_states_and_the_four_drafts_are_not_source() {
     let root = root();
     let c = census(&root);

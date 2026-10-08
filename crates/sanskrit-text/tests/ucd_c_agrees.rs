@@ -125,7 +125,7 @@ fn c_tables() -> (Vec<CTable>, Vec<(String, u8)>) {
 }
 
 #[test]
-#[ignore = "needs the C text workload sources not in the public repository"]
+#[ignore = "blocked: needs the C text workload sources not in the public repository"]
 fn the_two_files_carry_the_same_tables() {
     let rust = rust_tables();
     let (c, defines) = c_tables();
@@ -166,7 +166,7 @@ fn the_two_files_carry_the_same_tables() {
 }
 
 #[test]
-#[ignore = "needs the C text workload sources not in the public repository"]
+#[ignore = "blocked: needs the C text workload sources not in the public repository"]
 fn regenerating_changes_nothing() {
     // `A-011`'s determinism argument, extended to the second emitter: two
     // renderings from one parse are only one table if running the generator
@@ -208,7 +208,7 @@ fn regenerating_changes_nothing() {
 }
 
 #[test]
-#[ignore = "needs the C text workload sources not in the public repository"]
+#[ignore = "blocked: needs the C text workload sources not in the public repository"]
 fn the_c_text_workload_measures_the_same_corpus() {
     // `baselines/c/text.c` counts akṣaras over a sentence written as escaped
     // UTF-8; `crates/s1/src/tranche1.rs` counts them over the same sentence
@@ -317,7 +317,7 @@ fn rows(text: &str, opener: &str) -> Vec<Vec<u32>> {
 }
 
 #[test]
-#[ignore = "needs the C text workload sources not in the public repository"]
+#[ignore = "blocked: needs the C text workload sources not in the public repository"]
 fn the_three_nfc_tables_agree_too() {
     // `W-007a5b1`. CCC, the canonical decompositions and the primary composites
     // are what `nfc` runs on, and they were the three `W-016` left behind:

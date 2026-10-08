@@ -1729,7 +1729,7 @@ fn the_binaries_write_only_the_payload_to_stdout() {
 /// pins is the number this census reports. The 16 `.सस` stay counted and 0 readable BY
 /// DESIGN (`W-238`), which is a decision and not a gap.
 #[test]
-#[ignore = "needs tests/corpus/t1 (the development corpus) not in the public repository"]
+#[ignore = "blocked: needs tests/corpus/t1 (the development corpus) not in the public repository"]
 fn the_t1_corpus_reaches_yantra_by_the_pinned_number() {
     let sas = std::fs::read_dir(root().join("tests/corpus/t1"))
         .expect("tests/corpus/t1")

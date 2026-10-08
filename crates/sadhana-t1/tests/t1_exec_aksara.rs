@@ -1202,7 +1202,7 @@ fn cluster_text(s: &str, cs: &[(usize, usize)]) -> Vec<String> {
 /// `spec/extended-pictographic.tsv` through `समावेशः`. Neither side carries a
 /// range.
 #[test]
-#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
+#[ignore = "blocked: needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn every_case_of_the_ucd_conformance_corpus_segments_identically() {
     let cases = conformance_cases();
     assert!(
@@ -1303,7 +1303,7 @@ fn spec_root_without(table: &str) -> PathBuf {
 /// The numbers are asserted as a floor rather than exactly: a UCD refresh may
 /// add cases, and the point is that the contribution is LARGE and non-zero.
 #[test]
-#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
+#[ignore = "blocked: needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn each_of_the_three_tables_is_load_bearing() {
     let cases = conformance_cases();
     let text = source("sanskrit_text.t1");
