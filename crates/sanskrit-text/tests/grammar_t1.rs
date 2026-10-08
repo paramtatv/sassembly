@@ -4178,6 +4178,7 @@ fn tree_sitter_rules() -> Vec<String> {
 }
 
 #[test]
+#[ignore = "needs crates/tree-sitter-t1 (the tree-sitter grammar) not in the public repository"]
 fn the_tree_sitter_grammar_spells_only_words_the_grammar_froze() {
     // The direction that catches an invented word. `समर्पय` was one for as
     // long as this file has existed, and nothing could see it — mutation-check
@@ -4201,6 +4202,7 @@ fn the_tree_sitter_grammar_spells_only_words_the_grammar_froze() {
 }
 
 #[test]
+#[ignore = "needs crates/tree-sitter-t1 (the tree-sitter grammar) not in the public repository"]
 fn no_ascii_delimiter_survives_in_the_tree_sitter_grammar() {
     // Doc 02 §3.2's `{ } ( ) , = + * →` are a SKETCH and say so — "for
     // legibility while the semantics are under discussion". The tree-sitter
@@ -4252,6 +4254,7 @@ fn ebnf_productions() -> Vec<String> {
 }
 
 #[test]
+#[ignore = "needs crates/tree-sitter-t1 (the tree-sitter grammar) not in the public repository"]
 fn the_tree_sitter_grammar_carries_every_production_the_ebnf_defines() {
     // The other direction, and the one that catches a SHRINKING transcription:
     // a rule quietly dropped from `grammar.js` leaves a construct unparsed, and

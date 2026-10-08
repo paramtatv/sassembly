@@ -760,6 +760,7 @@ fn w373_f_the_interpreters_event_tag_is_yantras() {
 /// The member name in `nirvahana.rs` is the OWNER'S RULING, byte for byte: read out of
 /// BACKLOG row `W-373` ("(1) NAME <qualified>"), never retyped.
 #[test]
+#[ignore = "needs BACKLOG.tsv not in the public repository"]
 fn w373_f_the_name_is_the_rulings() {
     let backlog =
         std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../BACKLOG.tsv"))

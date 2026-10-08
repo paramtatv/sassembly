@@ -78,6 +78,7 @@ fn load() -> Vec<Case> {
 }
 
 #[test]
+#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn grapheme_break_test_conformance() {
     let cases = load();
     let mut failures: Vec<String> = Vec::new();
@@ -128,6 +129,7 @@ fn grapheme_break_test_conformance() {
 /// Segmentation must be lossless and non-empty for arbitrary input — the
 /// property that keeps a terminal from dropping or duplicating text.
 #[test]
+#[ignore = "needs research/specs/unicode (the Unicode data files) not in the public repository"]
 fn segmentation_is_total_and_lossless() {
     for case in load() {
         let mut total = 0;
