@@ -115,7 +115,7 @@
     <p data-i18n="learn.b2d">एका सञ्चिका मण्डलम् इत्यनेन एकं मण्डलं घोषयति। वृत्तिः गुप्ता यावत् सार्वजनिक इति न चिह्निता। मण्डलान्तरसन्दर्भः ॱ इति विभाजकेन, अतः पदविभागॱचिह्नक इति पदविभागस्य चिह्नकप्रकारं नामयति।</p>
 
     <h2 id="embeds" data-i18n="learn.h2d">सङ्कलनकाले समावेशः</h2>
-    <p data-i18n="learn.b2e">समावेशः सञ्चिकायाः अष्टकानि सङ्कलनकाले बिम्बे आनयति, मूल्यरूपेण। यत् नाम गृह्णाति तत् साधारणं नाम, प्रकाशितसारण्यां निर्णीतम् — न मार्गः; समावेशे मार्गलेखनाय व्याकरणं नास्ति, अतः .. इति तत्र अलेख्यम् एव। चालनकाले यन्त्रे कार्यक्रमः सञ्चिकाः केवलं पत्रम् इति गवाक्षद्वारा उद्घाटयति, आतिथेयदत्ते मूलनिर्देशिकायाम्; मूलात् बहिर्गामी मार्गः प्रत्याख्यायते।</p>
+    <p data-i18n="learn.b2e">समावेशः सञ्चिकायाः अष्टकानि सङ्कलनकाले बिम्बे आनयति, मूल्यरूपेण। यत् नाम गृह्णाति तत् साधारणं नाम, प्रकाशितसारण्यां निर्णीतम् — न मार्गः; समावेशे मार्गलेखनाय व्याकरणं नास्ति, अतः .. इति तत्र अलेख्यम् एव। चालनकाले यन्त्रे कार्यक्रमः सञ्चिकाः केवलं पत्रम् इति गवाक्षद्वारा उद्घाटयति, आतिथेयदत्ते मूलनिर्देशिकायाम्; मूलात् बहिर्गामी मार्गः प्रत्याख्यायते। प्रकाशनस्य yantra-run मध्ये मूलं --files DIR (v1.0.1) इत्यनेन दीयते।</p>
 
     <div class="pane">
       <div class="pane__bar"><span class="deva">समावेशः</span><span class="deva">सङ्कलनकाले</span></div>
@@ -134,16 +134,16 @@
     <h2 id="quickstart">Write your first program in Sanskrit</h2>
     <p>Sassembly has two layers. <code>.sas</code> is the assembler form: one instruction per line, operands marked by kāraka sigils. <code>.t1</code> is the systems language: routines, loops, arrays, modules. Everything here ran on v1.0.0.</p>
     <div class="callout">
-      <p>The prebuilt <code>sadhana</code> assembles <code>.sas</code> only. A <code>.t1</code> is compiled by <code>sassembly-v1.0.0-stage1.elf</code>, the self-hosted compiler, run on <code>yantra-run</code>; its entry is fixed, so your source must be module <code>शृङ्खला</code> with routine <code>स्वपरीक्षास्वप्रतिबिम्बम्</code>. <code>yantra-run</code> exits 1 whenever the program's halt status is not 0, a report and not a tool failure: compiling with stage1.elf ends with status 1200 (built), and your own program returns the status you give it.</p>
+      <p>The prebuilt <code>sadhana</code> assembles <code>.sas</code> only. A <code>.t1</code> is compiled by <code>sassembly-v1.0.1-stage1.elf</code>, the self-hosted compiler, run on <code>yantra-run</code>; its entry is fixed, so your source must be module <code>शृङ्खला</code> with routine <code>स्वपरीक्षास्वप्रतिबिम्बम्</code>. <code>yantra-run</code> exits 1 whenever the program's halt status is not 0, a report and not a tool failure: compiling with stage1.elf ends with status 1200 (built), and your own program returns the status you give it.</p>
     </div>
     <h2>Get the tools</h2>
-    <p>Release assets, no Rust: from the v1.0.0 release page download <code>sassembly-v1.0.0-stage1.elf</code>, <code>SHA256SUMS</code>, <code>SHA256SUMS-binaries</code> and the tarball for your machine, then check them. From source: clone, check out v1.0.0 and run <code>cargo build --release -p sadhana -p yantra</code>.</p>
+    <p>Release assets, no Rust: from the v1.0.1 release page download <code>sassembly-v1.0.1-stage1.elf</code>, <code>SHA256SUMS-v1.0.1</code> and the tarball for your machine, then check them. From source: clone, check out v1.0.1 and run <code>cargo build --release -p sadhana -p yantra</code>.</p>
     <div class="pane">
       <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
-<pre class="code-mono code-mono--dark">$ grep -F sassembly-v1.0.0-stage1.elf SHA256SUMS | sha256sum -c -
-sassembly-v1.0.0-stage1.elf: OK
-$ grep -F sassembly-v1.0.0-linux-x86_64.tar.gz SHA256SUMS-binaries | sha256sum -c -
-sassembly-v1.0.0-linux-x86_64.tar.gz: OK</pre>
+<pre class="code-mono code-mono--dark">$ grep -F sassembly-v1.0.1-stage1.elf SHA256SUMS-v1.0.1 | sha256sum -c -
+sassembly-v1.0.1-stage1.elf: OK
+$ grep -F sassembly-v1.0.1-linux-x86_64.tar.gz SHA256SUMS-v1.0.1 | sha256sum -c -
+sassembly-v1.0.1-linux-x86_64.tar.gz: OK</pre>
     </div>
     <h2>The smallest program</h2>
     <p>Save as <code>शृङ्खला.t1</code>. It prints a message one octet at a time and returns 0.</p>
@@ -167,7 +167,7 @@ sassembly-v1.0.0-linux-x86_64.tar.gz: OK</pre>
     <div class="pane">
       <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
 <pre class="code-mono code-mono--dark">$ { printf &quot;शृङ्खला\0&quot;; cat शृङ्खला.t1; printf &quot;\0&quot;; } &gt; p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf &gt; sink
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.1-stage1.elf &gt; sink
 [exit status 1]
 halt: Finisher { status: Some(1200) }
 $ n=$(wc -c &lt; sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
@@ -223,7 +223,7 @@ halt: Finisher { status: Some(0) }
     <div class="pane">
       <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
 <pre class="code-mono code-mono--dark">$ { printf &quot;शृङ्खला\0&quot;; cat शृङ्खला.t1; printf &quot;\0&quot;; } &gt; p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf &gt; sink
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.1-stage1.elf &gt; sink
 [exit status 1]
 halt: Finisher { status: Some(1200) }
 $ n=$(wc -c &lt; sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf

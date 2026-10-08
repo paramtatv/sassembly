@@ -54,12 +54,45 @@
 
   <section class="section--tight" style="padding-bottom: 8px;">
 
+    <!-- ══ v1.0.1 ══ -->
+    <article class="release" id="v1-0-1">
+      <div class="release__meta">
+        <span class="release__ver">v1.0.1</span>
+        <time class="release__date" datetime="2026-10-08">२०२६-१०-०८</time>
+        <span class="release__tag release__tag--now" data-i18n="pr.tag.latest">नवीनतमम्</span>
+      </div>
+      <div class="release__body">
+        <h2 data-i18n="pr.r101.h">यन्त्रचालके सञ्चिकामूलम्</h2>
+        <p class="release__dek" data-i18n="pr.r101.dek">yantra-run --files DIR कार्यक्रमाय सञ्चिकामूलं ददाति; अतः पूर्वनिर्मिते प्रकाशने संस्कृतयन्त्रकार्यक्रमाः सञ्चिकाः पठितुं लेखितुं च शक्नुवन्ति। सङ्कलकस्य बिम्बं न परिवर्तितम्।</p>
+
+        <p data-i18n-html="pr.r101.b1"><b>किं परिवर्तितम्।</b> v1.0.0 मध्ये प्रकाशनस्य <code>yantra-run</code> किमपि मूलं न अददात्, अतः सर्वे सञ्चिकानिवेदनाः प्रत्याख्याताः आसन्। अधुना <code>yantra-run --files DIR prog.elf</code> (ध्वजः प्रथमः भवेत्) सञ्चिकागवाक्षं DIR अन्तः सम्पूर्णाः सञ्चिकाः पठितुं लेखितुं च अनुमन्यते। ध्वजं विना प्रत्येकं निवेदनं नाम्ना प्रत्याख्यायते। योजनं, लोपनं, निर्देशिकासूची च अद्यापि न सन्ति।</p>
+
+        <p data-i18n-html="pr.r101.b2"><b>रक्षानियमाः, भयप्रतिमानं च।</b> DIR विद्यमाना निर्देशिका भवेत्, अन्यथा आरम्भे एव प्रत्याख्यानम्। <code>..</code>, निरपेक्षमार्गाः, Windows मध्ये अक्षरचालकमार्गाः UNC-मार्गाः मूलमार्गाश्च, DIR बहिः गच्छन्तः symlinks च प्रत्याख्यायन्ते; unix मध्ये लेखनं सञ्चिकायाः स्वस्य symlink न अनुसरति। सञ्चिकानिवेदनानि घटनारूपेण न लिख्यन्ते; अतः --files अन्तर्गतं लिखितं लेखं --files DIR विना पुनर्वादयितुं प्रत्याख्यायते। ध्वजः DIR विश्वसिति: कार्यक्रमचलनकाले DIR अविश्वस्तेन लेखनीयं न भवेत्, यतः परीक्षायाः उद्घाटनस्य च मध्ये मार्गपरिवर्तनं hard links च न ज्ञायन्ते।</p>
+
+        <p data-i18n-html="pr.r101.b3"><b>अपरिवर्तितम्।</b> <code>stage1.elf</code> v1.0.0 सह अष्टकशः समानम् (sha256 71d06d66…15480), स्थिरबिन्दुः ९,२२,१४६ अष्टकेषु तिष्ठति। तस्य प्रवेशः अद्यापि शृङ्खला-मण्डले स्वपरीक्षास्वप्रतिबिम्बम्-वृत्तौ स्थिरः; अन्यानि नामानि चेत्, मूलात् <code>t1_image</code> रचय। पूर्वनिर्मिते बिम्बे तम् अपनेतुं नूतनं बिम्बम् अपेक्ष्यते, तिथिः नास्ति।</p>
+
+        <div class="release__figs">
+          <span class="release__fig"><b>९,२२,१४६</b><span data-i18n="pr.f.same">अष्टकानि, अष्टकशः समानानि</span></span>
+          <span class="release__fig"><b>२,४५४</b><span data-i18n="pr.f.tests">परीक्षाः उत्तीर्णाः</span></span>
+        </div>
+
+        <p data-i18n-html="pr.r101.bt"><b>परीक्षाः, धूमपरीक्षा च।</b> <code>cargo test --workspace --release --no-fail-fast</code>: २६१ द्विचराणि, २,४५४ उत्तीर्णाः, ५५ विफलाः, ६८ उपेक्षिताः; विफलाः सम्पूर्णं विकासकोशं मापयन्ति (v1.0.0: २,४३१ ५६ च)। द्विचरस्तरीयाः १३ सञ्चिकामूलपरीक्षाः उत्तीर्णाः; Windows मार्गरूपपरीक्षा Windows arm64 मध्ये उत्तीर्णा। पञ्चसु मञ्चेषु समाना धूमपरीक्षा चलिता: namaste, stage1.elf द्वारा सङ्कलनम् (स्थितिः १२००) चालनं च (स्थितिः ७), --files सह सञ्चिकापठनं लेखनं च (पठनम् ३०४, लेखनम् १००, लिखिताः अष्टकाः), तद्विना प्रत्याख्यानम्।</p>
+
+        <p data-i18n-html="pr.r101.b4"><b>कथं प्राप्यते।</b> प्रकाशनपृष्ठे पञ्च द्विचरसङ्ग्रहाः (Linux x86-64, macOS arm64 x86-64 च, Windows arm64 x86-64 च), <code>sassembly-v1.0.1-stage1.elf</code>, <code>SHA256SUMS-v1.0.1</code> च सन्ति। Linux aarch64 निर्माणम् अस्मिन् प्रकाशने अद्य नास्ति; तत्र मूलात् रचय। चालनात् पूर्वं योगचिह्नानि परीक्षस्व।</p>
+
+        <p class="release__links">
+          <a href="https://github.com/paramtatv/sassembly/releases/tag/v1.0.1" rel="noopener" data-i18n="pr.l.rel">प्रकाशनलेखः</a>
+          <a href="downloads.html" data-i18n="pr.l.get">साधनं प्राप्नुहि</a>
+          <a href="https://github.com/paramtatv/sassembly/blob/main/ANNOUNCEMENT-v1.0.1.md" rel="noopener" data-i18n="pr.l.ann">घोषणा</a>
+        </p>
+      </div>
+    </article>
+
     <!-- ══ v1.0.0 ══ -->
     <article class="release" id="v1-0-0">
       <div class="release__meta">
         <span class="release__ver">v1.0.0</span>
         <time class="release__date" datetime="2026-10-08">२०२६-१०-०८</time>
-        <span class="release__tag release__tag--now" data-i18n="pr.tag.latest">नवीनतमम्</span>
       </div>
       <div class="release__body">
         <h2 data-i18n="pr.r100.h">संस्कृतयन्त्रं सम्पूर्णम्</h2>
