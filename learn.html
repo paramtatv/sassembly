@@ -55,6 +55,7 @@
       <a href="learn.html" aria-current="page" data-i18n="learn.h1">कारकचिह्नानि</a>
       <a href="learn.html#types" data-i18n="learn.sn2b">प्रकाराः, अङ्कमालाश्च</a>
       <a href="learn.html#modules" data-i18n="learn.sn2c">मण्डलानि, दृश्यता</a>
+      <a href="learn.html#quickstart" data-i18n="learn.sn2g">प्रथमः कार्यक्रमः</a>
       <a href="learn.html#embeds" data-i18n="learn.sn2d">समावेशः</a>
       <a href="learn.html#refusals" data-i18n="learn.sn2e">प्रत्याख्यानानि</a>
       <a href="learn.html#advanced" data-i18n="learn.sn2f">उन्नतम्</a>
@@ -129,12 +130,1221 @@
       <li data-i18n="learn.li3">नामितस्थाने पूर्वनिर्धारितं सङ्कलके दोषः, न गुणः।</li>
     </ul>
 
+    <h2 id="quickstart">Write your first program in Sanskrit</h2>
+    <p>Sassembly has two layers. <code>.sas</code> is the assembler form: one instruction per line, operands marked by kāraka sigils. <code>.t1</code> is the systems language: routines, loops, arrays, modules. Everything here ran on v1.0.0.</p>
+    <div class="callout">
+      <p>The prebuilt <code>sadhana</code> assembles <code>.sas</code> only. A <code>.t1</code> is compiled by <code>sassembly-v1.0.0-stage1.elf</code>, the self-hosted compiler, run on <code>yantra-run</code>; its entry is fixed, so your source must be module <code>शृङ्खला</code> with routine <code>स्वपरीक्षास्वप्रतिबिम्बम्</code>. <code>yantra-run</code> exits 1 whenever the program's halt status is not 0, a report and not a tool failure: compiling with stage1.elf ends with status 1200 (built), and your own program returns the status you give it.</p>
+    </div>
+    <h2>Get the tools</h2>
+    <p>Release assets, no Rust: from the v1.0.0 release page download <code>sassembly-v1.0.0-stage1.elf</code>, <code>SHA256SUMS</code>, <code>SHA256SUMS-binaries</code> and the tarball for your machine, then check them. From source: clone, check out v1.0.0 and run <code>cargo build --release -p sadhana -p yantra</code>.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">$ grep -F sassembly-v1.0.0-stage1.elf SHA256SUMS | sha256sum -c -
+sassembly-v1.0.0-stage1.elf: OK
+$ grep -F sassembly-v1.0.0-linux-x86_64.tar.gz SHA256SUMS-binaries | sha256sum -c -
+sassembly-v1.0.0-linux-x86_64.tar.gz: OK</pre>
+    </div>
+    <h2>The smallest program</h2>
+    <p>Save as <code>शृङ्खला.t1</code>. It prints a message one octet at a time and returns 0.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">शृङ्खला.t1</span><span class="deva">14 lines</span></div>
+<pre class="code-deva">मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  The routine&#x27;s name is fixed by stage1.elf.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">$ { printf &quot;शृङ्खला\0&quot;; cat शृङ्खला.t1; printf &quot;\0&quot;; } &gt; p.blob
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf &gt; sink
+[exit status 1]
+halt: Finisher { status: Some(1200) }
+$ n=$(wc -c &lt; sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
+$ ./yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+नमस्ते संसार
+[exit status 0]</pre>
+    </div>
+    <h2>A loop and an array</h2>
+    <p>Squares of 1 to 8 go into a growing array, which is then walked, printed and summed.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">शृङ्खला.t1</span><span class="deva">39 lines</span></div>
+<pre class="code-deva">मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a number in decimal: the leading digits first (recursion), then the last one.
+वृत्तिः अङ्कमुद्रणम् आदाय मान ॱॱ न६४ ददाति न६४ आदि
+    यदि मान अधिकम् ९ आदि
+        चरः अग्रिम ॱॱ न६४ भवति मान विभाजनम् १० ।
+        चरः क ॱॱ न६४ भवति अङ्कमुद्रणम् अग्रिम ।
+    इति
+    चरः अन्तिम ॱॱ न६४ भवति मान शेषः १० ।
+    चरः कोड ॱॱ न६४ भवति ४८ योगः अन्तिम ।
+    चरः ख ॱॱ न६४ भवति अष्टकॱमुद्रणम् कोड ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ Squares of 1..8 go into a growing array; then the array is walked and summed.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् ९ आदि
+        चरः वर्ग ॱॱ न६४ भवति क्रमः गुणनम् क्रमः ।
+        सूची अङ्कः सूची ॱ दैर्घ्य अन्तः भवति वर्ग ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः सञ्चयः ॱॱ न६४ भवति ० ।
+    चरः सूचक ॱॱ न६४ भवति ० ।
+    यावत् सूचक न्यूनम् सूची ॱ दैर्घ्य आदि
+        चरः मान ॱॱ न६४ भवति सूची अङ्कः सूचक अन्तः ।
+        चरः ख ॱॱ न६४ भवति अङ्कमुद्रणम् मान ।
+        चरः विराम ॱॱ न६४ भवति अष्टकॱमुद्रणम् ३२ ।
+        सञ्चयः भवति सञ्चयः योगः मान ।
+        सूचक भवति सूचक योगः १ ।
+    इति
+    चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् ६१ ।
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् ३२ ।
+    चरः ङ ॱॱ न६४ भवति अङ्कमुद्रणम् सञ्चयः ।
+    चरः च ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">$ { printf &quot;शृङ्खला\0&quot;; cat शृङ्खला.t1; printf &quot;\0&quot;; } &gt; p.blob
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.0-stage1.elf &gt; sink
+[exit status 1]
+halt: Finisher { status: Some(1200) }
+$ n=$(wc -c &lt; sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
+$ ./yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+1 4 9 16 25 36 49 64 = 204
+[exit status 0]</pre>
+    </div>
+    <h2>The same idea in .sas</h2>
+    <p><code>sadhana</code> assembles it directly; no compiler image is needed. This is <code>spec/namaste.sas</code>.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">namaste.sas</span><span class="deva">33 lines</span></div>
+<pre class="code-deva">॰ नमस्ते — पहला देवनागरी कार्यक्रम जो धातु पर बोलता है
+॰
+॰ सन्देश दत्त-कोष्ठक में है; यह उसे एक-एक अष्टक करके UART को लिखता है।
+॰ QEMU virt का UART ०x10000000 पर, समापक ०x100000 पर।
+
+॰ UART का पता
+उपरिभारः क्षणिक०म् ०षोड्१००००न ।
+
+॰ सन्देश का पता, स्थान-सापेक्ष
+स्थानसापेक्षयोगः क्षणिक१म् सन्देशःॱउपरिन ।
+योगः क्षणिक१म् क्षणिक१न सन्देशःॱअधःन ।
+
+मुद्रणम्ॱॱ
+आहारःॱअ८ क्षणिक२म् क्षणिक१त् ०न ।
+समलङ्घनम् क्षणिक२न शून्यःत् समाप्तिःय् ।
+निधानम्ॱअ८ क्षणिक०य् ०न क्षणिक२न ।
+योगः क्षणिक१म् क्षणिक१न १न ।
+लङ्घनम् शून्यःम् मुद्रणम्य् ।
+
+समाप्तिःॱॱ
+॰ समापक को ०x5555 — निकास ०
+उपरिभारः क्षणिक४म् ०षोड्१००न ।
+उपरिभारः क्षणिक५म् ०षोड्५न ।
+योगः क्षणिक५म् क्षणिक५न ०षोड्५५५न ।
+निधानम्ॱअ३२ क्षणिक४य् ०न क्षणिक५न ।
+
+चक्रःॱॱ
+लङ्घनम् शून्यःम् चक्रःय् ।
+
+॥ कोष्ठकम् ॱदत्त ॥
+सन्देशःॱॱ
+॥ अष्टकाः उक्तम् नमस्ते संसार इति ॥
+॥ अष्टकाः १० ० ॥</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">$ ./sadhana namaste.sas namaste.elf
+namaste.elf: 1 file(s) assembled, entry 0x80000000
+$ ./yantra-run namaste.elf
+नमस्ते संसार
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 184 executed instructions</pre>
+    </div>
+    <h2>From source</h2>
+    <p>With cargo-built binaries the commands above work unchanged. <code>t1_image</code> is faster and lets you name your own entry. It also interprets the program and refuses the image if the interpreter and the native run disagree.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">नमस्कारः.t1</span><span class="deva">14 lines</span></div>
+<pre class="code-deva">मण्डलम् नमस्कारः ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  Here the entry is the one you name to t1_image.
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">$ target/release/sadhana spec/namaste.sas namaste.elf
+namaste.elf: 1 file(s) assembled, entry 0x80000000
+$ target/release/yantra-run namaste.elf
+नमस्ते संसार
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 184 executed instructions
+$ target/release/t1_image --compiler crates/sadhana-t1/src --load नमस्कारः.t1 --entry नमस्कारः मुख्यम् -o prog.elf नमस्कारः.t1
+[exit status 0]
+build:    0 source(s) failed to compile, 2 object(s) linked (startup included)
+steps:    36157967
+predict:  finished, status 0; 35 octet(s) printed
+write:    634 octets of ELF -&gt; prog.elf
+$ target/release/yantra-run prog.elf
+halt: Finisher { status: Some(0) }
+नमस्ते संसार
+[exit status 0]</pre>
+    </div>
+    <p><a href="https://paramtatv.github.io/sassembly/learn.html">More worked examples</a></p>
+
     <p style="padding-top: 8px;"><a href="reference.html" data-i18n="learn.next">निर्देशसन्दर्भं प्रति →</a></p>
   </article>
 
 </div>
 
-<section id="advanced"></section>
+<section class="wrap" style="padding-bottom: 64px;"><div class="prose" style="max-width: 64em;">
+<h2 id="advanced">Four larger programs</h2>
+<p>Each program below compiles and runs on the public v1.0.0 toolchain, and the output shown is what that run printed. They are textbook algorithms written for teaching, not libraries or benchmarks. Each is built the same way: <code>t1_image</code> compiles the module and the shared printing module <code>सङ्ख्यालेख</code> to one RISC-V image, and <code>yantra-run</code> runs it. The build also interprets the program and refuses the image if the interpreter and the native run disagree.</p>
+    <h3>The shared printing module</h3>
+    <p>There is no standard library, so the four programs import one small module that prints numbers one octet at a time. It is the same file for all four.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">सङ्ख्यालेख.t1</span><span class="deva">shared module</span></div>
+<pre class="code-deva">मण्डलम् सङ्ख्यालेख ॥
+आयातः अष्टक ।
+
+॰ Printing is one octet at a time through अष्टकॱमुद्रणम्; there is no library.
+
+सार्वजनिक वृत्तिः अक्षरलेखः आदाय कोड ॱॱ न६४ ददाति न६४ आदि
+    चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् कोड ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः अङ्कलेखः आदाय मान ॱॱ न६४ ददाति न६४ आदि
+    यदि मान अधिकम् ९ आदि
+        चरः अग्रिम ॱॱ न६४ भवति मान विभाजनम् १० ।
+        चरः क ॱॱ न६४ भवति अङ्कलेखः अग्रिम ।
+    इति
+    चरः अन्तिम ॱॱ न६४ भवति मान शेषः १० ।
+    चरः कोड ॱॱ न६४ भवति ४८ योगः अन्तिम ।
+    चरः ग ॱॱ न६४ भवति अक्षरलेखः कोड ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः चिह्नलेखः आदाय मान ॱॱ अ६४ ददाति न६४ आदि
+    यदि मान न्यूनम् ० आदि
+        चरः ऋणचिह्न ॱॱ न६४ भवति अक्षरलेखः ४५ ।
+        चरः धन ॱॱ अ६४ भवति ० वियोगः मान ।
+        चरः क ॱॱ न६४ भवति अङ्कलेखः धन ।
+        प्रत्यागमनम् ० ।
+    इति
+    चरः ख ॱॱ न६४ भवति अङ्कलेखः मान ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः अन्तरालः ददाति न६४ आदि
+    चरः ग ॱॱ न६४ भवति अक्षरलेखः ३२ ।
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः पङ्क्तिविरामः ददाति न६४ आदि
+    चरः ग ॱॱ न६४ भवति अक्षरलेखः १० ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <h3 id="audio">Audio: FLAC fixed predictors</h3>
+    <p>Lossless audio coders predict each sample from the ones before it and store only the difference. FLAC offers five fixed polynomial predictors, orders 0 to 4: the prediction is 0, then x[n-1], then 2x[n-1]-x[n-2], then 3x[n-1]-3x[n-2]+x[n-3], then 4x[n-1]-6x[n-2]+4x[n-3]-x[n-4]. This program builds 16 integer samples, scores every order by the sum of absolute residuals, keeps the best, and rebuilds the samples from the residuals alone to prove the round trip is exact.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">audio.t1</span><span class="deva">135 lines</span></div>
+<pre class="code-deva">मण्डलम् ध्वनि ॥
+आयातः अष्टक ।
+आयातः सङ्ख्यालेख ।
+
+॰ FLAC-style fixed polynomial predictors, orders 0 to 4, over 16 integer samples.
+॰ The residual at n is  x[n] - prediction(n); the first `order` samples are warm-up.
+
+सार्वजनिक वृत्तिः पूर्वानुमानम् आदाय नमूना ॱॱ अङ्कः अन्तः अ६४ ऽ बिन्दु ॱॱ न६४ ऽ क्रम ॱॱ न६४ ददाति अ६४ आदि
+    यदि क्रम समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः प ॱॱ न६४ भवति बिन्दु वियोगः १ ।
+    चरः अ१ ॱॱ अ६४ भवति नमूना अङ्कः प अन्तः ।
+    यदि क्रम समम् १ आदि
+        प्रत्यागमनम् अ१ ।
+    इति
+    प भवति बिन्दु वियोगः २ ।
+    चरः अ२ ॱॱ अ६४ भवति नमूना अङ्कः प अन्तः ।
+    यदि क्रम समम् २ आदि
+        चरः द्विगुण ॱॱ अ६४ भवति अ१ गुणनम् २ ।
+        प्रत्यागमनम् द्विगुण वियोगः अ२ ।
+    इति
+    प भवति बिन्दु वियोगः ३ ।
+    चरः अ३ ॱॱ अ६४ भवति नमूना अङ्कः प अन्तः ।
+    यदि क्रम समम् ३ आदि
+        चरः त्रि१ ॱॱ अ६४ भवति अ१ गुणनम् ३ ।
+        चरः त्रि२ ॱॱ अ६४ भवति अ२ गुणनम् ३ ।
+        चरः अन्तर ॱॱ अ६४ भवति त्रि१ वियोगः त्रि२ ।
+        प्रत्यागमनम् अन्तर योगः अ३ ।
+    इति
+    प भवति बिन्दु वियोगः ४ ।
+    चरः अ४ ॱॱ अ६४ भवति नमूना अङ्कः प अन्तः ।
+    चरः च१ ॱॱ अ६४ भवति अ१ गुणनम् ४ ।
+    चरः च२ ॱॱ अ६४ भवति अ२ गुणनम् ६ ।
+    चरः च३ ॱॱ अ६४ भवति अ३ गुणनम् ४ ।
+    चरः म१ ॱॱ अ६४ भवति च१ वियोगः च२ ।
+    चरः म२ ॱॱ अ६४ भवति म१ योगः च३ ।
+    प्रत्यागमनम् म२ वियोगः अ४ ।
+इति
+
+॰ Sum of |residual| over the samples after the warm-up, with CHECKED addition.
+सार्वजनिक वृत्तिः अवशेषयोगः आदाय नमूना ॱॱ अङ्कः अन्तः अ६४ ऽ क्रम ॱॱ न६४ ददाति न६४ आदि
+    चरः योग ॱॱ न६४ भवति ० ।
+    चरः बिन्दु ॱॱ न६४ भवति क्रम ।
+    यावत् बिन्दु न्यूनम् नमूना ॱ दैर्घ्य आदि
+        चरः अनुमान ॱॱ अ६४ भवति पूर्वानुमानम् आरभ्य नमूना ऽ बिन्दु ऽ क्रम समाप्तम् ।
+        चरः वास्तव ॱॱ अ६४ भवति नमूना अङ्कः बिन्दु अन्तः ।
+        चरः अवशेष ॱॱ अ६४ भवति वास्तव वियोगः अनुमान ।
+        यदि अवशेष न्यूनम् ० आदि
+            अवशेष भवति ० वियोगः अवशेष ।
+        इति
+        चरः निरपेक्ष ॱॱ न६४ भवति अवशेष ।
+        योग भवति अष्टकॱसुरक्षितयोगः आरभ्य योग ऽ निरपेक्ष समाप्तम् ।
+        बिन्दु भवति बिन्दु योगः १ ।
+    इति
+    प्रत्यागमनम् योग ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः नमूना ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः न ॱॱ न६४ भवति ० ।
+    यावत् न न्यूनम् १६ आदि
+        चरः वर्ग ॱॱ अ६४ भवति न गुणनम् न ।
+        चरः क्षिप्र ॱॱ अ६४ भवति वर्ग गुणनम् ३ ।
+        चरः रेखा ॱॱ अ६४ भवति न गुणनम् २४ ।
+        चरः आधार ॱॱ अ६४ भवति क्षिप्र वियोगः रेखा ।
+        चरः कम्पन ॱॱ न६४ भवति न गुणनम् ७ ।
+        कम्पन भवति कम्पन शेषः ५ ।
+        चरः मान ॱॱ अ६४ भवति आधार योगः कम्पन ।
+        नमूना अङ्कः न अन्तः भवति मान ।
+        न भवति न योगः १ ।
+    इति
+    ॰ the samples
+    चरः ग ॱॱ न६४ भवति ० ।
+    न भवति ० ।
+    यावत् न न्यूनम् १६ आदि
+        ग भवति सङ्ख्यालेखॱचिह्नलेखः नमूना अङ्कः न अन्तः ।
+        ग भवति सङ्ख्यालेखॱअन्तरालः ।
+        न भवति न योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ cost of each order, and the best
+    चरः सर्वोत्तम ॱॱ न६४ भवति ० ।
+    चरः न्यूनतम ॱॱ न६४ भवति ९९९९९९ ।
+    चरः क्रम ॱॱ न६४ भवति ० ।
+    यावत् क्रम न्यूनम् ५ आदि
+        चरः व्यय ॱॱ न६४ भवति अवशेषयोगः नमूना क्रम ।
+        ग भवति सङ्ख्यालेखॱअङ्कलेखः क्रम ।
+        ग भवति सङ्ख्यालेखॱअक्षरलेखः ५८ ।
+        ग भवति सङ्ख्यालेखॱअङ्कलेखः व्यय ।
+        ग भवति सङ्ख्यालेखॱअन्तरालः ।
+        यदि व्यय न्यूनम् न्यूनतम आदि
+            न्यूनतम भवति व्यय ।
+            सर्वोत्तम भवति क्रम ।
+        इति
+        क्रम भवति क्रम योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः सर्वोत्तम ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ residuals of the best order, then rebuild the samples from them alone
+    चरः अवशिष्ट ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः पुनः ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    न भवति ० ।
+    यावत् न न्यूनम् १६ आदि
+        चरः अनुमान ॱॱ अ६४ भवति ० ।
+        यदि न न्यूनम् सर्वोत्तम आदि
+            अवशिष्ट अङ्कः न अन्तः भवति नमूना अङ्कः न अन्तः ।
+            पुनः अङ्कः न अन्तः भवति नमूना अङ्कः न अन्तः ।
+        इति अन्यथा आदि
+            अनुमान भवति पूर्वानुमानम् आरभ्य नमूना ऽ न ऽ सर्वोत्तम समाप्तम् ।
+            चरः वास्तव ॱॱ अ६४ भवति नमूना अङ्कः न अन्तः ।
+            अवशिष्ट अङ्कः न अन्तः भवति वास्तव वियोगः अनुमान ।
+            चरः पूर्व ॱॱ अ६४ भवति पूर्वानुमानम् आरभ्य पुनः ऽ न ऽ सर्वोत्तम समाप्तम् ।
+            चरः नव ॱॱ अ६४ भवति अवशिष्ट अङ्कः न अन्तः ।
+            नव भवति नव योगः पूर्व ।
+            पुनः अङ्कः न अन्तः भवति नव ।
+        इति
+        ग भवति सङ्ख्यालेखॱचिह्नलेखः अवशिष्ट अङ्कः न अन्तः ।
+        ग भवति सङ्ख्यालेखॱअन्तरालः ।
+        न भवति न योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    चरः समान ॱॱ न६४ भवति १ ।
+    न भवति ० ।
+    यावत् न न्यूनम् १६ आदि
+        यदि पुनः अङ्कः न अन्तः असमम् नमूना अङ्कः न अन्तः आदि
+            समान भवति ० ।
+        इति
+        न भवति न योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः समान ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <p>Compile and run:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">command</span></div>
+<pre class="code-mono code-mono--dark">$ t1_image --compiler crates/sadhana-t1/src --load audio.t1 --load सङ्ख्यालेख.t1 --entry ध्वनि मुख्यम् -o prog.elf audio.t1 सङ्ख्यालेख.t1
+$ yantra-run prog.elf</pre>
+    </div>
+    <p>Output:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">0 -19 -32 -44 -45 -45 -34 -17 1 30 60 101 148 196 255 315 
+0:1342 1:405 2:79 3:105 4:175 
+2
+0 -19 6 1 11 1 11 6 1 11 1 11 6 1 11 1 
+1
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 22404 executed instructions</pre>
+    </div>
+    <p>Line 1 is the samples, line 2 is order:cost for orders 0 to 4, line 3 is the chosen order (2), line 4 is the residuals (the first two samples are warm-up and stored as they are), and the final 1 says the rebuilt samples equal the originals.</p>
+    <p><strong>A deliberate refusal.</strong> Order 4 asked of sample 2 reads x[2-4]. The subtraction wraps (the index is unsigned), so the read lands far past the end of the run and is refused with status 853 (0x355, out-of-bounds read). The marker X after the read never prints.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">audio_oob.t1</span><span class="deva">17 lines</span></div>
+<pre class="code-deva">मण्डलम् ध्वनिदोष ॥
+आयातः अष्टक ।
+
+॰ Order 4 at sample 2 reads x[2 - 4]. The index is unsigned, so it wraps to a huge
+॰ number and the run refuses the read; the marker &#x27;X&#x27; after it must never print.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः नमूना ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    नमूना अङ्कः ० अन्तः भवति ३ ।
+    नमूना अङ्कः १ अन्तः भवति ५ ।
+    नमूना अङ्कः २ अन्तः भवति ८ ।
+    चरः बिन्दु ॱॱ न६४ भवति २ ।
+    चरः प ॱॱ न६४ भवति बिन्दु वियोगः ४ ।
+    चरः अ४ ॱॱ अ६४ भवति नमूना अङ्कः प अन्तः ।
+    चरः चिह्न ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८८ ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">[exit status 1]
+halt: Finisher { value: 55915315, status: Some(853) }
+steps: 316 executed instructions</pre>
+    </div>
+    <p><strong>A deliberate refusal.</strong> The plain योगः wraps like the hardware (the program prints T). The checked अष्टकॱसुरक्षितयोगः on the same operands halts with status 860 (0x35c, overflow); the marker X never prints.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">audio_overflow.t1</span><span class="deva">13 lines</span></div>
+<pre class="code-deva">मण्डलम् ध्वनिअतिप्रवाह ॥
+आयातः अष्टक ।
+
+॰ The plain योगः wraps modulo 2^64, so the largest signed number plus one is the smallest.. The checked form refuses instead.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः महत्तम ॱॱ अ६४ भवति ९२२३३७२०३६८५४७७५८०७ ।
+    चरः लपेट ॱॱ अ६४ भवति महत्तम योगः १ ।
+    चरः चिह्न१ ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८४ ।
+    चरः सुरक्षित ॱॱ अ६४ भवति अष्टकॱसुरक्षितयोगः आरभ्य महत्तम ऽ १ समाप्तम् ।
+    चरः चिह्न२ ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८८ ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">[exit status 1]
+T
+halt: Finisher { value: 56374067, status: Some(860) }
+steps: 43 executed instructions</pre>
+    </div>
+    <p>Skills this exercises:</p>
+    <ul>
+      <li>Arrays that grow and are bounds-checked: a run is read and written by index, and a read at or past its length is refused by name, not answered with garbage.</li>
+      <li>Signed arithmetic with अ६४ for samples and residuals, and unsigned न६४ for indices; an ordering compare is unsigned as soon as either operand is a name declared unsigned.</li>
+      <li>Checked arithmetic: the residual total is accumulated with अष्टकॱसुरक्षितयोगः, which refuses on overflow instead of wrapping.</li>
+      <li>Modules: printing lives in a separate module, सङ्ख्यालेख, that this and the other three programs import and call as सङ्ख्यालेखॱचिह्नलेखः.</li>
+      <li>Recursion and functions with several parameters, passed by group: पूर्वानुमानम् आरभ्य नमूना ऽ बिन्दु ऽ क्रम समाप्तम्.</li>
+    </ul>
+    <h3 id="image">Image: PNG filters and the LOCO-I median predictor</h3>
+    <p>PNG improves compression by filtering each scanline before deflate: Sub subtracts the pixel to the left (a), Up the pixel above (b), Average the floor of (a+b)/2, and Paeth whichever of a, b, c (upper left) is nearest to a+b-c. The median edge detector of LOCO-I / JPEG-LS picks min(a,b) or max(a,b) when c lies outside them, else a+b-c. Here all six choices (None plus those five) run over an 8 x 4 tile, residuals are taken modulo 256, and each is scored by the distance of every residual byte from zero, the usual PNG heuristic.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">image.t1</span><span class="deva">199 lines</span></div>
+<pre class="code-deva">मण्डलम् चित्र ॥
+आयातः अष्टक ।
+आयातः सङ्ख्यालेख ।
+
+॰ PNG filters (Sub, Up, Average, Paeth) and the median edge detector of LOCO-I /
+॰ JPEG-LS, over an 8 x 4 tile of one-octet pixels.  a = left, b = above, c = upper left.
+॰ Residuals are taken modulo 256, as PNG does.
+
+
+॰ A pixel, or zero outside the tile.  A coordinate one less than zero wraps to a huge
+॰ unsigned number, so ONE unsigned compare guards both edges.
+वृत्तिः तत्त्व आदाय पट ॱॱ अङ्कः अन्तः अ६४ ऽ क ॱॱ न६४ ऽ ख ॱॱ न६४ ददाति अ६४ आदि
+    यदि क बृहत्समम् ८ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    यदि ख बृहत्समम् ४ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पङ्क्ति ॱॱ न६४ भवति ख गुणनम् ८ ।
+    पङ्क्ति भवति पङ्क्ति योगः क ।
+    प्रत्यागमनम् पट अङ्कः पङ्क्ति अन्तः ।
+इति
+
+वृत्तिः पेथ आदाय वाम ॱॱ अ६४ ऽ उप ॱॱ अ६४ ऽ कोण ॱॱ अ६४ ददाति अ६४ आदि
+    चरः योगान्तर ॱॱ अ६४ भवति वाम योगः उप ।
+    चरः प ॱॱ अ६४ भवति योगान्तर वियोगः कोण ।
+    चरः पअ ॱॱ अ६४ भवति प वियोगः वाम ।
+    चरः पब ॱॱ अ६४ भवति प वियोगः उप ।
+    चरः पस ॱॱ अ६४ भवति प वियोगः कोण ।
+    यदि पअ न्यूनम् ० आदि
+        पअ भवति ० वियोगः पअ ।
+    इति
+    यदि पब न्यूनम् ० आदि
+        पब भवति ० वियोगः पब ।
+    इति
+    यदि पस न्यूनम् ० आदि
+        पस भवति ० वियोगः पस ।
+    इति
+    यदि पब बृहत्समम् पअ आदि
+        यदि पस बृहत्समम् पअ आदि
+            प्रत्यागमनम् वाम ।
+        इति
+    इति
+    यदि पस बृहत्समम् पब आदि
+        प्रत्यागमनम् उप ।
+    इति
+    प्रत्यागमनम् कोण ।
+इति
+
+॰ LOCO-I: clamp to min(a,b) or max(a,b) when c lies outside them, else a + b - c.
+वृत्तिः माध्यक आदाय वाम ॱॱ अ६४ ऽ उप ॱॱ अ६४ ऽ कोण ॱॱ अ६४ ददाति अ६४ आदि
+    चरः लघु ॱॱ अ६४ भवति वाम ।
+    चरः गुरु ॱॱ अ६४ भवति उप ।
+    यदि उप न्यूनम् वाम आदि
+        लघु भवति उप ।
+        गुरु भवति वाम ।
+    इति
+    यदि कोण बृहत्समम् गुरु आदि
+        प्रत्यागमनम् लघु ।
+    इति
+    यदि लघु बृहत्समम् कोण आदि
+        प्रत्यागमनम् गुरु ।
+    इति
+    चरः योगान्तर ॱॱ अ६४ भवति वाम योगः उप ।
+    प्रत्यागमनम् योगान्तर वियोगः कोण ।
+इति
+
+॰ Filter 0 None, 1 Sub, 2 Up, 3 Average, 4 Paeth, 5 MED: the prediction at (क, ख).
+वृत्तिः अनुमान आदाय प्रकार ॱॱ न६४ ऽ पट ॱॱ अङ्कः अन्तः अ६४ ऽ क ॱॱ न६४ ऽ ख ॱॱ न६४ ददाति अ६४ आदि
+    चरः पूर्वक ॱॱ न६४ भवति क वियोगः १ ।
+    चरः पूर्वख ॱॱ न६४ भवति ख वियोगः १ ।
+    चरः वाम ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ पूर्वक ऽ ख समाप्तम् ।
+    चरः उप ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ क ऽ पूर्वख समाप्तम् ।
+    चरः कोण ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ पूर्वक ऽ पूर्वख समाप्तम् ।
+    यदि प्रकार समम् १ आदि
+        प्रत्यागमनम् वाम ।
+    इति
+    यदि प्रकार समम् २ आदि
+        प्रत्यागमनम् उप ।
+    इति
+    यदि प्रकार समम् ३ आदि
+        चरः योग ॱॱ अ६४ भवति वाम योगः उप ।
+        प्रत्यागमनम् योग विभाजनम् २ ।
+    इति
+    यदि प्रकार समम् ४ आदि
+        प्रत्यागमनम् पेथ आरभ्य वाम ऽ उप ऽ कोण समाप्तम् ।
+    इति
+    यदि प्रकार समम् ५ आदि
+        प्रत्यागमनम् माध्यक आरभ्य वाम ऽ उप ऽ कोण समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+॰ A residual byte read as signed: its distance from zero.
+वृत्तिः दूरी आदाय अवशिष्ट ॱॱ अ६४ ददाति न६४ आदि
+    यदि अवशिष्ट अधिकम् १२८ आदि
+        चरः शेष ॱॱ अ६४ भवति २५६ वियोगः अवशिष्ट ।
+        प्रत्यागमनम् शेष ।
+    इति
+    प्रत्यागमनम् अवशिष्ट ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः पट ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः ख ॱॱ न६४ भवति ० ।
+    यावत् ख न्यूनम् ४ आदि
+        चरः क ॱॱ न६४ भवति ० ।
+        यावत् क न्यूनम् ८ आदि
+            चरः ढाल ॱॱ अ६४ भवति क गुणनम् १८ ।
+            चरः ऊर्ध्वढाल ॱॱ अ६४ भवति ख गुणनम् ११ ।
+            चरः मान ॱॱ अ६४ भवति ढाल योगः ऊर्ध्वढाल ।
+            यदि क बृहत्समम् ४ आदि
+                मान भवति मान योगः ८० ।
+            इति
+            पट अङ्कः पट ॱ दैर्घ्य अन्तः भवति मान ।
+            क भवति क योगः १ ।
+        इति
+        ख भवति ख योगः १ ।
+    इति
+    चरः ग ॱॱ न६४ भवति ० ।
+    ॰ the tile
+    ख भवति ० ।
+    यावत् ख न्यूनम् ४ आदि
+        चरः क ॱॱ न६४ भवति ० ।
+        यावत् क न्यूनम् ८ आदि
+            चरः पिक्सेल ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ क ऽ ख समाप्तम् ।
+            ग भवति सङ्ख्यालेखॱअङ्कलेखः पिक्सेल ।
+            ग भवति सङ्ख्यालेखॱअन्तरालः ।
+            क भवति क योगः १ ।
+        इति
+        ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+        ख भवति ख योगः १ ।
+    इति
+    ॰ the cost of each filter: the sum of the residuals&#x27; distances from zero
+    चरः सर्वोत्तम ॱॱ न६४ भवति ० ।
+    चरः न्यूनतम ॱॱ न६४ भवति ९९९९९९ ।
+    चरः प्रकार ॱॱ न६४ भवति ० ।
+    यावत् प्रकार न्यूनम् ६ आदि
+        चरः व्यय ॱॱ न६४ भवति ० ।
+        ख भवति ० ।
+        यावत् ख न्यूनम् ४ आदि
+            चरः क ॱॱ न६४ भवति ० ।
+            यावत् क न्यूनम् ८ आदि
+                चरः वास्तव ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ क ऽ ख समाप्तम् ।
+                चरः अनु ॱॱ अ६४ भवति अनुमान आरभ्य प्रकार ऽ पट ऽ क ऽ ख समाप्तम् ।
+                चरः भेद ॱॱ अ६४ भवति वास्तव वियोगः अनु ।
+                भेद भवति भेद युक् २५५ ।
+                चरः दू ॱॱ न६४ भवति दूरी भेद ।
+                व्यय भवति अष्टकॱसुरक्षितयोगः आरभ्य व्यय ऽ दू समाप्तम् ।
+                क भवति क योगः १ ।
+            इति
+            ख भवति ख योगः १ ।
+        इति
+        ग भवति सङ्ख्यालेखॱअङ्कलेखः प्रकार ।
+        ग भवति सङ्ख्यालेखॱअक्षरलेखः ५८ ।
+        ग भवति सङ्ख्यालेखॱअङ्कलेखः व्यय ।
+        ग भवति सङ्ख्यालेखॱअन्तरालः ।
+        यदि व्यय न्यूनम् न्यूनतम आदि
+            न्यूनतम भवति व्यय ।
+            सर्वोत्तम भवति प्रकार ।
+        इति
+        प्रकार भवति प्रकार योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः सर्वोत्तम ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ residuals of the best filter, then rebuild the tile from them
+    चरः पुनः ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    ख भवति ० ।
+    यावत् ख न्यूनम् ४ आदि
+        चरः क ॱॱ न६४ भवति ० ।
+        यावत् क न्यूनम् ८ आदि
+            चरः वास्तव ॱॱ अ६४ भवति तत्त्व आरभ्य पट ऽ क ऽ ख समाप्तम् ।
+            चरः अनु ॱॱ अ६४ भवति अनुमान आरभ्य सर्वोत्तम ऽ पट ऽ क ऽ ख समाप्तम् ।
+            चरः अवशिष्ट ॱॱ अ६४ भवति वास्तव वियोगः अनु ।
+            अवशिष्ट भवति अवशिष्ट युक् २५५ ।
+            ग भवति सङ्ख्यालेखॱअङ्कलेखः अवशिष्ट ।
+            ग भवति सङ्ख्यालेखॱअन्तरालः ।
+            चरः पूर्वानु ॱॱ अ६४ भवति अनुमान आरभ्य सर्वोत्तम ऽ पुनः ऽ क ऽ ख समाप्तम् ।
+            चरः नव ॱॱ अ६४ भवति अवशिष्ट योगः पूर्वानु ।
+            नव भवति नव युक् २५५ ।
+            पुनः अङ्कः पुनः ॱ दैर्घ्य अन्तः भवति नव ।
+            क भवति क योगः १ ।
+        इति
+        ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+        ख भवति ख योगः १ ।
+    इति
+    चरः समान ॱॱ न६४ भवति १ ।
+    चरः सूचक ॱॱ न६४ भवति ० ।
+    यावत् सूचक न्यूनम् ३२ आदि
+        यदि पुनः अङ्कः सूचक अन्तः असमम् पट अङ्कः सूचक अन्तः आदि
+            समान भवति ० ।
+        इति
+        सूचक भवति सूचक योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः समान ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <p>Compile and run:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">command</span></div>
+<pre class="code-mono code-mono--dark">$ t1_image --compiler crates/sadhana-t1/src --load image.t1 --load सङ्ख्यालेख.t1 --entry चित्र मुख्यम् -o prog.elf image.t1 सङ्ख्यालेख.t1
+$ yantra-run prog.elf</pre>
+    </div>
+    <p>Output:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">0 18 36 54 152 170 188 206 
+11 29 47 65 163 181 199 217 
+22 40 58 76 174 192 210 228 
+33 51 69 87 185 203 221 239 
+0:1664 1:890 2:680 3:1000 4:470 5:470 
+4
+0 18 18 18 98 18 18 18 
+11 11 11 11 11 11 11 11 
+11 11 11 11 11 11 11 11 
+11 11 11 11 11 11 11 11 
+1
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 104188 executed instructions</pre>
+    </div>
+    <p>The first four lines are the tile. Then filter:cost for filters 0 to 5. The best is 4 (Paeth, tied with MED at 470; the first of equals wins). The next four lines are the Paeth residuals, and the final 1 says the tile rebuilt from them is identical.</p>
+    <p><strong>A deliberate refusal.</strong> Row 4 of a four-row tile is one row too far: index 32 of a run of 32 is refused with status 853 (0x355).</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">image_oob.t1</span><span class="deva">19 lines</span></div>
+<pre class="code-deva">मण्डलम् चित्रदोष ॥
+आयातः अष्टक ।
+
+॰ A tile of 8 x 4 = 32 pixels. Row 4 is one past the last row: index 32 of a run of 32.
+॰ The read is refused; the marker &#x27;X&#x27; after it must never print.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः पट ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः क्रम ॱॱ न६४ भवति ० ।
+    यावत् क्रम न्यूनम् ३२ आदि
+        पट अङ्कः क्रम अन्तः भवति क्रम ।
+        क्रम भवति क्रम योगः १ ।
+    इति
+    चरः ख ॱॱ न६४ भवति ४ ।
+    चरः पङ्क्ति ॱॱ न६४ भवति ख गुणनम् ८ ।
+    चरः पिक्सेल ॱॱ अ६४ भवति पट अङ्कः पङ्क्ति अन्तः ।
+    चरः चिह्न ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८८ ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">[exit status 1]
+halt: Finisher { value: 55915315, status: Some(853) }
+steps: 1198 executed instructions</pre>
+    </div>
+    <p>Skills this exercises:</p>
+    <ul>
+      <li>Unsigned compare as a guard: a coordinate one less than zero wraps to a huge unsigned number, so one compare (बृहत्समम् 8) guards both edges of the tile.</li>
+      <li>Modular arithmetic with a bit mask: युक् २५५ keeps a residual in one octet, and the same mask rebuilds the pixel.</li>
+      <li>Branchy integer logic without a standard library: Paeth and MED are nested यदि blocks with absolute values written out by hand.</li>
+      <li>Checked accumulation of the cost with अष्टकॱसुरक्षितयोगः, and lossless verification by comparing the rebuilt tile to the original.</li>
+    </ul>
+    <h3 id="protein">Protein: the HP lattice model</h3>
+    <p>The HP model reduces a protein to a chain of hydrophobic (H) and polar (P) residues folded as a self-avoiding walk on a square lattice. Each pair of H residues on neighbouring cells that are not neighbours in the chain is a contact worth -1; the best fold has the lowest energy. This program folds HPHHPPHPHH by exhaustive depth-first search, with the first two residues fixed (residue 1 one step right of residue 0) so rotations are not counted twice. It counts every walk, keeps the minimum, draws the best fold, and recounts its contacts pair by pair as an independent audit.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">protein.t1</span><span class="deva">214 lines</span></div>
+<pre class="code-deva">मण्डलम् प्रोटीन ॥
+आयातः अष्टक ।
+आयातः सङ्ख्यालेख ।
+
+॰ The HP lattice model: each residue is H (hydrophobic) or P (polar), the chain is a
+॰ self-avoiding walk on the square lattice, and every pair of H residues that sit on
+॰ neighbouring cells without being neighbours in the chain is a contact worth -1.
+॰ An exhaustive depth-first search finds the minimum energy.  The lattice is 21 wide;
+॰ cell = row * 21 + column, so the four moves are +1, +21, -1 and -21.
+
+वृत्तिः दिशा आदाय क्रम ॱॱ न६४ ददाति अ६४ आदि
+    यदि क्रम समम् ० आदि
+        प्रत्यागमनम् १ ।
+    इति
+    यदि क्रम समम् १ आदि
+        प्रत्यागमनम् २१ ।
+    इति
+    यदि क्रम समम् २ आदि
+        प्रत्यागमनम् ऋण१ ।
+    इति
+    प्रत्यागमनम् ऋण२१ ।
+इति
+
+॰ Contacts gained by putting residue `क्रम` on cell `कोष्ठ`: only H residues count, and
+॰ the chain neighbour (residue क्रम - 1) is not a contact.
+वृत्तिः सम्पर्क आदाय क्रम ॱॱ न६४ ऽ कोष्ठ ॱॱ अ६४ ऽ अनुक्रम ॱॱ अङ्कः अन्तः अ६४ ऽ जाल ॱॱ अङ्कः अन्तः अ६४ ददाति अ६४ आदि
+    यदि अनुक्रम अङ्कः क्रम अन्तः समम् ० आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः योग ॱॱ अ६४ भवति ० ।
+    चरः दि ॱॱ न६४ भवति ० ।
+    यावत् दि न्यूनम् ४ आदि
+        चरः अन्तर ॱॱ अ६४ भवति दिशा दि ।
+        चरः पडोस ॱॱ अ६४ भवति कोष्ठ योगः अन्तर ।
+        चरः निवासी ॱॱ अ६४ भवति जाल अङ्कः पडोस अन्तः ।
+        यदि निवासी अधिकम् ० आदि
+            चरः श्रृंखला ॱॱ अ६४ भवति निवासी वियोगः १ ।
+            चरः पूर्वतन ॱॱ अ६४ भवति क्रम वियोगः १ ।
+            यदि श्रृंखला असमम् पूर्वतन आदि
+                यदि अनुक्रम अङ्कः श्रृंखला अन्तः समम् १ आदि
+                    योग भवति योग योगः १ ।
+                इति
+            इति
+        इति
+        दि भवति दि योगः १ ।
+    इति
+    प्रत्यागमनम् योग ।
+इति
+
+॰ Depth-first search.  स्थिति: [0] best energy, [1] walks counted, [2] chain length.
+वृत्तिः अन्वेषणम् आदाय क्रम ॱॱ न६४ ऽ ऊर्जा ॱॱ अ६४ ऽ अनुक्रम ॱॱ अङ्कः अन्तः अ६४ ऽ जाल ॱॱ अङ्कः अन्तः अ६४ ऽ पथ ॱॱ अङ्कः अन्तः अ६४ ऽ स्थिति ॱॱ अङ्कः अन्तः अ६४ ऽ श्रेष्ठ ॱॱ अङ्कः अन्तः अ६४ ददाति न६४ आदि
+    चरः दैर्घ्यम् ॱॱ न६४ भवति स्थिति अङ्कः २ अन्तः ।
+    यदि क्रम समम् दैर्घ्यम् आदि
+        चरः गणित ॱॱ अ६४ भवति स्थिति अङ्कः १ अन्तः ।
+        स्थिति अङ्कः १ अन्तः भवति अष्टकॱसुरक्षितयोगः आरभ्य गणित ऽ १ समाप्तम् ।
+        यदि ऊर्जा न्यूनम् स्थिति अङ्कः ० अन्तः आदि
+            स्थिति अङ्कः ० अन्तः भवति ऊर्जा ।
+            चरः ल ॱॱ न६४ भवति ० ।
+            यावत् ल न्यूनम् दैर्घ्यम् आदि
+                श्रेष्ठ अङ्कः ल अन्तः भवति पथ अङ्कः ल अन्तः ।
+                ल भवति ल योगः १ ।
+            इति
+        इति
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पूर्व ॱॱ अ६४ भवति पथ अङ्कः क्रम वियोगः १ अन्तः ।
+    चरः दि ॱॱ न६४ भवति ० ।
+    यावत् दि न्यूनम् ४ आदि
+        चरः अन्तर ॱॱ अ६४ भवति दिशा दि ।
+        चरः कोष्ठ ॱॱ अ६४ भवति पूर्व योगः अन्तर ।
+        यदि जाल अङ्कः कोष्ठ अन्तः समम् ० आदि
+            चरः लाभ ॱॱ अ६४ भवति सम्पर्क आरभ्य क्रम ऽ कोष्ठ ऽ अनुक्रम ऽ जाल समाप्तम् ।
+            चरः नवीन ॱॱ अ६४ भवति ऊर्जा वियोगः लाभ ।
+            चरः अगला ॱॱ न६४ भवति क्रम योगः १ ।
+            चरः चिह्न ॱॱ अ६४ भवति अगला ।
+            जाल अङ्कः कोष्ठ अन्तः भवति चिह्न ।
+            पथ अङ्कः क्रम अन्तः भवति कोष्ठ ।
+            चरः फल ॱॱ न६४ भवति अन्वेषणम् आरभ्य अगला ऽ नवीन ऽ अनुक्रम ऽ जाल ऽ पथ ऽ स्थिति ऽ श्रेष्ठ समाप्तम् ।
+            जाल अङ्कः कोष्ठ अन्तः भवति ० ।
+        इति
+        दि भवति दि योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः आकार ॱॱ न६४ भवति १० ।
+    चरः बिट् ॱॱ न६४ भवति ०द्वि११०१००११०१ ।
+    चरः अनुक्रम ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः ग ॱॱ न६४ भवति ० ।
+    चरः र ॱॱ न६४ भवति ० ।
+    यावत् र न्यूनम् आकार आदि
+        चरः अंश ॱॱ न६४ भवति बिट् दक्षिणसृ र ।
+        अंश भवति अंश युक् १ ।
+        अनुक्रम अङ्कः र अन्तः भवति अंश ।
+        यदि अंश समम् १ आदि
+            ग भवति सङ्ख्यालेखॱअक्षरलेखः ७२ ।
+        इति अन्यथा आदि
+            ग भवति सङ्ख्यालेखॱअक्षरलेखः ८० ।
+        इति
+        र भवति र योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ the lattice is empty; residue 0 at the centre cell, residue 1 one step right
+    चरः जाल ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः पथ ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः श्रेष्ठ ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः स्थिति ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    र भवति ० ।
+    यावत् र न्यूनम् ४४१ आदि
+        जाल अङ्कः र अन्तः भवति ० ।
+        र भवति र योगः १ ।
+    इति
+    र भवति ० ।
+    यावत् र न्यूनम् आकार आदि
+        पथ अङ्कः र अन्तः भवति ० ।
+        श्रेष्ठ अङ्कः र अन्तः भवति ० ।
+        र भवति र योगः १ ।
+    इति
+    स्थिति अङ्कः ० अन्तः भवति १ ।
+    स्थिति अङ्कः १ अन्तः भवति ० ।
+    स्थिति अङ्कः २ अन्तः भवति आकार ।
+    चरः केन्द्र ॱॱ अ६४ भवति २२१ ।
+    चरः दूसरा ॱॱ अ६४ भवति केन्द्र योगः १ ।
+    पथ अङ्कः ० अन्तः भवति केन्द्र ।
+    पथ अङ्कः १ अन्तः भवति दूसरा ।
+    जाल अङ्कः केन्द्र अन्तः भवति १ ।
+    जाल अङ्कः दूसरा अन्तः भवति २ ।
+    चरः फल ॱॱ न६४ भवति अन्वेषणम् आरभ्य २ ऽ ० ऽ अनुक्रम ऽ जाल ऽ पथ ऽ स्थिति ऽ श्रेष्ठ समाप्तम् ।
+    ॰ report
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः स्थिति अङ्कः १ अन्तः ।
+    ग भवति सङ्ख्यालेखॱअन्तरालः ।
+    ग भवति सङ्ख्यालेखॱचिह्नलेखः स्थिति अङ्कः ० अन्तः ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ draw the best fold: bounding box of its cells, then one character per cell
+    चरः न्यूनपङ्क्ति ॱॱ न६४ भवति ९९ ।
+    चरः अधिकपङ्क्ति ॱॱ न६४ भवति ० ।
+    चरः न्यूनस्तम्भ ॱॱ न६४ भवति ९९ ।
+    चरः अधिकस्तम्भ ॱॱ न६४ भवति ० ।
+    र भवति ० ।
+    यावत् र न्यूनम् आकार आदि
+        चरः कोष्ठ ॱॱ न६४ भवति श्रेष्ठ अङ्कः र अन्तः ।
+        चरः पङ्क्ति ॱॱ न६४ भवति कोष्ठ विभाजनम् २१ ।
+        चरः स्तम्भ ॱॱ न६४ भवति कोष्ठ शेषः २१ ।
+        यदि पङ्क्ति न्यूनम् न्यूनपङ्क्ति आदि
+            न्यूनपङ्क्ति भवति पङ्क्ति ।
+        इति
+        यदि पङ्क्ति अधिकम् अधिकपङ्क्ति आदि
+            अधिकपङ्क्ति भवति पङ्क्ति ।
+        इति
+        यदि स्तम्भ न्यूनम् न्यूनस्तम्भ आदि
+            न्यूनस्तम्भ भवति स्तम्भ ।
+        इति
+        यदि स्तम्भ अधिकम् अधिकस्तम्भ आदि
+            अधिकस्तम्भ भवति स्तम्भ ।
+        इति
+        र भवति र योगः १ ।
+    इति
+    चरः प ॱॱ न६४ भवति अधिकपङ्क्ति योगः १ ।
+    यावत् प अधिकम् न्यूनपङ्क्ति आदि
+        प भवति प वियोगः १ ।
+        चरः च ॱॱ न६४ भवति न्यूनस्तम्भ ।
+        यावत् च न्यूनम् अधिकस्तम्भ योगः १ आदि
+            चरः वर्ण ॱॱ न६४ भवति ४६ ।
+            चरः कोष्ठ ॱॱ न६४ भवति प गुणनम् २१ ।
+            कोष्ठ भवति कोष्ठ योगः च ।
+            र भवति ० ।
+            यावत् र न्यूनम् आकार आदि
+                यदि श्रेष्ठ अङ्कः र अन्तः समम् कोष्ठ आदि
+                    वर्ण भवति ८० ।
+                    यदि अनुक्रम अङ्कः र अन्तः समम् १ आदि
+                        वर्ण भवति ७२ ।
+                    इति
+                इति
+                र भवति र योगः १ ।
+            इति
+            ग भवति सङ्ख्यालेखॱअक्षरलेखः वर्ण ।
+            च भवति च योगः १ ।
+        इति
+        ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    इति
+    ॰ audit: recount the contacts of that fold from scratch, pair by pair
+    चरः पुनर्गणित ॱॱ अ६४ भवति ० ।
+    चरः इ ॱॱ न६४ भवति ० ।
+    यावत् इ न्यूनम् आकार आदि
+        चरः ज ॱॱ न६४ भवति इ योगः २ ।
+        यावत् ज न्यूनम् आकार आदि
+            चरः अन्तरम् ॱॱ अ६४ भवति श्रेष्ठ अङ्कः इ अन्तः ।
+            अन्तरम् भवति अन्तरम् वियोगः श्रेष्ठ अङ्कः ज अन्तः ।
+            यदि अन्तरम् न्यूनम् ० आदि
+                अन्तरम् भवति ० वियोगः अन्तरम् ।
+            इति
+            चरः निकट ॱॱ न६४ भवति ० ।
+            यदि अन्तरम् समम् १ आदि
+                निकट भवति १ ।
+            इति
+            यदि अन्तरम् समम् २१ आदि
+                निकट भवति १ ।
+            इति
+            यदि निकट समम् १ आदि
+                यदि अनुक्रम अङ्कः इ अन्तः समम् १ आदि
+                    यदि अनुक्रम अङ्कः ज अन्तः समम् १ आदि
+                        पुनर्गणित भवति पुनर्गणित वियोगः १ ।
+                    इति
+                इति
+            इति
+            ज भवति ज योगः १ ।
+        इति
+        इ भवति इ योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱचिह्नलेखः पुनर्गणित ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <p>Compile and run:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">command</span></div>
+<pre class="code-mono code-mono--dark">$ t1_image --compiler crates/sadhana-t1/src --load protein.t1 --load सङ्ख्यालेख.t1 --entry प्रोटीन मुख्यम् -o prog.elf protein.t1 सङ्ख्यालेख.t1
+$ yantra-run prog.elf</pre>
+    </div>
+    <p>Output:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">HPHHPPHPHH
+4067 -4
+PHP
+HHP
+HH.
+HP.
+-4
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 3269750 executed instructions</pre>
+    </div>
+    <p>Line 1 is the sequence, written from a binary numeral (0b1101001101 read bit by bit). Line 2 is the number of self-avoiding walks (4067, which is 16268/4, the known count of 9-step walks divided by the 4 first moves) and the minimum energy (-4). Then the fold, and last the audit, which recounts -4 from scratch.</p>
+    <p><strong>A deliberate refusal.</strong> A walker on cell 5 steps down to 5-21 = -16. A negative index is refused with status 853 (0x355), so a chain that leaves its lattice cannot read a neighbouring row.</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">protein_oob.t1</span><span class="deva">19 lines</span></div>
+<pre class="code-deva">मण्डलम् प्रोटीनदोष ॥
+आयातः अष्टक ।
+
+॰ A walker on the bottom row (cell 5) steps down: cell 5 - 21 = -16.  A negative index
+॰ is refused, so a chain that leaves the lattice is caught instead of reading elsewhere.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः जाल ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः र ॱॱ न६४ भवति ० ।
+    यावत् र न्यूनम् ४४१ आदि
+        जाल अङ्कः र अन्तः भवति ० ।
+        र भवति र योगः १ ।
+    इति
+    चरः कोष्ठ ॱॱ अ६४ भवति ५ ।
+    चरः अगला ॱॱ अ६४ भवति कोष्ठ वियोगः २१ ।
+    चरः निवासी ॱॱ अ६४ भवति जाल अङ्कः अगला अन्तः ।
+    चरः चिह्न ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८८ ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">[exit status 1]
+halt: Finisher { value: 55915315, status: Some(853) }
+steps: 23107 executed instructions</pre>
+    </div>
+    <p>Skills this exercises:</p>
+    <ul>
+      <li>Recursion with a rich state: the search passes the lattice, the path, a statistics run and the best fold down the call chain as runs, and undoes each placement on the way back.</li>
+      <li>Checked arithmetic on a counter: the number of walks is incremented with अष्टकॱसुरक्षितयोगः.</li>
+      <li>Signed energy and negative numbers: a literal such as ऋण२१ is a move, and the minimum is compared signed.</li>
+      <li>An independent audit: the DFS energy and the pair-by-pair recount are separate code and must agree.</li>
+      <li>A naming trap met while writing it: गणना is a keyword (enum). Used as a variable name it reads as nil on one engine, and the differential gate refused the build. Check new names against spec/grammar-t1.ebnf.</li>
+    </ul>
+    <h3 id="video">Video: frame differencing and block motion search</h3>
+    <p>A teaching example, not a codec. Video coders exploit the fact that most of a frame is the previous frame, moved. The program builds two 12 x 8 frames, the second the first moved 2 right and 1 down. It first differences them (how many pixels changed, and by how much), then splits frame 2 into 4 x 4 blocks and, for each, tries every displacement from -2 to +2 in both directions whose reference block lies wholly inside frame 1, keeping the one with the smallest sum of absolute differences (SAD).</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">video.t1</span><span class="deva">149 lines</span></div>
+<pre class="code-deva">मण्डलम् चलचित्र ॥
+आयातः अष्टक ।
+आयातः सङ्ख्यालेख ।
+
+॰ A TEACHING EXAMPLE: frame differencing and exhaustive block-matching motion search.
+॰ Two 12 x 8 frames; the second is the first moved 2 right and 1 down.  Each 4 x 4 block
+॰ of frame 2 is compared (sum of absolute differences, SAD) with every block of frame 1
+॰ displaced by -2..+2 in each direction that lies wholly inside the frame.
+
+॰ a deterministic texture; coordinates may be negative, so the signed type is used
+वृत्तिः बनावट आदाय क ॱॱ अ६४ ऽ ख ॱॱ अ६४ ददाति अ६४ आदि
+    चरः उ ॱॱ अ६४ भवति क योगः १६ ।
+    चरः व ॱॱ अ६४ भवति ख योगः १६ ।
+    चरः उउ ॱॱ अ६४ भवति उ गुणनम् उ ।
+    चरः वव ॱॱ अ६४ भवति व गुणनम् व ।
+    चरः उव ॱॱ अ६४ भवति उ गुणनम् व ।
+    उउ भवति उउ गुणनम् ३ ।
+    वव भवति वव गुणनम् ५ ।
+    उव भवति उव गुणनम् ७ ।
+    चरः योग ॱॱ अ६४ भवति उउ योगः वव ।
+    योग भवति योग योगः उव ।
+    चरः शेष ॱॱ अ६४ भवति योग शेषः ६१ ।
+    प्रत्यागमनम् शेष गुणनम् ४ ।
+इति
+
+॰ the absolute value of a signed difference
+वृत्तिः निरपेक्ष आदाय मान ॱॱ अ६४ ददाति न६४ आदि
+    यदि मान न्यूनम् ० आदि
+        चरः धन ॱॱ अ६४ भवति ० वियोगः मान ।
+        प्रत्यागमनम् धन ।
+    इति
+    प्रत्यागमनम् मान ।
+इति
+
+॰ SAD of the 4 x 4 block at (बक, बख) of `नव` against the block of `पुराण` moved by (दक्ष, दख).
+॰ Only called with a displacement that keeps the whole reference block in the frame.
+वृत्तिः योगान्तर आदाय पुराण ॱॱ अङ्कः अन्तः अ६४ ऽ नव ॱॱ अङ्कः अन्तः अ६४ ऽ बक ॱॱ अ६४ ऽ बख ॱॱ अ६४ ऽ दक ॱॱ अ६४ ऽ दख ॱॱ अ६४ ददाति न६४ आदि
+    चरः योग ॱॱ न६४ भवति ० ।
+    चरः ज ॱॱ अ६४ भवति ० ।
+    यावत् ज न्यूनम् ४ आदि
+        चरः इ ॱॱ अ६४ भवति ० ।
+        यावत् इ न्यूनम् ४ आदि
+            चरः नक ॱॱ अ६४ भवति बक योगः इ ।
+            चरः नख ॱॱ अ६४ भवति बख योगः ज ।
+            चरः पक ॱॱ अ६४ भवति नक योगः दक ।
+            चरः पख ॱॱ अ६४ भवति नख योगः दख ।
+            चरः नसू ॱॱ अ६४ भवति नख गुणनम् १२ ।
+            नसू भवति नसू योगः नक ।
+            चरः पसू ॱॱ अ६४ भवति पख गुणनम् १२ ।
+            पसू भवति पसू योगः पक ।
+            चरः अ ॱॱ अ६४ भवति नव अङ्कः नसू अन्तः ।
+            चरः ब ॱॱ अ६४ भवति पुराण अङ्कः पसू अन्तः ।
+            चरः भेद ॱॱ अ६४ भवति अ वियोगः ब ।
+            चरः दू ॱॱ न६४ भवति निरपेक्ष भेद ।
+            योग भवति अष्टकॱसुरक्षितयोगः आरभ्य योग ऽ दू समाप्तम् ।
+            इ भवति इ योगः १ ।
+        इति
+        ज भवति ज योगः १ ।
+    इति
+    प्रत्यागमनम् योग ।
+इति
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः पुराण ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः नव ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः ख ॱॱ अ६४ भवति ० ।
+    यावत् ख न्यूनम् ८ आदि
+        चरः क ॱॱ अ६४ भवति ० ।
+        यावत् क न्यूनम् १२ आदि
+            चरः प ॱॱ अ६४ भवति बनावट आरभ्य क ऽ ख समाप्तम् ।
+            पुराण अङ्कः पुराण ॱ दैर्घ्य अन्तः भवति प ।
+            चरः कः ॱॱ अ६४ भवति क वियोगः २ ।
+            चरः खः ॱॱ अ६४ भवति ख वियोगः १ ।
+            चरः न ॱॱ अ६४ भवति बनावट आरभ्य कः ऽ खः समाप्तम् ।
+            नव अङ्कः नव ॱ दैर्घ्य अन्तः भवति न ।
+            क भवति क योगः १ ।
+        इति
+        ख भवति ख योगः १ ।
+    इति
+    चरः ग ॱॱ न६४ भवति ० ।
+    ॰ frame differencing: how many pixels changed, and by how much in all
+    चरः परिवर्तित ॱॱ न६४ भवति ० ।
+    चरः योगभेद ॱॱ न६४ भवति ० ।
+    चरः सू ॱॱ न६४ भवति ० ।
+    यावत् सू न्यूनम् ९६ आदि
+        चरः भेद ॱॱ अ६४ भवति नव अङ्कः सू अन्तः ।
+        भेद भवति भेद वियोगः पुराण अङ्कः सू अन्तः ।
+        यदि भेद असमम् ० आदि
+            परिवर्तित भवति परिवर्तित योगः १ ।
+        इति
+        चरः दू ॱॱ न६४ भवति निरपेक्ष भेद ।
+        योगभेद भवति अष्टकॱसुरक्षितयोगः आरभ्य योगभेद ऽ दू समाप्तम् ।
+        सू भवति सू योगः १ ।
+    इति
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः परिवर्तित ।
+    ग भवति सङ्ख्यालेखॱअन्तरालः ।
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः योगभेद ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    ॰ motion search: one line per block  &quot;column row  dx dy  SAD&quot;
+    चरः कुलशेष ॱॱ न६४ भवति ० ।
+    चरः बख ॱॱ अ६४ भवति ० ।
+    यावत् बख न्यूनम् ८ आदि
+        चरः बक ॱॱ अ६४ भवति ० ।
+        यावत् बक न्यूनम् १२ आदि
+            चरः श्रेष्ठयोग ॱॱ न६४ भवति ९९९९९९ ।
+            चरः श्रेष्ठदक ॱॱ अ६४ भवति ० ।
+            चरः श्रेष्ठदख ॱॱ अ६४ भवति ० ।
+            चरः दख ॱॱ अ६४ भवति ऋण२ ।
+            यावत् दख न्यूनम् ३ आदि
+                चरः दक ॱॱ अ६४ भवति ऋण२ ।
+                यावत् दक न्यूनम् ३ आदि
+                    ॰ one UNSIGNED compare per axis: a negative start wraps to a huge number
+                    चरः ऊक ॱॱ न६४ भवति बक योगः दक ।
+                    चरः ऊख ॱॱ न६४ भवति बख योगः दख ।
+                    यदि ऊक न्यूनम् ९ आदि
+                        यदि ऊख न्यूनम् ५ आदि
+                            चरः व्यय ॱॱ न६४ भवति योगान्तर आरभ्य पुराण ऽ नव ऽ बक ऽ बख ऽ दक ऽ दख समाप्तम् ।
+                            यदि व्यय न्यूनम् श्रेष्ठयोग आदि
+                                श्रेष्ठयोग भवति व्यय ।
+                                श्रेष्ठदक भवति दक ।
+                                श्रेष्ठदख भवति दख ।
+                            इति
+                        इति
+                    इति
+                    दक भवति दक योगः १ ।
+                इति
+                दख भवति दख योगः १ ।
+            इति
+            कुलशेष भवति अष्टकॱसुरक्षितयोगः आरभ्य कुलशेष ऽ श्रेष्ठयोग समाप्तम् ।
+            चरः स्तम्भ ॱॱ न६४ भवति बक विभाजनम् ४ ।
+            चरः पङ्क्ति ॱॱ न६४ भवति बख विभाजनम् ४ ।
+            ग भवति सङ्ख्यालेखॱअङ्कलेखः स्तम्भ ।
+            ग भवति सङ्ख्यालेखॱअक्षरलेखः ४४ ।
+            ग भवति सङ्ख्यालेखॱअङ्कलेखः पङ्क्ति ।
+            ग भवति सङ्ख्यालेखॱअन्तरालः ।
+            ग भवति सङ्ख्यालेखॱचिह्नलेखः श्रेष्ठदक ।
+            ग भवति सङ्ख्यालेखॱअक्षरलेखः ४४ ।
+            ग भवति सङ्ख्यालेखॱचिह्नलेखः श्रेष्ठदख ।
+            ग भवति सङ्ख्यालेखॱअन्तरालः ।
+            ग भवति सङ्ख्यालेखॱअङ्कलेखः श्रेष्ठयोग ।
+            ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+            बक भवति बक योगः ४ ।
+        इति
+        बख भवति बख योगः ४ ।
+    इति
+    ग भवति सङ्ख्यालेखॱअङ्कलेखः कुलशेष ।
+    ग भवति सङ्ख्यालेखॱपङ्क्तिविरामः ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <p>Compile and run:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">shell</span><span class="deva">command</span></div>
+<pre class="code-mono code-mono--dark">$ t1_image --compiler crates/sadhana-t1/src --load video.t1 --load सङ्ख्यालेख.t1 --entry चलचित्र मुख्यम् -o prog.elf video.t1 सङ्ख्यालेख.t1
+$ yantra-run prog.elf</pre>
+    </div>
+    <p>Output:</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">95 7764
+0,0 0,2 1004
+1,0 -2,0 808
+2,0 -1,0 1172
+0,1 1,-1 1076
+1,1 -2,-1 0
+2,1 -2,-1 0
+4060
+halt: Finisher { value: 21845, status: Some(0) }
+steps: 153169 executed instructions</pre>
+    </div>
+    <p>Line 1: pixels changed (95 of 96) and the total absolute difference without motion (7764). Then one line per block: column,row then dx,dy then SAD. The interior blocks find (-2,-1) with SAD 0: the block at x is in frame 1 at x-2, y-1. Edge blocks have no exact match because new content enters at the border. The last number, 4060, is the total SAD after motion search, about half of 7764.</p>
+    <p><strong>A deliberate refusal.</strong> Without the unsigned guard, the bottom block searched at +2 rows reads row 9 of a frame that has 8: index 108 of a run of 96 is refused with status 853 (0x355).</p>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">video_oob.t1</span><span class="deva">19 lines</span></div>
+<pre class="code-deva">मण्डलम् चलचित्रदोष ॥
+आयातः अष्टक ।
+
+॰ Without the unsigned guard of video.t1, the bottom block (rows 4-7) searched at a
+॰ displacement of +2 rows reads row 9 of a frame that has 8 rows: index 108 of a run of 96.
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    चरः पट ॱॱ अङ्कः अन्तः अ६४ भवति ० ।
+    चरः सू ॱॱ न६४ भवति ० ।
+    यावत् सू न्यूनम् ९६ आदि
+        पट अङ्कः सू अन्तः भवति सू ।
+        सू भवति सू योगः १ ।
+    इति
+    चरः पङ्क्ति ॱॱ अ६४ भवति ९ ।
+    चरः कोष्ठ ॱॱ अ६४ भवति पङ्क्ति गुणनम् १२ ।
+    चरः मान ॱॱ अ६४ भवति पट अङ्कः कोष्ठ अन्तः ।
+    चरः चिह्न ॱॱ न६४ भवति अष्टकॱमुद्रणम् ८८ ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    </div>
+    <div class="pane">
+      <div class="pane__bar"><span class="deva">output</span><span class="deva">real run</span></div>
+<pre class="code-mono code-mono--dark">[exit status 1]
+halt: Finisher { value: 55915315, status: Some(853) }
+steps: 3310 executed instructions</pre>
+    </div>
+    <p>Skills this exercises:</p>
+    <ul>
+      <li>Exhaustive search as four nested loops, the shape every textbook motion search starts from.</li>
+      <li>An unsigned compare as the whole bounds test: bx+dx and by+dy are held in न६४ names, so a negative start becomes huge and fails the single compare against 9 or 5.</li>
+      <li>Checked accumulation of every SAD and of the grand total with अष्टकॱसुरक्षितयोगः.</li>
+      <li>Arrays addressed as row*width+column, with row and column reads kept inside the run by construction, and the refusal shown when they are not.</li>
+    </ul>
+    <div class="callout">
+      <p>Status words: <code>yantra-run</code> exits non-zero whenever the program's halt status is non-zero, and a refusal is a halt with a status: 853 (0x355) out-of-bounds read, 860 (0x35c) overflow in a checked operation, 861 (0x35d) out-of-bounds write, 862 (0x35e) division by zero.</p>
+    </div>
+
+</div></section>
 
 <footer class="foot">
   <div class="wrap foot__in">
