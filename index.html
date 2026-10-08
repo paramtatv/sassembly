@@ -43,18 +43,33 @@
 
 <main>
 
+  <section class="wrap" style="padding-top: 28px;">
+    <div class="colophon" style="align-items: center; gap: 28px;">
+      <div class="colophon__lead" style="flex: 2 1 420px;">
+        <p class="eyebrow">v1.0.0 · 2026-10-08</p>
+        <h2 data-i18n="home.rel.h">संस्कृतयन्त्रम् १.०.० — सम्पूर्णम्</h2>
+        <p data-i18n="home.rel.b">भाषा तस्याः स्वाश्रयः सङ्कलकश्च सम्पूर्णौ। सङ्कलकः स्वयं स्वं सङ्कलय्य तान्येव अष्टकानि जनयति — प्रथमा द्वितीया च अवस्था ९,२२,१४६ अष्टकैः, अष्टकशः समाने।</p>
+      </div>
+      <div style="flex: 1 1 200px; display: flex; gap: 12px; flex-wrap: wrap;">
+        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/releases/tag/v1.0.0" rel="noopener" data-i18n="home.rel.cta1">प्रकाशनं पठ</a>
+        <a class="btn" style="color: #F4EFE5; border-color: #F4EFE5;" href="downloads.html" data-i18n="home.rel.cta2">अवतरणम्</a>
+        <a class="btn" style="color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/main/ANNOUNCEMENT-v1.0.0.md" rel="noopener" data-i18n="home.rel.cta3">घोषणा</a>
+      </div>
+    </div>
+  </section>
+
   <section class="wrap section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 64px; align-items: start;">
     <div style="display: flex; flex-direction: column; gap: 26px;">
       <p class="eyebrow" data-i18n="home.eyebrow">शुल्कमुक्तं निर्देशसमुच्चयशिल्पम्</p>
       <h1 data-i18n="home.h1">सव्याकरणो निर्देशसमुच्चयः।</h1>
       <p class="lede" data-i18n="home.lede">संस्कृतयन्त्रं तन्त्रभाषा यस्याः रचना संस्कृतम्, अर्थश्च निर्देशसमुच्चयः। प्रत्येकस्य शिल्पनिर्देशस्य नाम अस्ति — अनामसङ्केतनाय मार्गो नास्ति। सङ्कलकः स्वयं संस्कृतयन्त्रेण लिखितः, स्वमेव सङ्कलयति, स्वकीयं बिम्बं च यथावत् पुनः रचयति।</p>
-      <p class="lede" style="font-size: 17px;" data-i18n-html="home.browser"><strong>संयोजय, चालय — विचारके एव</strong> — साधनं यन्त्रं च wasm-रूपेण, ४७६ KB, सेवकं स्थापनं च विना। (.sas स्तरः; .t1 सङ्कलनं तु साधनशृङ्खलया)</p>
+      <p class="lede" style="font-size: 17px;" data-i18n-html="home.browser"><strong>संयोजय, चालय — विचारके एव</strong> — साधनं यन्त्रं च wasm-रूपेण, प्रायः ६१२ KB, सेवकं स्थापनं च विना। (.sas स्तरः; .t1 सङ्कलनं तु साधनशृङ्खलया)</p>
       <div style="display: flex; gap: 14px; flex-wrap: wrap; padding-top: 6px;">
         <a class="btn btn--solid" href="playground.html" data-i18n="home.cta2">प्रयोगक्षेत्रम् उद्घाटय</a>
         <a class="btn" href="learn.html" data-i18n="home.cta1">पठनम् आरभस्व</a>
       </div>
       <p style="display: flex; gap: 32px; flex-wrap: wrap; padding-top: 10px; font-size: 14px; color: var(--ink-3);">
-        <span data-i18n="home.fact1">RV64 लक्ष्यम्</span><span data-i18n="home.fact2">१२ MiB साधनम्</span><span data-i18n="home.fact3">LLVM रहितम्</span><span data-i18n="home.fact4">स्थापनं विना</span>
+        <span data-i18n="home.fact1">RV64 लक्ष्यम्</span><span data-i18n="home.fact2">९,२२,१४६-अष्टकं बिम्बम्</span><span data-i18n="home.fact3">LLVM रहितम्</span><span data-i18n="home.fact4">स्थापनं विना</span>
       </p>
     </div>
 
@@ -88,11 +103,11 @@
       </div>
       <div class="pillar">
         <h2 style="font-size: 23px; font-weight: 600;" data-i18n="home.p2.h">स्वाश्रयं, मूलपर्यन्तम्</h2>
-        <p data-i18n="home.p2.b">एकविंशतिः मण्डलानि, ३८,३३५ पङ्क्तयश्च तान्येव एकविंशतिः मण्डलानि सङ्कलयन्ति। स्वरचनार्थं Rust, LLVM, बाह्यसंयोजकः वा न अपेक्ष्यते।</p>
+        <p data-i18n="home.p2.b">एकविंशतिः मण्डलानि, ४६,७९४ पङ्क्तयश्च स्वयमेव स्वं सङ्कलयन्ति। लक्ष्यं धातुमात्रं RISC-V RV64; LLVM नास्ति, बाह्यसाधनशृङ्खला नास्ति।</p>
       </div>
       <div class="pillar">
         <h2 style="font-size: 23px; font-weight: 600;" data-i18n="home.p3.h">अष्टकपर्यन्तं परीक्ष्यम्</h2>
-        <p data-i18n="home.p3.b">सङ्कलकेन सङ्कलितः सङ्कलकः तेनैव सङ्कलकेन सह अष्टकशः समानः। न केवलं समाना संस्करणसंज्ञा — तान्येव १३,९०,१७३ अष्टकानि, स्वयन्त्रे परीक्ष्याणि।</p>
+        <p data-i18n="home.p3.b">सङ्कलकेन सङ्कलितः सङ्कलकः तेनैव सङ्कलकेन सह अष्टकशः समानः। न केवलं समाना संस्करणसंज्ञा — तान्येव ९,२२,१४६ अष्टकानि, tools/fixpoint.sh इत्यनेन परीक्ष्याणि।</p>
       </div>
     </div>
   </section>
@@ -105,10 +120,10 @@
         <p data-i18n="colophon.b">हस्तलिखितग्रन्थः अन्ते वदति केन कुतश्च लिखितः। अयमपि तथैव।</p>
       </div>
       <div class="colophon__figs">
-        <div class="fig"><span class="fig__n">१३,९०,१७३</span><span class="fig__l" data-i18n="colophon.f1">स्वसङ्कलिते बिम्बे अष्टकानि — द्वितीया अवस्था प्रथमया सह समाना</span></div>
+        <div class="fig"><span class="fig__n">९,२२,१४६</span><span class="fig__l" data-i18n="colophon.f1">स्वसङ्कलिते बिम्बे अष्टकानि — द्वितीया अवस्था प्रथमया सह समाना</span></div>
         <div class="fig"><span class="fig__n">२१ / २१</span><span class="fig__l" data-i18n="colophon.f2">मण्डलानि सङ्कलितानि, एकस्मिन् बिम्बे संयोजितानि, यत् चलति शुद्धं च विरमति</span></div>
-        <div class="fig"><span class="fig__n">१२ MiB</span><span class="fig__l" data-i18n="colophon.f3">सम्पूर्णं साधनम्, प्रचलितसाधनस्य प्रायः २०० MB इत्यस्य तुलनायाम्</span></div>
-        <div class="fig"><span class="fig__n">०</span><span class="fig__l" data-i18n="colophon.f4">सङ्कलके, संयोजके, आरोपके वा बाह्याश्रयाः</span></div>
+        <div class="fig"><span class="fig__n">३४.१%</span><span class="fig__l" data-i18n="colophon.f3">v0.4.0 बिम्बात् लघु (१,३९९,४३४ तः ९२२,१४६ अष्टकानि), भाषा च वर्धिता</span></div>
+        <div class="fig"><span class="fig__n">५५,३८५,३५९,३५४</span><span class="fig__l" data-i18n="colophon.f4">निर्देशाः यान् द्वितीया अवस्था बिम्बरचनायां निरवर्तयत्; समाप्तिः स्थितिः १२००</span></div>
       </div>
     </div>
   </section>

@@ -118,7 +118,7 @@
 // ELF, `yantra` is an RV64 machine that runs it. Neither imports anything from the
 // host — `WebAssembly.instantiate(bytes, {})` takes an EMPTY import object, which
 // is the claim rather than an omission: no syscalls, no clock, no network.
-import { load as loadSadhana, Sadhana } from './assets/sadhana.mjs';
+import { loadSadhana, Sadhana } from './assets/sadhana.mjs';
 import { load as loadYantra }  from './assets/yantra.mjs';
 import { SAMPLES }             from './assets/samples.mjs';
 
