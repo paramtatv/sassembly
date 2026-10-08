@@ -323,7 +323,7 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 0. [Install](#install) · [Write your first program in Sanskrit](#write-your-first-program-in-sanskrit)
 1. [The claim, and how to check it](#the-claim-and-how-to-check-it)
 2. [What is new since v0.4.0](#what-is-new-since-v040)
-3. [What this cannot do](#what-this-cannot-do)
+3. [What this cannot do](#what-this-cannot-do) · [LIMITS.md](LIMITS.md), the verified limits with a command for each
 4. [What a program can do today](#what-a-program-can-do-today)
 5. [It runs in a browser](#it-runs-in-a-browser)
 6. [A first look at the language](#a-first-look-at-the-language)
@@ -453,6 +453,8 @@ Not in this release: compiling Sanskrit to web pages, and a GPU compute path
 
 Stated first, and in full, because a self-hosting compiler invites the
 assumption that a general-purpose toolchain comes with it. It does not.
+
+Every row of the longer list in [LIMITS.md](LIMITS.md) was checked against the v1.0.0 release binaries or a named test, and carries the command to repeat the check.
 
 | capability | available today | shown by |
 |---|---|---|
