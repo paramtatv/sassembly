@@ -1,0 +1,108 @@
+मण्डलम् यादृच्छिकस्रोतः ॥
+आयातः अष्टक ।
+
+॰ यादृच्छिकस्रोतः — HOST ENTROPY for a program (runtime completeness, item 1), read through the FILE
+॰ WINDOW from the reserved name ".entropy" at the root of the granted file root.
+॰
+॰ यादृच्छिकपूरणम् पात्रम् आरम्भः संख्यानम् fills संख्यानम् elements of पात्रम् from आरम्भः, ONE OCTET PER
+॰ ELEMENT (each element is 0..255). It answers
+॰   0                                       the octets are written
+॰   यादृच्छिककोशाभावः (0x3d2, word 0x3d23333)  the pool is missing: no file root, no ".entropy", or a
+॰                                       read the host refused. Nothing is written.
+॰   यादृच्छिककोशाल्पता (0x3d3, word 0x3d33333)  the pool is short: fewer octets are left than asked for.
+॰                                       Nothing is written. NEVER zeros.
+॰
+॰ THE POOL: the launcher (tools/yantra-entropy.sh) writes a fresh pool file ".entropy" of fewer than 16384
+॰ octets (default 16000, mode 0600) into the granted root before each run, removes it after, and never reuses
+॰ it. The runner reads it whole at each GO, so THIS LIBRARY KEEPS A CURSOR and takes the next unused octets.
+॰ The runner is yantra-run or tools/t1-run.sh; a native run reads the same file through the native file
+॰ window, with no entropy special case in the runtime. (The library still treats an answer of exactly 16384
+॰ octets as a fresh buffer with cursor 0; no launcher produces one: the pool is at most 16383.)
+॰ A pool of 16384 or more does not fit the buffer: yantra answers TooLarge, which is "missing" here.
+॰
+॰ NOT DETERMINISTIC. A program that uses this routine has no fixed output, so it is EXCLUDED from byte-identity
+॰ checks (the differential gate, fixpoint). Replay IS exact: the launcher keeps the pool as the run's replay
+॰ record (--record), on either runner, and --replay serves it again. The interpreter does not intercept the file call (it answers the device
+॰ address), so a program must reach this routine only when asked, never in the build-time run: the status run
+॰ starts as a failure word, so the interpreter would see "missing", not zeros.
+
+सार्वजनिक चरः यादृच्छिककोशाभावः ॱॱ न६४ भवति ६४१०७३१५ ।
+सार्वजनिक चरः यादृच्छिककोशाल्पता ॱॱ न६४ भवति ६४१७२८५१ ।
+
+सार्वजनिक चरः यादृच्छिकस्थानम् ॱॱ न६४ भवति ० ।
+चरः यादृच्छिकपात्रम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+चरः यादृच्छिकमार्गः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+चरः यादृच्छिकस्थितिः ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+
+सार्वजनिक वृत्तिः यादृच्छिकपूरणम् आदाय पात्रम् ॱॱ अङ्कः अन्तः न६४ ऽ आरम्भः ॱॱ न६४ ऽ संख्यानम् ॱॱ न६४ ददाति न६४ आदि
+    ॰ the buffer and the status run, once
+    यदि यादृच्छिकपात्रम् ॱ दैर्घ्य समम् ० आदि
+        चरः क्रमः ॱॱ न६४ भवति ० ।
+        यावत् क्रमः न्यूनम् १६३८४ आदि
+            यादृच्छिकपात्रम् अङ्कः क्रमः अन्तः भवति ० ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+        यादृच्छिकमार्गः अङ्कः ० अन्तः भवति ४६ ।
+        यादृच्छिकमार्गः अङ्कः १ अन्तः भवति १०१ ।
+        यादृच्छिकमार्गः अङ्कः २ अन्तः भवति ११० ।
+        यादृच्छिकमार्गः अङ्कः ३ अन्तः भवति ११६ ।
+        यादृच्छिकमार्गः अङ्कः ४ अन्तः भवति ११४ ।
+        यादृच्छिकमार्गः अङ्कः ५ अन्तः भवति १११ ।
+        यादृच्छिकमार्गः अङ्कः ६ अन्तः भवति ११२ ।
+        यादृच्छिकमार्गः अङ्कः ७ अन्तः भवति १२१ ।
+        यादृच्छिकस्थितिः अङ्कः ० अन्तः भवति ० ।
+    इति
+    चरः सीमा ॱॱ न६४ भवति पात्रम् ॱ दैर्घ्य ।
+    यदि आरम्भः अधिकम् सीमा आदि
+        प्रत्यागमनम् यादृच्छिककोशाल्पता ।
+    इति
+    चरः अवशिष्टम् ॱॱ न६४ भवति सीमा वियोगः आरम्भः ।
+    यदि संख्यानम् अधिकम् अवशिष्टम् आदि
+        प्रत्यागमनम् यादृच्छिककोशाल्पता ।
+    इति
+    ॰ every octet is taken into a staging array first, so a refusal part-way writes nothing
+    चरः अवस्था ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः लिखितम् ॱॱ न६४ भवति ० ।
+    यावत् लिखितम् न्यूनम् संख्यानम् आदि
+        यादृच्छिकस्थितिः अङ्कः ० अन्तः भवति १००००० ।
+        चरः अन्त्यम् ॱॱ न६४ भवति अष्टकॱपत्रम् आरभ्य यादृच्छिकमार्गः ऽ यादृच्छिकपात्रम् ऽ यादृच्छिकस्थितिः समाप्तम् ।
+        चरः मानम् ॱॱ न६४ भवति यादृच्छिकस्थितिः अङ्कः ० अन्तः ।
+        यदि मानम् अधिकम् १६३८४ आदि
+            प्रत्यागमनम् यादृच्छिककोशाभावः ।
+        इति
+        चरः परिमाणम् ॱॱ न६४ भवति मानम् ।
+        यदि मानम् समम् १६३८४ आदि
+            यादृच्छिकस्थानम् भवति ० ।
+        इति
+        यदि यादृच्छिकस्थानम् बृहत्समम् परिमाणम् आदि
+            प्रत्यागमनम् यादृच्छिककोशाल्पता ।
+        इति
+        चरः लक्ष्यम् ॱॱ न६४ भवति संख्यानम् वियोगः लिखितम् ।
+        चरः मूल्यम् ॱॱ न६४ भवति परिमाणम् वियोगः यादृच्छिकस्थानम् ।
+        चरः वर्णः ॱॱ न६४ भवति लक्ष्यम् ।
+        यदि वर्णः अधिकम् मूल्यम् आदि
+            वर्णः भवति मूल्यम् ।
+        इति
+        चरः सूचिः ॱॱ न६४ भवति ० ।
+        यावत् सूचिः न्यूनम् वर्णः आदि
+            चरः स्थानम् ॱॱ न६४ भवति यादृच्छिकस्थानम् योगः सूचिः ।
+            चरः अष्टकम् ॱॱ न६४ भवति यादृच्छिकपात्रम् अङ्कः स्थानम् अन्तः ।
+            चरः स्थलम् ॱॱ न६४ भवति लिखितम् योगः सूचिः ।
+            अवस्था अङ्कः स्थलम् अन्तः भवति अष्टकम् ।
+            सूचिः भवति सूचिः योगः १ ।
+        इति
+        यादृच्छिकस्थानम् भवति यादृच्छिकस्थानम् योगः वर्णः ।
+        लिखितम् भवति लिखितम् योगः वर्णः ।
+        यदि मानम् समम् १६३८४ आदि
+            यादृच्छिकस्थानम् भवति ० ।
+        इति
+    इति
+    चरः गणकः ॱॱ न६४ भवति ० ।
+    यावत् गणकः न्यूनम् संख्यानम् आदि
+        चरः स्थानम् ॱॱ न६४ भवति आरम्भः योगः गणकः ।
+        पात्रम् अङ्कः स्थानम् अन्तः भवति अवस्था अङ्कः गणकः अन्तः ।
+        गणकः भवति गणकः योगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+

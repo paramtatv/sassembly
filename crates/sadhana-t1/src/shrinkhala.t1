@@ -81,6 +81,12 @@
 ॰ because a refusing source was dropped in silence — the two need different
 ॰ fixes and they were the same number.
 सार्वजनिक चरः सङ्कलनविफलसंख्या ॱॱ न६४ भवति ० ।
+॰ THE FIRST FAILED SOURCE'S CAUSE, for the trace level ३ dump of `स्वपरीक्षास्वप्रतिबिम्बम्`:
+॰ its `सङ्कलनविरामभेद` and, for `सङ्कलनवर्गविरोधभेद`, `मध्यरूप`'s shape (७ = फलपलायननिषेधः,
+॰ 0x377; ८ = क्षेत्रबाह्याह्वाननिषेधः, 0x37F; ९ = क्षेत्राशुद्धाह्वाननिषेधः, 0x381; १० = संश्लिष्टनामनिषेधः, 0x382),
+॰ taken when it fails because the next source overwrites both.
+सार्वजनिक चरः प्रथमविफलविरामभेद ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः प्रथमविफलवर्गविरोधभेद ॱॱ न६४ भवति ० ।
 
 ॰ THE SOURCES THAT DECLARED NOTHING, WHICH ARE NOT FAILURES (2026-09-22).
 ॰ `मण्डलसङ्कलनम्` already tells the two apart — `सङ्कलनाघोषणाभेद` (१) is "the
@@ -447,6 +453,28 @@
             इति
             यदि कार्यम् ॱ नाम समम् मध्यरूपॱव्युत्क्रमवृत्तिसंज्ञा आदि
                 संश्लिष्टनाम भवति उक्तम् व्युत्क्रमः इति ।
+            इति
+            ॰ FORK-JOIN: the region marker routine (ir.t1's समान्तरवृत्तिसंज्ञा), named
+            ॰ (module, "समाप्तम्"). A KEYWORD, so that no routine a program declares can
+            ॰ have its label (review D: a user routine named `समान्तरचालनम्`, the
+            ॰ first spelling, refused the build with LabelCollision). A declared name is
+            ॰ an identifier, and the reader prefers the keyword, so `वृत्तिः समाप्तम्`
+            ॰ never declares a routine; the runtime finds the marker by its first word.
+            ॰ MEASURED OTHERWISE 2026-10-10 (0b45b5f5): `वृत्तिपठनम्` takes ANY token as a
+            ॰ routine's name, so `वृत्तिः समाप्तम्` beside a region (and `वृत्तिः खण्डवृद्धिः`
+            ॰ beside a growing run) reached the emitter's LabelCollision, and `वृत्तिः अन्यथा`
+            ॰ builds. No label can be made safe here: the label is written into T0 text as
+            ॰ ONE akṣara word, which is exactly what a T1 name is (a label with a space broke
+            ॰ the link). So these six names are RESERVED where the build synthesises them:
+            ॰ `मध्यरूपॱसंश्लिष्टनामपरीक्षा` refuses a routine that declares one (संश्लिष्टनामनिषेधः,
+            ॰ 0x382) before the emitter is reached. Its spellings must stay these six.
+            यदि कार्यम् ॱ नाम समम् मध्यरूपॱसमान्तरवृत्तिसंज्ञा आदि
+                संश्लिष्टनाम भवति उक्तम् समाप्तम् इति ।
+            इति
+            ॰ ARENAS: the module's arena routine (ir.t1's वाटवृत्तिसंज्ञा), named with another
+            ॰ KEYWORD for the same reason, (module, "अन्यथा").
+            यदि कार्यम् ॱ नाम समम् मध्यरूपॱवाटवृत्तिसंज्ञा आदि
+                संश्लिष्टनाम भवति उक्तम् अन्यथा इति ।
             इति
             ॰ `N-004`: the module's run compare (ir.t1's साम्यवृत्तिसंज्ञा).
             यदि कार्यम् ॱ नाम समम् मध्यरूपॱसाम्यवृत्तिसंज्ञा आदि
@@ -3721,6 +3749,16 @@
                 इति
             इति
         इति
+        ॰ TRACE LEVEL ३, THE CAUSE ONLY (fork-join's native build-refusal proof,
+        ॰ tools/selfcheck/build-refuse.sh): marker २३३, then the first failed source's exit
+        ॰ and its `मध्यरूप` shape, four octets each. Nothing else is traced. (The stage is
+        ॰ the status already; naming `प्रतिबिम्बविरामः` here, above its declaration, would
+        ॰ be one more forward reference for the hoisting ratchet.)
+        यदि निवेशानुरेखणम् समम् ३ आदि
+            चरः कारणचिह्नम् ॱॱ न६४ भवति अष्टकॱमुद्रणम् २३३ ।
+            चरः कारणभेदलेख ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् प्रथमविफलविरामभेद ।
+            चरः कारणवर्गलेख ॱॱ न६४ भवति सङ्केतनॱचतुरष्टकमुद्रणम् प्रथमविफलवर्गविरोधभेद ।
+        इति
         प्रत्यागमनम् १२०१ योगः आरभ्य प्रतिबिम्बविरामः गुणनम् १०० समाप्तम् ।
     इति
     प्रत्यागमनम् १२०० ।
@@ -3786,6 +3824,8 @@
     सङ्कलनविफलसंख्या भवति ० ।
     सङ्कलनरिक्तसंख्या भवति ० ।
     प्रतिबिम्बविरामः भवति ० ।
+    प्रथमविफलविरामभेद भवति ० ।
+    प्रथमविफलवर्गविरोधभेद भवति ० ।
     ॰ ACCUMULATED IN A LOCAL AND PUBLISHED ONCE, and the first attempt taught me
     ॰ why: a GLOBAL declared `भवति ०` holds Int(०) whatever run type it carries,
     ॰ so the first indexed write answered "neither an arena nor a byte slice" and
@@ -3814,6 +3854,7 @@
 
     चरः क्रमः ॱॱ न६४ भवति ० ।
     चरः रचनाकश्चित् ॱॱ बूल भवति असत्यम् ।
+    चरः वाटकश्चित् ॱॱ बूल भवति असत्यम् ।
     यावत् क्रमः न्यूनम् संख्या आदि
         चरः मूल ॱॱ अङ्कः अन्तः अ८ भवति मूलानि अङ्कः क्रमः अन्तः ।
         चरः नाम ॱॱ अङ्कः अन्तः अ८ भवति नामानि अङ्कः क्रमः अन्तः ।
@@ -3827,6 +3868,7 @@
             इति
         इति
         यदि यन्त्रोत्सर्जनॱयन्त्ररचनाप्रश्नः समम् सत्यम् आदि रचनाकश्चित् भवति सत्यम् । इति
+        यदि यन्त्रोत्सर्जनॱयन्त्रवाटप्रश्नः समम् सत्यम् आदि वाटकश्चित् भवति सत्यम् । इति
         ॰ THE VERDICT IS ACCUMULATED AS EACH MODULE COMPILES. A source that
         ॰ refuses was previously dropped in silence and the link proceeded with
         ॰ fewer objects, so "the corpus assembled" and "some of it did" answered
@@ -3848,6 +3890,10 @@
             यदि सङ्कलनविरामभेद समम् सङ्कलनाघोषणाभेद आदि
                 सङ्कलनरिक्तसंख्या भवति सङ्कलनरिक्तसंख्या योगः १ ।
             इति अन्यथा आदि
+                यदि सङ्कलनविफलसंख्या समम् ० आदि
+                    प्रथमविफलविरामभेद भवति सङ्कलनविरामभेद ।
+                    प्रथमविफलवर्गविरोधभेद भवति मध्यरूपॱवर्गविरोधभेद ।
+                इति
                 विफलनामानि अङ्कः सङ्कलनविफलसंख्या अन्तः भवति नाम ।
                 सङ्कलनविफलसंख्या भवति सङ्कलनविफलसंख्या योगः १ ।
             इति
@@ -3870,6 +3916,7 @@
     ॰
     ॰ THE OR IS TAKEN HERE BECAUSE THIS IS WHERE THE IMAGE IS ASSEMBLED. Nothing
     ॰ below the assembler can know what will be linked beside it.
+    चरः अवगणनवाटसारणी ॱॱ न६४ भवति यन्त्रोत्सर्जनॱयन्त्रवाटसारणीन्यासः वाटकश्चित् ।
     चरः आरम्भपाठ्यम् ॱॱ अङ्कः अन्तः अ८ भवति आरम्भपाठ्यरचना रचनाकश्चित् ।
     ॰ The startup's text through the same channel as each module's, so a native
     ॰ link refusal can be read against the text the linker was given.

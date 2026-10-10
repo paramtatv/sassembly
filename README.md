@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.0.2-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.0.2"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.1.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.1.0"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-AGPL--3.0-A63A21?style=flat-square&labelColor=2B2521" alt="licence AGPL-3.0-only"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -23,6 +23,7 @@
 <p align="center">
   <a href="https://paramtatv.github.io/sassembly/">docs and playground</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
+  <a href="CHANGELOG.md">changelog</a> ·
   <a href="ANNOUNCEMENT-v1.0.2.md">v1.0.2 announcement</a> ·
   <a href="ANNOUNCEMENT-v1.0.1.md">v1.0.1 announcement</a> ·
   <a href="ANNOUNCEMENT-v1.0.0.md">v1.0.0 announcement</a> ·
@@ -45,6 +46,48 @@ itself.
 > before the tutorial.
 
 ## Install
+
+### Native packages (v1.1.0): no Rust, no emulator
+
+Each package compiles and runs `.t1` programs natively. It holds the v1.1.0 Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for the target, plus `bin/sassembly-build`, `bin/sassembly-run`, an example and a `SHA256SUMS` for every file. It needs only POSIX `sh`, `awk`, `od`, `grep` and `sha256sum` or `shasum`. The packages are attached to the [v1.1.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.1.0).
+
+| OS | archive | sha256 |
+|---|---|---|
+| Linux x86-64 | [`sassembly-native-v1.1.0-x86_64-linux.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-x86_64-linux.tar.gz) | `521c2786a37bb4f17bb466ffb48abb6486c4fabedb92a970c02b28061c00762d` |
+| Linux aarch64 | [`sassembly-native-v1.1.0-aarch64-linux.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-aarch64-linux.tar.gz) | `b63dd04b34a48a33f080c8f126f59c0dbfec6839c824fb93f25ffa40cab73f6b` |
+| macOS arm64 (Apple silicon) | [`sassembly-native-v1.1.0-aarch64-macos.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-aarch64-macos.tar.gz) | `84c6093bff5e6b2e5bbd2db92a3cc15db28ae093ff51d70fac4fac1272b1f2f1` |
+| macOS x86-64 (Intel) | [`sassembly-native-v1.1.0-x86_64-macos.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-x86_64-macos.tar.gz) | `8e9caeec68624b00a6b1a532437246b2ceadea3b563df36f14be48f1abdb885e` |
+
+There is **no Windows native package** yet: the translator does not emit a Windows target. On Windows, use the v1.0.2 Rust archives below. The sha256s are those in the release's `SHA256SUMS-v1.1.0`, which also covers `sassembly-v1.1.0-stage1.elf` (the v1.1.0 compiler image, 951,146 octets, sha256 `e0adbb0f…89cd46c6`). Each package was smoke-tested on its own target, from the unpacked tarball, in an empty environment. Replace `TARGET` below with `x86_64-linux`, `aarch64-linux`, `aarch64-macos` or `x86_64-macos`.
+
+```sh
+V=v1.1.0; P=sassembly-native-$V-TARGET; T=$P.tar.gz
+gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V
+grep " $T\$" SHA256SUMS-$V | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
+tar xzf $T && cd $P && sha256sum -c SHA256SUMS     # macOS: shasum -a 256 -c SHA256SUMS
+bin/sassembly-build -o n.elf example/namaste.t1 && bin/sassembly-run n.elf      # prints: namaste
+bin/sassembly-build --entry MODULE ROUTINE -o p.elf FILE.t1...                  # any entry
+```
+
+`sassembly-run` translates an image once for the host and caches it in `~/.cache/sassembly-native` (or `$SASSEMBLY_NATIVE_CACHE`). It exits 0 when the program's status is 0, and 1 otherwise.
+
+- **Runs natively:**
+  - scalar floats;
+  - file read and write (`YANTRA_FILES=DIR` grants a root);
+  - a recorded clock;
+  - the `spec/entropy` library.
+- **Refused by name, exit 1:**
+  - vector instructions;
+  - CSR calls and MMIO loads;
+  - **threaded images** (threads run under `yantra-run` only);
+  - `YANTRA_STEPS` and the other yantra-only `YANTRA_*` run variables;
+  - every `yantra-run` flag (`--events`, ...).
+
+  `tools/t1-run.sh` in a checkout reruns such a program under `yantra-run` when it has one. It also accepts `--files DIR` natively.
+
+[LIMITS.md](LIMITS.md) has the verified table. For the emulator-only features, and to assemble `.sas`, use the Rust archives below. `README-BIN.txt` in each package says the same. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+### Rust packages (v1.0.2): `sadhana` and `yantra-run`
 
 Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembler) and `yantra-run` (the RV64 machine). They are attached to the
 [v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2).
@@ -119,7 +162,7 @@ sassembly-v1.0.2-linux-x86_64.tar.gz: OK
 
 (macOS: `shasum -a 256 -c -` in place of `sha256sum -c -`.) The tarball holds `sadhana` and `yantra-run`.
 
-**From source.** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.2 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
+**With a native package (v1.1.0).** `bin/sassembly-build` and `bin/sassembly-run` compile and run every `.t1` example below. They need no Rust, no `yantra-run` and no stage1 command line. The commands below use the v1.0.2 Rust tools, which are still needed for `.sas`. **From source (Rust, not maintained from v1.1.0).** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.2 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
 
 ### 1. The smallest program, in `.t1`
 
@@ -317,12 +360,12 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical, `923,042` octets |
-| **the compiler** | 21 `.t1` sources, 46,794 lines, written in Sassembly |
+| **Stage 2 == Stage 1** | byte-identical, `951,146` octets (v1.1.0) |
+| **the compiler** | 21 `.t1` sources, 48,996 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.0.2 — the language and its compiler are complete; v1.0.2 lifts the fixed entry of the prebuilt compiler, adds an in-memory file root for the browser, and is AGPL-3.0-only |
+| **status** | v1.1.0 — the language and its compiler are complete; v1.1.0 adds native packages (no Rust, no emulator) for four targets, register promotion, fork-join and arenas (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 
@@ -355,54 +398,33 @@ Stage 1   the compiler's 21 sources, compiled by the interpreted compiler
 Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 ```
 
-**Measured 2026-10-10, `tools/fixpoint.sh`, in a copy of THIS repository's
-tree** — not inherited from the tree it was extracted from:
+**v1.1.0, measured 2026-10-10 with no Rust.** The v1.1.0 Stage 1 is `sassembly-v1.1.0-stage1.elf`: 951,146 octets, sha256
+`e0adbb0ff066d6bc2c024fd647c5e3b6c888c94068c58d5921e8ce8a89cd46c6`. Translated for a Linux x86-64 host and run natively, it compiled this
+repository's 21 sources (48,996 lines, packed by `tools/pack-corpus.py`) and halted with `status: Some(1200)` (BUILT). The output was itself,
+byte-identical. To repeat it from a native package, with no Rust:
 
-```console
-fixpoint: packing the corpus from crates/sadhana-t1/src
-packed 21 source(s), 5043687 octets
-fixpoint: Stage 1  923042 octets
-fixpoint: Stage 2  923042 octets
-  status:  1200 — BUILT (shrinkhala.t1:3551)
-FIXPOINT HOLDS: 923042 octets, byte-identical
+```sh
+python3 tools/pack-corpus.py corpus.blob crates/sadhana-t1/src/*.t1
+env -u YANTRA_INPUT_ENTRY YANTRA_INPUT=corpus.blob YANTRA_INPUT_NAME=शृङ्खला YANTRA_RAM=2684354560 \
+    sassembly-native-v1.1.0-TARGET/lib/stage1.native > sink 2> log     # log: halt ... status: Some(1200)
 ```
 
-Stage 2 ran
-**55,485,618,435** executed instructions to a finisher with status 1200, with a
-high water of 1,051,408,576 octets of the 2,684,354,560 the run is given. The
-sha256 of `stage1.elf` is
-`4e7a9a244e95bdbf759ba4d373e7efc2e6dcd0e383b9123ac63b5a37d20070ca`.
+The image is the octets from the first `\x7fELF` in `sink` up to, but not including, its last octet (as `bin/sassembly-build` cuts it):
 
-Stage 1's own controls — `build: 0 source(s) failed to compile, 1 declared
-nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 22231632704`** — are the
-interpreted compiler's instruction count for the whole build. It moves if any
-byte of any source or spec table differs.
+```sh
+python3 -c "d=open('sink','rb').read(); i=d.index(b'\x7fELF'); open('s2.elf','wb').write(d[i:-1])"
+cmp s2.elf sassembly-v1.1.0-stage1.elf && echo FIXPOINT HOLDS
+```
+
+`tools/t1-build.sh` makes a Stage 1 the same way: `stage1_native` in `tools/t1-native-lib.sh` runs stages A, B and C, and requires B == C.
 
 | quantity | value |
 |---|---|
-| Stage 2 == Stage 1 | **byte-identical** |
-| image size | **923,042 octets** (v0.4.0: 1,399,434) |
-| sources | **21** `.t1` files, 46,794 lines |
+| the Stage 1, compiling its own sources | **byte-identical** to itself |
+| image size | **951,146 octets** in v1.1.0 (v1.0.2: 923,042; v0.4.0: 1,399,434) |
+| sources | **21** `.t1` files, 48,996 lines (v1.1.0) |
 
-Reproduce it (needs the Rust build in [Build from source](#build-from-source-rust)):
-
-```sh
-tools/fixpoint.sh
-```
-
-This needs five things present, and they are the whole of what "the compiler"
-means here: the 21 `.t1` sources, the `spec/` tables (which the host fills), the
-`t1_image` driver, the `yantra` RISC-V emulator, and
-`tools/pack-corpus.py`. Without them the headline number above is a claim you
-would have to take on trust rather than check.
-
-> [!NOTE]
-> The script packs the source blob from the working tree **immediately before
-> the build**, with no reuse flag. That is not incidental: an earlier run of
-> this measurement was invalidated by a blob packed four hours before the edit
-> it was supposed to test, and reported a divergence that did not exist. The
-> tell was that a *different* Stage 1 produced a byte-identical Stage 2. The
-> script now makes staleness impossible rather than unlikely.
+**The Rust route is not maintained from v1.1.0.** The Rust is frozen and archived. `tools/fixpoint.sh` and the Rust `t1_image` driver stay in the repository as they were in v1.1.0-alpha, but they are not re-run or measured for v1.1.0. They may not reproduce the v1.1.0 image, because the compiler's Rust twin was not updated.
 
 ### A separate result: the whole corpus as one running image
 
@@ -414,7 +436,7 @@ confused:
 Some(0) }`, 1,763 s.
 
 > [!WARNING]
-> That is a different artifact from the fixpoint image (1,399,434 octets in v0.4.0, 923,042 now), built on
+> That is a different artifact from the fixpoint image (1,399,434 octets in v0.4.0, 923,042 in v1.0.2, 951,146 in v1.1.0), built on
 > a different date. **Neither number is a typo for the other.**
 
 ---
@@ -707,33 +729,13 @@ A program can serve one TCP client on the loopback interface under `yantra-run`,
 ## Verification
 
 ```sh
-cargo test --workspace --release --no-fail-fast
+tools/selfcheck/build.sh && tools/selfcheck/run.sh     # native .t1 self-check suite
+tools/selfcheck/build-refuse.sh                        # build refusals
 ```
 
-**Measured 2026-10-10, on a Linux x86-64 host: 2,475 passed,
-0 failed, 127 ignored.**
+**Measured 2026-10-10, natively, on a Linux x86-64 host:** 80 programs equal to `tools/selfcheck/expected.tsv`, and 23 build refusals equal to `tools/selfcheck/refuse/expected.tsv`, in 3.8 to 9.4 s wall on a loaded host (three runs). By `run.sh`'s default, three of the programs (`float_ieee`, `file_read` and `file_roundtrip`) run under the pinned `yantra-run`; the other 77 run natively. `tools/selfcheck/BUDGET.md` sets the budget.
 
-54 of the ignored tests are marked `#[ignore = "census: needs ... not in the public repository"]`.
-Each measures the *whole development repository* and so cannot run on this one:
-it reads `research/` (the Unicode data files and design notes), `docs/adr`,
-`tests/corpus/`, `tests/levels/`, `fuzz/corpus/`, `BACKLOG.tsv`, a tree-sitter
-grammar crate, or counts every `.t1`/`.sas` file in a repository that has more of
-them than this one. None of those ship here. None of them tests the compiler, the
-machine or the fixpoint. The other 73 ignored tests are slow, host-specific or probes (5 are new in v1.0.2: `t1_entry_from_input` needs a Stage 1 image built from the tree, `SAS_STAGE1_ELF=<path>`). `cargo test -- --ignored` runs them and shows each reason; in this
-repository the 54 will fail because the files are absent. Earlier releases left
-failures here: v0.3.0 and v0.4.0 left 61, v1.0.0 left 56 (v1.0.0: 2,431 passed).
-
-Two test groups from earlier releases are not in this repository at all because
-they depend on code that does not ship here: a test comparing two renderer types,
-two text-kernel timing tests, and the tests of an archive format owned by another
-project.
-
-The wider project this was extracted from also runs a stricter gate, with
-`GATE_STRICT=1` armed: a check that *cannot run* fails
-rather than passing quietly. It is distinguished from a check that has *no
-subject* — those two conditions shared an exit code until 2026-09-24, and while
-they did, arming strictness would have failed every commit that touched no `.t1`
-file.
+The Rust test suite (`cargo test --workspace --release --no-fail-fast`) was last measured for v1.0.2: 2,475 passed, 0 failed, 127 ignored. It is not maintained from v1.1.0 (see [Build from source](#build-from-source-rust)).
 
 ---
 
@@ -748,7 +750,7 @@ spec/                    the tables the host fills — encodings, grammar, lexic
 crates/sadhana-wasm/     the assembler as wasm, for the browser
 crates/yantra-wasm/      the machine as wasm
 web/                     the hand-written glue: no wasm-bindgen, no generated bindings
-tools/                   fixpoint.sh, pack-corpus.py, build-sassembly-web.sh
+tools/                   t1-build.sh, t1-run.sh, release-native.sh, selfcheck/, native-spike/ (the translator), pack-corpus.py
 ```
 
 Two conventions are worth knowing before opening a file, because both are easy
@@ -799,7 +801,7 @@ the 21 Sassembly sources that are the compiler.
 
 ## Status and stability
 
-This is version **v1.0.2** (v1.0.1 plus the entry-from-input compiler, the browser in-memory file root, and the AGPL-3.0-only licence): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
+This is version **v1.1.0** (v1.1.0-alpha plus native packages, register promotion, fork-join and arenas; see [CHANGELOG.md](CHANGELOG.md)): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
 the object format. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
@@ -832,11 +834,11 @@ one.
 
 ## Build from source (Rust)
 
-The prebuilt binaries above are enough to assemble, compile and run programs. To build the toolchain yourself, or to re-check the fixpoint, you need a Rust toolchain:
+**Not maintained from v1.1.0.** The Rust is frozen and archived. The native packages and `tools/t1-build.sh` / `tools/t1-run.sh` replace it for `.t1`. These commands are those of v1.0.2. They were not re-run for v1.1.0:
 
 ```sh
 cargo build --release -p sadhana -p yantra   # builds sadhana, t1_image and yantra-run
-tools/fixpoint.sh                            # Stage 1, Stage 2, and the byte comparison
+tools/fixpoint.sh                            # Stage 1, Stage 2, and the byte comparison (v1.0.2)
 ```
 
 For the browser build of the assembler and the machine:
@@ -845,8 +847,6 @@ For the browser build of the assembler and the machine:
 rustup target add wasm32-unknown-unknown
 tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
 ```
-
-Once built, the Sanskrit programs in the quickstart run unchanged with `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`; `t1_image` lets you name your own module and entry routine. The test suite is `cargo test --workspace --release --no-fail-fast`; see [Verification](#verification) for what it measured.
 
 ---
 

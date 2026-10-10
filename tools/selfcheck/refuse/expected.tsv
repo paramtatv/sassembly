@@ -1,0 +1,24 @@
+# name	code  -- each refuse/<name>.t1 must FAIL TO BUILD with this cause (build-refuse.sh reads it natively, trace level 3)
+fj_build_377_aliased	0x377
+fj_build_377_assigned	0x377
+fj_build_377_length	0x377
+fj_build_377_passed_on	0x377
+fj_build_37f_body_called_directly	0x37f
+fj_build_37f_body_recurses	0x37f
+fj_build_381_body_prints	0x381
+fj_build_381_helper_allocates_record	0x381
+fj_build_381_helper_arena	0x381
+fj_build_381_helper_file	0x381
+fj_build_381_helper_reads_element	0x381
+fj_build_381_helper_slices	0x381
+fj_build_381_helper_starts_region	0x381
+fj_build_381_helper_writes_alias	0x381
+fj_build_381_helper_writes_field	0x381
+fj_build_381_helper_writes_global	0x381
+fj_build_381_transitive	0x381
+fj_build_382_arena	0x382
+fj_build_382_compare	0x382
+fj_build_382_growth	0x382
+fj_build_382_marker	0x382
+fj_build_382_matrix_product	0x382
+fj_build_382_matrix_transpose	0x382

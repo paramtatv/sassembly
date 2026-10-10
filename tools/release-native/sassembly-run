@@ -1,0 +1,51 @@
+#!/bin/sh
+# sassembly-run — run an RV64 image (from sassembly-build) NATIVELY on this host.
+#   sassembly-run IMAGE.elf [args...]
+# t1-run.sh adapted to the package: the image is translated for this host by the package's native
+# translator (cached by the image's sha256 and ARG0 = IMAGE as given), run, and its status returned
+# with yantra-run's meaning (0 = finisher status 0, 1 = anything else). There is NO yantra-run here:
+# what the native runtime refuses at run time (an unlowered instruction, an MMIO load, a store to
+# a device other than UART/FINISHER, the file window, floats) is reported and exits 1.
+# env: YANTRA_INPUT, YANTRA_INPUT_NAME, YANTRA_RAM (as yantra-run), SASSEMBLY_NATIVE_CACHE.
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+LIB=$(dirname "$HERE")/lib
+say() { echo "sassembly-run: $*" >&2; }
+[ $# -gt 0 ] || { say "usage: sassembly-run IMAGE.elf [args...]"; exit 64; }
+case $1 in -*) say "REFUSED - $1: the package has no yantra-run flags"; exit 1 ;; esac
+for v in YANTRA_STEPS YANTRA_VERDICT YANTRA_SCANOUT YANTRA_VIRTIO_DEFER YANTRA_WATERMARK; do
+    eval "[ -z \"\${$v+x}\" ]" || { say "REFUSED - $v is a yantra-only feature (no yantra-run in this package)"; exit 1; }
+done
+img=$1; shift
+[ -r "$img" ] || { say "REFUSED - cannot read $img"; exit 1; }
+if command -v sha256sum >/dev/null 2>&1; then sha() { sha256sum | cut -d' ' -f1; }; else sha() { shasum -a 256 | cut -d' ' -f1; }; fi
+case "$(uname -s) $(uname -m)" in
+    "Linux x86_64") code=0 ;; "Linux aarch64") code=183 ;; "Darwin arm64") code=268 ;; "Darwin x86_64") code=263 ;;
+    *) say "REFUSED - no native target for $(uname -s) $(uname -m)"; exit 1 ;;
+esac
+CACHE=${SASSEMBLY_NATIVE_CACHE:-$HOME/.cache/sassembly-native}
+dir=$CACHE/$(sha < "$img")/$(sha < "$LIB/translator.native" | cut -c1-16)-$(printf %s "$img" | sha | cut -c1-16)
+nat=$dir/image.native
+if ! { [ -s "$nat" ] && [ "$(sha < "$nat")" = "$(cat "$nat.sha256" 2>/dev/null)" ]; }; then
+    mkdir -p "$dir" || { say "REFUSED - cannot make $dir"; exit 1; }
+    env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$img" YANTRA_INPUT_NAME="$img" YANTRA_INPUT_TRACE="$code" \
+        YANTRA_RAM=1073741824 "$LIB/translator.native" > "$nat.tmp" 2> "$dir/translate.log"
+    if grep -q "status: Some(0)" "$dir/translate.log" && [ -s "$nat.tmp" ]; then
+        chmod +x "$nat.tmp"; mv "$nat.tmp" "$nat"; sha < "$nat" > "$nat.sha256"
+    else
+        rm -f "$nat.tmp"; say "REFUSED - the translator refused $img; see $dir/translate.log"; exit 1
+    fi
+fi
+work=$(mktemp -d "${TMPDIR:-/tmp}/sassembly-run.XXXXXX") || exit 1
+trap 'rm -rf "$work"' EXIT
+"$nat" "$@" > "$work/out" 2> "$work/err"
+rc=$?
+cat "$work/out"; cat "$work/err" >&2
+# the native runtime's own "halt: BadAccess (…)" only; yantra's form "halt: BadAccess { pc, addr }" (a UART or FINISHER
+# load) is a program fault the native run answers the same way, not a missing feature (as tools/t1-run.sh)
+if grep -aq '^native: \(not in milestone 1\|jump to\|refused a store\)\|^halt: BadAccess (' "$work/err"; then
+    say "REFUSED - the program reached what the native runtime does not provide (see above); the package has no yantra-run to rerun it"
+    exit 1
+fi
+[ "$rc" -ne 0 ] && rc=1   # yantra-run's meaning: any non-zero halt or refusal is 1 (the halt line above still shows the status)
+exit "$rc"

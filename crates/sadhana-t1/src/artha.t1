@@ -3403,7 +3403,18 @@
 ॰ an ordinary field access — a `व्यूह` the program binds wins, and an unbound
 ॰ one is refused like any other undeclared name. The parser cannot see scope,
 ॰ so no spaced spelling can be decided as a built-in there.
+॰ FORK-JOIN: the checker saw `समान्तरॱचालनम्` (the qualifier is no module, as `व्यूह` is none,
+॰ and the member is the one name; `ir.t1` lowers the call by its text). Read by
+॰ `ir.t1`'s pre-pass so that a program without the member pays nothing.
+सार्वजनिक चरः समान्तरदृष्टम् ॱॱ बूल भवति असत्यम् ।
 वृत्तिः व्यूहसदस्यः आदाय मण्डलपाठ ॱॱ अङ्कः अन्तः अ८ ऽ सदस्यपाठ ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    यदि मण्डलपाठ समम् उक्तम् समान्तर इति आदि
+        यदि सदस्यपाठ समम् उक्तम् चालनम् इति आदि
+            समान्तरदृष्टम् भवति सत्यम् ।
+            प्रत्यागमनम् सत्यम् ।
+        इति
+        प्रत्यागमनम् असत्यम् ।
+    इति
     यदि मण्डलपाठ असमम् उक्तम् व्यूह इति आदि
         प्रत्यागमनम् असत्यम् ।
     इति

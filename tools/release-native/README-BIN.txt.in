@@ -1,0 +1,29 @@
+Sassembly @TAG@ - native build for @TARGET@
+==========================================
+This package runs Sassembly with NO Rust, no repo and no yantra-run: the release's Stage 1
+compiler and the RV64-to-native translator, both translated ahead of time for @TARGET@.
+
+  bin/sassembly-build [--entry MODULE ROUTINE] -o OUT.elf FILE.t1...
+        compile .t1 sources with the native Stage 1 (default entry: first module, मुख्यम्)
+  bin/sassembly-run IMAGE.elf [args...]
+        translate IMAGE for this host (cached in ~/.cache/sassembly-native, or
+        $SASSEMBLY_NATIVE_CACHE) and run it; exit status as yantra-run (0 = status 0, else 1)
+  example/namaste.t1      sassembly-build -o n.elf example/namaste.t1 && sassembly-run n.elf
+  SHA256SUMS lists every file; verify with `sha256sum -c` / `shasum -a 256 -c`.
+
+Needs: POSIX sh, awk, od, grep, sha256sum or shasum. Nothing else.
+
+WHAT THIS PACKAGE IS NOT (stated plainly)
+ * It is .t1 ONLY. Assembling T0 .sas text needs the Rust `sadhana` tool, which this package
+   does not carry: the existing Rust stays until the native path replaces it. For .sas, use the
+   Rust `sadhana` from the v1.1.0-alpha release archives (the last release that ships Rust).
+ * Programs are run by the native translation, not by yantra-run. Scalar floats (F/D) run
+   natively. Files: grant a root with YANTRA_FILES=DIR (the --files flag is a yantra-run flag).
+   There is no fallback, so these are REFUSED with exit 1 and a message: vector instructions,
+   CSR ecalls, MMIO loads (virtio/gpu, the instruction counter), stores to devices other than
+   UART and FINISHER, YANTRA_STEPS / VERDICT / SCANOUT / VIRTIO_DEFER / WATERMARK, and every
+   yantra-run flag (--files, --events, --net-*, --smp, ...).
+ * Threads run only under the emulator (yantra-run): a threaded image is REFUSED by name, exit 1,
+   when this package's runtime starts it.
+ * The native run holds its output until it finishes (as tools/t1-run.sh does).
+@NOTE@

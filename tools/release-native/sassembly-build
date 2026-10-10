@@ -1,0 +1,55 @@
+#!/bin/sh
+# sassembly-build — compile .t1 sources to an RV64 image with the NATIVE Stage 1 in this package.
+#   sassembly-build [--entry MODULE ROUTINE] -o OUT.elf FILE.t1...
+# No --entry: MODULE is the first source's `मण्डलम् NAME` (else its file stem), ROUTINE is मुख्यम्.
+# (t1-build.sh adapted to run from the package: no repo, no Rust, no python, no cache to build.)
+# Stage 1 runs with YANTRA_INPUT = the packed sources and YANTRA_INPUT_ENTRY = "MODULE ROUTINE";
+# its sink's ELF is cut out; any status but 1200 (BUILT) is refused. env: YANTRA_RAM (default 2.5 GiB).
+set -u
+HERE=$(cd "$(dirname "$0")" && pwd)
+LIB=$(dirname "$HERE")/lib
+say() { echo "sassembly-build: $*" >&2; }
+die() { echo "sassembly-build: REFUSED - $*" >&2; exit 1; }
+out=; mod=; rtn=; srcs=
+while [ $# -gt 0 ]; do
+    case $1 in
+        --entry) [ $# -ge 3 ] || die "--entry MODULE ROUTINE"; mod=$2; rtn=$3; shift 3 ;;
+        -o) out=$2; shift 2 ;;
+        --spec-root|--compiler|--load) echo "sassembly-build: REFUSED - $1 is a t1_image flag; the compiler is the package's Stage 1 (usage: [--entry MODULE ROUTINE] -o OUT.elf FILE.t1...)" >&2; exit 64 ;;
+        -*) die "unknown flag $1" ;;
+        *) srcs="$srcs
+$1"; shift ;;
+    esac
+done
+[ -n "$out" ] || die "no -o OUT.elf"
+[ -n "$srcs" ] || die "no .t1 sources"
+[ -x "$LIB/stage1.native" ] || die "no $LIB/stage1.native"
+work=$(mktemp -d "${TMPDIR:-/tmp}/sassembly-build.XXXXXX") || die "no temporary directory"
+trap 'rm -rf "$work"' EXIT
+# pack: `name NUL text NUL` per source, the name as tools/pack-corpus.py derives it
+: > "$work/input.blob"; first=1
+OLDIFS=$IFS; IFS='
+'
+for f in $srcs; do
+    [ -r "$f" ] || die "cannot read $f"
+    name=$(head -n 1 "$f" | awk '$1=="मण्डलम्" && NF>1 {print $2; exit}')
+    [ -n "$name" ] || { name=$(basename "$f"); name=${name%.t1}; }
+    if [ $first = 1 ]; then first=0; [ -n "$mod" ] || mod=$name; [ -n "$rtn" ] || rtn=मुख्यम्; fi
+    printf '%s\0' "$name" >> "$work/input.blob"; cat "$f" >> "$work/input.blob"; printf '\0' >> "$work/input.blob"
+done
+IFS=$OLDIFS
+say "entry $mod $rtn"
+env -u YANTRA_INPUT_NAME YANTRA_INPUT="$work/input.blob" YANTRA_INPUT_ENTRY="$mod $rtn" \
+    YANTRA_RAM=${YANTRA_RAM:-2684354560} "$LIB/stage1.native" > "$work/sink" 2> "$work/log"
+status=$(sed -n 's/.*status: Some(\([0-9][0-9]*\)).*/\1/p' "$work/log" | tail -1)
+if [ "${status:-}" != 1200 ]; then
+    tail -20 "$work/log" >&2; head -c 2000 "$work/sink" >&2
+    die "Stage 1 halted with status ${status:-NONE}, not 1200 (BUILT) - no image written"
+fi
+off=$(LC_ALL=C grep -abo "$(printf '\177ELF')" "$work/sink" | head -n 1 | cut -d: -f1)
+[ -n "$off" ] || die "the sink holds no ELF"
+total=$(wc -c < "$work/sink" | tr -d ' ')
+tail -c +$((off + 1)) "$work/sink" | head -c $((total - off - 1)) > "$out" || die "cannot write $out"
+[ "$(head -c 4 "$out" | od -An -c | tr -d ' ')" = '177ELF' ] || die "the cut-out is not an ELF"
+chmod +x "$out"
+say "wrote $out ($(wc -c < "$out" | tr -d ' ') octets) by the native Stage 1"

@@ -1,0 +1,72 @@
+# tools/compiler-key-spec.txt — WHICH spec/ FILES THE COMPILER KEY HASHES (compiler_key in tools/t1-native-lib.sh reads this file
+# from the compiler checkout, $SAS). The key names the Stage 1 and translator cache entries and is the second field of
+# tools/compiler-image.sha256, so a spec file in the key costs a Stage 1 + translator rebuild (25-90 min per host) when it changes.
+#
+#   key  PATH   hashed. PATH is a file, or a subtree when it ends in "/".
+#   skip PATH   NOT hashed: the compiler build never reads it. A file, a subtree ("/"), or a glob ("*" and "?" never cross "/").
+# key wins over skip. A spec file that matches NEITHER is KEYED (fail safe: an unclassified file costs a rebuild, never a stale
+# cache); tools/check-compiler-key.sh fails until it is classified. A malformed line keys ALL of spec/ (fails closed). This
+# file's own octets are in the key too.
+#
+# THE READ SET, measured 2026-10-10 on a Linux x86_64 host (x86_64-linux) at 61ebfc4a by strace -f (openat/open/stat/newfstatat/statx/
+# access/readlink/getdents64) over: cargo build --release -p sadhana --bin t1_image (fresh target dir); t1_image over the
+# compiler as t1-build.sh's stage1() runs it and over tools/native-spike/t1/anuvada.t1 as translator_elf() runs it (each with
+# yantra-run beside it, which its differential gate runs); the native Stage 1 compiling the packed corpus (it opens only
+# YANTRA_INPUT). No getdents of any spec/ directory. Cross-checked statically: include_str!/include_bytes! in crates/sadhana/src
+# and crates/sanskrit-text/src, TABLES in crates/sadhana/src/t1/anita.rs (the समावेशः tables t1_image reads at load) and the
+# "spec/..." literals of crates/yantra/src/bin/yantra-run.rs. tools/check-compiler-key.sh re-derives all of it.
+
+# include_str! in the t1_image build (rustc reads them; cargo strace)
+key spec/compression-choices.tsv
+key spec/diagnostics.tsv
+key spec/directives.tsv
+key spec/elf-abi-riscv64.tsv
+key spec/encodings-riscv64.tsv
+key spec/fence-domains-riscv64.tsv
+key spec/lexicon.tsv
+key spec/mnemonics-riscv64.src.tsv
+key spec/registers-riscv64.tsv
+key spec/relocations-riscv64.tsv
+key spec/shiva-sutras.tsv
+key spec/varga.tsv
+key spec/vowel-length.tsv
+key spec/web-dictionary.tsv
+# include_str! under #[cfg(test)] only (crates/sadhana/src/dwarf.rs): not read by the release build; keyed so the static scan
+# needs no cfg parsing
+key spec/dwarf-line-v5.tsv
+# read by t1_image at run time (anita.rs TABLES, the समावेशः store; strace of both t1_image runs)
+key spec/extended-pictographic.tsv
+key spec/grapheme-break.tsv
+key spec/incb.tsv
+# read by yantra-run at run time (crates/yantra/src/bin/yantra-run.rs, relative to its cwd: it refuses an image listed as an
+# application). t1_image runs yantra-run beside it for its W-381 differential gate, and translator route 2 runs it, so it can
+# decide whether a build is refused (never its octets); keyed because it is read
+key spec/programs.tsv
+
+# never read by the compiler build
+skip spec/*.sas
+skip spec/*.t1
+skip spec/*.ebnf
+skip spec/aksara-widths.tsv
+skip spec/application-abi.tsv
+skip spec/application-entry.tsv
+skip spec/application-load.tsv
+skip spec/compressed-t0.tsv
+skip spec/conformance-rvc-t0.tsv
+skip spec/conformance-t0.tsv
+skip spec/differential-t0.tsv
+skip spec/lexicon.src.tsv
+skip spec/marks.tsv
+skip spec/parse-shape-t0.tsv
+skip spec/registers-amd64.tsv
+skip spec/rejected-t0.tsv
+skip spec/rv64gc-manual-listing.tsv
+skip spec/weight-budgets.tsv
+skip spec/clock/
+skip spec/crypto/
+skip spec/demo/
+skip spec/entropy/
+skip spec/entry/
+skip spec/golden/
+skip spec/net/
+skip spec/rung/
