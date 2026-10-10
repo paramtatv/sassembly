@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="sa">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>संस्कृतयन्त्रम् — सव्याकरणो निर्देशसमुच्चयः</title>
-<meta name="description" content="शुल्कमुक्तं निर्देशसमुच्चयशिल्पम्, यस्य रचना संस्कृतम्। सङ्कलकः स्वयं संस्कृतयन्त्रेण लिखितः, स्वमेव सङ्कलयति, स्वकीयं बिम्बं च यथावत् पुनः रचयति।">
+<title>Sassembly — an instruction set with a grammar</title>
+<meta name="description" content="Sassembly v1.1.0: a royalty-free instruction set architecture whose syntax is Sanskrit, with a self-hosting compiler and native packages for Linux and macOS.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -12,7 +12,7 @@
 <script src="assets/theme.js"></script>
 <script src="assets/i18n.js"></script>
 </head>
-<body data-i18n-title="home.title">
+<body>
 <header class="masthead">
   <div class="wrap masthead__in">
     <a class="brand" href="index.html">
@@ -46,36 +46,36 @@
   <section class="wrap" style="padding-top: 28px;">
     <div class="colophon" style="align-items: center; gap: 28px;">
       <div class="colophon__lead" style="flex: 2 1 420px;">
-        <p class="eyebrow">v1.0.2 · 2026-10-10</p>
-        <h2 data-i18n="home.rel.h">संस्कृतयन्त्रम् १.०.२ — सम्पूर्णम्</h2>
-        <p data-i18n="home.rel.b">भाषा तस्याः स्वाश्रयः सङ्कलकश्च सम्पूर्णौ। सङ्कलकः स्वयं स्वं सङ्कलय्य तान्येव अष्टकानि जनयति — प्रथमा द्वितीया च अवस्था ९,२३,०४२ अष्टकैः, अष्टकशः समाने। नूतनम् v1.0.2: सङ्कलकस्य प्रवेशः निवेशात् गृह्यते, ब्राउज़रे स्मृतिस्थं सञ्चिकामूलम्, AGPL-3.0-only अनुज्ञापत्रं च।</p>
+        <p class="eyebrow">v1.1.0 · 2026-10-10</p>
+        <h2>Sassembly v1.1.0 — native packages</h2>
+        <p>Four native packages compile and run .t1 programs with no Rust and no emulator: x86_64-linux, aarch64-linux, aarch64-macos and x86_64-macos. Each holds the release’s Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for that target. The new Stage 1 is 951,146 octets (sha256 e0adbb0f…); compiled natively by itself from the repository’s sources, it reproduces itself byte for byte. There is no Windows package: the translator does not emit a Windows target yet.</p>
       </div>
       <div style="flex: 1 1 200px; display: flex; gap: 12px; flex-wrap: wrap;">
-        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/releases/tag/v1.0.2" rel="noopener" data-i18n="home.rel.cta1">प्रकाशनं पठ</a>
-        <a class="btn" style="color: #F4EFE5; border-color: #F4EFE5;" href="downloads.html" data-i18n="home.rel.cta2">अवतरणम्</a>
-        <a class="btn" style="color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/main/ANNOUNCEMENT-v1.0.2.md" rel="noopener" data-i18n="home.rel.cta3">घोषणा</a>
-        <a class="btn" style="color: #F4EFE5; border-color: #F4EFE5;" href="learn.html#quickstart" data-i18n="home.rel.cta4">प्रथमं कार्यक्रमं लिख</a>
+        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/releases/tag/v1.1.0" rel="noopener">Read the release</a>
+        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="downloads.html">Downloads</a>
+        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.1.0/LIMITS.md" rel="noopener">Limits</a>
+        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.1.0/CHANGELOG.md" rel="noopener">Changelog</a>
       </div>
     </div>
   </section>
 
-  <section class="wrap section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 64px; align-items: start;">
+  <section class="wrap section" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr)); gap: 64px; align-items: start;">
     <div style="display: flex; flex-direction: column; gap: 26px;">
-      <p class="eyebrow" data-i18n="home.eyebrow">शुल्कमुक्तं निर्देशसमुच्चयशिल्पम्</p>
-      <h1 data-i18n="home.h1">सव्याकरणो निर्देशसमुच्चयः।</h1>
-      <p class="lede" data-i18n="home.lede">संस्कृतयन्त्रं तन्त्रभाषा यस्याः रचना संस्कृतम्, अर्थश्च निर्देशसमुच्चयः। प्रत्येकस्य शिल्पनिर्देशस्य नाम अस्ति — अनामसङ्केतनाय मार्गो नास्ति। सङ्कलकः स्वयं संस्कृतयन्त्रेण लिखितः, स्वमेव सङ्कलयति, स्वकीयं बिम्बं च यथावत् पुनः रचयति।</p>
-      <p class="lede" style="font-size: 17px;" data-i18n-html="home.browser"><strong>संयोजय, चालय — विचारके एव</strong> — साधनं यन्त्रं च wasm-रूपेण, प्रायः ६१२ KB, सेवकं स्थापनं च विना। (.sas स्तरः; .t1 सङ्कलनं तु साधनशृङ्खलया)</p>
+      <p class="eyebrow">Royalty-free instruction set architecture</p>
+      <h1>An instruction set with a grammar.</h1>
+      <p class="lede">Sassembly is a systems language whose syntax is Sanskrit and whose semantics are an ISA. Every architectural instruction has a name — there is no escape hatch to a raw encoding. The compiler is written in Sassembly, compiles itself, and reproduces its own binary exactly.</p>
+      <p class="lede" style="font-size: 17px;"><strong>Build and run .t1 natively</strong> — a package needs only POSIX sh, awk, od, grep and sha256sum or shasum. bin/sassembly-build compiles a .t1 program to an RV64 image, and bin/sassembly-run runs that image as a host program. Assembling T0 .sas text still needs the Rust sadhana from the v1.1.0-alpha or v1.0.2 archives.</p>
       <div style="display: flex; gap: 14px; flex-wrap: wrap; padding-top: 6px;">
-        <a class="btn btn--solid" href="playground.html" data-i18n="home.cta2">प्रयोगक्षेत्रम् उद्घाटय</a>
-        <a class="btn" href="learn.html" data-i18n="home.cta1">पठनम् आरभस्व</a>
+        <a class="btn btn--solid" href="downloads.html">Get a native package</a>
+        <a class="btn" href="learn.html">Start reading</a>
       </div>
       <p style="display: flex; gap: 32px; flex-wrap: wrap; padding-top: 10px; font-size: 14px; color: var(--ink-3);">
-        <span data-i18n="home.fact1">RV64 लक्ष्यम्</span><span data-i18n="home.fact2">९,२३,०४२-अष्टकं बिम्बम्</span><span data-i18n="home.fact3">LLVM रहितम्</span><span data-i18n="home.fact4">स्थापनं विना</span>
+        <span>RV64 images</span><span>4 native targets</span><span>951,146-octet Stage 1</span><span>No Rust needed for .t1</span>
       </p>
     </div>
 
     <div class="pane">
-      <div class="pane__bar"><span class="deva">नमस्कारः.t1</span><span data-i18n="home.pane.src">मूलम्</span></div>
+      <div class="pane__bar"><span class="deva">नमस्कारः.t1</span><span>source</span></div>
 <pre class="code-deva">मण्डलम् नमस्कारः ॥
 
 सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
@@ -85,7 +85,7 @@
     इति
     प्रत्यागमनम् गणना ।
 इति</pre>
-      <div class="pane__bar" style="border-top: 1px solid rgba(255,255,255,.10);"><span data-i18n="home.pane.emit">निर्गतम्</span><span>riscv64</span></div>
+      <div class="pane__bar" style="border-top: 1px solid rgba(255,255,255,.10);"><span>emitted</span><span>riscv64</span></div>
 <pre class="code-mono">मुख्यम्:
   addi    a0, zero, 0
 .L1:
@@ -99,66 +99,89 @@
   <section class="wrap section--tight" style="padding-bottom: 64px;">
     <div class="grid grid--3">
       <div class="pillar">
-        <h2 style="font-size: 23px; font-weight: 600;" data-i18n="home.p1.h">शुल्कमुक्तं, रचनयैव</h2>
-        <p data-i18n="home.p1.b">शिल्पं प्रकाशे प्रकटितम्, तस्य उपयोगे शुल्कं नास्ति। प्रत्येको निर्देशः शब्दकोशे नामितः; अनामितं सङ्केतनं लेखितुं व्याकरणे मार्गो नास्ति।</p>
+        <h2 style="font-size: 23px; font-weight: 600;">Royalty-free, by construction</h2>
+        <p>The architecture is published in the open and carries no licence on its use. Every instruction is named in the lexicon, and a program cannot smuggle in an unnamed encoding because the grammar has no syntax for one.</p>
       </div>
       <div class="pillar">
-        <h2 style="font-size: 23px; font-weight: 600;" data-i18n="home.p2.h">स्वाश्रयं, मूलपर्यन्तम्</h2>
-        <p data-i18n="home.p2.b">एकविंशतिः मण्डलानि, ४६,७९४ पङ्क्तयश्च स्वयमेव स्वं सङ्कलयन्ति। लक्ष्यं धातुमात्रं RISC-V RV64; LLVM नास्ति, बाह्यसाधनशृङ्खला नास्ति।</p>
+        <h2 style="font-size: 23px; font-weight: 600;">Self-hosting, now native</h2>
+        <p>The v1.1.0 Stage 1, compiled natively by itself from the repository’s sources, reproduces itself byte for byte. The translator that turns an RV64 image into a host program is itself written in .t1.</p>
       </div>
       <div class="pillar">
-        <h2 style="font-size: 23px; font-weight: 600;" data-i18n="home.p3.h">अष्टकपर्यन्तं परीक्ष्यम्</h2>
-        <p data-i18n="home.p3.b">सङ्कलकेन सङ्कलितः सङ्कलकः तेनैव सङ्कलकेन सह अष्टकशः समानः। न केवलं समाना संस्करणसंज्ञा — तान्येव ९,२३,०४२ अष्टकानि, tools/fixpoint.sh इत्यनेन परीक्ष्याणि।</p>
+        <h2 style="font-size: 23px; font-weight: 600;">Verifiable to the octet</h2>
+        <p>Check the release against SHA256SUMS-v1.1.0, then compile the sources with the native Stage 1: the result must be the same 951,146 octets. The steps are on the <a href="downloads.html#verify">downloads page</a>.</p>
       </div>
     </div>
+  </section>
+
+  <section class="wrap section--tight" style="padding-top: 0;">
+    <div class="section__head">
+      <h2>What runs where in v1.1.0</h2>
+      <span class="mark" aria-hidden="true">॥</span>
+      <span class="section__note">from LIMITS.md: every row checked on the four native targets and under yantra-run</span>
+    </div>
+    <div class="grid grid--3">
+      <article class="card">
+        <h3>Native on all four targets</h3>
+        <p>Scalar floats (F and D). Integer semantics and checked operators. Reading and writing named files in a granted root, with path escapes refused. Program arguments and the input file at load. A recorded clock (YANTRA_RECORD_EVENTS). Randomness through the spec/entropy library. The 512 MiB heap. Exit codes 0 and 1. Stage 1 with any entry.</p>
+      </article>
+      <article class="card">
+        <h3>Under yantra-run only</h3>
+        <p>Threads: a native run refuses a threaded image by name. Also replaying an event log, a wait with no event source (exit 75), the retired-instruction counter, YANTRA_VERDICT, vectors and matrices, and the loopback --listen socket. yantra-run is the Rust RV64 emulator in the v1.0.2 and v1.1.0-alpha archives.</p>
+      </article>
+      <article class="card">
+        <h3>Not yet</h3>
+        <p>Sleep. Appending to, deleting and listing files. Environment variables and stdin. Spawning a process. TCP, HTTP/1.1, IPv6 and DHCP. TLS and X.509. The network frames device was not verified for v1.1.0. There is no Windows package.</p>
+      </article>
+    </div>
+    <p style="padding-top: 18px; font-size: 15px; color: var(--ink-3);">Each row, with the command that repeats it, is in <a href="https://github.com/paramtatv/sassembly/blob/v1.1.0/LIMITS.md" rel="noopener">LIMITS.md</a>.</p>
   </section>
 
   <section class="wrap">
     <div class="colophon">
       <div class="colophon__lead">
-        <p class="eyebrow" data-i18n="colophon.eyebrow">पुष्पिका</p>
-        <h2 data-i18n="colophon.h">आरम्भस्य लेखः</h2>
-        <p data-i18n="colophon.b">हस्तलिखितग्रन्थः अन्ते वदति केन कुतश्च लिखितः। अयमपि तथैव।</p>
+        <p class="eyebrow">Colophon</p>
+        <h2>The bootstrap, stated</h2>
+        <p>A manuscript ends by recording who copied it and from what. So does this one.</p>
       </div>
       <div class="colophon__figs">
-        <div class="fig"><span class="fig__n">९,२३,०४२</span><span class="fig__l" data-i18n="colophon.f1">स्वसङ्कलिते बिम्बे अष्टकानि — द्वितीया अवस्था प्रथमया सह समाना</span></div>
-        <div class="fig"><span class="fig__n">२१ / २१</span><span class="fig__l" data-i18n="colophon.f2">मण्डलानि सङ्कलितानि, एकस्मिन् बिम्बे संयोजितानि, यत् चलति शुद्धं च विरमति</span></div>
-        <div class="fig"><span class="fig__n">३४.१%</span><span class="fig__l" data-i18n="colophon.f3">v0.4.0 बिम्बात् लघु (१,३९९,४३४ तः ९२२,१४६ अष्टकानि), भाषा च वर्धिता</span></div>
-        <div class="fig"><span class="fig__n">५५,३८५,३५९,३५४</span><span class="fig__l" data-i18n="colophon.f4">निर्देशाः यान् द्वितीया अवस्था बिम्बरचनायां निरवर्तयत्; समाप्तिः स्थितिः १२००</span></div>
+        <div class="fig"><span class="fig__n">951,146</span><span class="fig__l">octets in the v1.1.0 Stage 1, which compiles its own sources to itself, byte-identical</span></div>
+        <div class="fig"><span class="fig__n">4 / 4</span><span class="fig__l">native packages, each smoke-tested on its own target from the unpacked tarball, with no checkout</span></div>
+        <div class="fig"><span class="fig__n">80 + 23</span><span class="fig__l">programs and build refusals in tools/selfcheck, the native .t1 self-check suite</span></div>
+        <div class="fig"><span class="fig__n">0</span><span class="fig__l">disagreements between the four native targets on the rows of LIMITS.md; only a random draw differs, by design</span></div>
       </div>
     </div>
   </section>
 
   <section class="wrap section">
     <div class="section__head">
-      <h2 data-i18n="aud.h">सर्वप्रकारकाय तन्त्रांशाय लिखितम्</h2>
+      <h2>Written for every kind of software</h2>
       <span class="mark" aria-hidden="true">॥</span>
-      <span class="section__note" data-i18n="aud.note">प्रथमनिर्देशात् प्रयोगस्तरं यावत् एका भाषा</span>
+      <span class="section__note">one language from the reset vector to the application layer</span>
     </div>
     <div class="grid grid--3">
       <article class="card">
-        <h3 data-i18n="aud.c1.h">कर्णकाः, स्थिरांशाश्च</h3>
-        <p data-i18n="aud.c1.b">प्रथमनिर्देशादेव नग्नयन्त्रम्। न धावनकालः, न त्वया अलिखितः आवण्टकः, न गुप्तः पूर्वलेखः।</p>
+        <h3>Kernels and firmware</h3>
+        <p>Bare metal from the first instruction. No runtime, no allocator you did not write, no prologue inserted on your behalf.</p>
       </article>
       <article class="card">
-        <h3 data-i18n="aud.c2.h">सङ्कलकाः, धावनकालाश्च</h3>
-        <p data-i18n="aud.c2.b">सन्दर्भसङ्कलकः एव उदाहरणम् — पदविभागः, व्याकरः, निर्णायकः, परीक्षकः, उत्सर्जकश्च, सर्वे पठनीयाः।</p>
+        <h3>Compilers and runtimes</h3>
+        <p>The reference compiler is the worked example: a lexer, parser, resolver, checker and emitter you can read end to end.</p>
       </article>
       <article class="card">
-        <h3 data-i18n="aud.c3.h">अन्तर्निहितं, कालबद्धं च</h3>
-        <p data-i18n="aud.c3.b">प्रत्येकम् आवण्टनं मूले लिखितम्। त्वया लिखितस्य अष्टकानां च मध्ये किमपि न योज्यते।</p>
+        <h3>Embedded and real-time</h3>
+        <p>Every allocation is written down in the source. Nothing is added between what you wrote and the octets that ship.</p>
       </article>
       <article class="card">
-        <h3 data-i18n="aud.c4.h">प्रयोगतन्त्रांशः</h3>
-        <p data-i18n="aud.c4.b">मण्डलानि, अभिलेखाः, अङ्कमालाः, प्रकारपरीक्षकश्च यः अनुमानं न करोति, प्रत्याख्यानं करोति।</p>
+        <h3>Application software</h3>
+        <p>Modules, records, runs and a type checker that refuses rather than guesses. Ordinary programs, with ordinary tools.</p>
       </article>
       <article class="card">
-        <h3 data-i18n="aud.c5.h">पुनरुत्पाद्या रचना</h3>
-        <p data-i18n="aud.c5.b">स्थिरबिन्दुः भूमिः, न लक्ष्यम् — तान्येव मूलानि सर्वत्र तदेव बिम्बं जनयन्ति, परीक्षा च एकः आदेशः।</p>
+        <h3>Reproducible builds</h3>
+        <p>A fixpoint is the floor, not the ambition: the same sources give the same image on the 4 native targets, and checking it is one command.</p>
       </article>
       <article class="card card--teal">
-        <h3 data-i18n="aud.c6.h">अध्यापनं, अनुसन्धानं च</h3>
-        <p data-i18n="aud.c6.b">सम्पूर्णः सङ्कलकः, आदितः अन्तं यावत् पठनीयः, सह औपचारिकव्याकरणेन यन्त्रप्रतिमानेन च।</p>
+        <h3>Teaching and research</h3>
+        <p>A whole compiler, readable start to finish, with a formal grammar and a machine model small enough to hold in your head.</p>
       </article>
     </div>
   </section>
@@ -166,13 +189,13 @@
   <section class="wrap section" style="padding-top: 0;">
     <div class="grid grid--2" style="align-items: start; gap: 56px;">
       <div style="display: flex; flex-direction: column; gap: 18px;">
-        <h2 data-i18n="why.h">यन्त्राय स्वाभाविकं व्याकरणं कुतः?</h2>
-        <p style="color: var(--ink-2);" data-i18n="why.b1">पाणिनिना संस्कृतं प्रायः चतुःसहस्रसूत्रैः वर्णितम्, यानि अव्याकुलं संयुज्यन्ते — औपचारिकं व्याकरणं द्विसहस्रवर्षपूर्वम्। संस्कृतयन्त्रं ततः तदेव गृह्णाति यत् सङ्कलकाय उपयुक्तम्: विभक्तिः शब्दस्य कारकं वहति, अतः निर्देशस्य पदानि स्वस्वरूपं स्वयमेव कथयन्ति, न स्थानमात्रेण ज्ञायन्ते।</p>
-        <p style="color: var(--ink-2);" data-i18n="why.b2">फलम् — संस्कृतयन्त्रस्य वाक्यं मनुष्याय व्याकराय च समानम् एव पठ्यते, दुष्टं वाक्यं च उभयोः समानकारणेन दुष्टम्।</p>
-        <p><a href="learn.html" data-i18n="why.link">कारकचिह्नानि विस्तरेण →</a></p>
+        <h2>Why a natural grammar for a machine?</h2>
+        <p style="color: var(--ink-2);">Sanskrit was described by Pāṇini in about four thousand rules that compose without ambiguity — a formal grammar written down two millennia before the term existed. Sassembly borrows the part that matters to a compiler: case endings carry the role a word plays, so an instruction’s operands announce what they are rather than relying on position.</p>
+        <p style="color: var(--ink-2);">The practical consequence is that a Sassembly statement reads the same to a human and to the parser, and a malformed one is malformed for the same reason in both.</p>
+        <p><a href="learn.html">The kāraka sigils, in full →</a></p>
       </div>
       <div class="pane">
-        <div class="pane__bar"><span data-i18n="why.pane">कारकम्</span><span class="deva">कारक</span></div>
+        <div class="pane__bar"><span>operand roles</span><span class="deva">कारक</span></div>
 <pre class="code-deva">॰ कारकं शब्दे, न स्तम्भे
 वृत्तिः खण्डपाठः आदाय पाठ्यम् ॱॱ अङ्कः अन्तः अ८
                     ऽ आरम्भः ॱॱ न६४
@@ -189,12 +212,12 @@
   <section class="wrap section--tight" style="padding-bottom: 72px;">
     <div class="colophon" style="align-items: center; gap: 40px;">
       <div class="colophon__lead" style="flex: 2 1 420px;">
-        <p class="eyebrow" data-i18n="comm.note">यः सङ्कलकः स्वयं पठनीयः, सः सह पठनीयः अपि।</p>
-        <h2 data-i18n="comm.h">सङ्कलकं सह पठामः</h2>
-        <p data-i18n="comm.b">संस्कृतयन्त्रस्य विकासकानाम् अध्ययनसङ्घः Discord इत्यत्र — सङ्कलकः सह पठ्यते, प्रश्नाः पृच्छ्यन्ते, कार्यं च विभज्यते। आगन्तुं सर्वे स्वागताः।</p>
+        <p class="eyebrow">a compiler meant to be read is a compiler meant to be read together</p>
+        <h2>Read the compiler together</h2>
+        <p>A study group for Sassembly developers on Discord — reading the compiler, asking questions, dividing the work. Everyone is welcome.</p>
       </div>
       <div style="flex: 1 1 200px; display: flex; justify-content: flex-start;">
-        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://discord.gg/XvYvXR8HAh" rel="noopener" data-i18n="comm.cta">सङ्घे सम्मिल</a>
+        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://discord.gg/XvYvXR8HAh" rel="noopener">Join the study group</a>
       </div>
     </div>
   </section>
