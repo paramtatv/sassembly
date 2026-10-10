@@ -1314,6 +1314,9 @@ pub struct Machine {
     /// asked for that capability. Opting in is one field; opting out must not
     /// be something a caller forgets.
     pub patra_root: Option<std::path::PathBuf>,
+    /// An in-memory file root ([`patra::MemFs`]). When `Some` it is used INSTEAD of
+    /// `patra_root`; the browser host sets it, the native runner never does.
+    pub patra_mem: Option<patra::MemFs>,
     /// The address `lr.w`/`lr.d` reserved, if one is live. `sc` succeeds only against a
     /// reservation for its own address; on one hart nothing else can steal it, so this is
     /// a single word rather than a set. It is deliberately **not** cleared by an ordinary
@@ -1389,6 +1392,7 @@ impl Machine {
             .expect("Program::parse refuses a file with no PT_LOAD");
         let mut m = Machine {
             patra_root: None,
+            patra_mem: None,
             patra_path: None,
             patra_buffer: None,
             virtio: Default::default(),
@@ -1617,7 +1621,11 @@ impl Machine {
                 patra::put(&mut self.mem, self.base, 0, 0, value, None);
                 return Ok(None);
             };
-            patra::put(&mut self.mem, self.base, p, b, value, root.as_deref());
+            if let Some(fs) = self.patra_mem.as_mut() {
+                patra::put_mem(&mut self.mem, self.base, p, b, value, fs);
+            } else {
+                patra::put(&mut self.mem, self.base, p, b, value, root.as_deref());
+            }
             self.patra_path = None;
             self.patra_buffer = None;
             return Ok(None);
@@ -1630,7 +1638,11 @@ impl Machine {
                 patra::serve(&mut self.mem, self.base, 0, 0, value, None);
                 return Ok(None);
             };
-            patra::serve(&mut self.mem, self.base, p, b, value, root.as_deref());
+            if let Some(fs) = self.patra_mem.as_ref() {
+                patra::serve_mem(&mut self.mem, self.base, p, b, value, fs);
+            } else {
+                patra::serve(&mut self.mem, self.base, p, b, value, root.as_deref());
+            }
             self.patra_path = None;
             self.patra_buffer = None;
             return Ok(None);

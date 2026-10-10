@@ -27,6 +27,7 @@ fn machine(text: &[u32]) -> Machine {
         store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
         // A machine nobody asked to serve files must not be able to.
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),

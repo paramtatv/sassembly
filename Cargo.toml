@@ -33,8 +33,8 @@ exclude = ["crates/yantra-wasm", "crates/sadhana-wasm"]
 # manifest records the cut where the edge used to be.
 
 [workspace.package]
-version = "1.0.1"
-license = "MIT"
+version = "1.0.2"
+license = "AGPL-3.0-only"
 edition = "2024"
 rust-version = "1.94"
 repository = "https://github.com/paramtatv/sassembly"

@@ -146,6 +146,7 @@ fn machine() -> Machine {
     let mut m = Machine {
         store_limit: usize::MAX,
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),

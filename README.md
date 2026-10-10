@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.0.1-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.0.1"></a>
-  <a href="#licence"><img src="https://img.shields.io/badge/licence-MIT-A63A21?style=flat-square&labelColor=2B2521" alt="licence MIT"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.0.2-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.0.2"></a>
+  <a href="#licence"><img src="https://img.shields.io/badge/licence-AGPL--3.0-A63A21?style=flat-square&labelColor=2B2521" alt="licence AGPL-3.0-only"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
 </p>
@@ -23,6 +23,7 @@
 <p align="center">
   <a href="https://paramtatv.github.io/sassembly/">docs and playground</a> ·
   <a href="https://discord.gg/XvYvXR8HAh">study group</a> ·
+  <a href="ANNOUNCEMENT-v1.0.2.md">v1.0.2 announcement</a> ·
   <a href="ANNOUNCEMENT-v1.0.1.md">v1.0.1 announcement</a> ·
   <a href="ANNOUNCEMENT-v1.0.0.md">v1.0.0 announcement</a> ·
   <a href="ANNOUNCEMENT-v0.4.0.md">v0.4.0 announcement</a> ·
@@ -46,21 +47,21 @@ itself.
 ## Install
 
 Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembler) and `yantra-run` (the RV64 machine). They are attached to the
-[v1.0.1 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.1).
+[v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2).
 
 | OS | archive | sha256 |
 |---|---|---|
-| Linux x86-64 | [`sassembly-v1.0.1-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-linux-x86_64.tar.gz) | `91caa09f6e02ca147fcbfca1af79c410124f890c0a946b1650af90b5aa7e2c46` |
+| Linux x86-64 | [`sassembly-v1.0.2-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-x86_64.tar.gz) | filled at release (after the owner OK) |
 | Linux aarch64 | coming once tested natively | n/a |
-| macOS arm64 (Apple silicon) | [`sassembly-v1.0.1-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-macos-arm64.tar.gz) | `dbc8c8c8688d159f48054940b63d68347304d1872340aa78a8267855ce013170` |
-| macOS x86-64 (Intel) | [`sassembly-v1.0.1-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-macos-x86_64.tar.gz) | `1794d227e19d2c748f0cf5a123cf4051e6c9b31699dc3e138af6f8f66a33cefb` |
-| Windows arm64 | [`sassembly-v1.0.1-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-windows-arm64.zip) | `9a256dc65c165a29964517d5e20a2a26ae8ce44fdbe16c8b5558b1d5d4295719` |
-| Windows x86-64 | [`sassembly-v1.0.1-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.1/sassembly-v1.0.1-windows-x86_64.zip) | `960788f913a255d98d98a473531633fb68dcb2cc933b201f72d416b43ce2edc7` |
+| macOS arm64 (Apple silicon) | [`sassembly-v1.0.2-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-arm64.tar.gz) | filled at release (after the owner OK) |
+| macOS x86-64 (Intel) | [`sassembly-v1.0.2-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-x86_64.tar.gz) | filled at release (after the owner OK) |
+| Windows arm64 | [`sassembly-v1.0.2-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-arm64.zip) | filled at release (after the owner OK) |
+| Windows x86-64 | [`sassembly-v1.0.2-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-x86_64.zip) | filled at release (after the owner OK) |
 
-The sha256s are those in the release's `SHA256SUMS-v1.0.1`, which also covers `sassembly-v1.0.1-stage1.elf` (the same compiler image as v1.0.0, sha256 `71d06d66…15480`). linux-aarch64: coming once tested natively. Replace `OS_ARCH` below with `linux-x86_64`, `macos-arm64` or `macos-x86_64`.
+The sha256s are those in the release's `SHA256SUMS-v1.0.2`, which also covers `sassembly-v1.0.2-stage1.elf` (the v1.0.2 compiler image, sha256 `4e7a9a24…070ca`). linux-aarch64: coming once tested natively. Replace `OS_ARCH` below with `linux-x86_64`, `macos-arm64` or `macos-x86_64`.
 
 ```sh
-V=v1.0.1; T=sassembly-$V-OS_ARCH.tar.gz
+V=v1.0.2; T=sassembly-$V-OS_ARCH.tar.gz
 gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V -p sassembly-$V-stage1.elf
 # verify (Linux: sha256sum; macOS: shasum -a 256)
 grep " $T\$" SHA256SUMS-$V | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
@@ -74,10 +75,10 @@ xattr -d com.apple.quarantine ~/.local/bin/sadhana ~/.local/bin/yantra-run
 **Windows (PowerShell).** Use `arm64` or `x86_64` (the x86-64 build also runs on Windows on ARM under x64 emulation).
 
 ```powershell
-$V='v1.0.1'; $A='x86_64'          # or arm64
+$V='v1.0.2'; $A='x86_64'          # or arm64
 $T="sassembly-$V-windows-$A.zip"; $R="https://github.com/paramtatv/sassembly/releases/download/$V"
-curl.exe -sSLO "$R/$T"; curl.exe -sSLO "$R/SHA256SUMS-v1.0.1"
-(Get-FileHash $T).Hash.ToLower()  # compare with the line for $T in SHA256SUMS-v1.0.1
+curl.exe -sSLO "$R/$T"; curl.exe -sSLO "$R/SHA256SUMS-v1.0.2"
+(Get-FileHash $T).Hash.ToLower()  # compare with the line for $T in SHA256SUMS-v1.0.2
 Expand-Archive $T .; $B="$PWD\sassembly-$V-windows-$A"; $env:Path="$B;$env:Path"
 chcp 65001                        # UTF-8 console, for Devanagari output
 sadhana.exe namaste.sas n.elf; yantra-run.exe n.elf
@@ -86,11 +87,13 @@ sadhana.exe namaste.sas n.elf; yantra-run.exe n.elf
 In PowerShell, redirect binary output with `cmd /c "... > file"`: PowerShell's own `>` re-encodes and corrupts it.
 To build from source on Windows, clone with `git clone -c core.autocrlf=false`; CRLF line endings break the `.sas` sources.
 
-Then run a `.sas` program with `sadhana prog.sas prog.elf && yantra-run prog.elf`. A `.t1` program is compiled by `sassembly-v1.0.1-stage1.elf`: the next section shows both, step by step.
+Then run a `.sas` program with `sadhana prog.sas prog.elf && yantra-run prog.elf`. A `.t1` program is compiled by `sassembly-v1.0.2-stage1.elf`: the next section shows both, step by step.
 
 `yantra-run` exits non-zero whenever the program's halt status is non-zero; that is a report, not a failure of the tool.
 
 **Files (v1.0.1).** `yantra-run --files DIR prog.elf [args...]` grants the program a file root: its file window reads and writes inside `DIR` and nowhere else (`..`, absolute paths and symlinks leaving `DIR` are refused). `--files` must be the first argument. Without it every file request is refused by name. `DIR` must not be writable by an untrusted party while the program runs. See [ANNOUNCEMENT-v1.0.1.md](ANNOUNCEMENT-v1.0.1.md) and [LIMITS.md](LIMITS.md).
+
+**New in v1.0.2.** (1) The prebuilt compiler takes its entry from the input: `YANTRA_INPUT_ENTRY="<module> <routine>"` replaces `YANTRA_INPUT_NAME`, so any module and routine builds. (2) `yantra-wasm` can serve a program's file window from an in-memory root (`memfsEnable`, `memfsPut`, `memfsFiles` in `web/yantra.mjs`). (3) The licence is AGPL-3.0-only, with a commercial licence available ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)); v0.2 to v1.0.1 stay MIT. See [ANNOUNCEMENT-v1.0.2.md](ANNOUNCEMENT-v1.0.2.md).
 
 ---
 
@@ -100,23 +103,23 @@ Sassembly has two layers. **`.sas`** is the assembler form (T0): one instruction
 
 Two facts first.
 
-* **The prebuilt `sadhana` assembles `.sas` only.** A `.t1` is compiled by `sassembly-v1.0.1-stage1.elf`, the self-hosted compiler, run on `yantra-run`. That image has a **fixed entry**: your source must be module `शृङ्खला` with routine `स्वपरीक्षास्वप्रतिबिम्बम्`. Building from source with `t1_image` lets you name any module and routine instead.
+* **The prebuilt `sadhana` assembles `.sas` only.** A `.t1` is compiled by `sassembly-v1.0.2-stage1.elf`, the self-hosted compiler, run on `yantra-run`. That image takes its entry from the input (v1.0.2): give `YANTRA_INPUT_ENTRY="<module> <routine>"` and any module and routine name builds; without it the compiler keeps its own entry, module `शृङ्खला` with routine `स्वपरीक्षास्वप्रतिबिम्बम्`, so every example below still works unchanged.
 * **`yantra-run` exits 1 whenever the program's halt status is not 0.** That is a report, not a tool failure: compiling with `stage1.elf` ends with status `1200` (BUILT), so it always exits 1; your own program returns the status you give it.
 
 ### 0. Get the tools
 
-**Release assets (no Rust).** From <https://github.com/paramtatv/sassembly/releases/tag/v1.0.1> download `sassembly-v1.0.1-stage1.elf`, `SHA256SUMS-v1.0.1`, and the tarball for your machine (`sassembly-v1.0.1-linux-x86_64.tar.gz`, `-linux-aarch64`, or `-macos-arm64`). Check and unpack:
+**Release assets (no Rust).** From <https://github.com/paramtatv/sassembly/releases/tag/v1.0.2> download `sassembly-v1.0.2-stage1.elf`, `SHA256SUMS-v1.0.2`, and the tarball for your machine (`sassembly-v1.0.2-linux-x86_64.tar.gz`, `-linux-aarch64`, or `-macos-arm64`). Check and unpack:
 
 ```console
-$ grep -F sassembly-v1.0.1-stage1.elf SHA256SUMS-v1.0.1 | sha256sum -c -
-sassembly-v1.0.1-stage1.elf: OK
-$ grep -F sassembly-v1.0.1-linux-x86_64.tar.gz SHA256SUMS-v1.0.1 | sha256sum -c -
-sassembly-v1.0.1-linux-x86_64.tar.gz: OK
+$ grep -F sassembly-v1.0.2-stage1.elf SHA256SUMS-v1.0.2 | sha256sum -c -
+sassembly-v1.0.2-stage1.elf: OK
+$ grep -F sassembly-v1.0.2-linux-x86_64.tar.gz SHA256SUMS-v1.0.2 | sha256sum -c -
+sassembly-v1.0.2-linux-x86_64.tar.gz: OK
 ```
 
 (macOS: `shasum -a 256 -c -` in place of `sha256sum -c -`.) The tarball holds `sadhana` and `yantra-run`.
 
-**From source.** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.1 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
+**From source.** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.2 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
 
 ### 1. The smallest program, in `.t1`
 
@@ -139,11 +142,11 @@ Save as `शृङ्खला.t1`. It prints a message one octet at a time and 
 इति
 ```
 
-Compile and run with the release assets (from the unpacked tarball directory, with `sassembly-v1.0.1-stage1.elf` copied beside the binaries):
+Compile and run with the release assets (from the unpacked tarball directory, with `sassembly-v1.0.2-stage1.elf` copied beside the binaries):
 
 ```console
 $ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.1-stage1.elf > sink
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.2-stage1.elf > sink
 [exit status 1]
 halt: Finisher { status: Some(1200) }
 $ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
@@ -203,7 +206,7 @@ Save as `शृङ्खला.t1` (a new directory). It puts the squares of 1 t
 
 ```console
 $ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.1-stage1.elf > sink
+$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.2-stage1.elf > sink
 [exit status 1]
 halt: Finisher { status: Some(1200) }
 $ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
@@ -314,12 +317,12 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical, `922,146` octets |
+| **Stage 2 == Stage 1** | byte-identical, `923,042` octets |
 | **the compiler** | 21 `.t1` sources, 46,794 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
-| **measured** | 2026-10-07, from this repository |
-| **status** | v1.0.1 — the language and its compiler are complete; v1.0.1 adds `yantra-run --files DIR` |
+| **measured** | 2026-10-10, from this repository |
+| **status** | v1.0.2 — the language and its compiler are complete; v1.0.2 lifts the fixed entry of the prebuilt compiler, adds an in-memory file root for the browser, and is AGPL-3.0-only |
 
 ### Contents
 
@@ -352,34 +355,33 @@ Stage 1   the compiler's 21 sources, compiled by the interpreted compiler
 Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 ```
 
-**Measured 2026-10-07, `tools/fixpoint.sh`, in a copy of THIS repository's
+**Measured 2026-10-10, `tools/fixpoint.sh`, in a copy of THIS repository's
 tree** — not inherited from the tree it was extracted from:
 
 ```console
 fixpoint: packing the corpus from crates/sadhana-t1/src
-packed 21 source(s), 5040596 octets
-fixpoint: Stage 1  922146 octets
-fixpoint: Stage 2  922146 octets
+packed 21 source(s), 5043687 octets
+fixpoint: Stage 1  923042 octets
+fixpoint: Stage 2  923042 octets
   status:  1200 — BUILT (shrinkhala.t1:3551)
-FIXPOINT HOLDS: 922146 octets, byte-identical
+FIXPOINT HOLDS: 923042 octets, byte-identical
 ```
 
-Stage 1 took about 26 minutes and Stage 2 about 16, on a Linux x86-64 host with
-20 cores (a release build, with the test suite running alongside). Stage 2 ran
-**55,385,359,354** executed instructions to a finisher with status 1200, with a
-high water of 1,049,907,192 octets of the 2,684,354,560 the run is given. The
+Stage 2 ran
+**55,485,618,435** executed instructions to a finisher with status 1200, with a
+high water of 1,051,408,576 octets of the 2,684,354,560 the run is given. The
 sha256 of `stage1.elf` is
-`71d06d6649a861c1c6205c95a59fd362f48914b377c6ace9e612bef827415480`.
+`4e7a9a244e95bdbf759ba4d373e7efc2e6dcd0e383b9123ac63b5a37d20070ca`.
 
 Stage 1's own controls — `build: 0 source(s) failed to compile, 1 declared
-nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 22192201700`** — are the
+nothing, 21 object(s) linked`, `stubs: 0`, and **`steps: 22231632704`** — are the
 interpreted compiler's instruction count for the whole build. It moves if any
 byte of any source or spec table differs.
 
 | quantity | value |
 |---|---|
 | Stage 2 == Stage 1 | **byte-identical** |
-| image size | **922,146 octets** (v0.4.0: 1,399,434) |
+| image size | **923,042 octets** (v0.4.0: 1,399,434) |
 | sources | **21** `.t1` files, 46,794 lines |
 
 Reproduce it (needs the Rust build in [Build from source](#build-from-source-rust)):
@@ -412,7 +414,7 @@ confused:
 Some(0) }`, 1,763 s.
 
 > [!WARNING]
-> That is a different artifact from the fixpoint image (1,399,434 octets in v0.4.0, 922,146 now), built on
+> That is a different artifact from the fixpoint image (1,399,434 octets in v0.4.0, 923,042 now), built on
 > a different date. **Neither number is a typo for the other.**
 
 ---
@@ -444,7 +446,7 @@ that possible still compiles itself to the same bytes.
   threads, and virtio-gpu 2D. The fixpoint script refuses any compiler image that touches the
   socket, reads the retired-instruction counter or declares threads, so none of
   them can make the fixpoint a statement about its environment.
-* **A smaller image.** The fixpoint image is **922,146 octets**, 34.1% smaller than
+* **A smaller image.** The fixpoint image is **923,042 octets**, 34.1% smaller than
   v0.4.0's 1,399,434.
 
 Not in this release: compiling Sanskrit to web pages, and a GPU compute path
@@ -707,8 +709,8 @@ A program can serve one TCP client on the loopback interface under `yantra-run`,
 cargo test --workspace --release --no-fail-fast
 ```
 
-**Measured 2026-10-08, on a Linux x86-64 host: 261 test binaries, 2,455 passed,
-0 failed, 122 ignored.**
+**Measured 2026-10-10, on a Linux x86-64 host: 2,475 passed,
+0 failed, 127 ignored.**
 
 54 of the ignored tests are marked `#[ignore = "census: needs ... not in the public repository"]`.
 Each measures the *whole development repository* and so cannot run on this one:
@@ -716,8 +718,7 @@ it reads `research/` (the Unicode data files and design notes), `docs/adr`,
 `tests/corpus/`, `tests/levels/`, `fuzz/corpus/`, `BACKLOG.tsv`, a tree-sitter
 grammar crate, or counts every `.t1`/`.sas` file in a repository that has more of
 them than this one. None of those ship here. None of them tests the compiler, the
-machine or the fixpoint. The other 68 ignored tests were already ignored (slow or
-host-specific). `cargo test -- --ignored` runs them and shows each reason; in this
+machine or the fixpoint. The other 73 ignored tests are slow, host-specific or probes (5 are new in v1.0.2: `t1_entry_from_input` needs a Stage 1 image built from the tree, `SAS_STAGE1_ELF=<path>`). `cargo test -- --ignored` runs them and shows each reason; in this
 repository the 54 will fail because the files are absent. Earlier releases left
 failures here: v0.3.0 and v0.4.0 left 61, v1.0.0 left 56 (v1.0.0: 2,431 passed).
 
@@ -797,7 +798,7 @@ the 21 Sassembly sources that are the compiler.
 
 ## Status and stability
 
-This is version **v1.0.1** (v1.0.0 plus the `--files` flag): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
+This is version **v1.0.2** (v1.0.1 plus the entry-from-input compiler, the browser in-memory file root, and the AGPL-3.0-only licence): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
 the object format. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
@@ -850,13 +851,19 @@ Once built, the Sanskrit programs in the quickstart run unchanged with `target/r
 
 ## Licence
 
-**MIT.** See [LICENSE](LICENSE).
+**AGPL-3.0-only from v1.0.2.** See [LICENSE](LICENSE). Copyright (c) 2026 परमतत्व.
+A commercial licence is available from the copyright holder: see
+[COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md) (paramtatv@fastbuilder.ai).
+Third-party files keep their own licences, listed in [NOTICE](NOTICE).
+
+**Releases v0.2 to v1.0.1 remain MIT**, as published; their tags and release
+assets are unchanged.
 
 The licence file sits in this directory, not at the enclosing repository's root,
 and that is deliberate: the wider project this compiler was extracted from is
-private and not for distribution. MIT covers **what is published here** — the
-Sassembly sources, the driver, the emulator and the tools needed to reproduce the
-fixpoint — and nothing else.
+private and not for distribution. The licence covers **what is published here** —
+the Sassembly sources, the driver, the emulator and the tools needed to reproduce
+the fixpoint — and nothing else.
 
 <p align="center">
   <br>

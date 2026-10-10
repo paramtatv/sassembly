@@ -174,9 +174,28 @@ pub fn serve(
     status_run: u64,
     root: Option<&std::path::Path>,
 ) -> Status {
-    let status = serve_inner(mem, base, path_run, buffer_run, root);
+    let status = serve_inner(mem, base, path_run, buffer_run, &mut |p| disk_read(p, root));
     put_word(mem, base, status_run, status.word());
     status
+}
+
+/// [`serve`] against an in-memory root: same protocol, same refusals by name.
+pub fn serve_mem(
+    mem: &mut [u8],
+    base: u64,
+    path_run: u64,
+    buffer_run: u64,
+    status_run: u64,
+    fs: &MemFs,
+) -> Status {
+    let status = serve_inner(mem, base, path_run, buffer_run, &mut |p| fs.read(p));
+    put_word(mem, base, status_run, status.word());
+    status
+}
+
+fn disk_read(path_str: &str, root: Option<&std::path::Path>) -> Result<Vec<u8>, Status> {
+    let real = resolve(path_str, root, false)?;
+    std::fs::read(&real).map_err(|_| Status::NotFound)
 }
 
 fn serve_inner(
@@ -184,7 +203,7 @@ fn serve_inner(
     base: u64,
     path_run: u64,
     buffer_run: u64,
-    root: Option<&std::path::Path>,
+    read: &mut dyn FnMut(&str) -> Result<Vec<u8>, Status>,
 ) -> Status {
     let (Some(path_len), Some(buf_cap)) =
         (run_len(mem, base, path_run), run_len(mem, base, buffer_run))
@@ -200,13 +219,9 @@ fn serve_inner(
         return Status::BadPath;
     };
 
-    let real = match resolve(&path_str, root, false) {
-        Ok(p) => p,
+    let bytes = match read(&path_str) {
+        Ok(b) => b,
         Err(st) => return st,
-    };
-
-    let Ok(bytes) = std::fs::read(&real) else {
-        return Status::NotFound;
     };
     let n = bytes.len() as u64;
     if n > buf_cap {
@@ -338,6 +353,577 @@ fn escapes_by_form(p: &std::path::Path) -> bool {
     })
 }
 
+/// Serve a WRITE: the buffer run's octets become the file's contents.
+pub fn put(
+    mem: &mut [u8],
+    base: u64,
+    path_run: u64,
+    buffer_run: u64,
+    status_run: u64,
+    root: Option<&std::path::Path>,
+) -> Status {
+    let status = put_inner(mem, base, path_run, buffer_run, &mut |p, body| {
+        let real = match resolve(p, root, true) {
+            Ok(p) => p,
+            Err(st) => return st,
+        };
+        match write_nofollow(&real, body) {
+            Ok(()) => Status::Wrote(body.len() as u64),
+            Err(_) => Status::NotWritten,
+        }
+    });
+    put_word(mem, base, status_run, status.word());
+    status
+}
+
+/// [`put`] against an in-memory root.
+pub fn put_mem(
+    mem: &mut [u8],
+    base: u64,
+    path_run: u64,
+    buffer_run: u64,
+    status_run: u64,
+    fs: &mut MemFs,
+) -> Status {
+    let status = put_inner(mem, base, path_run, buffer_run, &mut |p, body| {
+        fs.write(p, body)
+    });
+    put_word(mem, base, status_run, status.word());
+    status
+}
+
+fn put_inner(
+    mem: &[u8],
+    base: u64,
+    path_run: u64,
+    buffer_run: u64,
+    write: &mut dyn FnMut(&str, &[u8]) -> Status,
+) -> Status {
+    let (Some(path_len), Some(buf_len)) =
+        (run_len(mem, base, path_run), run_len(mem, base, buffer_run))
+    else {
+        return Status::BadAddress;
+    };
+    let Some(path_octets) = slice_ref(mem, base, path_run, path_len) else {
+        return Status::BadAddress;
+    };
+    let Ok(path_str) = std::str::from_utf8(path_octets) else {
+        return Status::BadPath;
+    };
+    let Some(body) = slice_ref(mem, base, buffer_run, buf_len) else {
+        return Status::BadAddress;
+    };
+    // The WHOLE buffer or nothing: a partial write reported as success is the
+    // failure a file channel must not have.
+    write(path_str, body)
+}
+
+fn run_len(mem: &[u8], base: u64, run: u64) -> Option<u64> {
+    let hdr = run.checked_sub(8)?;
+    let s = slice_ref(mem, base, hdr, 8)?;
+    let mut v = 0u64;
+    for (i, b) in s.iter().enumerate() {
+        v |= u64::from(*b) << (8 * i);
+    }
+    Some(v)
+}
+
+fn put_word(mem: &mut [u8], base: u64, at: u64, v: u64) {
+    if slice(mem, base, at, 8).is_none() {
+        return;
+    }
+    let at = (at - base) as usize;
+    for i in 0..8 {
+        mem[at + i] = (v >> (8 * i)) as u8;
+    }
+}
+
+/// `Some` only when the whole span is inside RAM. Checked with `checked_*` and
+/// not with arithmetic that could wrap: an address near `u64::MAX` plus a
+/// length is exactly where a wrapping add turns an out-of-range span into an
+/// in-range one.
+fn slice(mem: &mut [u8], base: u64, at: u64, len: u64) -> Option<()> {
+    let off = at.checked_sub(base)?;
+    let off = usize::try_from(off).ok()?;
+    let len = usize::try_from(len).ok()?;
+    (off.checked_add(len)? <= mem.len()).then_some(())
+}
+
+fn slice_ref(mem: &[u8], base: u64, at: u64, len: u64) -> Option<&[u8]> {
+    let off = usize::try_from(at.checked_sub(base)?).ok()?;
+    let len = usize::try_from(len).ok()?;
+    let end = off.checked_add(len)?;
+    (end <= mem.len()).then(|| &mem[off..end])
+}
+
+/// Default total cap of a [`MemFs`]: 64 MiB, counting octets of data PLUS every entry's
+/// name and [`MEMFS_ENTRY_OVERHEAD`].
+pub const MEMFS_TOTAL_CAP: usize = 64 << 20;
+/// Default cap of one file in a [`MemFs`]: 16 MiB (never above the total).
+pub const MEMFS_FILE_CAP: usize = 16 << 20;
+/// Default cap on the NUMBER of files, so empty files under distinct names cannot grow
+/// the map without bound.
+pub const MEMFS_COUNT_CAP: usize = 4096;
+/// What an entry costs against the total beyond its data and its name (map node,
+/// two allocations). Charged so a million empty files cannot cost nothing.
+pub const MEMFS_ENTRY_OVERHEAD: usize = 64;
+/// The longest path component and the longest whole path the disk root accepts on
+/// Linux (`NAME_MAX`, `PATH_MAX - 1`); the memory root refuses the same.
+const NAME_MAX: usize = 255;
+const PATH_MAX: usize = 4095;
+
+/// **AN IN-MEMORY ROOT** for the file window, for a host with no filesystem (the
+/// browser). Same protocol as the disk root, same refusals by name, checked against
+/// the disk root by `memfs_tests` and `tests/memfs_parity.rs`:
+///
+/// * an absolute path (leading `/`, or a Windows prefix) is `Refused`;
+/// * `..` that would climb above the root is `Refused`; `.` and empty components vanish;
+/// * every directory on the path must EXIST, and a directory exists only because a file
+///   lies under it: `x/../b` with `x` absent, and `a/b` where `a` is a file or absent,
+///   are `NotFound` for a read and `NotWritten` for a write, as on disk. The program
+///   cannot make a directory (the window has no mkdir), so a write goes where a parent
+///   already exists — either seeded by the host or the root itself;
+/// * a NUL in the path, a component over 255 octets or a path over 4095 are `NotFound`
+///   (read) / `NotWritten` (write), as on disk;
+/// * a path naming the root (`""`, `.`, `a/..`) is `NotFound` for a read (it is a
+///   directory) and `Refused` for a write, as on disk;
+/// * a read of an absent file is `NotFound`; a write over a cap (data, names and entry
+///   overhead against the total; one file; the file COUNT) is `NotWritten` and keeps the
+///   old contents.
+///
+/// **TWO DIVERGENCES REMAIN, both deliberate** (ADR-0041 addendum, `docs/adr/`):
+/// 1. an escape whose target does not exist is `Refused` here and `NotFound` on disk,
+///    where `canonicalize` fails before the prefix check. Refusing is the answer the
+///    `Refused` doc asks for and it hides nothing;
+/// 2. the HOST's seeding ([`MemFs::seed`]) creates parent directories implicitly, and
+///    there are no symlinks, hard links or permissions in memory.
+///
+/// **LIFETIME.** The root is carried from run to run by `yantra-wasm`; a host that wants
+/// a clean slate enables a fresh one.
+#[derive(Debug, Clone)]
+pub struct MemFs {
+    files: std::collections::BTreeMap<String, Vec<u8>>,
+    total_cap: usize,
+    file_cap: usize,
+    count_cap: usize,
+}
+
+impl Default for MemFs {
+    fn default() -> Self {
+        Self::with_caps(MEMFS_TOTAL_CAP, MEMFS_FILE_CAP).expect("the defaults are consistent")
+    }
+}
+
+impl MemFs {
+    /// An empty root with explicit caps (total octets, octets per file).
+    ///
+    /// # Errors
+    /// Refuses a per-file cap above the total: that file could never fit.
+    pub fn with_caps(total_cap: usize, file_cap: usize) -> Result<Self, &'static str> {
+        if file_cap > total_cap {
+            return Err("the per-file cap is above the total cap");
+        }
+        Ok(MemFs {
+            files: std::collections::BTreeMap::new(),
+            total_cap,
+            file_cap,
+            count_cap: MEMFS_COUNT_CAP,
+        })
+    }
+
+    /// Lowers or raises the file-count cap.
+    #[must_use]
+    pub fn with_count_cap(mut self, n: usize) -> Self {
+        self.count_cap = n;
+        self
+    }
+
+    /// Fold a path into components, ignoring what exists. `Err(Refused)` for the form
+    /// or a climb above the root; `Err(NotFound)` for NUL or an over-long name/path.
+    fn fold(path_str: &str) -> Result<Vec<&str>, Status> {
+        if escapes_by_form(std::path::Path::new(path_str)) {
+            return Err(Status::Refused);
+        }
+        if path_str.contains('\0') || path_str.len() > PATH_MAX {
+            return Err(Status::NotFound);
+        }
+        let mut parts: Vec<&str> = Vec::new();
+        for c in path_str.split(|ch| ch == '/' || (cfg!(windows) && ch == '\\')) {
+            match c {
+                "" | "." => {}
+                ".." => {
+                    if parts.pop().is_none() {
+                        return Err(Status::Refused);
+                    }
+                }
+                other if other.len() > NAME_MAX => return Err(Status::NotFound),
+                other => parts.push(other),
+            }
+        }
+        Ok(parts)
+    }
+
+    fn is_dir(&self, parts: &[&str]) -> bool {
+        if parts.is_empty() {
+            return true;
+        }
+        let pre = format!("{}/", parts.join("/"));
+        self.files
+            .range::<str, _>((
+                std::ops::Bound::Included(pre.as_str()),
+                std::ops::Bound::Unbounded,
+            ))
+            .next()
+            .is_some_and(|(k, _)| k.starts_with(&pre))
+    }
+
+    /// Resolve against what EXISTS, as the disk root's `canonicalize` does: each `..`
+    /// and each descent must pass through an existing directory. `Err(NotFound)` is the
+    /// disk's failed `canonicalize`; the caller maps it to `NotWritten` for a write.
+    fn resolve<'a>(&self, path_str: &'a str) -> Result<Vec<&'a str>, Status> {
+        if escapes_by_form(std::path::Path::new(path_str)) {
+            return Err(Status::Refused);
+        }
+        if path_str.contains('\0') || path_str.len() > PATH_MAX {
+            return Err(Status::NotFound);
+        }
+        let mut parts: Vec<&str> = Vec::new();
+        for c in path_str.split(|ch| ch == '/' || (cfg!(windows) && ch == '\\')) {
+            match c {
+                "" | "." => {}
+                ".." => {
+                    if !self.is_dir(&parts) {
+                        return Err(Status::NotFound);
+                    }
+                    if parts.pop().is_none() {
+                        return Err(Status::Refused);
+                    }
+                }
+                other if other.len() > NAME_MAX => return Err(Status::NotFound),
+                other => {
+                    if !self.is_dir(&parts) {
+                        return Err(Status::NotFound);
+                    }
+                    parts.push(other);
+                }
+            }
+        }
+        Ok(parts)
+    }
+
+    /// Read a file.
+    ///
+    /// # Errors
+    /// `Refused` for the form or an escape; `NotFound` otherwise when nothing is there.
+    pub fn read(&self, path_str: &str) -> Result<Vec<u8>, Status> {
+        let parts = self.resolve(path_str)?;
+        // A trailing `/` or `/.` demands a directory (ENOTDIR on disk): a file is not one.
+        if path_str.ends_with('/') || path_str.ends_with("/.") {
+            return Err(Status::NotFound);
+        }
+        self.files
+            .get(&parts.join("/"))
+            .cloned()
+            .ok_or(Status::NotFound)
+    }
+
+    /// The program's write (create or replace); the whole body or nothing.
+    pub fn write(&mut self, path_str: &str, body: &[u8]) -> Status {
+        let parts = match self.resolve(path_str) {
+            Ok(p) => p,
+            Err(Status::NotFound) => return Status::NotWritten,
+            Err(st) => return st,
+        };
+        if parts.is_empty() {
+            return Status::Refused;
+        }
+        if self.is_dir(&parts) {
+            return Status::NotWritten;
+        }
+        let name = parts.join("/");
+        self.store(name, body)
+    }
+
+    /// The HOST's seeding: like [`Self::write`] but parent directories are created
+    /// implicitly (divergence 2). Refused when a parent is already a file.
+    pub fn seed(&mut self, path_str: &str, body: &[u8]) -> Status {
+        let parts = match Self::fold(path_str) {
+            Ok(p) => p,
+            Err(Status::NotFound) => return Status::NotWritten,
+            Err(st) => return st,
+        };
+        if parts.is_empty() {
+            return Status::Refused;
+        }
+        for i in 1..parts.len() {
+            if self.files.contains_key(&parts[..i].join("/")) {
+                return Status::NotWritten;
+            }
+        }
+        let name = parts.join("/");
+        if self.is_dir(&parts) {
+            return Status::NotWritten;
+        }
+        self.store(name, body)
+    }
+
+    fn cost(name: &str, len: usize) -> usize {
+        len.saturating_add(name.len())
+            .saturating_add(MEMFS_ENTRY_OVERHEAD)
+    }
+
+    fn store(&mut self, name: String, body: &[u8]) -> Status {
+        if body.len() > self.file_cap {
+            return Status::NotWritten;
+        }
+        if !self.files.contains_key(&name) && self.files.len() >= self.count_cap {
+            return Status::NotWritten;
+        }
+        let others: usize = self
+            .files
+            .iter()
+            .filter(|(k, _)| **k != name)
+            .map(|(k, v)| Self::cost(k, v.len()))
+            .sum();
+        if others.saturating_add(Self::cost(&name, body.len())) > self.total_cap {
+            return Status::NotWritten;
+        }
+        self.files.insert(name, body.to_vec());
+        Status::Wrote(body.len() as u64)
+    }
+
+    /// Number of files.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.files.len()
+    }
+
+    /// True when no file is held.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.files.is_empty()
+    }
+
+    /// The `i`th file in name order.
+    #[must_use]
+    pub fn nth(&self, i: usize) -> Option<(&str, &[u8])> {
+        self.files
+            .iter()
+            .nth(i)
+            .map(|(k, v)| (k.as_str(), v.as_slice()))
+    }
+}
+
+#[cfg(test)]
+mod memfs_tests {
+    use super::{MemFs, Status, put_mem, serve_mem};
+
+    #[test]
+    fn refusals_match_the_disk_root_by_name() {
+        let mut fs = MemFs::default();
+        fs.seed("a/k", b"k");
+        for p in ["/etc/passwd", "../x", "a/../../x"] {
+            assert_eq!(fs.write(p, b"x"), Status::Refused, "write {p:?}");
+            assert_eq!(fs.read(p), Err(Status::Refused), "read {p:?}");
+        }
+        // The root itself: a directory to read, nothing to write.
+        for p in ["", ".", "a/.."] {
+            assert_eq!(fs.write(p, b"x"), Status::Refused, "write {p:?}");
+        }
+        assert_eq!(fs.read(""), Err(Status::NotFound));
+        assert_eq!(fs.read("nope"), Err(Status::NotFound));
+        assert_eq!(fs.len(), 1);
+    }
+
+    #[test]
+    fn disk_failures_are_notfound_and_notwritten() {
+        let mut fs = MemFs::default();
+        assert_eq!(fs.seed("d/f", b"1"), Status::Wrote(1));
+        let long = "n".repeat(256);
+        let toolong = format!("d/{}", "p/".repeat(2100));
+        for p in ["x/../b", "nul\0x", &long, &toolong, "d/f/g", "absent/f"] {
+            assert_eq!(fs.read(p), Err(Status::NotFound), "read {p:?}");
+            assert_eq!(fs.write(p, b"x"), Status::NotWritten, "write {p:?}");
+        }
+        // d exists, so a climb through it is fine.
+        assert_eq!(fs.write("d/../b", b"x"), Status::Wrote(1));
+        // A directory cannot be written over.
+        assert_eq!(fs.write("d", b"x"), Status::NotWritten);
+        // Seeding creates parents but not through a file.
+        assert_eq!(fs.seed("d/f/g", b"x"), Status::NotWritten);
+        assert_eq!(fs.len(), 2);
+    }
+
+    #[test]
+    fn inner_dotdot_folds_and_dot_vanishes() {
+        let mut fs = MemFs::default();
+        assert_eq!(fs.write("a/../b.png", b"hi"), Status::NotWritten);
+        assert_eq!(fs.write("./b.png", b"hi"), Status::Wrote(2));
+        assert_eq!(fs.read("./b.png").unwrap(), b"hi");
+        assert_eq!(fs.nth(0), Some(("b.png", &b"hi"[..])));
+    }
+
+    #[test]
+    fn a_refusal_by_the_total_cap_stores_nothing() {
+        let c = |n: usize| 64 + 1 + n;
+        let mut fs = MemFs::with_caps(c(3) + c(3), 100).unwrap();
+        assert_eq!(fs.write("a", b"123"), Status::Wrote(3));
+        assert_eq!(fs.write("b", b"123"), Status::Wrote(3));
+        assert_eq!(fs.write("c", b"123"), Status::NotWritten);
+        assert_eq!(fs.read("c"), Err(Status::NotFound));
+        assert_eq!(fs.len(), 2);
+        assert_eq!(fs.write("a", b"1234"), Status::NotWritten);
+        assert_eq!(fs.read("a").unwrap(), b"123");
+    }
+
+    #[test]
+    fn names_join_with_a_separator_and_list_in_name_order() {
+        let mut fs = MemFs::default();
+        assert_eq!(fs.seed("b", b"2"), Status::Wrote(1));
+        assert_eq!(fs.seed("a/x", b"1"), Status::Wrote(1));
+        assert_eq!(fs.seed("c", b"3"), Status::Wrote(1));
+        assert_eq!(fs.nth(0), Some(("a/x", &b"1"[..])));
+        assert_eq!(fs.nth(1), Some(("b", &b"2"[..])));
+        assert_eq!(fs.nth(2), Some(("c", &b"3"[..])));
+        assert_eq!(fs.nth(3), None);
+        assert_eq!(fs.read("a/x").unwrap(), b"1");
+        assert_eq!(fs.read("ax"), Err(Status::NotFound));
+    }
+
+    #[test]
+    fn caps_refuse_as_not_written_and_keep_old_contents() {
+        let c = |n: usize| 64 + 1 + n; // one-letter name, overhead, data
+        let mut fs = MemFs::with_caps(c(6) + c(4), 6).unwrap();
+        assert_eq!(fs.write("a", b"1234567"), Status::NotWritten);
+        assert_eq!(fs.write("a", b"123456"), Status::Wrote(6));
+        assert_eq!(fs.write("b", b"12345"), Status::NotWritten);
+        assert_eq!(fs.write("b", b"1234"), Status::Wrote(4));
+        assert_eq!(fs.write("a", b"abcdef"), Status::Wrote(6));
+        assert_eq!(fs.write("a", b"abcdefg"), Status::NotWritten);
+        assert_eq!(fs.read("a").unwrap(), b"abcdef");
+    }
+
+    #[test]
+    fn empty_files_under_long_names_cannot_grow_the_map_without_bound() {
+        // Names count against the total: 4 KB names, empty bodies.
+        let mut fs = MemFs::with_caps(1 << 20, 1 << 20).unwrap();
+        let mut stored = 0usize;
+        for i in 0..10_000 {
+            let name = format!("{i:0>200}{}", "x".repeat(0));
+            if fs.write(&name, b"") == Status::Wrote(0) {
+                stored += 1;
+            }
+        }
+        assert!(
+            stored < 10_000 && stored * (200 + 64) <= 1 << 20,
+            "{stored}"
+        );
+        // And the file count binds on its own, whatever the total.
+        let mut fs = MemFs::with_caps(usize::MAX / 2, 1)
+            .unwrap()
+            .with_count_cap(3);
+        for n in ["a", "b", "c"] {
+            assert_eq!(fs.write(n, b""), Status::Wrote(0));
+        }
+        assert_eq!(fs.write("d", b""), Status::NotWritten);
+        assert_eq!(
+            fs.write("a", b"x"),
+            Status::Wrote(1),
+            "replacing is not growing"
+        );
+        assert_eq!(
+            MemFs::default()
+                .with_count_cap(super::MEMFS_COUNT_CAP)
+                .len(),
+            0
+        );
+    }
+
+    #[test]
+    fn the_defaults_are_consistent_and_inconsistent_caps_are_refused() {
+        const _: () = assert!(super::MEMFS_FILE_CAP <= super::MEMFS_TOTAL_CAP);
+        assert_eq!(super::MEMFS_TOTAL_CAP, 64 << 20);
+        assert_eq!(super::MEMFS_FILE_CAP, 16 << 20);
+        assert!(MemFs::with_caps(10, 11).is_err());
+        assert!(MemFs::with_caps(10, 10).is_ok());
+    }
+
+    /// Run the same request through the disk root and the memory root: the
+    /// status word must agree for every class they share.
+    #[test]
+    fn status_words_agree_with_the_disk_backend() {
+        const BASE: u64 = 0x8000_0000;
+        let mk = |path: &[u8], body: &[u8]| {
+            let mut mem = vec![0u8; 0x2000];
+            let mut put_run = |at: usize, d: &[u8]| {
+                mem[at - 8..at].copy_from_slice(&(d.len() as u64).to_le_bytes());
+                mem[at..at + d.len()].copy_from_slice(d);
+            };
+            put_run(0x100, path);
+            put_run(0x1100, body);
+            put_run(0x1300, &[0u8; 8]);
+            mem
+        };
+        let dir = std::env::temp_dir().join(format!("memfs-agree-{}", std::process::id()));
+        std::fs::remove_dir_all(&dir).ok();
+        std::fs::create_dir_all(dir.join("root/d")).unwrap();
+        std::fs::write(dir.join("root/seed"), b"abc").unwrap();
+        std::fs::write(dir.join("root/d/f"), b"abc").unwrap();
+        std::fs::write(dir.join("x"), b"outside").unwrap();
+        std::fs::create_dir_all(dir.join("root/a")).unwrap();
+        std::fs::write(dir.join("root/a/k"), b"k").unwrap();
+        let mut fs = MemFs::default();
+        for (n, d) in [("seed", &b"abc"[..]), ("d/f", b"abc"), ("a/k", b"k")] {
+            fs.seed(n, d);
+        }
+        let long = "n".repeat(256);
+        let cases: Vec<Vec<u8>> = [
+            "seed",
+            "/etc/passwd",
+            "../x",
+            "a/../../x",
+            "nope",
+            "ok.bin",
+            "",
+            ".",
+            "a/..",
+            "x/../b",
+            "d/f/g",
+            "absent/f",
+            "d",
+            "d/../ok2",
+            "a/../seed",
+            &long,
+            "seed/",
+            "seed/.",
+            "seed/x",
+            "d/",
+            "a//b",
+            "new/x",
+            "a\0b",
+            "d/./f",
+        ]
+        .iter()
+        .map(|s| s.as_bytes().to_vec())
+        .chain([b"nul\0x".to_vec(), vec![0xff, b'x']])
+        .collect();
+        for path in &cases {
+            let (r, a, s) = (BASE + 0x100, BASE + 0x1100, BASE + 0x1300);
+            let mut m1 = mk(path, &[0u8; 8]);
+            let mut m2 = m1.clone();
+            let d = super::serve(&mut m1, BASE, r, a, s, Some(&dir.join("root")));
+            let m = serve_mem(&mut m2, BASE, r, a, s, &fs);
+            assert_eq!(d.word(), m.word(), "read {path:?}: {d:?} vs {m:?}");
+            let mut m1 = mk(path, b"data");
+            let mut m2 = m1.clone();
+            let d = super::put(&mut m1, BASE, r, a, s, Some(&dir.join("root")));
+            let m = put_mem(&mut m2, BASE, r, a, s, &mut fs);
+            assert_eq!(d.word(), m.word(), "write {path:?}: {d:?} vs {m:?}");
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+}
+
 #[cfg(test)]
 mod form_tests {
     use super::escapes_by_form;
@@ -403,91 +989,4 @@ mod form_tests {
             assert!(escapes_by_form(Path::new(p)), "{p} was not refused by form");
         }
     }
-}
-
-/// Serve a WRITE: the buffer run's octets become the file's contents.
-pub fn put(
-    mem: &mut [u8],
-    base: u64,
-    path_run: u64,
-    buffer_run: u64,
-    status_run: u64,
-    root: Option<&std::path::Path>,
-) -> Status {
-    let status = put_inner(mem, base, path_run, buffer_run, root);
-    put_word(mem, base, status_run, status.word());
-    status
-}
-
-fn put_inner(
-    mem: &[u8],
-    base: u64,
-    path_run: u64,
-    buffer_run: u64,
-    root: Option<&std::path::Path>,
-) -> Status {
-    let (Some(path_len), Some(buf_len)) =
-        (run_len(mem, base, path_run), run_len(mem, base, buffer_run))
-    else {
-        return Status::BadAddress;
-    };
-    let Some(path_octets) = slice_ref(mem, base, path_run, path_len) else {
-        return Status::BadAddress;
-    };
-    let Ok(path_str) = std::str::from_utf8(path_octets) else {
-        return Status::BadPath;
-    };
-    let Some(body) = slice_ref(mem, base, buffer_run, buf_len) else {
-        return Status::BadAddress;
-    };
-    let real = match resolve(path_str, root, true) {
-        Ok(p) => p,
-        Err(st) => return st,
-    };
-    // The WHOLE buffer or nothing. `std::fs::write` truncates and writes all of
-    // it, so a short write is not a state this interface can report — which is
-    // deliberate: a partial write reported as success is the failure a file
-    // channel must not have.
-    match write_nofollow(&real, body) {
-        Ok(()) => Status::Wrote(buf_len),
-        Err(_) => Status::NotWritten,
-    }
-}
-
-fn run_len(mem: &[u8], base: u64, run: u64) -> Option<u64> {
-    let hdr = run.checked_sub(8)?;
-    let s = slice_ref(mem, base, hdr, 8)?;
-    let mut v = 0u64;
-    for (i, b) in s.iter().enumerate() {
-        v |= u64::from(*b) << (8 * i);
-    }
-    Some(v)
-}
-
-fn put_word(mem: &mut [u8], base: u64, at: u64, v: u64) {
-    if slice(mem, base, at, 8).is_none() {
-        return;
-    }
-    let at = (at - base) as usize;
-    for i in 0..8 {
-        mem[at + i] = (v >> (8 * i)) as u8;
-    }
-}
-
-/// `Some` only when the whole span is inside RAM. Checked with `checked_*` and
-/// not with arithmetic that could wrap: an address near `u64::MAX` plus a
-/// length is exactly where a wrapping add turns an out-of-range span into an
-/// in-range one.
-fn slice(mem: &mut [u8], base: u64, at: u64, len: u64) -> Option<()> {
-    let off = at.checked_sub(base)?;
-    let off = usize::try_from(off).ok()?;
-    let len = usize::try_from(len).ok()?;
-    (off.checked_add(len)? <= mem.len()).then_some(())
-}
-
-fn slice_ref(mem: &[u8], base: u64, at: u64, len: u64) -> Option<&[u8]> {
-    let off = usize::try_from(at.checked_sub(base)?).ok()?;
-    let len = usize::try_from(len).ok()?;
-    let end = off.checked_add(len)?;
-    (end <= mem.len()).then(|| &mem[off..end])
 }

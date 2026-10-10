@@ -45,6 +45,7 @@ fn machine(word: u32) -> Machine {
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),

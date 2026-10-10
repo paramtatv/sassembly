@@ -189,6 +189,133 @@ pub extern "C" fn yantra_input_name_alloc(len: u32) -> u32 {
     name.as_ptr() as u32
 }
 
+/// The in-memory file root (`yantra::patra::MemFs`), or `None` when the host has not
+/// enabled one — in which case every file request is refused by name, as natively
+/// without `--files`. Moved INTO the machine for a run and back out after it, so the
+/// files a program wrote are readable through the `yantra_memfs_*` accessors.
+static MEMFS: Mutex<Option<yantra::patra::MemFs>> = Mutex::new(None);
+/// The scratch buffer `yantra_memfs_alloc` hands out; `yantra_memfs_put` reads its
+/// name and data from inside it (this crate has no `unsafe` block, so it cannot read
+/// an arbitrary offset).
+static MEMFS_SCRATCH: Mutex<Vec<u8>> = Mutex::new(Vec::new());
+
+/// Enable an EMPTY in-memory file root with the default caps (64 MiB total, 16 MiB
+/// per file, 4096 files), discarding any earlier one. Call before [`yantra_run`]; a run
+/// with no root enabled refuses every file request.
+///
+/// **THE ROOT IS CARRIED FROM RUN TO RUN**: files one run wrote are there for the next,
+/// until the host enables a fresh root (or disables it). [`yantra_host`] never sees it:
+/// a hosted application runs in U-mode and cannot address the MMIO file window at all.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_enable() {
+    *MEMFS.lock().expect("single-threaded") = Some(yantra::patra::MemFs::default());
+}
+
+/// As [`yantra_memfs_enable`] with explicit caps in octets: `total` across all files
+/// (names and per-entry overhead count), `file` for one. Returns `0` enabled, `1` refused
+/// because `file > total` (the earlier root, if any, is left as it was).
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_enable_caps(total: u32, file: u32) -> u32 {
+    match yantra::patra::MemFs::with_caps(total as usize, file as usize) {
+        Ok(fs) => {
+            *MEMFS.lock().expect("single-threaded") = Some(fs);
+            0
+        }
+        Err(_) => 1,
+    }
+}
+
+/// Drop the in-memory root: later runs refuse every file request again.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_disable() {
+    *MEMFS.lock().expect("single-threaded") = None;
+}
+
+/// Reserve `len` octets of scratch and return their offset. JS writes a file's name
+/// and data into it (any layout) and passes the two spans to [`yantra_memfs_put`].
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_alloc(len: u32) -> u32 {
+    let mut s = MEMFS_SCRATCH.lock().expect("single-threaded");
+    *s = vec![0u8; len as usize];
+    s.as_ptr() as u32
+}
+
+/// Seed (create or replace) a file from two spans inside the scratch buffer.
+///
+/// Returns `0` stored · `1` no root enabled · `2` a span outside the scratch · `3` the
+/// name is not UTF-8 · `4` the window's `Refused` (absolute path or escape) · `5` its
+/// `NotWritten` (over a cap) · `9` anything else.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_put(
+    name_ptr: u32,
+    name_len: u32,
+    data_ptr: u32,
+    data_len: u32,
+) -> u32 {
+    let scratch = MEMFS_SCRATCH.lock().expect("single-threaded");
+    let base = scratch.as_ptr() as u32;
+    let span = |ptr: u32, len: u32| -> Option<&[u8]> {
+        let off = ptr.checked_sub(base)? as usize;
+        scratch.get(off..off.checked_add(len as usize)?)
+    };
+    let mut fs = MEMFS.lock().expect("single-threaded");
+    let Some(fs) = fs.as_mut() else { return 1 };
+    let (Some(name), Some(data)) = (span(name_ptr, name_len), span(data_ptr, data_len)) else {
+        return 2;
+    };
+    let Ok(name) = std::str::from_utf8(name) else {
+        return 3;
+    };
+    match fs.seed(name, data) {
+        yantra::patra::Status::Wrote(_) => 0,
+        yantra::patra::Status::Refused => 4,
+        yantra::patra::Status::NotWritten => 5,
+        _ => 9,
+    }
+}
+
+/// How many files the in-memory root holds (`0` when none is enabled).
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_count() -> u32 {
+    MEMFS
+        .lock()
+        .expect("single-threaded")
+        .as_ref()
+        .map_or(0, |f| f.len() as u32)
+}
+
+/// Offset of the `i`th file's name (name order), valid until the next put or run;
+/// `0` when `i` is out of range.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_name(i: u32) -> u32 {
+    memfs_nth(i, |n, _| (n.as_ptr() as u32, n.len() as u32)).0
+}
+
+/// Length of the `i`th file's name.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_name_len(i: u32) -> u32 {
+    memfs_nth(i, |n, _| (n.as_ptr() as u32, n.len() as u32)).1
+}
+
+/// Offset of the `i`th file's data, valid until the next put or run.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_data(i: u32) -> u32 {
+    memfs_nth(i, |_, d| (d.as_ptr() as u32, d.len() as u32)).0
+}
+
+/// Length of the `i`th file's data.
+#[unsafe(no_mangle)]
+pub extern "C" fn yantra_memfs_data_len(i: u32) -> u32 {
+    memfs_nth(i, |_, d| (d.as_ptr() as u32, d.len() as u32)).1
+}
+
+fn memfs_nth(i: u32, f: impl Fn(&str, &[u8]) -> (u32, u32)) -> (u32, u32) {
+    let fs = MEMFS.lock().expect("single-threaded");
+    fs.as_ref()
+        .and_then(|fs| fs.nth(i as usize))
+        .map_or((0, 0), |(n, d)| f(n, d))
+}
+
 /// Load and run the ELF that JS wrote. Returns a small code for the halt reason.
 ///
 /// `0` success · `1` failed finisher · `2` spun · `3` unimplemented · `4` bad access
@@ -277,11 +404,23 @@ pub extern "C" fn yantra_run(ram: u32, budget: u32) -> u32 {
     // This is `bin/yantra-run.rs:11`'s `Sink` with the same arithmetic, which is
     // the point: the page compares the two engines' readings of one quantity, and
     // a different rule on each side would make a divergence meaningless.
+    // The in-memory file root goes INTO the machine for the run and comes back out
+    // after it, so its files can be read through `yantra_memfs_*`.
+    m.patra_mem = MEMFS.lock().expect("single-threaded").take();
     let mut sink = Watermarked {
         out: &mut out,
         high_water: 0,
     };
-    let reason = m.run(u64::from(budget), &mut sink);
+    // A panic inside the run must not lose the host's files: restore, then re-raise.
+    // (On wasm32-unknown-unknown a panic aborts and the instance is dead either way.)
+    let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        m.run(u64::from(budget), &mut sink)
+    }));
+    *MEMFS.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = m.patra_mem.take();
+    let reason = match ran {
+        Ok(r) => r,
+        Err(e) => std::panic::resume_unwind(e),
+    };
     let high_water = sink.high_water;
     // AFTER the run and before `m` drops: `m` is local to this function.
     *STEPS.lock().expect("single-threaded") = Some(m.time);

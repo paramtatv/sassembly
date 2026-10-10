@@ -28,6 +28,7 @@ fn machine(text: &[u32]) -> Machine {
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),
@@ -409,6 +410,7 @@ fn a_program_that_outgrows_its_ram_halts_naming_the_limit_not_the_address() {
         // Added with the `patra` file window: a machine that was never asked
         // to serve files must not be able to.
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),
@@ -639,6 +641,7 @@ fn a_store_stops_at_the_store_limit_while_a_load_still_reaches_the_input_above_i
     let build = |word: u32| Machine {
         store_limit: BUDGET,
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),

@@ -253,6 +253,7 @@ fn yantra_implements_every_float_row_the_table_names() {
         let mut m = Machine {
             store_limit: usize::MAX, // W-363: no store bound beyond `mem` — this machine has no injected input above it
             patra_root: None,
+            patra_mem: None,
             patra_path: None,
             patra_buffer: None,
             virtio: Default::default(),

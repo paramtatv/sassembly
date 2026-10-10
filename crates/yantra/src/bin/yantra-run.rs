@@ -281,6 +281,12 @@ fn main() -> ExitCode {
              \x20YANTRA_INPUT_NAME set as well. The step ceiling is the header's cap,\n\
              \x20which YANTRA_STEPS may only lower. --smp on an unreadable file exits 66.\n\
              \n\
+             \x20YANTRA_INPUT_ENTRY=\"<module> <routine>\" (with YANTRA_INPUT, instead of\n\
+             \x20YANTRA_INPUT_NAME) sets the input name to module NUL routine, which the\n\
+             \x20self-image rung takes as the image's entry. Exactly one ASCII space, both\n\
+             \x20halves non-empty; malformed, not UTF-8, over 4096 octets, or set with\n\
+             \x20YANTRA_INPUT_NAME, it is refused by name (exit 1). Without a NUL the name keeps today's entry.\n\
+             \n\
              \x20YANTRA_VERDICT=<file> writes the halt as a machine-readable verdict\n\
              \x20(W-381): `finisher <value> <status|->`, `wait`, `steplimit`, `spin` or\n\
              \x20`fault ...`, then `steps <n>`. t1_image's differential gate reads it.\n\
@@ -364,7 +370,7 @@ fn main() -> ExitCode {
             );
             return ExitCode::from(64);
         }
-        if let Some(v) = ["YANTRA_INPUT", "YANTRA_INPUT_NAME"]
+        if let Some(v) = ["YANTRA_INPUT", "YANTRA_INPUT_NAME", "YANTRA_INPUT_ENTRY"]
             .into_iter()
             .find(|v| std::env::var_os(v).is_some())
         {
@@ -773,17 +779,73 @@ fn main() -> ExitCode {
                         return ExitCode::FAILURE;
                     }
                 };
-                let Some(name) = std::env::var_os("YANTRA_INPUT_NAME") else {
-                    eprintln!(
-                        "input: YANTRA_INPUT needs YANTRA_INPUT_NAME — the module name is passed, never guessed"
-                    );
-                    return ExitCode::FAILURE;
+                // YANTRA_INPUT_ENTRY="<module> <routine>" is the host's way to give the
+                // self-image rung (`स्वपरीक्षास्वप्रतिबिम्बम्`) its entry: the input name
+                // becomes `module NUL routine`, which an environment variable cannot hold.
+                // Exactly one ASCII space, both halves non-empty and free of whitespace and
+                // NUL; refused by name when malformed or when YANTRA_INPUT_NAME is also set.
+                let (name_bytes, name_label) = match std::env::var_os("YANTRA_INPUT_ENTRY") {
+                    Some(entry) => {
+                        if std::env::var_os("YANTRA_INPUT_NAME").is_some() {
+                            eprintln!(
+                                "input: YANTRA_INPUT_ENTRY and YANTRA_INPUT_NAME are both set — the entry \
+                                 form builds the name itself (module NUL routine); set one"
+                            );
+                            return ExitCode::FAILURE;
+                        }
+                        if entry.len() > 4096 {
+                            eprintln!(
+                                "input: YANTRA_INPUT_ENTRY is {} octets, over the 4096 limit",
+                                entry.len()
+                            );
+                            return ExitCode::FAILURE;
+                        }
+                        let Ok(e) = entry.clone().into_string() else {
+                            eprintln!(
+                                "input: YANTRA_INPUT_ENTRY {entry:?} is not UTF-8 — module and routine names are UTF-8"
+                            );
+                            return ExitCode::FAILURE;
+                        };
+                        let ok = match e.split_once(' ') {
+                            Some((m, r)) => [m, r].iter().all(|h| {
+                                !h.is_empty()
+                                    && !h.contains(char::is_whitespace)
+                                    && !h.contains('\0')
+                            }),
+                            None => false,
+                        };
+                        if !ok {
+                            eprintln!(
+                                "input: YANTRA_INPUT_ENTRY {e:?} is malformed — it must be \
+                                 \"<module> <routine>\": exactly one ASCII space, both halves non-empty \
+                                 and without whitespace"
+                            );
+                            return ExitCode::FAILURE;
+                        }
+                        let (m, r) = e.split_once(' ').unwrap_or_default();
+                        let mut n = m.as_bytes().to_vec();
+                        n.push(0);
+                        n.extend_from_slice(r.as_bytes());
+                        (n, format!("{m:?} NUL {r:?}"))
+                    }
+                    None => {
+                        let Some(name) = std::env::var_os("YANTRA_INPUT_NAME") else {
+                            eprintln!(
+                                "input: YANTRA_INPUT needs YANTRA_INPUT_NAME (or YANTRA_INPUT_ENTRY) — the module name is passed, never guessed"
+                            );
+                            return ExitCode::FAILURE;
+                        };
+                        (
+                            name.to_string_lossy().as_bytes().to_vec(),
+                            format!("{name:?}"),
+                        )
+                    }
                 };
                 Some((
                     std::borrow::Cow::Owned(text),
-                    name.to_string_lossy().as_bytes().to_vec(),
+                    name_bytes,
                     format!("{input:?}"),
-                    format!("{name:?}"),
+                    name_label,
                 ))
             }
         },

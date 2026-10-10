@@ -85,6 +85,52 @@ export class Yantra {
     this.#write(elf);
     return this.#read(this.e.yantra_host(ram, budget), true);
   }
+  // ॥ AN IN-MEMORY FILE ROOT, FOR A BROWSER RUN ॥
+  // A tab has no directory for `--files`, so the program's file window is served from a
+  // root held in the module (`yantra::patra::MemFs`): same path rules, same refusals by
+  // name, caps instead of a disk. `memfsEnable()` makes an EMPTY root (and discards any
+  // earlier one, so call it before EVERY run that should start clean); `memfsPut` seeds a
+  // file; after `run()` the files the program wrote are `memfsFiles()`. Without
+  // `memfsEnable()` every file request is refused, exactly as natively without `--files`.
+  // `caps` is `{ total, file }` in octets; the defaults are 64 MiB and 16 MiB (names and
+  // per-entry overhead count against the total; at most 4096 files). The root is CARRIED
+  // across runs until the next memfsEnable.
+  memfsEnable(caps = null) {
+    if (caps === null) this.e.yantra_memfs_enable();
+    else if (this.e.yantra_memfs_enable_caps(caps.total >>> 0, caps.file >>> 0) !== 0) {
+      throw new Error('memfsEnable: the per-file cap is above the total cap');
+    }
+  }
+  memfsDisable() { this.e.yantra_memfs_disable(); }
+  // Throws NAMING the refusal; the codes are `yantra_memfs_put`'s.
+  memfsPut(name, data) {
+    const n = typeof name === 'string' ? enc.encode(name) : name;
+    const at = this.e.yantra_memfs_alloc(n.length + data.length);
+    this.mem().set(n, at);
+    this.mem().set(data, at + n.length);
+    const code = this.e.yantra_memfs_put(at, n.length, at + n.length, data.length);
+    if (code !== 0) {
+      const why = {
+        1: 'no root enabled', 2: 'span outside scratch', 3: 'name is not UTF-8',
+        4: 'refused (path escapes the root)', 5: 'not written (over a cap)',
+      }[code] ?? `code ${code}`;
+      throw new Error(`memfsPut(${typeof name === 'string' ? name : '<bytes>'}): ${why}`);
+    }
+  }
+  // Copies: the views are over linear memory, which the next call may grow or reuse.
+  memfsFiles() {
+    const dec = new TextDecoder();
+    const out = [];
+    for (let i = 0, n = this.e.yantra_memfs_count(); i < n; i++) {
+      const np = this.e.yantra_memfs_name(i), nl = this.e.yantra_memfs_name_len(i);
+      const dp = this.e.yantra_memfs_data(i), dl = this.e.yantra_memfs_data_len(i);
+      out.push({
+        name: dec.decode(this.mem().slice(np, np + nl)),
+        data: this.mem().slice(dp, dp + dl),
+      });
+    }
+    return out;
+  }
   #write(elf) {
     const at = this.e.yantra_alloc(elf.length);
     this.mem().set(elf, at);          // JS writes the ELF straight into wasm memory

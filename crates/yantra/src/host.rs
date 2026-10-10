@@ -95,6 +95,7 @@ pub fn host(image: &[u8], ram: usize, budget: u64) -> Result<Hosted, String> {
         // is already in place if a hosted machine is ever given an input slab.
         store_limit: ram,
         patra_root: None,
+        patra_mem: None,
         patra_path: None,
         patra_buffer: None,
         virtio: Default::default(),

@@ -1,0 +1,12 @@
+Sassembly v1.0.2
+Copyright (c) 2026 परमतत्व
+Licensed under AGPL-3.0-only (LICENSE). Commercial licence: COMMERCIAL-LICENSE.md.
+
+Earlier releases (v0.2 to v1.0.1) were published under the MIT licence and remain MIT.
+
+Third-party files that keep their own licences:
+  assets/btn-discord.png   Discord button artwork; the property of its owner, used
+                           to link to the study group, not covered by the AGPL.
+  Fonts (Spectral, Tiro Devanagari, IBM Plex Mono) are loaded by the project site
+  from Google Fonts under the SIL Open Font License 1.1; no font file is
+  distributed in this repository.
