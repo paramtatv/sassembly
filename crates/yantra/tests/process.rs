@@ -203,6 +203,7 @@ fn machine() -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.csr.sstatus = 1 << 8; // SPP, so a loader that forgets to clear it is caught
     install(&mut m, BASE).expect("the supervisor's word is inside RAM");

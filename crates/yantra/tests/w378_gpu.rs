@@ -163,6 +163,7 @@ fn machine() -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     let mut t = vec![lui(1, SLOT0)];
     for (off, v) in [

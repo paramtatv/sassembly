@@ -62,6 +62,7 @@ fn machine(word: u32) -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.mem[0..4].copy_from_slice(&word.to_le_bytes());
     m

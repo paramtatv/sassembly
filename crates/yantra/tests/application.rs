@@ -516,6 +516,7 @@ fn machine() -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.csr.sstatus = 1 << 8;
     install(&mut m, BASE).expect("the supervisor's word is inside RAM");

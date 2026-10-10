@@ -101,6 +101,7 @@ fn machine(words: &[u32]) -> Machine {
         patra_buffer: None,
         virtio: Default::default(),
         socket: None,
+        net: None,
         x: [0; 32],
         f: [0; 32],
         fcsr: 0,

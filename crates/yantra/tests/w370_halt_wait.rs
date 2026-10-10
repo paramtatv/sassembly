@@ -46,6 +46,7 @@ fn machine(text: &[u32]) -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     for (n, w) in text.iter().enumerate() {
         m.mem[n * 4..n * 4 + 4].copy_from_slice(&w.to_le_bytes());

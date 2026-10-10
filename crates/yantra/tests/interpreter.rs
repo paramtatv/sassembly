@@ -45,6 +45,7 @@ fn machine(text: &[u32]) -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     for (i, w) in text.iter().enumerate() {
         m.mem[i * 4..i * 4 + 4].copy_from_slice(&w.to_le_bytes());
@@ -431,6 +432,7 @@ fn a_program_that_outgrows_its_ram_halts_naming_the_limit_not_the_address() {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.x[6] = BASE + ram as u64 + 8; // eight bytes past the end of this RAM
     let mut out = Vec::new();
@@ -662,6 +664,7 @@ fn a_store_stops_at_the_store_limit_while_a_load_still_reaches_the_input_above_i
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     let store = s(0x23, 0x3, 1, 2, 0);
     let load = i(0x03, 5, 0x3, 1, 0);

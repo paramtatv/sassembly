@@ -274,6 +274,7 @@ fn yantra_implements_every_float_row_the_table_names() {
             timecmp: None,
             vec: Default::default(),
             socket: None,
+            net: None,
         };
         m.mem[0..4].copy_from_slice(&r.probe().to_le_bytes());
         // Give the loads and stores an address inside RAM, so a genuine implementation is

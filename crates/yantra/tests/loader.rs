@@ -135,6 +135,7 @@ fn supervisor() -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     let put = |m: &mut Machine, at: u64, w: u32| {
         let o = (at - BASE) as usize;

@@ -112,6 +112,7 @@ pub fn host(image: &[u8], ram: usize, budget: u64) -> Result<Hosted, String> {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.csr.sstatus = 1 << 8;
     supervisor::install(&mut m, BASE)?;

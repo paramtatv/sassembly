@@ -83,6 +83,7 @@ fn calling(a7: u64, mode: Privilege) -> Machine {
         timecmp: None,
         vec: Default::default(),
         socket: None,
+        net: None,
     };
     m.mem[0..4].copy_from_slice(&ECALL.to_le_bytes());
     m.csr.stvec = HANDLER;
