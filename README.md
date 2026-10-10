@@ -51,14 +51,14 @@ Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembl
 
 | OS | archive | sha256 |
 |---|---|---|
-| Linux x86-64 | [`sassembly-v1.0.2-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-x86_64.tar.gz) | filled at release (after the owner OK) |
-| Linux aarch64 | coming once tested natively | n/a |
-| macOS arm64 (Apple silicon) | [`sassembly-v1.0.2-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-arm64.tar.gz) | filled at release (after the owner OK) |
-| macOS x86-64 (Intel) | [`sassembly-v1.0.2-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-x86_64.tar.gz) | filled at release (after the owner OK) |
-| Windows arm64 | [`sassembly-v1.0.2-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-arm64.zip) | filled at release (after the owner OK) |
-| Windows x86-64 | [`sassembly-v1.0.2-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-x86_64.zip) | filled at release (after the owner OK) |
+| Linux x86-64 | [`sassembly-v1.0.2-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-x86_64.tar.gz) | `00730e0894e82dff9b249c5cc8c14f365375da3cf11061cbcfa7a88eb1bc2251` |
+| Linux aarch64 | [`sassembly-v1.0.2-linux-aarch64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-aarch64.tar.gz) | `746e8a35bbdde7e3bd450c2fe8ce90118addc9acb4a12f899e81ccdd0342a8c9` |
+| macOS arm64 (Apple silicon) | [`sassembly-v1.0.2-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-arm64.tar.gz) | `7cba1635d53a9424b595954b41c0ad913dc3b18f0dca039e52858c968df533c2` |
+| macOS x86-64 (Intel) | [`sassembly-v1.0.2-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-x86_64.tar.gz) | `0adb68435e52897fe78bd221fa74ca529dbac3292938ec80c0bcd543adc92476` |
+| Windows arm64 | [`sassembly-v1.0.2-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-arm64.zip) | `a286984305059e8f3e0eb5de4917c1a270a86d5e6a94e1c1f19963063d3875d4` |
+| Windows x86-64 | [`sassembly-v1.0.2-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-x86_64.zip) | `d974cd3b6212b3017146cda4876e55cef3d5c2af6780c29d3a09c1f77a8ee5ac` |
 
-The sha256s are those in the release's `SHA256SUMS-v1.0.2`, which also covers `sassembly-v1.0.2-stage1.elf` (the v1.0.2 compiler image, sha256 `4e7a9a24…070ca`). linux-aarch64: coming once tested natively. Replace `OS_ARCH` below with `linux-x86_64`, `macos-arm64` or `macos-x86_64`.
+The sha256s are those in the release's `SHA256SUMS-v1.0.2`, which also covers `sassembly-v1.0.2-stage1.elf` (the v1.0.2 compiler image, sha256 `4e7a9a24…070ca`). The `linux-aarch64` build was built and smoke-tested on aarch64 hardware. Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64`, `macos-arm64` or `macos-x86_64`.
 
 ```sh
 V=v1.0.2; T=sassembly-$V-OS_ARCH.tar.gz
