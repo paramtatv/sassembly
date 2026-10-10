@@ -469,7 +469,8 @@ Every row of the longer list in [LIMITS.md](LIMITS.md) was checked against the v
 | **clock** | yes, but only as a value delivered at a wait and recorded in an event log, so a run can be replayed exactly | `w375_clock.rs` |
 | **threads** | cooperative only: the host switches threads at waits and never preempts; the schedule is in the event log | `w376_threads.rs` |
 | **sockets** | one host socket, served at waits; live it serves one client, and the log replays without a network | `w377_sockets.rs` |
-| **TLS, DNS, HTTP** | no | — |
+| **network frames, UDP, DNS** | **v1.1.0-alpha**: a frames-only device (`--net-peer PATH`, `--net-tap` on Linux) and a `.t1` stack in `spec/net/` (Ethernet, ARP, IPv4, ICMP echo, UDP, a DNS client); see [docs/networking-host-setup.md](docs/networking-host-setup.md) | `net_frames.rs`, `net_names.rs`, `net_t1.rs` |
+| **TCP, TLS, HTTP** | no | — |
 | **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it | — |
 
 These are `yantra` features: the device windows are part of the emulator, and
@@ -699,7 +700,7 @@ needs no new linker symbols.
 
 ## Networking
 
-A program can serve one TCP client on the loopback interface under `yantra-run`, with every outside event recorded in a log that replays exactly. There is no TCP/IP stack, no TLS, DNS or HTTP. [NETWORKING.md](NETWORKING.md) states what exists, what does not, and a verified echo example under [`examples/networking/`](examples/networking/).
+A program can serve one TCP client on the loopback interface under `yantra-run`, with every outside event recorded in a log that replays exactly. v1.1.0-alpha adds a frames-only network device and a `.t1` stack above it (Ethernet, ARP, IPv4, ICMP echo, UDP, DNS); there is no TCP, TLS or HTTP. [NETWORKING.md](NETWORKING.md) states what exists, what does not, and a verified echo example under [`examples/networking/`](examples/networking/).
 
 ---
 

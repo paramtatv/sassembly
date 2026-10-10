@@ -33,7 +33,7 @@ exclude = ["crates/yantra-wasm", "crates/sadhana-wasm"]
 # manifest records the cut where the edge used to be.
 
 [workspace.package]
-version = "1.0.2"
+version = "1.1.0-alpha"
 license = "AGPL-3.0-only"
 edition = "2024"
 rust-version = "1.94"

@@ -1,0 +1,38 @@
+मण्डलम् सञ्चारचित्रपरीक्षा ॥
+आयातः अष्टक ।
+आयातः दर्शक ।
+आयातः सञ्चार ।
+
+॰ सञ्चारचित्रपरीक्षा — A GPU DRAW, THEN A PING (ADR-0048). The two drivers keep rings in guest
+॰ RAM: spec/darshaka.t1's from 0xA800_0000 and the network driver's from 0xAA00_0000. This
+॰ program draws a 64 x 32 picture on the GPU and then pings 10.0.0.2 over the frame device, in
+॰ one run, so a network driver that took the GPU's region would read the GPU's used-ring
+॰ entries as received frames. With no argument it touches no device (the build-time
+॰ interpreter's run) and answers 0; with one it answers 0 only if the draw and the ping both
+॰ succeeded. Build it with spec/darshaka.t1 and the six files of spec/net/ (not net-demo.t1).
+
+सार्वजनिक चरः आदेशसङ्केतः ॱॱ न६४ भवति २४२८५२६६६०५९८२०३५ ।
+सार्वजनिक चरः आदेशपङ्क्तिः ॱॱ अङ्कः अन्तः अ८ भवति ० ।
+सार्वजनिक चरः आदेशसङ्ख्यासङ्केतः ॱॱ न६४ भवति १८९३७२४२०४८४७९५७१ ।
+सार्वजनिक चरः आदेशसङ्ख्या ॱॱ न६४ भवति ० ।
+
+सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
+    यदि आदेशसङ्ख्या न्यूनम् २ आदि
+        प्रत्यागमनम् ० ।
+    इति
+    चरः पटः ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् २०४८ आदि
+        पटः अङ्कः क्रमः अन्तः भवति ११२२८६७ ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः चित्रफलम् ॱॱ न६४ भवति दर्शकॱप्रदर्शनम् आरभ्य पटः ऽ ६४ ऽ ३२ समाप्तम् ।
+    यदि चित्रफलम् असमम् ० आदि
+        प्रत्यागमनम् १००० ।
+    इति
+    चरः पिङ्गफलम् ॱॱ न६४ भवति सञ्चारॱमार्गप्रतिध्वनिः आरभ्य १६७७७२१६२ ऽ ७ समाप्तम् ।
+    यदि पिङ्गफलम् अधिकम् १५१४ आदि
+        पिङ्गफलम् भवति पिङ्गफलम् दक्षिणसृ १६ ।
+    इति
+    प्रत्यागमनम् पिङ्गफलम् ।
+इति

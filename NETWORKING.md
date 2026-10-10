@@ -1,9 +1,16 @@
-# Networking in Sassembly v1.0.0
+# Networking in Sassembly
 
 Short version: a Sassembly program can serve **one TCP client on the loopback
 interface**, but only when it runs under `yantra-run`. There is no operating-system
 network stack in this release: no TCP/IP, no UDP, no TLS, no DNS, no HTTP. The
 OS-level networking work is not part of this release.
+
+**v1.1.0-alpha** adds a second, separate path: a network device that moves raw Ethernet
+frames and nothing else (`--net-peer`, `--net-tap`; ADR-0047), and a network stack written
+in `.t1` above it in `spec/net/`: Ethernet, ARP, IPv4, ICMP echo, UDP and a DNS client
+(ADR-0048). There is no TCP, TLS or HTTP in it. Host setup, what was tested on which platform,
+and the known limits are in [docs/networking-host-setup.md](docs/networking-host-setup.md).
+Sections 1 to 7 below describe the v1.0.0 socket device, which is unchanged.
 
 This file replaces an earlier text that said the language could not wait. It now can.
 Every claim below names its source in this repository; paths are relative to the
@@ -123,7 +130,9 @@ sets to the running thread's number) runs as N threads over one machine
   much smaller thing: a bare-metal virtio-net program that answers ARP and ICMP echo
   (ping) under QEMU. Their own headers say there is no TCP, TLS or HTTP in them. I did
   not run that check for this document, and it is not the socket device.
-- No outbound connections, no listening on a non-loopback address, no DNS lookups.
+- No outbound connections, no listening on a non-loopback address, no DNS lookups through
+  the socket device. (The v1.1.0-alpha frame device and its `.t1` stack are the separate path
+  described at the top of this file.)
 
 ## 7. A verified example
 

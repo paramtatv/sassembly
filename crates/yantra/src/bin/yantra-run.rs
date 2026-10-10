@@ -225,6 +225,58 @@ fn main() -> ExitCode {
             }
             _ => (None, rest),
         };
+    // ॥ `--net-*` (ADR-0047, PROPOSED) — THE FRAME DEVICE, EVERY FLAG EXPLICIT ॥
+    //
+    // Accepted only in the same first place, right after the log flag, as `--flag value` or
+    // `--flag=value`. A live net run needs `--record-events` (an unlogged run cannot be
+    // replayed) and a backend, `--net-peer` or `--net-tap`; there is no bare `--net`. A replay
+    // (`--events` on a net log) takes none: the log's header carries the device and no
+    // backend is consulted.
+    let mut net_flags = NetFlags::default();
+    let mut rest = rest;
+    while let Some(first) = rest.first().map(String::as_str)
+        && first.starts_with("--net-")
+    {
+        let (flag, inline) = match first.split_once('=') {
+            Some((f, v)) => (f, Some(v.to_string())),
+            None => (first, None),
+        };
+        let used = if inline.is_some() { 1 } else { 2 };
+        if !live {
+            eprintln!(
+                "net: refused — {flag} is accepted only right after --record-events <log>: a \
+                 replay (--events) rebuilds the device from the log's header and needs no \
+                 backend, and an unlogged live run cannot be replayed (ADR-0047; nothing ran)"
+            );
+            return ExitCode::FAILURE;
+        }
+        if listen.is_some() {
+            eprintln!("net: refused — --listen and --net-* in one run (ADR-0047; nothing ran)");
+            return ExitCode::FAILURE;
+        }
+        let Some(value) = inline.or_else(|| rest.get(1).cloned()) else {
+            eprintln!("net: refused — {flag} needs a value (nothing ran)");
+            return ExitCode::FAILURE;
+        };
+        if let Err(why) = net_flags.take(flag, &value) {
+            eprintln!("net: refused — {why} (nothing ran)");
+            return ExitCode::FAILURE;
+        }
+        rest = &rest[used..];
+    }
+    if net_flags.peer.is_some() && net_flags.tap.is_some() {
+        eprintln!(
+            "net: refused — --net-peer and --net-tap are two backends; pick one (nothing ran)"
+        );
+        return ExitCode::FAILURE;
+    }
+    if !net_flags.any() && net_flags.touched() {
+        eprintln!(
+            "net: refused — --net-mac, --net-max-* and --net-timeout configure a device that \
+             only --net-peer or --net-tap creates; there is no bare --net (ADR-0047; nothing ran)"
+        );
+        return ExitCode::FAILURE;
+    }
     let Some(path) = rest.first().cloned() else {
         eprintln!(
             "usage: yantra-run [--events <log> | --record-events <log> [--listen 127.0.0.1:PORT]] \
@@ -550,6 +602,11 @@ fn main() -> ExitCode {
             && events_path
                 .and_then(|p| std::fs::read_to_string(p).ok())
                 .is_some_and(|t| socket::is_socket_log(&t)));
+    let net_mode = net_flags.any()
+        || (!live
+            && events_path
+                .and_then(|p| std::fs::read_to_string(p).ok())
+                .is_some_and(|t| yantra::netdev::is_net_log(&t)));
     let tags = yantra::threads::scan(&m, &image);
     if let Some(n) = tags.declared_count(&m.mem) {
         eprintln!("threads: {n}");
@@ -602,6 +659,10 @@ fn main() -> ExitCode {
     // word to deliver into, is refused here rather than discovered at the first wait.
     // A socket run's SASEVENT word and, in replay, its records (`W-377`).
     let mut socket_tag: Option<usize> = None;
+    let mut net_tag: Option<usize> = None;
+    let mut net_log: Vec<yantra::netdev::NetRecord> = Vec::new();
+    let mut net_sent: Vec<u8> = Vec::new();
+    let mut net_delivered = 0usize;
     let mut socket_log: Vec<SockRecord> = Vec::new();
     let events: Option<(usize, Vec<u64>)> = match events_path {
         None => None,
@@ -637,6 +698,87 @@ fn main() -> ExitCode {
                 }
                 Err(e) => {
                     eprintln!("events: refused — a socket run needs the event slot: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
+            None
+        }
+        // A NET RUN (ADR-0047): the log is a net log. A threaded image delivers into the
+        // word `discover` found; a single-thread image must declare SASEVENT.
+        Some(log) if net_mode => {
+            let mut config = net_flags.config();
+            let mut scheduled = None;
+            if !live {
+                match std::fs::read_to_string(log)
+                    .map_err(|e| e.to_string())
+                    .and_then(|t| yantra::netdev::parse_net_log(&t))
+                {
+                    Ok(l) => {
+                        config = l.config;
+                        net_log = l.records;
+                        if let Some(e) = net_defer_env()
+                            && e != config.defer
+                        {
+                            eprintln!(
+                                "events: refused — YANTRA_VIRTIO_DEFER={e} but the net log {log:?} \
+                                 was recorded with defer={} (backend={}): a replay under a \
+                                 different completion delay is a different run (ADR-0047; nothing ran)",
+                                config.defer,
+                                config.backend.word()
+                            );
+                            return ExitCode::FAILURE;
+                        }
+                        scheduled = Some(l.schedule);
+                    }
+                    Err(e) => {
+                        eprintln!("events: refused — the net log {log:?}: {e}");
+                        return ExitCode::FAILURE;
+                    }
+                }
+            }
+            if let Some(sched) = scheduled {
+                if sched.is_some() != threads.is_some() {
+                    eprintln!(
+                        "events: refused — the net log {log:?} is {} but the image is {} \
+                         (ADR-0047; nothing ran)",
+                        if sched.is_some() {
+                            "a THREADED log (it has @N lines)"
+                        } else {
+                            "a single-thread log"
+                        },
+                        if threads.is_some() {
+                            "threaded"
+                        } else {
+                            "not threaded"
+                        }
+                    );
+                    return ExitCode::FAILURE;
+                }
+                if let Some(sc) = sched {
+                    thread_log = sc;
+                }
+            }
+            let found = match &threads {
+                Some(t) => Ok(t.declared.event_tag),
+                None => yantra::input::find_event_slot(&m.mem),
+            };
+            match found {
+                Ok(tag) => {
+                    if live {
+                        eprintln!(
+                            "events: LIVE, recording a net log to {log:?}, SASEVENT tag at {tag:#x}"
+                        );
+                    } else {
+                        eprintln!(
+                            "events: {} net records from {log:?}, SASEVENT tag at {tag:#x}",
+                            net_log.len()
+                        );
+                    }
+                    net_tag = Some(tag);
+                    m.net = Some(yantra::netdev::VirtioNet::new(config));
+                }
+                Err(e) => {
+                    eprintln!("events: refused — a net run needs the event slot: {e}");
                     return ExitCode::FAILURE;
                 }
             }
@@ -724,6 +866,25 @@ fn main() -> ExitCode {
     if socket_tag.is_some() {
         m.socket = Some(socket::Socket::new());
     }
+    // THE NET BACKEND is opened at load, so a refusal (a platform without it, a missing
+    // privilege) stops the run before the first instruction.
+    let mut net_backend: Option<Box<dyn yantra::netdev::FrameBackend>> = None;
+    if net_tag.is_some() && live {
+        match net_flags.open() {
+            Ok(b) => net_backend = Some(b),
+            Err(why) => {
+                eprintln!("net: refused — {why} (nothing ran)");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let mut net_threads: Option<yantra::netdev::NetThreads> = match (net_tag, threads.is_some()) {
+        (Some(_), true) if live => net_backend.take().map(yantra::netdev::NetThreads::live),
+        (Some(_), true) => Some(yantra::netdev::NetThreads::replay(std::mem::take(
+            &mut net_log,
+        ))),
+        _ => None,
+    };
     // The live log is CREATED before the first instruction, so a run with no wait still
     // leaves a log — a header and no record — saying the program was given no time.
     let mut live_log = match (live, events_path) {
@@ -936,6 +1097,83 @@ fn main() -> ExitCode {
     // Socket records delivered, one per wait (`W-377`).
     let mut socket_delivered = 0usize;
     let halt = match (&events, threads.as_mut()) {
+        // ── A SINGLE-THREAD NET RUN (ADR-0047) ──
+        (_, None) if net_tag.is_some() => {
+            let tag = net_tag.expect("guarded");
+            match (net_backend.as_mut(), live_log.as_mut()) {
+                (Some(backend), Some(log)) => {
+                    let r = yantra::netdev::record_live_net(
+                        &mut m,
+                        tag,
+                        steps,
+                        &mut sink,
+                        log,
+                        backend.as_mut(),
+                        &mut net_sent,
+                    );
+                    match r {
+                        Ok((halt, delivered)) => {
+                            net_delivered = delivered;
+                            eprintln!(
+                                "events: {delivered} net records logged and delivered, one per wait"
+                            );
+                            halt
+                        }
+                        Err(why) => {
+                            refusal = Some(why);
+                            Halt::Wait { pc: m.pc }
+                        }
+                    }
+                }
+                _ => {
+                    let mut tx = |f: &[u8]| yantra::netdev::note_sent(&mut net_sent, f);
+                    match yantra::netdev::replay_net(
+                        &mut m, tag, &net_log, steps, &mut sink, &mut tx,
+                    ) {
+                        yantra::netdev::NetReplayed::Halted { halt, delivered } => {
+                            net_delivered = delivered;
+                            let ended =
+                                matches!(halt, Halt::Finisher { .. } | Halt::Shutdown { .. });
+                            if delivered < net_log.len() && ended {
+                                refusal = Some(format!(
+                                    "the net log is LONGER than the run: {delivered} of {} records \
+                                     delivered; the program halted {halt:?} without waiting again, \
+                                     so this log does not describe this run",
+                                    net_log.len()
+                                ));
+                            } else if delivered < net_log.len() {
+                                refusal = Some(format!(
+                                    "the run stopped at {halt:?} with {} of {} net records unconsumed",
+                                    net_log.len() - delivered,
+                                    net_log.len()
+                                ));
+                            } else {
+                                eprintln!(
+                                    "events: {delivered} of {} net records delivered, one per wait",
+                                    net_log.len()
+                                );
+                            }
+                            halt
+                        }
+                        yantra::netdev::NetReplayed::Short { index, pc } => {
+                            net_delivered = index;
+                            refusal = Some(format!(
+                                "the net log is SHORTER than the run: wait index {index} (the \
+                                 store at pc {pc:#x}) has no record; the log holds {} — the \
+                                 program was NOT resumed",
+                                net_log.len()
+                            ));
+                            Halt::Wait { pc }
+                        }
+                        yantra::netdev::NetReplayed::Refused { index, pc, why } => {
+                            net_delivered = index;
+                            refusal = Some(format!("net record at wait index {index}: {why}"));
+                            Halt::Wait { pc }
+                        }
+                    }
+                }
+            }
+        }
         // ── A SOCKET RUN (`W-377`) — threads were refused at load, so there are none ──
         (_, None) if socket_tag.is_some() => {
             let tag = socket_tag.expect("guarded");
@@ -1012,7 +1250,15 @@ fn main() -> ExitCode {
         (_, Some(t)) => {
             let end = match live_log.as_mut() {
                 Some(log) => {
-                    match yantra::threads::record_live_threads(&mut m, t, steps, &mut sink, log) {
+                    let r = match net_threads.as_mut() {
+                        Some(nt) => yantra::threads::record_live_threads_net(
+                            &mut m, t, steps, &mut sink, log, nt,
+                        ),
+                        None => {
+                            yantra::threads::record_live_threads(&mut m, t, steps, &mut sink, log)
+                        }
+                    };
+                    match r {
                         Ok(end) => end,
                         Err(e) => {
                             refusal = Some(e);
@@ -1023,8 +1269,24 @@ fn main() -> ExitCode {
                         }
                     }
                 }
-                None => yantra::threads::replay_threads(&mut m, t, &thread_log, steps, &mut sink),
+                None => match net_threads.as_mut() {
+                    Some(nt) => yantra::threads::replay_threads_net(
+                        &mut m,
+                        t,
+                        &thread_log,
+                        steps,
+                        &mut sink,
+                        nt,
+                    ),
+                    None => {
+                        yantra::threads::replay_threads(&mut m, t, &thread_log, steps, &mut sink)
+                    }
+                },
             };
+            if let Some(nt) = net_threads.as_ref() {
+                net_sent.clone_from(&nt.sent);
+                net_delivered = nt.next;
+            }
             for e in &t.ends {
                 eprintln!(
                     "threads: thread {}: ended Finisher {{ value: {:#x}, status: {:?} }} at {} executed \
@@ -1258,6 +1520,17 @@ fn main() -> ExitCode {
         && (yantra::SOCK..yantra::SOCK + socket::SOCK_LEN).contains(addr)
     {
         eprintln!("socket: touched at {addr:#x} with no socket device — {why}");
+    }
+    if net_tag.is_some() {
+        eprintln!(
+            "{}",
+            yantra::netdev::report_line(m.net.as_ref(), net_delivered, &net_sent)
+        );
+    } else if let Halt::Device { addr, why, .. } = &halt
+        && yantra::virtio_mmio::slot_of(*addr)
+            .is_some_and(|(slot, _)| slot == yantra::netdev::NET_SLOT)
+    {
+        eprintln!("net: touched at {addr:#x} with no net device — {why}");
     }
     if std::env::var_os("YANTRA_WATERMARK").is_some() {
         eprintln!("ram: high water {} of {} octets", sink.high_water, ram);
@@ -1576,4 +1849,400 @@ fn accept_within(
         "the socket was IDLE for more than {IDLE_SECONDS} s at the first wait: no client \
          connected (W-377)"
     ))
+}
+
+// ── THE FRAME BACKENDS (ADR-0047): host side only; the device (`netdev.rs`) knows none ──
+
+use yantra::netdev::{FrameBackend, NET_BACKEND_UNAVAILABLE, NET_PEER_CLOSED, NET_TIMEOUT};
+
+/// The `--net-*` flags, gathered. Nothing is bound or opened until the run is loaded.
+#[derive(Default)]
+struct NetFlags {
+    peer: Option<String>,
+    tap: Option<String>,
+    mac: Option<[u8; 6]>,
+    max_frame: Option<usize>,
+    max_tx: Option<u64>,
+    max_rx: Option<u64>,
+    timeout_ms: Option<u64>,
+}
+
+impl NetFlags {
+    /// The live wait's limit: `--net-timeout`, else the 30 s default.
+    fn timeout(&self) -> core::time::Duration {
+        core::time::Duration::from_millis(
+            self.timeout_ms
+                .unwrap_or(yantra::netdev::DEFAULT_TIMEOUT_MS),
+        )
+    }
+
+    fn any(&self) -> bool {
+        self.peer.is_some() || self.tap.is_some()
+    }
+
+    fn touched(&self) -> bool {
+        self.mac.is_some()
+            || self.max_frame.is_some()
+            || self.max_tx.is_some()
+            || self.max_rx.is_some()
+            || self.timeout_ms.is_some()
+    }
+
+    fn take(&mut self, flag: &str, v: &str) -> Result<(), String> {
+        let num = |what: &str| v.parse::<u64>().map_err(|e| format!("{what} {v:?}: {e}"));
+        match flag {
+            "--net-peer" => self.peer = Some(v.to_string()),
+            "--net-tap" => self.tap = Some(v.to_string()),
+            "--net-mac" => self.mac = Some(yantra::netdev::parse_mac(v)?),
+            "--net-max-frame" => {
+                let n = num("--net-max-frame")? as usize;
+                if !(yantra::netdev::MIN_FRAME..=yantra::netdev::HARD_MAX_FRAME).contains(&n) {
+                    return Err(format!("--net-max-frame {n}: must be 14 to 65535"));
+                }
+                self.max_frame = Some(n);
+            }
+            "--net-max-tx-frames" => self.max_tx = Some(num("--net-max-tx-frames")?),
+            "--net-max-rx-frames" => self.max_rx = Some(num("--net-max-rx-frames")?),
+            "--net-timeout" => {
+                let n = num("--net-timeout")?;
+                if n == 0 {
+                    return Err("--net-timeout 0: a wait that never waits is not a timeout; omit it for the 30 s default".to_string());
+                }
+                self.timeout_ms = Some(n);
+            }
+            other => {
+                return Err(format!(
+                    "unknown flag {other} (the net flags are --net-peer, --net-tap, --net-mac, \
+                     --net-max-frame, --net-max-tx-frames, --net-max-rx-frames, --net-timeout)"
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    fn config(&self) -> yantra::netdev::NetConfig {
+        let d = yantra::netdev::NetConfig::default();
+        yantra::netdev::NetConfig {
+            defer: net_defer_env().unwrap_or(0),
+            backend: if self.tap.is_some() {
+                yantra::netdev::BackendKind::Tap
+            } else if self.peer.is_some() {
+                yantra::netdev::BackendKind::Peer
+            } else {
+                yantra::netdev::BackendKind::None
+            },
+            mac: self.mac.unwrap_or(d.mac),
+            max_frame: self.max_frame.unwrap_or(d.max_frame),
+            max_tx: self.max_tx.unwrap_or(d.max_tx),
+            max_rx: self.max_rx.unwrap_or(d.max_rx),
+            // `--net-mac` is also the optional MAC allow-list (ADR-0047).
+            mac_filter: self.mac.is_some(),
+        }
+    }
+
+    /// Open the backend asked for.
+    fn open(&self) -> Result<Box<dyn FrameBackend>, String> {
+        // A FINITE DEFAULT: a live wait that hears nothing for 30 s halts with NET_TIMEOUT
+        // instead of hanging. `--net-timeout 0` is refused; pass a large number to wait longer.
+        let timeout = Some(self.timeout());
+        match (&self.peer, &self.tap) {
+            (Some(p), _) => open_peer(p, timeout).map(|b| Box::new(b) as Box<dyn FrameBackend>),
+            (_, Some(t)) => open_tap(t, timeout).map(|b| Box::new(b) as Box<dyn FrameBackend>),
+            _ => Err("no backend".to_string()),
+        }
+    }
+}
+
+/// `YANTRA_VIRTIO_DEFER`, if set to decimal digits (the GPU's own parse refuses the rest).
+fn net_defer_env() -> Option<u64> {
+    let v = std::env::var("YANTRA_VIRTIO_DEFER").ok()?;
+    (!v.is_empty() && v.bytes().all(|c| c.is_ascii_digit()))
+        .then(|| v.parse().ok())
+        .flatten()
+}
+
+type Incoming = Result<Vec<u8>, String>;
+type Sender = Box<dyn FnMut(&[u8]) -> std::io::Result<()>>;
+
+/// A backend made of a writer and a reader thread: the thread hands each frame it reads to
+/// a channel, so a wait can block, poll, or time out without a half-read frame.
+struct ChannelBackend {
+    send: Sender,
+    rx: std::sync::mpsc::Receiver<Incoming>,
+    timeout: Option<core::time::Duration>,
+    failed: bool,
+    /// Removes the rendezvous file when the listening side exits.
+    _guard: Option<PeerGuard>,
+}
+
+struct PeerGuard(std::path::PathBuf);
+
+impl Drop for PeerGuard {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_file(&self.0);
+    }
+}
+
+impl FrameBackend for ChannelBackend {
+    fn send(&mut self, frame: &[u8]) {
+        if self.failed {
+            return;
+        }
+        if let Err(e) = (self.send)(frame) {
+            eprintln!(
+                "net: send failed — {e}; nothing more is sent, and the program is not told (ADR-0047)"
+            );
+            self.failed = true;
+        }
+    }
+
+    fn recv(&mut self) -> Result<Vec<u8>, String> {
+        use std::sync::mpsc::RecvTimeoutError;
+        match self.timeout {
+            Some(d) => match self.rx.recv_timeout(d) {
+                Ok(r) => r,
+                Err(RecvTimeoutError::Timeout) => Err(NET_TIMEOUT.to_string()),
+                Err(RecvTimeoutError::Disconnected) => Err(NET_PEER_CLOSED.to_string()),
+            },
+            None => self
+                .rx
+                .recv()
+                .unwrap_or_else(|_| Err(NET_PEER_CLOSED.to_string())),
+        }
+    }
+
+    fn try_recv(&mut self) -> Result<Option<Vec<u8>>, String> {
+        use std::sync::mpsc::TryRecvError;
+        match self.rx.try_recv() {
+            Ok(r) => r.map(Some),
+            Err(TryRecvError::Empty) => Ok(None),
+            Err(TryRecvError::Disconnected) => Err(NET_PEER_CLOSED.to_string()),
+        }
+    }
+}
+
+/// `--net-peer=PATH`: ONE flag, a rendezvous path. The first instance to start binds a
+/// unix-domain stream socket there and waits for the other; the second connects. Frames
+/// cross as a two-octet big-endian length and the frame (a stream needs framing, and a
+/// frame is at most 65,535 octets). Unix-domain sockets need no privilege and no port, and
+/// the path is the only thing shared. WINDOWS would use a named pipe (`\\.\pipe\NAME`);
+/// std has no server side for one, so this build refuses by name there.
+#[cfg(unix)]
+fn open_peer(path: &str, timeout: Option<core::time::Duration>) -> Result<ChannelBackend, String> {
+    use std::io::{Read, Write};
+    use std::os::unix::net::{UnixListener, UnixStream};
+    let p = std::path::Path::new(path);
+    let mut guard = None;
+    let mut stream = None;
+    for _ in 0..100 {
+        let refused = match UnixStream::connect(p) {
+            Ok(s) => {
+                eprintln!("net: peer {path} connected");
+                stream = Some(s);
+                break;
+            }
+            Err(e) => e.kind() == std::io::ErrorKind::ConnectionRefused,
+        };
+        match UnixListener::bind(p) {
+            Ok(l) => {
+                guard = Some(PeerGuard(p.to_path_buf()));
+                eprintln!("net: peer {path} listening");
+                let s = match timeout {
+                    None => l.accept().map(|(s, _)| s).map_err(|e| e.to_string()),
+                    Some(d) => {
+                        l.set_nonblocking(true).map_err(|e| e.to_string())?;
+                        let mut waited = core::time::Duration::ZERO;
+                        loop {
+                            match l.accept() {
+                                Ok((s, _)) => break Ok(s),
+                                Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                                    if waited >= d {
+                                        break Err(NET_TIMEOUT.to_string());
+                                    }
+                                    std::thread::sleep(core::time::Duration::from_millis(10));
+                                    waited += core::time::Duration::from_millis(10);
+                                }
+                                Err(e) => break Err(e.to_string()),
+                            }
+                        }
+                    }
+                }?;
+                s.set_nonblocking(false).map_err(|e| e.to_string())?;
+                eprintln!("net: peer {path} connected");
+                stream = Some(s);
+                break;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse && refused => {
+                // A socket file nobody listens on: left by a run that died.
+                let _ = std::fs::remove_file(p);
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                std::thread::sleep(core::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(format!("cannot use the peer path {path:?}: {e}")),
+        }
+    }
+    let stream =
+        stream.ok_or_else(|| format!("cannot rendezvous at {path:?}: no peer after 100 tries"))?;
+    let mut reader = stream.try_clone().map_err(|e| e.to_string())?;
+    let (tx, rx) = std::sync::mpsc::channel::<Incoming>();
+    std::thread::spawn(move || {
+        loop {
+            let mut len = [0u8; 2];
+            let mut buf;
+            if reader.read_exact(&mut len).is_err() {
+                let _ = tx.send(Err(NET_PEER_CLOSED.to_string()));
+                return;
+            }
+            buf = vec![0u8; usize::from(u16::from_be_bytes(len))];
+            if reader.read_exact(&mut buf).is_err() {
+                let _ = tx.send(Err(NET_PEER_CLOSED.to_string()));
+                return;
+            }
+            if tx.send(Ok(buf)).is_err() {
+                return;
+            }
+        }
+    });
+    let mut writer = stream;
+    Ok(ChannelBackend {
+        send: Box::new(move |f| {
+            let mut m = (f.len() as u16).to_be_bytes().to_vec();
+            m.extend_from_slice(f);
+            writer.write_all(&m)
+        }),
+        rx,
+        timeout,
+        failed: false,
+        _guard: guard,
+    })
+}
+
+#[cfg(not(unix))]
+fn open_peer(path: &str, _: Option<core::time::Duration>) -> Result<ChannelBackend, String> {
+    Err(format!(
+        "{NET_BACKEND_UNAVAILABLE}: --net-peer {path:?} on this platform is a Windows named \
+         pipe, which this build does not implement (ADR-0047; tested on Linux only)"
+    ))
+}
+
+/// A TAP interface on Linux: `--net-tap=IFNAME` attaches to `/dev/net/tun`. CREATING an
+/// interface needs `CAP_NET_ADMIN`; attaching to one made beforehand for this user
+/// (`ip tuntap add dev IFNAME mode tap user UID`, as root) needs none. Frames cross whole
+/// (`IFF_NO_PI`). This is the one `unsafe` in the crate, a single `ioctl`.
+#[cfg(all(
+    target_os = "linux",
+    any(
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "riscv64"
+    )
+))]
+fn open_tap(name: &str, timeout: Option<core::time::Duration>) -> Result<ChannelBackend, String> {
+    use std::io::{Read, Write};
+    use std::os::fd::AsRawFd;
+    #[allow(unsafe_code)]
+    mod sys {
+        unsafe extern "C" {
+            pub fn ioctl(fd: i32, request: std::ffi::c_ulong, ...) -> i32;
+        }
+    }
+    const TUNSETIFF: std::ffi::c_ulong = 0x4004_54ca;
+    const IFF_TAP: u16 = 0x0002;
+    const IFF_NO_PI: u16 = 0x1000;
+    if name.is_empty() || name.len() >= 16 {
+        return Err(format!(
+            "--net-tap {name:?}: an interface name is 1 to 15 octets"
+        ));
+    }
+    let f = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open("/dev/net/tun")
+        .map_err(|e| {
+            format!("{NET_BACKEND_UNAVAILABLE}: cannot open /dev/net/tun: {e} (the tun module and access to the device are needed)")
+        })?;
+    let mut ifr = [0u8; 40];
+    ifr[..name.len()].copy_from_slice(name.as_bytes());
+    ifr[16..18].copy_from_slice(&(IFF_TAP | IFF_NO_PI).to_ne_bytes());
+    #[allow(unsafe_code)]
+    // SAFETY: `ifr` is the 40-octet `struct ifreq` TUNSETIFF reads, alive for the call.
+    let rc = unsafe { sys::ioctl(f.as_raw_fd(), TUNSETIFF, ifr.as_mut_ptr()) };
+    if rc < 0 {
+        let e = std::io::Error::last_os_error();
+        return Err(format!(
+            "{NET_BACKEND_UNAVAILABLE}: cannot attach to the TAP interface {name:?}: {e}. \
+             Creating one needs CAP_NET_ADMIN; an interface made beforehand for this user \
+             (ip tuntap add dev {name} mode tap user UID) needs none"
+        ));
+    }
+    eprintln!("net: tap {name} attached");
+    let mut reader = f.try_clone().map_err(|e| e.to_string())?;
+    let (tx, rx) = std::sync::mpsc::channel::<Incoming>();
+    std::thread::spawn(move || {
+        let mut buf = vec![0u8; 65_536];
+        loop {
+            match reader.read(&mut buf) {
+                Ok(n) if n > 0 => {
+                    if tx.send(Ok(buf[..n].to_vec())).is_err() {
+                        return;
+                    }
+                }
+                _ => {
+                    let _ = tx.send(Err(NET_PEER_CLOSED.to_string()));
+                    return;
+                }
+            }
+        }
+    });
+    let mut writer = f;
+    Ok(ChannelBackend {
+        send: Box::new(move |fr| writer.write_all(fr)),
+        rx,
+        timeout,
+        failed: false,
+        _guard: None,
+    })
+}
+
+/// macOS (vmnet), Windows (Wintun) and the rest: refused by name, with what each needs.
+/// Linux on an architecture other than x86_64, aarch64 and riscv64 is here too: TUNSETIFF's
+/// request number is `_IOW('T', 202, int)` and its encoding differs on mips, powerpc and
+/// sparc, which this build has not checked.
+#[cfg(not(all(
+    target_os = "linux",
+    any(
+        target_arch = "x86_64",
+        target_arch = "aarch64",
+        target_arch = "riscv64"
+    )
+)))]
+fn open_tap(name: &str, _: Option<core::time::Duration>) -> Result<ChannelBackend, String> {
+    let needs = if cfg!(target_os = "macos") {
+        "macOS needs vmnet: the com.apple.vm.networking entitlement or root"
+    } else if cfg!(target_os = "linux") {
+        "this Linux architecture is not one of x86_64, aarch64 and riscv64, the ones whose TUNSETIFF number is verified"
+    } else if cfg!(windows) {
+        "Windows needs the Wintun driver (wintun.dll) and administrator rights"
+    } else {
+        "this platform has no TAP backend"
+    };
+    Err(format!(
+        "{NET_BACKEND_UNAVAILABLE}: --net-tap {name:?} is not implemented on this platform: \
+         {needs} (ADR-0047; only the Linux backend is built and tested)"
+    ))
+}
+
+#[cfg(test)]
+mod net_flag_tests {
+    use super::NetFlags;
+
+    #[test]
+    fn the_default_timeout_is_30_s_and_the_flag_overrides_it() {
+        let mut f = NetFlags::default();
+        assert_eq!(f.timeout(), core::time::Duration::from_secs(30));
+        f.take("--net-timeout", "250").unwrap();
+        assert_eq!(f.timeout(), core::time::Duration::from_millis(250));
+        assert!(f.take("--net-timeout", "0").is_err());
+    }
 }

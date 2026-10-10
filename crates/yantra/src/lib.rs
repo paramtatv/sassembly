@@ -171,6 +171,7 @@ pub mod gpu;
 pub mod host;
 pub mod input;
 pub mod loader;
+pub mod netdev;
 pub mod patra;
 pub mod process;
 pub mod profile;
@@ -1356,6 +1357,10 @@ pub struct Machine {
     /// `Device` naming `W-377` — and that is the default; `yantra-run` makes one for
     /// `--listen` or a socket log.
     pub socket: Option<socket::Socket>,
+    /// THE NETWORK FRAME DEVICE (ADR-0047): virtio-net in slot 2. `None` is a machine with
+    /// no network, and the slot refuses by name; `yantra-run` makes one for a `--net-*` flag
+    /// or a net log.
+    pub net: Option<netdev::VirtioNet>,
 }
 
 impl Machine {
@@ -1430,6 +1435,7 @@ impl Machine {
             timecmp: None,
             vec: vector::VectorUnit::default(),
             socket: None,
+            net: None,
         };
         for s in &program.segments {
             let at = (s.vaddr - base) as usize;
@@ -1513,6 +1519,23 @@ impl Machine {
         // read. A range, not an exact address like the arms in `store`, because a
         // transport is a block of registers; everything in it that the device does not
         // answer halts `Device` by name rather than falling through to `BadAccess`.
+        if let Some((slot, off)) = virtio_mmio::slot_of(addr)
+            && slot == netdev::NET_SLOT
+        {
+            let v = u64::from(
+                netdev::load(self.net.as_ref(), off, width).map_err(|why| Halt::Device {
+                    pc,
+                    addr,
+                    why,
+                })?,
+            );
+            let bits = 8 * width as u32;
+            return Ok(if signed && bits < 64 && v >> (bits - 1) & 1 == 1 {
+                v | (!0u64 << bits)
+            } else {
+                v
+            });
+        }
         if let Some((slot, off)) = virtio_mmio::slot_of(addr) {
             let v = u64::from(
                 self.virtio
@@ -1650,12 +1673,37 @@ impl Machine {
         // THE VIRTIO-MMIO WINDOW (`W-351`). AFTER the four exact patra arms on purpose:
         // `patra::PATRA_PATH` is slot 1's base, so those stores must be matched first —
         // `virtio_mmio`'s margin has the address map and why the overlap is safe.
+        if let Some((slot, off)) = virtio_mmio::slot_of(addr)
+            && slot == netdev::NET_SLOT
+        {
+            let ram = self.base..self.base + self.mem.len() as u64;
+            let base = self.base;
+            let Some(net) = self.net.as_mut() else {
+                return Err(Halt::Device {
+                    pc,
+                    addr,
+                    why: netdev::NET_WINDOW_REFUSED,
+                });
+            };
+            let notified = net
+                .write(off, width, value, ram)
+                .map_err(|why| Halt::Device { pc, addr, why })?;
+            let served = match notified {
+                Some(q) => net.notify(q, &mut self.mem, base, pc),
+                None => Ok(()),
+            };
+            self.resync_waiting();
+            served.map_err(|why| Halt::Device { pc, addr, why })?;
+            return Ok(None);
+        }
         if let Some((slot, off)) = virtio_mmio::slot_of(addr) {
             let ram = self.base..self.base + self.mem.len() as u64;
             let notified = self
                 .virtio
                 .write(slot, off, width, value, ram)
                 .map_err(|why| Halt::Device { pc, addr, why })?;
+            // A reset zeroed the GPU's count, and the net device's is in the same word.
+            self.resync_waiting();
             // QUEUENOTIFY: walk every chain the driver has offered, then raise the
             // used-buffer interrupt bit (§4.2.2 InterruptStatus bit 0). A refusal
             // halts by name and, by `virtqueue::process`'s contract, writes nothing for
@@ -2208,6 +2256,14 @@ impl Machine {
     ///
     /// # Errors
     /// [`Halt::Device`] naming the chain's refusal; chains served before it stay served.
+    /// Recount the deferred completions the per-step test watches: the GPU's pending
+    /// notifies and the net device's, in the one word. Called after any write that can change
+    /// either (a reset zeroes the GPU's).
+    pub fn resync_waiting(&mut self) {
+        let gpu = self.virtio.pending.iter().flatten().count() as u32;
+        self.virtio.waiting = gpu + self.net.as_ref().map_or(0, netdev::VirtioNet::waiting);
+    }
+
     fn serve_notified(&mut self, q: usize, pc: u64, addr: u64) -> Result<(), Halt> {
         let queue = self.virtio.queue(q);
         let mut cursor = self.virtio.queues[q].last_avail;
@@ -2257,6 +2313,16 @@ impl Machine {
                 if let Err(h) = self.serve_notified(q, p.pc, p.addr) {
                     return Some(h);
                 }
+            }
+        }
+        let (base, pc) = (self.base, self.pc);
+        if let Some(n) = self.net.as_mut()
+            && n.waiting() > 0
+        {
+            let r = n.tick(&mut self.mem, base, pc);
+            self.resync_waiting();
+            if let Err((pc, addr, why)) = r {
+                return Some(Halt::Device { pc, addr, why });
             }
         }
         None

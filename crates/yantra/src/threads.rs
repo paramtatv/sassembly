@@ -745,10 +745,52 @@ pub fn replay_threads(
     budget: u64,
     out: &mut impl Output,
 ) -> ThreadsEnd {
+    replay_threads_with(m, t, log, budget, out, None)
+}
+
+/// [`replay_threads`] for a run with a net device (ADR-0047): a value record `k` is the
+/// `k`-th net record, delivered into the RX queue at the resume instead of written as a
+/// word, and the frames the threads transmit are handed to `net` at every decision.
+pub fn replay_threads_net(
+    m: &mut Machine,
+    t: &mut Threads,
+    log: &[ThreadRecord],
+    budget: u64,
+    out: &mut impl Output,
+    net: &mut crate::netdev::NetThreads,
+) -> ThreadsEnd {
+    let r = replay_threads_with(m, t, log, budget, out, Some(&mut *net));
+    net.flush(m);
+    match (net.fault.take(), r) {
+        (Some(halt), ThreadsEnd::Ended) => ThreadsEnd::Halted {
+            thread: t.current.unwrap_or(0),
+            halt,
+        },
+        (_, r) => r,
+    }
+}
+
+fn replay_threads_with(
+    m: &mut Machine,
+    t: &mut Threads,
+    log: &[ThreadRecord],
+    budget: u64,
+    out: &mut impl Output,
+    mut net: Option<&mut crate::netdev::NetThreads>,
+) -> ThreadsEnd {
     let start = m.time;
     let event = t.declared.event_tag + 8;
     let mut cursor = 0;
     loop {
+        if let Some(n) = net.as_deref_mut() {
+            n.flush(m);
+            if let Some(halt) = n.fault.take() {
+                return ThreadsEnd::Halted {
+                    thread: t.current.unwrap_or(0),
+                    halt,
+                };
+            }
+        }
         if t.all_ended() {
             return if cursor < log.len() {
                 ThreadsEnd::Long {
@@ -766,7 +808,14 @@ pub fn replay_threads(
         if let Some(v) = value
             && t.mutant != Some(Mutant::DeliverAtWait)
         {
-            put_word(&mut m.mem, event, v);
+            match net.as_deref_mut() {
+                Some(n) => {
+                    if let Err(why) = n.deliver_replayed(m, t.declared.event_tag, v) {
+                        return ThreadsEnd::Refused { index: cursor, why };
+                    }
+                }
+                None => put_word(&mut m.mem, event, v),
+            }
         }
         t.switch_in(m, k);
         let left = budget.saturating_sub(m.time - start);
@@ -808,26 +857,145 @@ pub fn record_live_threads(
     out: &mut impl Output,
     log: &mut impl std::io::Write,
 ) -> Result<ThreadsEnd, String> {
+    record_live_threads_with(m, t, budget, out, log, None)
+}
+
+/// [`record_live_threads`] for a run with a net device (ADR-0047). The pick is by READINESS
+/// instead of round-robin only when a thread waits: with another thread runnable, a frame
+/// already here (polled, never waited for) wakes the first waiting thread, else the
+/// runnable thread runs; with none runnable the host BLOCKS for a frame. Each wake is
+/// logged `@N` then the thread's `n=` record; the frames the threads transmit go to the
+/// backend at every decision.
+///
+/// # Errors
+/// A log that cannot be written.
+pub fn record_live_threads_net(
+    m: &mut Machine,
+    t: &mut Threads,
+    budget: u64,
+    out: &mut impl Output,
+    log: &mut impl std::io::Write,
+    net: &mut crate::netdev::NetThreads,
+) -> Result<ThreadsEnd, String> {
+    let r = record_live_threads_with(m, t, budget, out, log, Some(&mut *net));
+    net.flush(m);
+    match (net.fault.take(), r) {
+        (Some(halt), Ok(ThreadsEnd::Ended)) => Ok(ThreadsEnd::Halted {
+            thread: t.current.unwrap_or(0),
+            halt,
+        }),
+        (_, r) => r,
+    }
+}
+
+/// The thread to run when a net device is in play, and the frame it wakes with.
+fn pick_net(
+    t: &Threads,
+    m: &Machine,
+    net: &mut crate::netdev::NetThreads,
+    n: u32,
+) -> Result<(u32, Option<crate::netdev::NetRecord>), String> {
+    use crate::netdev::NetRecord;
+    let ready = m.net.as_ref().is_some_and(|d| d.rx_ready(&m.mem, m.base));
+    let from = t.current.map_or(0, |c| (c + 1) % n);
+    let order: Vec<u32> = (0..n)
+        .map(|d| (from + d) % n)
+        .filter(|&j| !matches!(t.states[j as usize], ThreadState::Ended { .. }))
+        .collect();
+    let (waiting, runnable): (Vec<u32>, Vec<u32>) = order
+        .iter()
+        .partition(|&&j| matches!(t.states[j as usize], ThreadState::Waiting { .. }));
+    let backend = net
+        .backend
+        .as_mut()
+        .ok_or("a live net run has no backend")?;
+    if waiting.is_empty() {
+        return Ok((order[0], None));
+    }
+    if !ready {
+        // No posted buffer: a frame could only be dropped, so wake the waiter with none.
+        return Ok((waiting[0], Some(NetRecord::None)));
+    }
+    if runnable.is_empty() {
+        return Ok((waiting[0], Some(NetRecord::Frame(backend.recv()?))));
+    }
+    Ok(match backend.try_recv()? {
+        Some(f) => (waiting[0], Some(NetRecord::Frame(f))),
+        None => (runnable[0], None),
+    })
+}
+
+fn record_live_threads_with(
+    m: &mut Machine,
+    t: &mut Threads,
+    budget: u64,
+    out: &mut impl Output,
+    log: &mut impl std::io::Write,
+    mut net: Option<&mut crate::netdev::NetThreads>,
+) -> Result<ThreadsEnd, String> {
     let io = |e: std::io::Error| format!("writing the event log: {e}");
-    writeln!(log, "{RECORDED_THREAD_LOG_HEADER}").map_err(io)?;
+    match net.as_deref() {
+        Some(_) => {
+            let c = m
+                .net
+                .as_ref()
+                .ok_or("no net device on this machine")?
+                .config;
+            writeln!(log, "{}", crate::netdev::log_header(&c)).map_err(io)?;
+        }
+        None => writeln!(log, "{RECORDED_THREAD_LOG_HEADER}").map_err(io)?,
+    }
     log.flush().map_err(io)?;
     let start = m.time;
     let event = t.declared.event_tag + 8;
     let n = t.count() as u32;
     loop {
+        if let Some(nt) = net.as_deref_mut() {
+            nt.flush(m);
+            if let Some(halt) = nt.fault.take() {
+                return Ok(ThreadsEnd::Halted {
+                    thread: t.current.unwrap_or(0),
+                    halt,
+                });
+            }
+        }
         if t.all_ended() {
             return Ok(ThreadsEnd::Ended);
         }
-        let from = t.current.map_or(0, |c| (c + 1) % n);
-        let k = (0..n)
-            .map(|d| (from + d) % n)
-            .find(|&j| !matches!(t.states[j as usize], ThreadState::Ended { .. }))
-            .expect("a thread that has not ended, since not all have");
+        let (k, frame) = match net.as_deref_mut() {
+            Some(nt) => match pick_net(t, m, nt, n) {
+                Ok(p) => p,
+                Err(why) => {
+                    return Ok(ThreadsEnd::Refused {
+                        index: nt.next,
+                        why,
+                    });
+                }
+            },
+            None => {
+                let from = t.current.map_or(0, |c| (c + 1) % n);
+                let k = (0..n)
+                    .map(|d| (from + d) % n)
+                    .find(|&j| !matches!(t.states[j as usize], ThreadState::Ended { .. }))
+                    .expect("a thread that has not ended, since not all have");
+                (k, None)
+            }
+        };
         writeln!(log, "@{k}").map_err(io)?;
         if matches!(t.states[k as usize], ThreadState::Waiting { .. }) {
-            let now = crate::input::stamp_event_time();
-            writeln!(log, "t={now}").map_err(io)?;
-            put_word(&mut m.mem, event, now);
+            if let Some(nt) = net.as_deref_mut() {
+                let f = frame.expect("a waiting thread is picked with its frame");
+                if let Err(why) = nt.deliver_live(m, t.declared.event_tag, f, log) {
+                    return Ok(ThreadsEnd::Refused {
+                        index: nt.next,
+                        why,
+                    });
+                }
+            } else {
+                let now = crate::input::stamp_event_time();
+                writeln!(log, "t={now}").map_err(io)?;
+                put_word(&mut m.mem, event, now);
+            }
         }
         log.flush().map_err(io)?;
         t.switch_in(m, k);
