@@ -278,6 +278,53 @@ const COUNTED_BY_NOTHING: &[(&str, &str)] = &[
         "spec/rung/सेतुः.t1",
         "the CALLER half — one cross-module call and nothing else; carries the four runs in its margin",
     ),
+    // ॥ `spec/net/` — the network library in .t1 (ADR-0048), a LIBRARY beside
+    // `spec/darshaka.t1` and NOT in the compiler's corpus; built with t1_image by
+    // `crates/yantra/tests/net_t1.rs` and `tools/check-net-t1.sh` ॥
+    (
+        "spec/net/sanchara-pankti.t1",
+        "the virtio-net DRIVER (सञ्चारपङ्क्तिः) — ADR-0048; device intrinsics, native only",
+    ),
+    (
+        "spec/net/sambandha.t1",
+        "the Ethernet layer (सम्बन्धः) and the big-endian helpers — ADR-0048",
+    ),
+    (
+        "spec/net/sthana-nirdesha.t1",
+        "the ARP layer (स्थाननिर्देशः) — ADR-0048",
+    ),
+    (
+        "spec/net/marga.t1",
+        "the IPv4 layer (मार्गः) and the Internet checksum — ADR-0048",
+    ),
+    (
+        "spec/net/marga-sandesha.t1",
+        "the ICMP echo layer (मार्गसन्देशः) — ADR-0048",
+    ),
+    (
+        "spec/net/nihsandhi-pinda.t1",
+        "the UDP layer (निःसन्धिपिण्डः) — datagram, pseudo-header checksum, allow-list — ADR-0048",
+    ),
+    (
+        "spec/net/nama-nirdesha.t1",
+        "the DNS layer (नामनिर्देशः) — A query, response parse with bounded compression pointers — ADR-0048",
+    ),
+    (
+        "spec/net/sanchara.t1",
+        "the family module (सञ्चार) and the eight ruled members — ADR-0048",
+    ),
+    (
+        "spec/net/net-gpu.t1",
+        "a GPU draw then a ping in one run (सञ्चारचित्रपरीक्षा) — the two drivers' regions must not meet; built by net_t1.rs",
+    ),
+    (
+        "spec/net/net-demo.t1",
+        "the library's self-test, pinger and responder program (सञ्चारपरीक्षा) — built by crates/yantra/tests/net_t1.rs",
+    ),
+    (
+        "spec/net/net-udp-demo.t1",
+        "the UDP and DNS self-test, echo pair and DNS pair program (सन्देशपरीक्षा) — built by crates/yantra/tests/net_t1.rs and tools/check-net-t1.sh",
+    ),
     // ॥ `spec/virtio-gpu.t1` — the C-009 `.t1` port (v0.5.0, "the GPU-driver project / the GPU driver"),
     // seam-free half: lays out C-009's controlq region and EMITS the octets;
     // discovery, init and notify wait on W-350's MMIO seam. Built and judged by

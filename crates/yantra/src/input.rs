@@ -536,6 +536,13 @@ pub(crate) fn refuse_torn_final_record(text: &str) -> Result<(), String> {
 /// log of some other kind of run. So every existing consumer — `Interpreter::set_events`
 /// included — stays byte-unchanged on every log it could already read.
 fn refuse_socket_record(t: &str, n: usize) -> Result<(), String> {
+    if t.starts_with("n=") {
+        return Err(format!(
+            "line {}: {t:?} is a NET record (ADR-0047: `n=<hex>` or `n=none`) — this is a net \
+             log, read only when its first record or header says so; refused rather than skipped",
+            n + 1
+        ));
+    }
     if t.starts_with("s=") {
         return Err(format!(
             "line {}: {t:?} is a SOCKET record (W-377: `s=<hex>` or `s=end`) — this is a \
