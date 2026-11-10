@@ -83,13 +83,13 @@ sha256 of the frames sent.
 
 ## What was tested
 
-Linux only (ubuntu-local): negotiation as a guest does it; refusal without a flag; every cap; the allow-list;
+Linux only (x86_64 host): negotiation as a guest does it; refusal without a flag; every cap; the allow-list;
 live then replay identical in output, instruction count, memory and frames out; a threaded run in both wake
 orders; two `yantra-run` processes over `--net-peer`; a silent peer and `--net-timeout`; TAP against a
 pre-made interface (an ignored test, run once). Not tested: macOS vmnet, Windows named pipe and Wintun
 (refusal paths compile only by `cfg`; the macOS and Windows builds were not run).
 
-Addendum 2026-10-09: macOS aarch64 (macmini1, at ec30af31 plus this commit's `net_t1.rs` fix) runs
+Addendum 2026-10-09: macOS aarch64 (ARM64 host, at ec30af31 plus this commit's `net_t1.rs` fix) runs
 `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4 and `net_t1` 16/16 with
 `--include-ignored`, including two processes over `--net-peer`, each log replaying alone. The fix: the
 peer socket path moved out of the test's scratch directory, because macOS caps `sun_path` at 104

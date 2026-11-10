@@ -22,7 +22,7 @@ prefix in a fork-join image. The device engines (files, spawn) stay plain: a wor
 but the UART, WAIT and FINISHER (`rt_st_fjdev`). anuvada.t1: 2,881,443 octets (69% of the 4 MiB limit;
 main 2,580,973); check-reach: the startup jal reaches +40,884.
 
-**Byte identity** (ubuntu, the merged tree with 5f's fj-purity, compiler d6480f2d): 80 selfcheck images + 8
+**Byte identity** (x86_64 host, the merged tree with 5f's fj-purity, compiler d6480f2d): 80 selfcheck images + 8
 fj programs, the built .t1 translator (run natively) against the oracle: 438/438 plain translations
 identical over x86_64-linux, aarch64-linux, x86_64-macos, aarch64-macos, wasm32 (2 wasm32 float images
 the oracle itself refuses); 176/176 fork-join translations identical (x86-64 and aarch64 Linux).
@@ -148,19 +148,19 @@ exit) and the serial run with yantra-run (stdout, exit, halt line). It was run o
 
 | host | N = 1, 2, 8, 20 | stress: 200 runs at N = 20 |
 |---|---|---|
-| ubuntu-local, x86-64 | all exact | 12 000 + 1 200 runs, all exact, no hang |
-| Jetson, aarch64 | all exact | 12 000 + 1 200 runs, all exact, no hang |
+| x86_64 host | all exact | 12 000 + 1 200 runs, all exact, no hang |
+| ARM64 host, aarch64 | all exact | 12 000 + 1 200 runs, all exact, no hang |
 
 Matmul (`fj/matmul.t1` with n = 600: 216 M multiply-adds, plus a serial fill and checksum), wall
 ms, the best of 3:
 
 | host | serial | N=1 | 2 | 4 | 8 | 12/16 | 20 |
 |---|---|---|---|---|---|---|---|
-| ubuntu-local, 20 cores, load 30 to 85 (shared) | 2646 | 2670 | 1390 | 1127 | 652 | 565 (16) | 527 |
-| Jetson, 12 cores, load 2 to 4 | 2428 | 2463 | 1259 | 652 | 349 | 334 (12) | 273 |
+| x86_64 host, 20 cores, load 30 to 85 (shared) | 2646 | 2670 | 1390 | 1127 | 652 | 565 (16) | 527 |
+| ARM64 host, 12 cores, load 2 to 4 | 2428 | 2463 | 1259 | 652 | 349 | 334 (12) | 273 |
 
-With n = 300, ubuntu (load about 95): serial 330, N=0 322, N=1 305, N=2 176, N=8 91, N=20 78.
-Jetson: 307, 303, 308, 154, 46, 47 (N=12). The fork-join image run serially (N=0) is no slower
+With n = 300, x86_64 host (load about 95): serial 330, N=0 322, N=1 305, N=2 176, N=8 91, N=20 78.
+ARM64 host: 307, 303, 308, 154, 46, 47 (N=12). The fork-join image run serially (N=0) is no slower
 than the plain one.
 
 Stress: `FJ_NS=20 FJ_REPEAT=200`, each run under `timeout 60`, on both hosts. The 30 images
@@ -189,12 +189,12 @@ rt_wait's host calls go through rt_fj_sys and the worker is refused (kind 3): th
 
 ## Default on: the small-region threshold K (measured 2026-10-10)
 
-The cost of a region on threads is about 45 µs per thread on ubuntu-local (20 cores, load 10–30) and 27 µs on
-the Jetson (12 cores): clone, the state copy, the slice scan and re-zeroing. The cheapest body there is (one
+The cost of a region on threads is about 45 µs per thread on the x86_64 host (20 cores, load 10–30) and 27 µs on
+the ARM64 host (12 cores): clone, the state copy, the slice scan and re-zeroing. The cheapest body there is (one
 store) costs about 20 / 11 ns an index, so a thread pays for itself from a few thousand indices: K = 8192.
 200 regions of n indices, trivial body, wall ms, best of 7 — before (serial) → after (the default):
 
-| n | ubuntu | Jetson |
+| n | x86_64 host | ARM64 host |
 |---|---|---|
 | 64 | 3 → 5 | 1 → 1 |
 | 1,024 | 7 → 8 | 3 → 3 |
@@ -204,8 +204,8 @@ store) costs about 20 / 11 ns an index, so a thread pays for itself from a few t
 
 (K = 0, every region on all CPUs: 189 / 65 ms at n = 64 — that is what the threshold prevents.) The small
 regions' 1–2 ms is per process (the fork-join image), not per region. Large regions: matmul 300 (90,000
-indices) 447 → 96 ms on ubuntu, 382 → 64 ms on the Jetson (K = 4096 would give 86 / 55, but makes a trivial
-65,536-index region 184 ms on ubuntu; K = 16384, 134 / 81).
+indices) 447 → 96 ms on the x86_64 host, 382 → 64 ms on the ARM64 host (K = 4096 would give 86 / 55, but makes a trivial
+65,536-index region 184 ms on the x86_64 host; K = 16384, 134 / 81).
 
 **The gate.** tools/selfcheck/run.sh runs every region program (`fj_*`, `*region*`) on SC_FJ_THREADS (8)
 threads with the threshold off, and `fj_threads_lowest_chunk` (8f's m1) pins 882; every other program runs

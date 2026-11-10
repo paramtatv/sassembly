@@ -24,13 +24,13 @@
 #
 # ROUTES PER HOST, measured 2026-10-09 with the compiler at 3e245f49 (sieve: t1-build's image
 # a6b8467a… on every host, equal to the yantra route's; t1-run prints 1270607 as yantra-run):
-#   ubuntu-local  x86_64-linux   builds everything: Stage 1 and the translator by t1_image
+#   x86_64 host   x86_64-linux   builds everything: Stage 1 and the translator by t1_image
 #                                (cold, end to end: 2,423 s), the native translator by the
 #                                .t1 translator under yantra-run; then all native.
-#   Jetson        aarch64-linux  cache seeded from ubuntu (Stage 1, translator ELF); the native
+#   ARM64 Linux   aarch64-linux  cache seeded from the x86_64 host (Stage 1, translator ELF); the native
 #                                translator made by yantra-run built there from 3e245f49 (the
 #                                older ones there predate W-381); build 13 s cold, then native.
-#   Mac mini      aarch64-macos  as the Jetson (yantra-run built in ~/sansos-work, cache under
+#   ARM64 Mac     aarch64-macos  as the ARM64 Linux host (yantra-run built in ~/sansos-work, cache under
 #                                ~/sansos-work by SASSEMBLY_NATIVE_CACHE); build 33 s cold.
 #   Intel Mac     x86_64-macos   no cargo, no yantra-run: cache seeded, the native translator
 #                                made by anuvada.py; build 8 s cold. t1-run's fallbacks name

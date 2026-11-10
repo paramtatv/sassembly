@@ -20902,7 +20902,7 @@ def macho(A, frame_size, tbase, page, cpu, cpusub, flags, pagezero, uuid):
             + struct.pack("<II", 0x1B, 24) + uuid
             + struct.pack("<IIQQ", 0x80000028, 24, A.labels["rt_start"] - tbase, 0)
             # an empty LC_SYMTAB and an all-zero LC_DYSYMTAB: macOS 15's dyld walks classic
-            # relocations through LC_DYSYMTAB and faults without it (macmini1, 15.4.1);
+            # relocations through LC_DYSYMTAB and faults without it (macOS 15.4.1, ARM64);
             # LC_DYSYMTAB without LC_SYMTAB is refused by name
             + struct.pack("<IIIIII", 0x2, 24, tsize, 0, tsize, 0)
             + struct.pack("<II18I", 0xB, 80, *([0] * 18))

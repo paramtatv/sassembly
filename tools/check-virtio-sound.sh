@@ -222,7 +222,7 @@ run() {  # $1 = elf, $2 = cleaned output, $3 = wav path, $4 = extra device args
     # drops what has not played yet. A driver that STOPs on the last return
     # therefore passed or failed by host speed: measured 2026-10-06, the same
     # ELF kept 4096 samples on the Mac (QEMU 11.0.3) and 3852-3880 on
-    # ubuntu-local (QEMU 10.1.0), and BOTH kept ~2160-2192 at 1 ms. At 1 ms
+    # an x86_64 host (QEMU 10.1.0), and BOTH kept ~2160-2192 at 1 ms. At 1 ms
     # that driver fails on every host; one that waits for play-out (section
     # 14क of virtio-sound.sas) keeps all 4096 on both, at 1 ms, 10 ms, 100 ms
     # and under -icount. Nothing below is loosened.

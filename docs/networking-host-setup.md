@@ -19,8 +19,8 @@ and no flag. The replay matches the live run in output, instruction count and th
 
 | Platform | `--net-peer` | TAP (via `tools/tap-bridge.py`) | Tested |
 |---|---|---|---|
-| Linux x86_64, aarch64, riscv64 | yes | yes (`/dev/net/tun`) | ubuntu-local, 2026-10-07: full suite, TAP probe once |
-| macOS aarch64 | yes | refused by name: vmnet needs the `com.apple.vm.networking` entitlement or root | macmini1, 2026-10-09, at ec30af31 plus the `net_t1.rs` socket-path fix: `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4, `net_t1` 16/16 with `--include-ignored`, UDP and DNS pairs included |
+| Linux x86_64, aarch64, riscv64 | yes | yes (`/dev/net/tun`) | x86_64 Linux host, 2026-10-07: full suite, TAP probe once |
+| macOS aarch64 | yes | refused by name: vmnet needs the `com.apple.vm.networking` entitlement or root | ARM64 macOS host, 2026-10-09, at ec30af31 plus the `net_t1.rs` socket-path fix: `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4, `net_t1` 16/16 with `--include-ignored`, UDP and DNS pairs included |
 | macOS x86_64 | yes (same code as aarch64) | refused, as above | not run |
 | Windows | refused by name: std has no server side for a named pipe | refused by name: needs the Wintun driver and administrator rights | refusal paths compile by `cfg` only |
 | Browser (`yantra-wasm`) | absent (no backends) | absent | see "Not in the alpha" |

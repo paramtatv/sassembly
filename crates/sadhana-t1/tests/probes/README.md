@@ -194,7 +194,7 @@ it by ancestry over a single candidate.
 > form of this citation and the reason the two hashes are written out here.
 >
 > `db1ed3c8` — the other fast-tier commit — was separately verified on a SECOND
-> HOST by sansos-39 (Ubuntu, detached worktrees, host `t1_image` from
+> HOST by sansos-39 (Linux x86_64, detached worktrees, host `t1_image` from
 > `34c9712a`): fit240 = **350,519,525**, equal to the Mac to the instruction.
 > That is T-102's host-independence tested rather than assumed, on a different
 > OS, libc and binary format.
@@ -239,7 +239,7 @@ before the run — that the exponent *changes* there (sansos-e0) and that it is
 
 ### SETTLED 2026-10-02 — the exponent CHANGES across that one commit
 
-Run by sansos-39 on Ubuntu, host `t1_image` from `34c9712a`, every build showing
+Run by sansos-39 on a Linux x86_64 host, host `t1_image` from `34c9712a`, every build showing
 exactly one `steps:` line with the per-leg `rev-parse` guard green. Recomputed
 independently here from their raw counts:
 

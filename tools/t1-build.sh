@@ -29,7 +29,7 @@
 # sources, never a host binary: a cache seeded from another host is still never stale).
 # A missing Stage 1 (a new compiler key) is made NATIVELY from a trusted earlier image: P(corpus) = A,
 # A(corpus) = B, B(corpus) = C, B == C, in seconds; t1_image's cold 25-70 minutes (2,423 s measured on
-# ubuntu-local) only with T1_BUILD_COLD=1. A missing translation, seconds.
+# x86_64 Linux host) only with T1_BUILD_COLD=1. A missing translation, seconds.
 #
 # Stage 1 runs with YANTRA_INPUT = the packed sources and YANTRA_INPUT_ENTRY = "MODULE ROUTINE";
 # its sink's ELF is cut out exactly as tools/fixpoint.sh does; any status but 1200 is refused.

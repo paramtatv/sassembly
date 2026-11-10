@@ -1,6 +1,6 @@
 # W-359 red-first: every w359_* probe on the tree BEFORE the change (89bfe15b, origin/main),
 # compiled by that tree's .t1 compiler in the interpreter (CHAIN) and run on yantra; 2026-10-04,
-# ubuntu-local, release. Every probe the change refuses ANSWERED here; dropped diverged (1 vs 0).
+# Linux x86_64 host, release. Every probe the change refuses ANSWERED here; dropped diverged (1 vs 0).
 # After the change: crates/yantra/tests/w359_param_growth.rs.
 tag	probe	interpreted	native
 BASE	w359_past_end	Int(7)	Finisher { value: 471859, status: Some(7) }
