@@ -12,7 +12,7 @@
 # right, objdump agreed with the table and with the machine, and the arithmetic
 # was still wrong.
 #
-# `crates/sadhana-t1/tests/t1_exec_encode.rs`'s
+# `t1_exec_encode.rs` (retired 2026-10-27, C1c; it carried the V-003 case)
 # `every_float_case_the_oracle_carries_encodes_to_the_word_the_oracle_gives`
 # (`V-003`) closes the encode side for the `.t1` port — 432 cases, 62 families, 0
 # disagreements against `riscv64-elf-as`. That is also about encoding.
@@ -122,7 +122,7 @@ if ! command -v qemu-system-riscv64 >/dev/null; then
 fi
 
 elf=$tmp/float-oracle.elf
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
   "$root/oracle/float-oracle.sas" "$elf" >/dev/null
 
 # ── yantra ──────────────────────────────────────────────────────────────────
@@ -133,11 +133,11 @@ cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
 # executed almost nothing. The `|| true` below stays deliberate — this script
 # wants to READ the log on a failure rather than abort at it under `set -e`. `0x5555` (21845) is the only success sentinel (`yantra/src/lib.rs:310`);
 # `0x3333 | (n<<16)` is failure with status n.
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p yantra --bin yantra-run -- \
+bash "$root/tools/t1-run.sh" \
   "$elf" >/dev/null 2>"$tmp/yantra.log" || true
-if ! grep -q 'value: 21845' "$tmp/yantra.log"; then
+if ! grep -a -q 'value: 21845' "$tmp/yantra.log"; then
   echo "FAIL: yantra did not reach the success sentinel" >&2
-  grep -E 'halt:|steps:' "$tmp/yantra.log" >&2 || cat "$tmp/yantra.log" >&2
+  grep -a -E 'halt:|steps:' "$tmp/yantra.log" >&2 || cat "$tmp/yantra.log" >&2
   # NAME THE GROUP RATHER THAN LEAVE IT TO BE BISECTED. `yantra-run` prints
   # `status: Some(n)` for a finisher halt, and the program's five failure
   # labels write 0x3333 | (n << 16) — 0x13333 through 0x53333. An
@@ -194,7 +194,7 @@ if wait "$qpid"; then
   echo "      15-19 rounding     1/3 in both widths, the 1.5/2.5 tie, 2^31"
   echo "      20-27 special      +inf, THE canonical NaN, -0.0, fcvt.w.d(NaN)"
   echo "    NOT COVERED: fflags and a non-default frm — this program reads neither"
-  echo "    (yantra has 0x001/0x002/0x003 since V-009 (i-d): v009d_hardware_agreement.rs)"
+  echo "    (yantra has 0x001/0x002/0x003 since V-009 (i-d); native pins: agg-yantra census-map)"
   echo "    yantra: halt 0x5555 in ${steps:-?} executed instructions"
   echo "    qemu:   exit 0 (the program's own finisher write decides)"
 else

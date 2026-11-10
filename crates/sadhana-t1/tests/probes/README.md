@@ -9,7 +9,7 @@ files directly in `tests/`, so no `.rs` here becomes a target — checked with
 > "everything in this subdirectory is inert". That is true of **cargo's target
 > discovery** and false of the tree, and the gap is the whole difference between
 > a `.rs` file and a `.t1` one. **The 31 `.t1` files this directory HELD WERE
-> corpus input** (25 from `096f46e9`, mine; 6 from `22eedbc3`, a peer session's). Eleven instruments recurse `crates/` collecting every path
+> corpus input** (25 from `096f46e9`, mine; 6 from `22eedbc3`, sansos-1e's). Eleven instruments recurse `crates/` collecting every path
 > whose extension is `t1` — among them `t1_modules.rs:42`
 > (`every_t1_source()`, which feeds the frozen-keyword guard and the
 > lexer-refusal ratchet), `t1_sources.rs:4466`, `t1_unreached_modules.rs:70`,
@@ -20,7 +20,7 @@ files directly in `tests/`, so no `.rs` here becomes a target — checked with
 > excludes this directory** — the single `probes` string in `t1_sources.rs` is
 > the unrelated phrase "the four acceptance probes".
 >
-> So `crates/` held 21 corpus sources plus 5 in `textapp/src/text/` when those
+> So `crates/` held 21 corpus sources plus 5 in `sankriti/src/text/` when those
 > walks were written, and holds **57 `.t1` files** now. All 31 files here declare
 > a module (`मण्डलम्`), so each enters those walks as a module-declaring source.
 > The lexer-refusal ratchet's own margin reads *"every removal is progress and
@@ -32,7 +32,7 @@ files directly in `tests/`, so no `.rs` here becomes a target — checked with
 
 ## Why this directory exists
 
-Rows W-356, W-357 and W-359 cited `/path/to/w359/`, `/path/to/w356-probe/`
+Rows W-356, W-357 and W-359 cited `/Users/pkpro/w359/`, `/Users/pkpro/w356-probe/`
 and a worktree that was removed the same evening. A row whose falsifier cannot be
 run is a row nobody can refute.
 
@@ -107,7 +107,7 @@ successors, run by `crates/yantra/tests/w359_param_growth.rs`:
 | `w359_past_end.t1probe` | non-returning callee writes index ५ of a run of १ | refused |
 | `w359_fresh_param.t1probe` | the same into a fresh (nil) run, index ० | refused |
 | `w359_within.t1probe` | caller sized the run to ६; index ५ | १०५ |
-| `w359_kosha_shape.t1probe` | the archive project `kosha.t1:106` — index १९ of a run of १५ | refused |
+| `w359_kosha_shape.t1probe` | Darśana `kosha.t1:106` — index १९ of a run of १५ | refused |
 | `w359_dropped.t1probe` | a grow-and-return call as a bare statement | refused at load / typecheck |
 | `w359_bound_elsewhere.t1probe` | the grown run bound to ANOTHER name | refused at load / typecheck |
 | `w359_bound.t1probe` | the grown run assigned back to its own name, twice | २ |
@@ -186,7 +186,7 @@ it by ancestry over a single candidate.
 >     spec                    254ca0802a90628ff2451f1edcff11ddfd201844   (both)
 >
 > So **350,519,225 above is reproducible at `b8ba2717`** with no offset and no
-> caveat. Found by a peer session, whose SCALING.md provenance line cited the same
+> caveat. Found by sansos-4b, whose SCALING.md provenance line cited the same
 > dead commit and so handed every figure in that document an unobtainable tree.
 >
 > **CITE A SUBTREE HASH BESIDE A COMMIT.** A subtree hash is content-addressed and
@@ -194,13 +194,13 @@ it by ancestry over a single candidate.
 > form of this citation and the reason the two hashes are written out here.
 >
 > `db1ed3c8` — the other fast-tier commit — was separately verified on a SECOND
-> HOST by a peer session (Ubuntu, detached worktrees, host `t1_image` from
+> HOST by sansos-39 (Ubuntu, detached worktrees, host `t1_image` from
 > `34c9712a`): fit240 = **350,519,525**, equal to the Mac to the instruction.
 > That is T-102's host-independence tested rather than assumed, on a different
 > OS, libc and binary format.
 >
 > **A ZSH TRAP THAT PRODUCES A CONFIDENT FALSE NEGATIVE**, worth copying because
-> it cost a peer session two wrong answers: `"$c:crates/sadhana-t1/src"` has `:c` eaten
+> it cost sansos-4b two wrong answers: `"$c:crates/sadhana-t1/src"` has `:c` eaten
 > as a HISTORY MODIFIER, so a sweep comparing subtrees silently compares garbage
 > and reports "no match in all 3,080 commits". **Brace the ref:
 > `"${c}:crates/..."`.** The broken instrument did not fail — it produced the more
@@ -234,12 +234,12 @@ never received the speedup".
 
 The experiment that settles it, four builds: **`fit600.t1probe` and `fit1200.t1probe` at
 `e22a87a3` (= `3d905c37^`) and at `3d905c37`.** Two predictions are registered
-before the run — that the exponent *changes* there (a peer session) and that it is
-*unchanged* with only the constant moving (a peer session). One of them dies.
+before the run — that the exponent *changes* there (sansos-e0) and that it is
+*unchanged* with only the constant moving (sansos-39). One of them dies.
 
 ### SETTLED 2026-10-02 — the exponent CHANGES across that one commit
 
-Run by a peer session on Ubuntu, host `t1_image` from `34c9712a`, every build showing
+Run by sansos-39 on Ubuntu, host `t1_image` from `34c9712a`, every build showing
 exactly one `steps:` line with the per-leg `rev-parse` guard green. Recomputed
 independently here from their raw counts:
 
@@ -249,7 +249,7 @@ independently here from their raw counts:
     ratio             3.669x         5.323x          9.708x
 
 **So 3d905c37 did not add a constant — it introduced the SUPERLINEARITY.**
-a peer session predicted a constant-only move and withdrew it on this data; the
+sansos-39 predicted a constant-only move and withdrew it on this data; the
 prediction that survived was that the exponent changes. Fitting log(ratio)
 against log(N) over those three points gives `ratio ≈ e^-2.009 · N^0.594`, which
 predicts **13.11x at N = 2,234** against **13.2x measured** on W-361's own input
@@ -299,7 +299,7 @@ probes paid for themselves after being nearly lost to session scratch.
 refusal and an empty image — because this commit's per-site image growth pushed
 the compiler's own size ceiling from above 11,017 lines to below 10,346. A
 restored ceiling is a pass/fail with no figure to argue about, and it is
-independent of both the n^1.3→n^1.9 exponent and the GPU-driver project's `seema.t1` staying at
+independent of both the n^1.3→n^1.9 exponent and Uru's `seema.t1` staying at
 ~165 M executed.
 
 ## `bisect.tsv` is the record of an ERROR, not data
@@ -309,10 +309,10 @@ carried the speedup; `046718da` read **identically to its parent**, which was
 misread as innocence. A bisect whose legs do not differ is measuring its fork
 point. Kept so the mistake stays visible.
 
-## W-355 / W-359 probes from a peer session (added 2026-10-02)
+## W-355 / W-359 probes from sansos-1e (added 2026-10-02)
 
 `w355_len.t1probe`, `w355_read.t1probe`, `w359_two_levels.t1probe`, `w359_grow127/128/129.t1`, with
 both-engine results in `w355_w359_results.tsv`. W-355's previous citation
-(`/path/to/scratch/probe0/`) no longer
+(`/Users/pkpro/sansos/uru/.claude/worktrees/uru-bound/.scratch/probe0/`) no longer
 exists; the worktree was removed. These are those probes recreated from their exact
 sources and RE-MEASURED on 096f46e9, not copied results.

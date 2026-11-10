@@ -1,4 +1,6 @@
 #!/bin/bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # check-sanskriti-programs.sh — W-121
 # Tests the extracted program logic (classOf and APP_LOAD) for the VSCode extension.
 

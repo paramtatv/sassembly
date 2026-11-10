@@ -67,7 +67,7 @@ for machine in "०षोड्८०२००००० 0x80200000" "०षो�
   at=$1
   at_hex=$2
 
-  cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+  "$root/tools/sadhana-native.sh" \
     --स्थान "$at" "$root/spec/paging.sas" "$tmp/paging.elf" >/dev/null
 
   # Where the image reserves its buffer, read out of the file by a tool that
@@ -119,10 +119,10 @@ for machine in "०षोड्८०२००००० 0x80200000" "०षो�
     continue
   fi
 
-  want_satp=$(python3 -c "print('%016x' % ((8 << 60) | (int('$table',16) >> 12)))")
-  want_entry=$(python3 -c "print('%016x' % (((int('$table',16) >> 30) << 28) | 0xcf))")
-  aligned=$(python3 -c "print(int('$table',16) % 4096)")
-  inside=$(python3 -c "t=int('$table',16); b=int('$bss_addr',16); print(int(b <= t and t + 4096 <= b + int('$bss_size',16)))")
+  want_satp=$(printf '%016x' $(( (8 << 60) | (0x$table >> 12) )))
+  want_entry=$(printf '%016x' $(( ((0x$table >> 30) << 28) | 0xcf )))
+  aligned=$((0x$table % 4096))
+  if [ $((0x$bss_addr)) -le $((0x$table)) ] && [ $((0x$table + 4096)) -le $((0x$bss_addr + 0x$bss_size)) ]; then inside=1; else inside=0; fi
 
   if [ "$aligned" != "0" ]; then
     echo "  FAIL  the table is at $table, which is not page-aligned — satp keeps a page number and the low bits are lost"

@@ -41,7 +41,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
 
 # Two load addresses, in the Devanagari numerals the flag takes.
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$2" "$root/spec/higher-half.sas" "$tmp/hh.elf" >/dev/null
     # Bounded by an explicit kill, NOT by perl's alarm.
     #
@@ -71,6 +71,24 @@ run_at() {
     tail -1 "$tmp/out" | tr -d ' \r'
 }
 
+# hexdiff A B: prints hex(A - B) as Python does (-0x... when negative) for two plain hex numbers of at most 16 digits
+# (optional 0x prefix); prints nothing (rc 1) otherwise. Works on 32-bit halves so the full 64-bit range stays exact.
+hexdiff() {
+    set -- "${1#0[xX]}" "${2#0[xX]}"
+    case "$1$2" in ''|*[!0-9a-fA-F]*) return 1 ;; esac
+    [ -n "$1" ] && [ -n "$2" ] && [ "${#1}" -le 16 ] && [ "${#2}" -le 16 ] || return 1
+    if [ "${#1}" -gt 8 ]; then _ah=${1%????????}; _al=${1#"$_ah"}; else _ah=0; _al=$1; fi
+    if [ "${#2}" -gt 8 ]; then _bh=${2%????????}; _bl=${2#"$_bh"}; else _bh=0; _bl=$2; fi
+    _ah=$((0x$_ah)); _al=$((0x$_al)); _bh=$((0x$_bh)); _bl=$((0x$_bl))
+    _sg=
+    if [ "$_ah" -lt "$_bh" ] || { [ "$_ah" -eq "$_bh" ] && [ "$_al" -lt "$_bl" ]; }; then
+        _sg=-; _t=$_ah; _ah=$_bh; _bh=$_t; _t=$_al; _al=$_bl; _bl=$_t
+    fi
+    _mh=$((_ah - _bh)); _ml=$((_al - _bl))
+    if [ "$_ml" -lt 0 ]; then _ml=$((_ml + 4294967296)); _mh=$((_mh - 1)); fi
+    if [ "$_mh" -gt 0 ]; then printf '%s0x%x%08x\n' "$_sg" "$_mh" "$_ml"; else printf '%s0x%x\n' "$_sg" "$_ml"; fi
+}
+
 pc1=$(run_at 0x80200000 ०षोड्८०२००००० )
 pc2=$(run_at 0x80400000 ०षोड्८०४००००० )
 
@@ -92,7 +110,7 @@ if [ "$fail" -eq 0 ]; then
         echo "  FAIL  both runs printed $pc1 — the address is a constant, not a computation"
         fail=1
     else
-        gap=$(python3 -c "print(hex(int('$pc2',16)-int('$pc1',16)))")
+        gap=$(hexdiff "$pc2" "$pc1")
         if [ "$gap" != "0x200000" ]; then
             echo "  FAIL  the PCs differ by $gap; the load addresses differ by 0x200000"
             fail=1

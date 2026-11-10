@@ -37,7 +37,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/trap.sas" "$tmp/trap.elf" >/dev/null
     # Bounded by an explicit SIGKILL, not perl's alarm: QEMU handles SIGALRM
     # (its own timer subsystem) and survives it — see W-060. A program whose

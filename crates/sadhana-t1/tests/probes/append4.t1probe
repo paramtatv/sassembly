@@ -1,6 +1,6 @@
 मण्डलम् वृद्धिहानि४ ॥
 
-॰ A peer session's minimal reproduction, swept over N. Declare EMPTY, append N
+॰ sansos-4b's minimal reproduction, swept over N. Declare EMPTY, append N
 ॰ values in a loop, read back the LAST. If native answers ० where the
 ॰ interpreter answers the value, appends are losing writes.
 सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि

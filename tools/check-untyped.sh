@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"  # the verdict function below uses bash arithmetic and arrays
 # Untyped retype — task `C-002b`, doc 11 §3.1, phase 11.2.2.
 #
 # The nucleus never allocates. A process donates its own `अव्यक्तम्` and objects
@@ -32,7 +33,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/untyped.sas" "$tmp/u.elf" >/dev/null
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$tmp/u.elf" > "$tmp/out" 2>&1 &
@@ -47,6 +48,52 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -13
 }
 
+# verdict_untyped FILE: 13 hex lines (base, then verdict+address per request); diagnostics on stdout, rc 1 on failure.
+verdict_untyped() {
+    local v=() l i=0 K=1024 REGION=4096 M=$((1<<63)) base rest n g vd a ok bad=() asked want_ok granted_i=() granted_g=()
+    while IFS= read -r l || [ -n "$l" ]; do
+        [ -n "${l//[[:space:]]/}" ] || continue
+        v[i]=$((16#${l//[[:space:]]/})); i=$((i+1))
+    done < "$1"
+    base=${v[0]}
+    asked=($K $K $K $((2*K)) $K 8); want_ok=(1 1 1 0 1 0)
+    if [ $((base & (REGION-1))) -ne 0 ]; then
+        bad+=("$(printf 'the region base %016x is not %d-aligned' "$base" $REGION)")
+    fi
+    for i in 0 1 2 3 4 5; do
+        vd=${v[$((1+2*i))]}; g=${v[$((2+2*i))]}; ok=${want_ok[i]}; a=${asked[i]}
+        if [ "$ok" = 1 ] && [ "$vd" -ne 1 ]; then
+            bad+=("request $i for $a octets fits in the region and was REFUSED — nothing could ever be created")
+        fi
+        if [ "$ok" = 0 ] && [ "$vd" -ne 0 ]; then
+            bad+=("$(printf 'request %d for %d octets does not fit and was GRANTED at %016x. If it was trimmed, the caller will write %d octets over whatever follows and nothing will have said so' "$i" "$a" "$g" "$a")")
+        fi
+        if [ "$vd" -eq 0 ] && [ "$g" -ne 0 ]; then
+            bad+=("$(printf 'request %d was refused but returned %016x — a refusal must carry no address' "$i" "$g")")
+        fi
+        if [ "$vd" -eq 1 ]; then granted_i+=("$i"); granted_g+=("$g"); fi
+    done
+    n=0
+    for i in "${!granted_g[@]}"; do
+        g=${granted_g[i]}
+        if ! { [ $((base ^ M)) -le $((g ^ M)) ] && [ $((g ^ M)) -lt $(((base+REGION) ^ M)) ]; }; then
+            bad+=("$(printf 'object %d at %016x is outside the donated region %016x..%016x — it was never given that memory' "${granted_i[i]}" "$g" "$base" $((base+REGION)))")
+        fi
+        if [ "$g" -ne $((base + n*K)) ]; then
+            bad+=("$(printf 'object %d is at %016x, expected %016x — the objects are not laid end to end, so two of them share octets' "${granted_i[i]}" "$g" $((base+n*K)))")
+        fi
+        n=$((n+1))
+    done
+    if [ "${#granted_g[@]}" -ge 4 ]; then
+        g=${granted_g[3]}
+        if [ "$g" -ne $((base + 3*K)) ]; then
+            bad+=("$(printf 'after the refused %d-octet request the next object landed at %016x, not %016x — the DENIAL MOVED THE WATERMARK, so the region shrinks on every refusal and no count ever looks wrong' $((2*K)) "$g" $((base+3*K)))")
+        fi
+    fi
+    if [ "${#bad[@]}" -gt 0 ]; then printf '%s\n' "${bad[@]}"; return 1; fi
+    printf 'region %016x: four objects laid end to end, two requests refused with no address, and the refusal cost nothing — the next object resumed at %016x\n' "$base" $((base+3*K))
+}
+
 fail=0; prev_base=""
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l"
@@ -56,54 +103,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         echo "        a verdict and an address for each of six requests)"
         fail=1; continue
     fi
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-base, rest = v[0], v[1:]
-pairs = [(rest[i], rest[i+1]) for i in range(0, 12, 2)]
-K, REGION = 1024, 4096
-asked = [K, K, K, 2 * K, K, 8]
-want_ok = [True, True, True, False, True, False]
-bad = []
-
-if base % REGION:
-    bad.append(f"the region base {base:016x} is not {REGION}-aligned")
-
-for i, ((verdict, got), ok, a) in enumerate(zip(pairs, want_ok, asked)):
-    if ok and verdict != 1:
-        bad.append(f"request {i} for {a} octets fits in the region and was REFUSED — "
-                   "nothing could ever be created")
-    if not ok and verdict != 0:
-        bad.append(f"request {i} for {a} octets does not fit and was GRANTED at "
-                   f"{got:016x}. If it was trimmed, the caller will write {a} octets "
-                   "over whatever follows and nothing will have said so")
-    if verdict == 0 and got != 0:
-        bad.append(f"request {i} was refused but returned {got:016x} — a refusal must "
-                   "carry no address")
-
-granted = [(i, g) for i, ((vd, g), ok) in enumerate(zip(pairs, want_ok)) if vd == 1]
-for n, (i, g) in enumerate(granted):
-    if not (base <= g < base + REGION):
-        bad.append(f"object {i} at {g:016x} is outside the donated region "
-                   f"{base:016x}..{base+REGION:016x} — it was never given that memory")
-    if g != base + n * K:
-        bad.append(f"object {i} is at {g:016x}, expected {base + n*K:016x} — the "
-                   "objects are not laid end to end, so two of them share octets")
-
-# The quiet property: the refusal at index 3 must have cost nothing.
-if len(granted) >= 4:
-    after = granted[3][1]
-    if after != base + 3 * K:
-        bad.append(f"after the refused {2*K}-octet request the next object landed at "
-                   f"{after:016x}, not {base + 3*K:016x} — the DENIAL MOVED THE "
-                   "WATERMARK, so the region shrinks on every refusal and no count "
-                   "ever looks wrong")
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"region {base:016x}: four objects laid end to end, two requests refused with "
-      f"no address, and the refusal cost nothing — the next object resumed at "
-      f"{base + 3*K:016x}")
-PY
+    if ! verdict_untyped "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
     b=$(sed -n 1p "$tmp/l")

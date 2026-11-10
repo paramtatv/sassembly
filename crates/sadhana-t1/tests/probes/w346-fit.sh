@@ -24,33 +24,36 @@
 set -u
 R=${1:?repo root}; O=${2:?out dir}; mkdir -p "$O"
 H="$R/target/release/t1_image"
-gen() { # gen <shape one|split> <N> <file>
-python3 - "$1" "$2" "$3" <<'PY'
-import sys
-DEV="०१२३४५६७८९"
-def dev(n): return "".join(DEV[int(c)] for c in str(n))
-shape, N, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
-def sites(lo, hi):
-    return [f"    सूची अङ्कः {dev(i)} अन्तः भवति {dev(i*7%997)} ।" for i in range(lo, hi+1)]
-if shape == "one":   # byte-identical to w356-fit.sh's generator (fit240.t1probe)
-    L=[f"मण्डलम् बहुमूल्य{dev(N)} ॥","","सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि",
-       "    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।"]
-    L+=sites(1,N)
-    L+=["","    प्रत्यागमनम् ० ।","इति",""]
-else:                # split: the same N sites, 600 per function, each called once
-    K=N//600
-    L=[f"मण्डलम् बहुमूल्यखण्ड{dev(N)} ॥",""]
-    for k in range(1,K+1):
-        L+=[f"वृत्तिः खण्ड{dev(k)} आदाय क न६४ ददाति न६४ आदि",
-            "    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति क ।"]
-        L+=sites(1,600)
-        L+=["    प्रत्यागमनम् ० ।","इति",""]
-    L+=["सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि"]
-    for k in range(1,K+1):
-        L+=[f"    चरः र{dev(k)} न६४ भवति खण्ड{dev(k)} ० ।"]
-    L+=["    प्रत्यागमनम् ० ।","इति",""]
-open(out,"w").write("\n".join(L))
-PY
+gen() { # gen <shape one|split> <N> <file>   (POSIX awk; was python3)
+  case $2 in ''|*[!0-9]*) echo "w346-fit: bad N '$2'" >&2; return 2;; esac
+  LC_ALL=C awk -v shape="$1" -v N="$2" 'BEGIN {
+    split("० १ २ ३ ४ ५ ६ ७ ८ ९", D, " ")
+    N += 0
+    if (shape == "one") {   # byte-identical to w356-fit.sh generator (fit240.t1probe)
+      print "मण्डलम् बहुमूल्य" dev(N) " ॥"; print ""
+      print "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि"
+      print "    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति ० ।"
+      sites(1, N)
+      print ""; print "    प्रत्यागमनम् ० ।"; print "इति"
+    } else {                # split: the same N sites, 600 per function, each called once
+      K = int(N / 600)
+      print "मण्डलम् बहुमूल्यखण्ड" dev(N) " ॥"; print ""
+      for (k = 1; k <= K; k++) {
+        print "वृत्तिः खण्ड" dev(k) " आदाय क न६४ ददाति न६४ आदि"
+        print "    चरः सूची ॱॱ अङ्कः अन्तः न६४ भवति क ।"
+        sites(1, 600)
+        print "    प्रत्यागमनम् ० ।"; print "इति"; print ""
+      }
+      print "सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि"
+      for (k = 1; k <= K; k++) print "    चरः र" dev(k) " न६४ भवति खण्ड" dev(k) " ० ।"
+      print "    प्रत्यागमनम् ० ।"; print "इति"
+    }
+  }
+  function dev(n,   s, r, i) { s = sprintf("%d", n); r = ""
+    for (i = 1; i <= length(s); i++) r = r D[substr(s, i, 1) + 1]
+    return r }
+  function sites(lo, hi,   i) {
+    for (i = lo; i <= hi; i++) print "    सूची अङ्कः " dev(i) " अन्तः भवति " dev(i * 7 % 997) " ।" }' > "$3"
 }
 run() { # run <shape> <N> [profile]
   local f="$O/$1$2.t1"; gen "$1" "$2" "$f"
@@ -61,7 +64,7 @@ run() { # run <shape> <N> [profile]
   local o; o=$(grep -oE '^write: *[0-9]+' "$O/$1$2${3:+-$3}.log" | grep -oE '[0-9]+')
   [ -n "$s" ] || { echo "GUARD: no step count for $1 $2 $3" >&2; return 9; }
   # A REFUSED build still prints steps (split 19,200 did: 7.2 G steps, a 65,704-octet
-  # image). Its row is kept for the record with octets NA; w346-fit.py drops it.
+  # image). Its row is kept for the record with octets NA; w346-check.sh drops it.
   grep -q '^build: *0 source(s) failed' "$O/$1$2${3:+-$3}.log" || o=NA
   echo -e "$1\t$2\t${3:-plain}\t$s\t${o:-NA}" >> "$O/w346.tsv"
 }
@@ -72,3 +75,5 @@ export -f gen run; export R O H
   for n in 2400 9600; do echo "one $n profile"; done
 } | xargs -P 13 -L 1 bash -c 'run "$@"' _
 sort -k1,1 -k3,3 -k2,2n "$O/w346.tsv"
+# Linearity verdict (native; exit 1 = RED): fits the rows just written.
+sh "$(dirname "$0")/w346-check.sh" "$O/w346.tsv"

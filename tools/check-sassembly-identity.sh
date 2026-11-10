@@ -44,7 +44,7 @@ cd "$root"
 # — literally true, since `bare-metal` prints nothing, and it reads as "the pipeline is
 # broken" when it means "this check has no expectation for what you asked". One message
 # for two causes sends the reader to the wrong fix (`W-069`, `C-002c`). Found by
-# a peer session, using the parameter as a mutation.
+# `sansos-67`, using the parameter as a mutation.
 PROGRAM=${1:-namaste}
 case "$PROGRAM" in
   namaste)    EXPECT_SUBSTRING="नमस्ते संसार" ;;
@@ -81,7 +81,7 @@ trap 'rm -f "$work"/* 2>/dev/null || true' EXIT
 # ---------------------------------------------------------------- 1. the bytes
 say() { printf '  %-34s %s\n' "$1" "$2"; }
 
-cargo run -q -p sadhana -- "spec/$PROGRAM.sas" "$work/direct.elf" >/dev/null 2>&1 || {
+"$root/tools/sadhana-native.sh" "spec/$PROGRAM.sas" "$work/direct.elf" >/dev/null 2>&1 || {
   echo "  FAIL  sadhana could not assemble spec/$PROGRAM.sas"; exit 1; }
 
 # ONE GATE RUN, ONE PAGE BUILD — the CONSUMING half. `check-sassembly-page.sh` builds
@@ -212,7 +212,13 @@ case "$qemu_out" in
 esac
 
 # ------------------------------------------------- 3. the SAME bytes, in the VM
-wasm=crates/yantra-wasm/target/wasm32-unknown-unknown/release/yantra_wasm.wasm
+wasm=${YANTRA_WASM:-}  # YANTRA_WASM: native module; unset, build it (tools/build-yantra-wasm.sh, no cargo)
+if [ -z "$wasm" ]; then
+  wasm=$work/yantra.wasm
+  rc=0; sh tools/build-yantra-wasm.sh "$wasm" >"$work/bw.log" 2>&1 || rc=$?
+  [ "$rc" -ne 77 ] || { echo "SKIPPED: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
+  [ "$rc" -eq 0 ] || { tail -5 "$work/bw.log"; echo "  FAIL  native yantra wasm build rc=$rc"; exit 1; }
+fi
 wasm_out=$(node -e '
   const fs = require("fs");
   (async () => {

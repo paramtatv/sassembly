@@ -1,7 +1,7 @@
 मण्डलम् ध्वनिशेषः ॥
 आयातः अष्टक ।
 
-॰ bench-langs: FLAC FIXED predictor order 2 (RFC 9639's order-2 arm), residual = x[i] - (2x[i-1] - x[i-2]) over N samples, triangle wave + 12-bit LCG noise (as ../c/flac.c). Argument: N. Prints the sum of |residual|.
+॰ bench-langs: FLAC FIXED predictor order 2 (RFC 9639; naad/kernel/nihshesha.t1's order-2 arm), residual = x[i] - (2x[i-1] - x[i-2]) over N samples, triangle wave + 12-bit LCG noise (as ../c/flac.c). Argument: N. Prints the sum of |residual|.
 
 सार्वजनिक चरः आदेशसङ्केतः ॱॱ न६४ भवति २४२८५२६६६०५९८२०३५ ।
 सार्वजनिक चरः आदेशपङ्क्तिः ॱॱ अङ्कः अन्तः अ८ भवति ० ।

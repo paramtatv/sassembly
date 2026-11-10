@@ -24,6 +24,7 @@ devanagari	gas	operands	status	meaning
 कोष्ठकम्	.section	1	live	switch to a section
 वैश्विकम्	.globl	1	live	the name is visible outside this object
 स्थानीयम्	.local	1	live	the name is not
+दुर्बलम्	.weak	1	live	the name is global but yields to a strong definition
 संरेखः	.balign	1	live	pad until the address divides by n
 अष्टकाः	.byte	1+	live	emit 8-bit values
 द्वयष्टकाः	.half	1+	live	emit 16-bit values

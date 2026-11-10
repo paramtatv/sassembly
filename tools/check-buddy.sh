@@ -38,7 +38,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/buddy.sas" "$tmp/b.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060).
     qemu-system-riscv64 -machine virt -nographic -bios default \
@@ -60,6 +60,27 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -17
 }
 
+buddy_oracle() { # BASEHEX LINESFILE ; prints verdict, rc 1 on any mismatch
+    _b_base=$((0x$1)); _b_bad=0
+    _b_set=$(sed 's/^[[:space:]]*//; s/[[:space:]]*$//' "$2" | grep -v '^$')
+    _b_i=0
+    while [ "$_b_i" -lt 8 ]; do
+        _b_k=$((12 + _b_i))
+        _b_gb=$((0x$(printf '%s\n' "$_b_set" | sed -n "$((2 + 2 * _b_i))p")))
+        _b_gk=$((0x$(printf '%s\n' "$_b_set" | sed -n "$((3 + 2 * _b_i))p")))
+        _b_want=$((_b_base ^ (1 << _b_k)))
+        if [ "$_b_gb" -ne "$_b_want" ]; then
+            printf 'order %d: buddy is %016x, the identity gives %016x\n' "$_b_k" "$_b_gb" "$_b_want"; _b_bad=1
+        fi
+        if [ "$_b_gk" -ne "$_b_base" ]; then
+            printf 'order %d: buddy of buddy is %016x, not the base %016x — that is addition, not exclusive or\n' "$_b_k" "$_b_gk" "$_b_base"; _b_bad=1
+        fi
+        _b_i=$((_b_i + 1))
+    done
+    [ "$_b_bad" -eq 0 ] || return 1
+    printf 'base %016x, eight orders, buddy and buddy-of-buddy both agree\n' "$_b_base"
+}
+
 fail=0
 prev_base=""
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
@@ -76,24 +97,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
     # The lines go in as an ARGUMENT, not on stdin: the heredoc below is
     # already stdin, and a second redirection silently wins, so the script
     # reads itself and every index is out of range.
-    if ! python3 - "$base" "$tmp/lines" > "$tmp/verdict" <<'PY'
-import sys
-base = int(sys.argv[1], 16)
-lines = [l.strip() for l in open(sys.argv[2]) if l.strip()]
-bad = []
-for i, k in enumerate(range(12, 20)):
-    got_buddy = int(lines[1 + 2 * i], 16)
-    got_back  = int(lines[2 + 2 * i], 16)
-    want = base ^ (1 << k)
-    if got_buddy != want:
-        bad.append(f"order {k}: buddy is {got_buddy:016x}, the identity gives {want:016x}")
-    if got_back != base:
-        bad.append(f"order {k}: buddy of buddy is {got_back:016x}, not the base {base:016x} "
-                   "— that is addition, not exclusive or")
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"base {base:016x}, eight orders, buddy and buddy-of-buddy both agree")
-PY
+    if ! buddy_oracle "$base" "$tmp/lines" > "$tmp/verdict"
     then
         sed 's/^/  FAIL  /' "$tmp/verdict"
         fail=1; continue

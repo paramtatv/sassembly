@@ -9,7 +9,7 @@ outside world is the host's choice, made with one flag after `--record-events <l
 | Path | Flag | Privilege | What it reaches |
 |---|---|---|---|
 | Program to program | `--net-peer=PATH` | none | another `yantra-run` started with the same PATH |
-| TAP | `--net-tap=IFNAME` | an interface made beforehand (root once), or `CAP_NET_ADMIN` | the host's network, through bridging or routing the operator sets up |
+| TAP | `--net-peer=PATH` + `tools/tap-bridge.py IFNAME PATH` (`--net-tap` is refused) | an interface made beforehand (root once), or `CAP_NET_ADMIN` | the host's network, through bridging or routing the operator sets up |
 | QEMU user-mode | (QEMU's `-netdev user`) | none | the demo gateway 10.0.2.2 and DNS 10.0.2.3; `tools/check-net-t1.sh` |
 
 Every live run writes a frame log, and `yantra-run --events <log> prog.elf` replays it with no backend
@@ -17,10 +17,10 @@ and no flag. The replay matches the live run in output, instruction count and th
 
 ## Platform status
 
-| Platform | `--net-peer` | `--net-tap` | Tested |
+| Platform | `--net-peer` | TAP (via `tools/tap-bridge.py`) | Tested |
 |---|---|---|---|
-| Linux x86_64, aarch64, riscv64 | yes | yes (`/dev/net/tun`) | a Linux x86_64 host, 2026-10-07: full suite, TAP probe once |
-| macOS aarch64 | yes | refused by name: vmnet needs the `com.apple.vm.networking` entitlement or root | an Apple M1 host, 2026-10-09: `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4, `net_t1` 16/16 with `--include-ignored`, UDP and DNS pairs included |
+| Linux x86_64, aarch64, riscv64 | yes | yes (`/dev/net/tun`) | ubuntu-local, 2026-10-07: full suite, TAP probe once |
+| macOS aarch64 | yes | refused by name: vmnet needs the `com.apple.vm.networking` entitlement or root | macmini1, 2026-10-09, at ec30af31 plus the `net_t1.rs` socket-path fix: `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4, `net_t1` 16/16 with `--include-ignored`, UDP and DNS pairs included |
 | macOS x86_64 | yes (same code as aarch64) | refused, as above | not run |
 | Windows | refused by name: std has no server side for a named pipe | refused by name: needs the Wintun driver and administrator rights | refusal paths compile by `cfg` only |
 | Browser (`yantra-wasm`) | absent (no backends) | absent | see "Not in the alpha" |
@@ -30,11 +30,15 @@ Nothing runs.
 
 ## Linux TAP, once per machine
 
+`yantra-run` opens no TAP itself (the crate has no `unsafe`); `--net-tap` is refused and names the
+bridge. `tools/tap-bridge.py` (Python 3 std-lib) attaches the TAP and relays frames to `--net-peer`:
+
 ```sh
 sudo ip tuntap add dev sastap0 mode tap user "$(id -u)"
 sudo sysctl -w net.ipv6.conf.sastap0.disable_ipv6=1   # else the kernel's router solicitation is the first frame
 sudo ip link set sastap0 up
-yantra-run --record-events run.log --net-tap=sastap0 prog.elf
+python3 tools/tap-bridge.py sastap0 /tmp/sas-tap.sock &
+yantra-run --record-events run.log --net-peer=/tmp/sas-tap.sock prog.elf
 ```
 
 After this, attaching needs no privilege. To reach the internet, route or bridge `sastap0` yourself
@@ -61,4 +65,5 @@ After this, attaching needs no privilege. To reach the internet, route or bridge
 3. **DNS on untrusted networks.** With no randomness, the source port and query ID carry at most
    16 bits, so an off-path spoofer can guess them, and eight junk frames can starve a lookup (ADR-0048).
    Use it on trusted links only.
-4. **TCP, HTTP/1.1, TLS**: not in this alpha.
+4. **TCP, HTTP/1.1, TLS**: not planned. The owner ruled on 2026-10-09 that networking stops at this
+   alpha unless an application needs more.

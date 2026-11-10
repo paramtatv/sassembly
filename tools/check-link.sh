@@ -24,7 +24,7 @@ if ! command -v qemu-system-riscv64 >/dev/null; then
   exit 77
 fi
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
   "$root/spec/namaste-main.sas" "$root/spec/lib-mudraka.sas" "$tmp/two.elf"
 
 qemu-system-riscv64 -machine virt -nographic -bios none -kernel "$tmp/two.elf" \

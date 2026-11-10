@@ -39,6 +39,7 @@ S1=${T1_STAGE1:-$CACHE/stage1/$(compiler_key)/stage1.elf}
 # line for RELEASE_STAGE1_NAME, default stage1.elf): mismatch or no sum is a refusal, a cache is not proof
 [ -n "${RELEASE_SUMS:-}" ] || die "RELEASE_SUMS (the release's published SHA256SUMS, file or URL) is required"
 sumsf=$(mktemp "${TMPDIR:-/tmp}/relsums.XXXXXX")
+trap 'rm -f "${sumsf:-}" "${stamp:-}"' EXIT; trap 'exit 143' INT TERM
 case $RELEASE_SUMS in
     http://*|https://*) curl -fsSL "$RELEASE_SUMS" -o "$sumsf" || die "cannot fetch $RELEASE_SUMS" ;;
     *) cp "$RELEASE_SUMS" "$sumsf" 2>/dev/null || die "cannot read $RELEASE_SUMS" ;;
@@ -56,7 +57,7 @@ natT=$(native_translator) || { tlog; die "no native translator could be made (se
 rm -f "$stamp"
 
 pkg=sassembly-native-$tag-$target
-stage=$(mktemp -d "${TMPDIR:-/tmp}/relnat.XXXXXX"); trap 'rm -rf "$stage"' EXIT
+stage=$(mktemp -d "${TMPDIR:-/tmp}/relnat.XXXXXX"); trap 'rm -rf "$stage" "${sumsf:-}" "${stamp:-}"' EXIT; trap 'exit 143' INT TERM
 mkdir -p "$outdir" && outdir=$(cd "$outdir" && pwd)   # absolute: the tar and smoke steps cd
 d=$stage/$pkg; mkdir -p "$d/bin" "$d/lib" "$d/example"
 cp "$HERE/release-native/sassembly-build" "$HERE/release-native/sassembly-run" "$d/bin/"
@@ -85,7 +86,7 @@ smoke() {
     "${run[@]}" "$p/bin/sassembly-build" --entry नमस्ते द्वितीयम् -o "$s/n2.elf" "$p/example/namaste.t1" || ok=1
     echo "-- run n2"; out=$("${run[@]}" "$p/bin/sassembly-run" "$s/n2.elf" 2> "$s/e2"); rc=$?
     cat "$s/e2"; echo "stdout: $out"; echo "status line: exit $rc"
-    [ "$out" = _ ] && [ $rc -eq 1 ] && grep -q 'status: Some(7)' "$s/e2" || { echo "SMOKE FAIL: want '_' / halt status 7 / exit 1"; ok=1; }
+    [ "$out" = _ ] && [ $rc -eq 1 ] && grep -aq 'status: Some(7)' "$s/e2" || { echo "SMOKE FAIL: want '_' / halt status 7 / exit 1"; ok=1; }
     echo "-- re-run n1 (translation cached)"; "${run[@]}" "$p/bin/sassembly-run" "$s/n1.elf" 2>&1 | head -3
     echo "-- refusal: yantra-only feature"; "${run[@]}" env YANTRA_STEPS=5 "$p/bin/sassembly-run" "$s/n1.elf"; echo "exit $?"
     [ $ok = 0 ] && echo "SMOKE PASS $target" || echo "SMOKE FAILED $target"

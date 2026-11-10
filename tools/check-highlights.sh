@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # Task B-034c — the T0 highlight queries must classify every operand, correctly.
 #
 # A highlighter fails quietly by construction: a rule that never matches leaves
@@ -63,10 +65,10 @@ fi
 before=$(mktemp "${TMPDIR:-/tmp}/highlights-before.XXXXXX")
 trap 'rm -f "$before"' EXIT
 cp "$QUERIES" "$before" 2>/dev/null || true
-python3 tools/gen-highlights.py >/dev/null || exit 1
+sh tools/gen-highlights.sh >/dev/null || exit 1
 if ! cmp -s "$before" "$QUERIES"; then
     echo "  FAIL  $QUERIES was stale — regenerating changed it"
-    echo "        run tools/gen-highlights.py and commit the result"
+    echo "        run tools/gen-highlights.sh and commit the result"
     diff <(head -40 "$before") <(head -40 "$QUERIES") | head -10 | sed 's/^/        /'
     exit 1
 fi
@@ -84,17 +86,12 @@ queries = 'queries/highlights.scm'
 # The five ratified sigils must be the ones sadhana implements. The generator
 # has to restate them — a .scm file cannot import an enum — so the copy is
 # checked against its source here rather than trusted.
-lex = (root / 'crates/sadhana/src/lex.rs').read_text(encoding='utf-8')
-# Only `sigil()`'s arms. `Karaka` also has `name()`, whose arms are the kāraka
-# names — कर्म, करण, … — and a looser pattern picks up both, which is exactly
-# what the first version of this check did.
-sigil_fn = re.search(r'pub fn sigil\(self\).*?\n    \}', lex, re.S)
-from_rust = re.findall(r'Karaka::\w+ => "([^"]+)"', sigil_fn.group(0)) if sigil_fn else []
-gen = (root / 'tools/gen-highlights.py').read_text(encoding='utf-8')
-from_gen = re.findall(r'SIGILS = \[([^\]]+)\]', gen)
-from_gen = re.findall(r'"([^"]+)"', from_gen[0]) if from_gen else []
+# Frozen from the retired Rust Karaka::sigil() (git show 688e3e63a^:crates/sadhana/src/lex.rs, lines 61-69).
+from_rust = ["म्", "न", "त्", "य्", "ए"]
+from_gen = [l.split('\t')[1] for l in (root / 'spec/highlight-constants.tsv').read_text(encoding='utf-8').splitlines()
+            if l.startswith('s\t')]
 if not from_rust:
-    print("  FAIL  parsed 0 sigils out of lex.rs — Karaka::sigil() moved")
+    print("  FAIL  frozen sigil list is empty")
     sys.exit(1)
 if sorted(from_rust) != sorted(from_gen):
     print(f"  FAIL  sigils disagree: sadhana has {sorted(from_rust)}, "
@@ -181,8 +178,8 @@ if uncaptured:
 # (3) Every operand called a label reference must name a real label.
 SIGILS = from_rust
 # Address modifiers, from sadhana's own splitter rather than from the examples.
-MODIFIERS = [''] + re.findall(r'strip_suffix\("(ॱ[^"]+)"\)',
-                              (root / 'crates/sadhana/src/encode.rs').read_text(encoding='utf-8'))
+# Frozen from the retired Rust encode split (git show 688e3e63a^:crates/sadhana/src/encode.rs, lines 443-446).
+MODIFIERS = ['', 'ॱउपरि', 'ॱअधः']
 bad = []
 for (src, row, col), (cap, text) in sorted(final.items()):
     if (src, row, col) not in operands or cap != 'constant':

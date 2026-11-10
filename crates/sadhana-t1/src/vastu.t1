@@ -39,7 +39,8 @@
   मूल्यम् ॱॱ न६४ ऽ       ॰ its value — an offset within its section, for an object
   खण्डाङ्कः ॱॱ अ१६ ऽ     ॰ the section header index it belongs to; ० is SHN_UNDEF
   स्थापनम् ॱॱ स्थापन ऽ    ॰ which section that index turned out to be
-  वैश्विकम् ॱॱ बूल       ॰ true for STB_GLOBAL
+  वैश्विकम् ॱॱ बूल ऽ      ॰ true for STB_GLOBAL
+  दुर्बलम् ॱॱ बूल        ॰ true for STB_WEAK (वैश्विकम् too): a strong definition replaces it
 समाप्तम् ।
 
 ॰ one .rela.text entry — ObjectRelocation.

@@ -55,13 +55,13 @@
 #
 # The fifth and sixth lines are the `/memory` node's full name and which node it was,
 # counting from one. Its oracle is the same second walk, asked the same
-# question of the dump (`fdt-nodes.py --memory`), and the two are held to the
+# question of the dump (`fdt-nodes.sh --memory`), and the two are held to the
 # relationship rule again: the names must be equal, while the ordinals differ
 # by OpenSBI's insertions and that difference must not move.
 #
 # The name is where a stored answer would show, and it cannot be one here: the
 # key in `spec/fdt-header.sas` is seven octets — `memory` and a terminator,
-# bound to `b"memory"` by `crates/sadhana/tests/fdt_key.rs` — and the whole
+# bound to `b"memory"` by the native r2c suite (spec/native-tests/sadhana/r2c-*, tests/fdt_key row) — and the whole
 # data section of the image is those seven bytes, while the name printed is
 # fifteen characters long. Measured by mutation, 2026-08-17: changing one octet
 # of the key to spell `lemory` printed `?` and `0`, and changing it to `cpus`
@@ -105,13 +105,36 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
 
+# ---- integer helpers (POSIX sh; they replace former one-liners) ----
+# _isdec <s>: a canonical decimal integer, as an int literal would be.
+_isdec() { _v=${1#-}; case $_v in ''|0?*|*[!0-9]*) return 1;; esac; }
+# _ishex <s>: hex digits only (no sign, no prefix).
+_ishex() { case $1 in ''|*[!0-9a-fA-F]*) return 1;; esac; }
+# _hex2dec <hex>: decimal value, or ? when it is not hex.
+_hex2dec() { if _ishex "$1"; then echo $((0x$1)); else echo '?'; fi; }
+# _decsub <a> <b>: a-b in decimal, or ? when either is not a decimal integer.
+_decsub() {
+  if _isdec "$1" && _isdec "$2"; then echo $(( $1 - ( $2 ) ))
+  elif [ -z "$1" ] && _isdec "$2"; then echo $(( 0 - ( $2 ) ))  # unary minus
+  else echo '?'; fi
+}
+# _hexsub <a> <b>: a-b in lower-case hex (a leading - when negative), or ?.
+_hexsub() {
+  if _ishex "$1" && _ishex "$2"; then
+    _d=$((0x$1 - 0x$2))
+    if [ "$_d" -lt 0 ]; then printf -- '-%x\n' $((0 - _d)); else printf '%x\n' "$_d"; fi
+  else echo '?'; fi
+}
+# _be32 <file>: bytes 4..7 of the file as one big-endian word, 8 hex digits.
+_be32() { _h=$(od -An -tx1 -j4 -N4 "$1" | tr -d ' \n'); [ ${#_h} -eq 8 ] && printf '%s\n' "$_h"; }
+
 # ---- bounding QEMU, and why it is spelled out this way ------------------
 #
 # `AGENT-BRIEF` requires an explicit kill, never `perl -e 'alarm'` (`W-060`:
 # QEMU installs its own SIGALRM handler and outlives it). This check had NO
 # bound at all, and the absence was unfalsifiable rather than harmless: every
 # uncompressed image shuts itself down, so the missing guard never had to fire.
-# The COMPRESSED `fdt-header` image does not shut down. a peer session waited on
+# The COMPRESSED `fdt-header` image does not shut down. `sansos-59` waited on
 # it for 7h25m at 99% CPU. Had `--संक्षिप्त` become the default, the gate would
 # not have failed — it would have STOPPED, with no diagnostic and a hang
 # indistinguishable from a slow machine.
@@ -155,8 +178,7 @@ run_qemu() {
   return 0
 }
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  --स्थान ०षोड्८०२००००० "$root/spec/fdt-header.sas" "$tmp/fdt.elf" >/dev/null
+"$root/tools/sadhana-native.sh" --स्थान ०षोड्८०२००००० "$root/spec/fdt-header.sas" "$tmp/fdt.elf" >/dev/null
 
 magic=""
 prev_delta=""
@@ -177,7 +199,7 @@ for machine in "1 256" "4 5120"; do
   set -- $machine
   n=$1
   mib=$2
-  want_size=$(python3 -c "print($mib * 1024 * 1024)")
+  want_size=$((mib * 1024 * 1024))
 
   run_qemu "$tmp/dump$n.log" -machine "virt,dumpdtb=$tmp/d$n.dtb" -smp "$n" \
     -m "${mib}M" -nographic -bios default || {
@@ -186,12 +208,12 @@ for machine in "1 256" "4 5120"; do
       echo '        means QEMU never reached that point, not that the bound is tight.'
       fail=1
       continue; }
-  dump=$(python3 -c "import struct,sys;print('%08x'%struct.unpack('>I',open('$tmp/d$n.dtb','rb').read()[4:8])[0])")
-  dump_nodes=$(python3 "$root/tools/fdt-nodes.py" "$tmp/d$n.dtb")
-  dump_mem=$(python3 "$root/tools/fdt-nodes.py" --memory "$tmp/d$n.dtb")
+  dump=$(_be32 "$tmp/d$n.dtb")
+  dump_nodes=$(sh "$root/tools/fdt-nodes.sh" "$tmp/d$n.dtb")
+  dump_mem=$(sh "$root/tools/fdt-nodes.sh" --memory "$tmp/d$n.dtb")
   dump_mem_at=${dump_mem%% *}
   dump_mem_name=${dump_mem#* }
-  dump_reg=$(python3 "$root/tools/fdt-nodes.py" --reg "$tmp/d$n.dtb")
+  dump_reg=$(sh "$root/tools/fdt-nodes.sh" --reg "$tmp/d$n.dtb")
   dump_base=${dump_reg%% *}
   dump_size=${dump_reg#* }
 
@@ -229,7 +251,7 @@ for machine in "1 256" "4 5120"; do
 
   # The same number said twice. Division is the one arithmetic here that can be
   # off by a digit and still look like a plausible size.
-  want=$(python3 -c "print(int('$ours',16))" 2>/dev/null || echo "?")
+  want=$(_hex2dec "$ours")
   if [ "$dec" != "$want" ]; then
     echo "  FAIL  decimal is $dec, hex $ours is $want — दशमलवम् and छापनम् disagree about one reading"
     fail=1
@@ -263,9 +285,9 @@ for machine in "1 256" "4 5120"; do
     fail=1
   fi
 
-  delta=$(python3 -c "print('%x'%(int('$ours',16)-int('$dump',16)))" 2>/dev/null || echo "?")
-  node_delta=$(python3 -c "print($nodes-$dump_nodes)" 2>/dev/null || echo "?")
-  mem_delta=$(python3 -c "print($mem_at-$dump_mem_at)" 2>/dev/null || echo "?")
+  delta=$(_hexsub "$ours" "$dump")
+  node_delta=$(_decsub "$nodes" "$dump_nodes")
+  mem_delta=$(_decsub "$mem_at" "$dump_mem_at")
   printf "  smp=%s  mem=%sM  qemu=%s  ours=%s  dec=%s  delta=%s\n" \
     "$n" "$mib" "$dump" "$ours" "$dec" "$delta"
   printf "          nodes qemu=%s  ours=%s  delta=%s\n" "$dump_nodes" "$nodes" "$node_delta"

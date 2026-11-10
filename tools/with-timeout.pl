@@ -8,6 +8,7 @@ my $pid = fork(); die "fork: $!\n" unless defined $pid;
 if ($pid == 0) { setpgrp(0, 0); exec { $ARGV[0] } @ARGV or do { print STDERR "with-timeout: cannot exec $ARGV[0]: $!\n"; exit 127 } }
 $SIG{ALRM} = sub {
     kill 'TERM', -$pid; select(undef, undef, undef, 2); kill 'KILL', -$pid; waitpid($pid, 0);
+    select(undef, undef, undef, 0.2); kill 'KILL', -$pid;   # sweep forks that raced the first KILL (L-SCWARM)
     print STDERR "TIMEOUT after ${secs}s: @ARGV\n"; exit 124;
 };
 alarm $secs; waitpid($pid, 0); alarm 0;

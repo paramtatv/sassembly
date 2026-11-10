@@ -93,6 +93,115 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 # NOT in $root: the gate fingerprints modified and untracked files, so a scratch
 # file dropped in the repo is a file that exists while the gate is looking.
+# ---- portable hex-word verifiers (replace inline python; POSIX sh) ----
+# ---- portable hex-word helpers (POSIX sh; 64-bit signed, bit-exact) -------
+# h2i HEX16 -> $I : the 64-bit pattern of a 16-digit hex word (two 32-bit
+# halves, so no shell has to parse a literal above INT64_MAX; shorter input
+# is zero-padded on the left, like int(x, 16)).
+h2i() {
+    _s=0000000000000000$1; _s=${_s#${_s%????????????????}}
+    I=$(( (0x${_s%????????} << 32) | 0x${_s#????????} ))
+}
+# loadvals PREFIX FILE -> PREFIX1..PREFIXn, PREFIX_n : one word per non-blank line.
+loadvals() {
+    _p=$1; _i=0
+    set -f
+    for _t in $(cat "$2"); do
+        _i=$((_i + 1)); h2i "$_t"; eval "$_p$_i=\$I"
+    done
+    set +f
+    eval "${_p}_n=\$_i"
+}
+# add MSG : append one line to the failure list $bad.
+add() { if [ -n "$bad" ]; then bad="$bad
+$1"; else bad=$1; fi; }
+# rt_name N : the name of word N (1-based) of the root-task contract.
+rt_name() {
+    case $1 in
+    1) echo "satp for service 0" ;;
+    2) echo "satp for service 1" ;;
+    3) echo "the service count from the description" ;;
+    4) echo "scause on service 0's fault" ;;
+    5) echo "the word service 0's first life wrote" ;;
+    6) echo "service 0's restart count" ;;
+    7) echo "the word service 0's second life wrote" ;;
+    8) echo "scause on service 1's fault" ;;
+    9) echo "service 1's restart count" ;;
+    esac
+}
+# verify_rt LINES : the nine-word root-task verdict; stdout = message, rc 0/1.
+verify_rt() {
+    loadvals w "$1"
+    if [ "$w_n" -ne 9 ]; then
+        extra=""
+        if [ "$w_n" -gt 9 ]; then
+            extra=" More than nine has exactly ONE meaning, and the program is arranged so that it does: only service 0's restart count is printed, so a service restarted against its contract changes word 9 rather than the line count. A surplus therefore means the supervision loop did not stop — a restart contract that never stops being satisfied."
+        fi
+        names=""; k=1
+        while [ "$k" -le 9 ]; do
+            if [ -n "$names" ]; then names="$names; $k $(rt_name $k)"; else names="$k $(rt_name $k)"; fi
+            k=$((k + 1))
+        done
+        printf 'printed %s hex lines, expected 9.%s The words that should be there, in order, are: %s\n' "$w_n" "$extra" "$names"
+        return 1
+    fi
+    bad=""
+    for i in 1 2; do
+        eval "s=\$w$i"
+        nib=$(( (s >> 60) & 15 ))
+        if [ "$nib" -ne 8 ]; then
+            add "$(printf 'word %s, %s: mode nibble %x, not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed' "$i" "$(rt_name $i)" "$nib")"
+        fi
+    done
+    if [ "$w1" -eq "$w2" ]; then
+        add "$(printf 'words 1 and 2 are the same satp (%016x), so both services share ONE address space and there is no second service to hold a different contract' "$w1")"
+    fi
+    if [ "$w3" -ne 2 ]; then
+        add "$(printf 'word 3, the service count from the description: %u, expected 2. This is read back out of the description the root task walked. Two address spaces with a count that does not say two means the spaces were written by hand and the description is decoration' "$w3")"
+    fi
+    if [ "$w4" -ne 15 ]; then
+        add "$(printf "word 4, scause on service 0's fault: cause %u, expected 15, STORE/AMO PAGE FAULT (RISC-V privileged §4.1.8). The driver is killed by storing to an address its own space does not grant it, and a different cause means it died of something this program did not arrange" "$w4")"
+    fi
+    if [ "$w5" -eq 0 ]; then
+        add "word 5, the word service 0's first life wrote: zero, which is what the frame reads before anything is written to it. Nothing distinguishes 'the service wrote 0' from 'the service never ran'"
+    fi
+    if [ "$w6" -ne 1 ]; then
+        add "$(printf "word 6, service 0's restart count: %u, expected 1. The supervisor restarted the driver exactly once; 0 means it never did and anything higher means it did not stop" "$w6")"
+    fi
+    nx=$(( w5 + 1 ))
+    if [ "$w7" -ne "$nx" ]; then
+        add "$(printf "word 7, the word service 0's second life wrote: %016x, and word 5 plus one is %016x. The kernel writes the restart count into the frame before every entry and the user text adds one, so a second life MUST write one more than the first. A word equal to word 5 is a thread that was resumed, not a service that was restarted" "$w7" "$nx")"
+    fi
+    if [ "$w8" -ne "$w4" ]; then
+        add "$(printf "word 8, scause on service 1's fault: cause %u, but service 0 died of %u. The two services run the SAME user text and must die the SAME death — otherwise word 9 is reporting on a different situation and the contract is untested" "$w8" "$w4")"
+    fi
+    if [ "$w9" -ne 0 ]; then
+        add "$(printf "word 9, service 1's restart count: %u, expected 0. Service 1's पुनरारम्भ्यः bit is clear. It took the identical fault under the identical text, and a supervisor that brought it back anyway is restarting unconditionally rather than honouring a contract — which is the whole difference this row exists to establish" "$w9")"
+    fi
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    printf "satp %016x/%016x from a description of %u, driver died of %u writing %016x, came back %ux writing %016x, and service 1 died of %u and stayed down (%u restarts)\n" \
+        "$w1" "$w2" "$w3" "$w4" "$w5" "$w6" "$w7" "$w8" "$w9"
+}
+# verify_rt_moved LO HI : derived words must move, fixed words must not.
+verify_rt_moved() {
+    loadvals lo "$1"; loadvals hi "$2"
+    bad=""
+    for i in 1 2 5 7; do
+        eval "a=\$lo$i b=\$hi$i"
+        if [ "$a" -eq "$b" ]; then
+            add "$(printf 'word %s, %s: %016x at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened' "$i" "$(rt_name $i)" "$a")"
+        fi
+    done
+    for i in 3 4 6 8 9; do
+        eval "a=\$lo$i b=\$hi$i"
+        if [ "$a" -ne "$b" ]; then
+            add "$(printf 'word %s, %s: %u then %u. A service count, a cause number and a restart count are none of them properties of where the image was loaded. One that follows the link address is not being read from where it is claimed to be' "$i" "$(rt_name $i)" "$a" "$b")"
+        fi
+    done
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    echo "every derived word moved between the two link addresses, and the count, both causes and both restart counts stayed put"
+}
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -115,7 +224,7 @@ prog=$root/spec/root-task.sas
   exit 1; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$prog" "$tmp/rt.elf" >/dev/null
     # Bounded by an explicit SIGKILL, not perl's alarm: QEMU handles SIGALRM and
     # outlives it (`W-060`). A supervisor with a restart bug runs forever, which
@@ -146,96 +255,7 @@ fail=0
 # auipc and one run cannot tell a computed address from a lucky constant.
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l.$addr"
-    if ! python3 - "$tmp/l.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp for service 0", "satp for service 1",
-        "the service count from the description",
-        "scause on service 0's fault", "the word service 0's first life wrote",
-        "service 0's restart count", "the word service 0's second life wrote",
-        "scause on service 1's fault", "service 1's restart count")
-STORE_PAGE_FAULT, MASK = 15, 0xffffffffffffffff
-
-bad = []
-if len(v) != 9:
-    extra = ""
-    if len(v) > 9:
-        extra = (" More than nine has exactly ONE meaning, and the program is "
-                 "arranged so that it does: only service 0's restart count is "
-                 "printed, so a service restarted against its contract changes "
-                 "word 9 rather than the line count. A surplus therefore means "
-                 "the supervision loop did not stop — a restart contract that "
-                 "never stops being satisfied.")
-    print(f"printed {len(v)} hex lines, expected 9.{extra} The words that should "
-          "be there, in order, are: " + "; ".join(f"{i + 1} {n}"
-                                                  for i, n in enumerate(NAME)))
-    sys.exit(1)
-
-satp0, satp1, count, cause0, life1, restarts0, life2, cause1, restarts1 = v
-
-# ---- claim 1: the graph came from the description -----------------------
-for i, s in ((1, satp0), (2, satp1)):
-    if s >> 60 != 8:
-        bad.append(f"word {i}, {NAME[i - 1]}: mode nibble {s >> 60:x}, not 8. "
-                   "Sv39 is the only paging mode this tree installs, and a satp "
-                   "that is not in it was never installed")
-if satp0 == satp1:
-    bad.append(f"words 1 and 2 are the same satp ({satp0:016x}), so both services "
-               "share ONE address space and there is no second service to hold a "
-               "different contract")
-if count != 2:
-    bad.append(f"word 3, {NAME[2]}: {count}, expected 2. This is read back out of "
-               "the description the root task walked. Two address spaces with a "
-               "count that does not say two means the spaces were written by hand "
-               "and the description is decoration")
-
-# ---- claim 2: it ran, then died -----------------------------------------
-if cause0 != STORE_PAGE_FAULT:
-    bad.append(f"word 4, {NAME[3]}: cause {cause0}, expected 15, STORE/AMO PAGE "
-               "FAULT (RISC-V privileged §4.1.8). The driver is killed by storing "
-               "to an address its own space does not grant it, and a different "
-               "cause means it died of something this program did not arrange")
-if life1 == 0:
-    bad.append("word 5, the word service 0's first life wrote: zero, which is what "
-               "the frame reads before anything is written to it. Nothing "
-               "distinguishes 'the service wrote 0' from 'the service never ran'")
-
-# ---- claim 3: it came back, as a fresh instance -------------------------
-if restarts0 != 1:
-    bad.append(f"word 6, {NAME[5]}: {restarts0}, expected 1. The supervisor "
-               "restarted the driver exactly once; 0 means it never did and "
-               "anything higher means it did not stop")
-if life2 != (life1 + 1) & MASK:
-    bad.append(f"word 7, {NAME[6]}: {life2:016x}, and word 5 plus one is "
-               f"{(life1 + 1) & MASK:016x}. The kernel writes the restart count "
-               "into the frame before every entry and the user text adds one, so "
-               "a second life MUST write one more than the first. A word equal to "
-               "word 5 is a thread that was resumed, not a service that was "
-               "restarted")
-
-# ---- claim 4: the restart honoured the contract -------------------------
-if cause1 != cause0:
-    bad.append(f"word 8, {NAME[7]}: cause {cause1}, but service 0 died of "
-               f"{cause0}. The two services run the SAME user text and must die "
-               "the SAME death — otherwise word 9 is reporting on a different "
-               "situation and the contract is untested")
-if restarts1 != 0:
-    bad.append(f"word 9, {NAME[8]}: {restarts1}, expected 0. Service 1's "
-               "पुनरारम्भ्यः bit is clear. It took the identical fault under the "
-               "identical text, and a supervisor that brought it back anyway is "
-               "restarting unconditionally rather than honouring a contract — "
-               "which is the whole difference this row exists to establish")
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp0:016x}/{satp1:016x} from a description of {count}, driver died "
-      f"of {cause0} writing {life1:016x}, came back {restarts0}x writing "
-      f"{life2:016x}, and service 1 died of {cause1} and stayed down "
-      f"({restarts1} restarts)")
-sys.exit(0)
-PY
+    if ! verify_rt "$tmp/l.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -244,38 +264,7 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp for service 0", "satp for service 1",
-        "the service count from the description",
-        "scause on service 0's fault", "the word service 0's first life wrote",
-        "service 0's restart count", "the word service 0's second life wrote",
-        "scause on service 1's fault", "service 1's restart count")
-MOVES, FIXED = (0, 1, 4, 6), (2, 3, 5, 7, 8)
-
-bad = []
-for i in MOVES:
-    if lo[i] == hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link "
-                   "addresses. It is derived from where the image was loaded, so "
-                   "a value that did not move is a constant in the source and the "
-                   "derivation it stands for never happened")
-for i in FIXED:
-    if lo[i] != hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]} then {hi[i]}. A service "
-                   "count, a cause number and a restart count are none of them "
-                   "properties of where the image was loaded. One that follows the "
-                   "link address is not being read from where it is claimed to be")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("every derived word moved between the two link addresses, and the count, "
-      "both causes and both restart counts stayed put")
-sys.exit(0)
-PY
+    if ! verify_rt_moved "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

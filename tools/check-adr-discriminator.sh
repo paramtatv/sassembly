@@ -45,6 +45,12 @@
 #   * IT READS TRACKED FILES ONLY (`git ls-files`, `git grep`). A citation in a
 #     file that has never been `git add`ed is invisible to both readers here.
 #
+# ALSO OUT OF SCOPE: spec/golden/**/fixture/** and spec/golden/**/pool/**. These are frozen
+# snapshot inputs of the g0n golden harness: earlier revisions and mutants of tracked .t1
+# sources that are already counted above. Every distinct citation line in them occurs
+# verbatim in some revision of a counted file (proved by comm, MAINRED-FIX.md), so
+# scanning them adds no citation, only a per-snapshot copy of an old one.
+#
 # OUT OF SCOPE BY DESIGN, per the row's acceptance (e): `BACKLOG*.tsv`,
 # `.loop/`, and `docs/adr/` itself. Those three QUOTE these strings as data —
 # the ledger rows discuss the renumber, and the ADRs are the documents — so
@@ -67,7 +73,6 @@ cd "$root"
 
 [ -d crates ] || { echo "CANNOT RUN: no crates/ directory here."; exit 77; }
 command -v git >/dev/null 2>&1 || { echo "CANNOT RUN: git is needed to enumerate tracked files."; exit 77; }
-command -v python3 >/dev/null 2>&1 || { echo "CANNOT RUN: python3 is needed to classify each citation."; exit 77; }
 
 # ── 1. NON-VACUITY FIRST, because every count below is a grep ────────────────
 #
@@ -76,6 +81,7 @@ command -v python3 >/dev/null 2>&1 || { echo "CANNOT RUN: python3 is needed to c
 # that way in three different tools, so the floor is asserted before the findings.
 grep_total=$(git grep -hoE 'ADR-00(2[6-9]|3[01])' -- . \
     ':(exclude).loop' ':(exclude)docs/adr' ':(exclude)BACKLOG*.tsv' \
+    ':(exclude,glob)spec/golden/**/fixture/**' ':(exclude,glob)spec/golden/**/pool/**' \
     | grep -c . || true)
 FLOOR=300
 if [ "${grep_total:-0}" -lt "$FLOOR" ]; then
@@ -95,8 +101,7 @@ echo "check-adr-discriminator: $grep_total ambiguous citation(s) in scope to rea
 # across 57 files. The `TOTAL` line is asserted against the sum below so the
 # table cannot be edited into disagreement with itself.
 BASELINE=$(cat <<'TABLE'
-crates/lexgen/src/main.rs	2
-crates/metrics/tests/paradigm_history.rs	1
+archive/rust/metrics/tests/paradigm_history.rs	1
 crates/sadhana-t1/src/artha.t1	5
 crates/sadhana-t1/src/ast.t1	2
 crates/sadhana-t1/src/encode.t1	26
@@ -109,34 +114,8 @@ crates/sadhana-t1/src/sanskrit_text.t1	3
 crates/sadhana-t1/src/utsarjana.t1	12
 crates/sadhana-t1/src/vakyavibhaga.t1	1
 crates/sadhana-t1/src/vishlesana.t1	3
-crates/sadhana-t1/tests/t1_exec_aksara.rs	7
-crates/sadhana-t1/tests/t1_execution.rs	7
-crates/sadhana-t1/tests/t1_modules.rs	3
-crates/sadhana-t1/tests/t1_paradigm_names.rs	2
-crates/sadhana-t1/tests/t1_sources.rs	19
-crates/sadhana-t1/tests/t1_unreached_modules.rs	2
-crates/sadhana-t1/tests/w250-shares.rs	5
-crates/sadhana-t1/tests/w268-census.rs	1
-crates/sadhana-t1/tests/w304-pass-zero-scan.rs	1
-crates/sadhana-t1/tests/w342_parse_refusal_bheda.rs	3
-crates/sadhana/src/t1/abi.rs	1
-crates/sadhana/src/t1/ast.rs	3
-crates/sadhana/src/t1/ir.rs	2
-crates/sadhana/src/t1/mandala.rs	1
-crates/sadhana/src/t1/nirvahana.rs	2
-crates/sadhana/src/t1/parse.rs	4
-crates/sadhana/src/t1/resolve.rs	1
-crates/sadhana/src/t1/riscv64.rs	1
-crates/sadhana/src/t1/typecheck.rs	1
-crates/sadhana/src/t1/types.rs	1
-crates/sadhana/tests/paradigm_convention.rs	1
-crates/sadhana/tests/t1_fixed_capacity_array.rs	5
-crates/sadhana/tests/t1_operators.rs	1
-crates/sadhana/tests/w342_parse_refusal_reaches_the_exit.rs	1
-crates/sanskrit-text/tests/grammar_t1.rs	129
+archive/rust/sanskrit-text-tests/grammar_t1.rs	129
 crates/tree-sitter-t1/grammar.js	8
-crates/yantra/src/lib.rs	1
-crates/yantra/tests/t1_storage_witness.rs	1
 docs/storage-modelling-method.md	1
 notebooks/03-paramtatva-base-model.ipynb	2
 notebooks/11-operators.ipynb	2
@@ -151,8 +130,8 @@ spec/lexicon.src.tsv	13
 spec/lexicon.tsv	14
 spec/registers-amd64.tsv	4
 tests/corpus/CATALOG.tsv	1
-tools/gen-grapheme-break.py	1
-TOTAL	367
+tools/gen-grapheme-break.sh	1
+TOTAL	288
 TABLE
 )
 
@@ -170,101 +149,64 @@ TABLE
 # into `python3 - <<READER`, and the heredoc IS stdin — so the pipe was shadowed,
 # the reader saw an empty table and reported TABLE-BROKEN. It exited 77 rather
 # than passing, which is the only reason that was visible at all.
-reader=$(SANSOS_ADR_BASELINE="$BASELINE" python3 - <<'READER'
-import os, re, subprocess, sys
-
-AMB  = re.compile(r'ADR-00(?:2[6-9]|3[01])')
-# `ADR-0026 [D-002k]`. One optional run of blanks, then an upper-case track, a
-# dash, digits, and the optional lower-case/digit tail that `D-002k`,
-# `F-016agy5` and `C-014b` all have.
-WELL = re.compile(r'[ \t]*\[[A-Z][A-Z0-9]*-[0-9]+[a-z0-9]*\]')
-
-def bare(line, end):
-    return WELL.match(line, end) is None
-
-# ── THE CASES. Two that must be ACCEPTED as carrying a discriminator, and four
-# that must still be REFUSED. The last two are the ones a looser suffix pattern
-# gets wrong: a bracket that holds something other than a task id, and a
-# discriminator that arrives too late to belong to this citation.
-#
-# EACH CITATION IS CONCATENATED RATHER THAN SPELLED, and that is not decoration.
-# Four of these six fixtures must be BARE for the refusing arm to mean anything,
-# and this file is itself in scope — so spelling them whole put four bare
-# citations into the guard's own population and it red-lined itself the moment it
-# was `git add`ed, against its own baseline of 0. Found by adding the file and
-# running it, which is why that step is in this row's gate and not assumed.
-# Joining the halves at run time keeps the fixture intact for the classifier and
-# invisible to the grep, so the guard's population stays the product's text.
-A = "ADR-00"
-CASES = [
-    ("cites " + A + "26 [D-002k] here",           False),
-    (A + "31[W-334]",                             False),
-    ("see " + A + "29 for the array layout",      True),
-    (A + "30, and also elsewhere",                True),
-    (A + "28 [see below]",                        True),
-    (A + "27 and then later [D-002h]",            True),
-]
-for text, want in CASES:
-    m = AMB.search(text)
-    if m is None:
-        print("SELFTEST-BROKEN", text, sep="\t"); sys.exit(0)
-    got = bare(text, m.end())
-    if got != want:
-        print("SELFTEST-FAILED", text, want, got, sep="\t"); sys.exit(0)
-
-# ── THE BASELINE TABLE. The shell owns the one copy; it arrives in the
-# environment because this script itself is on stdin.
-want = {}
-declared_total = None
-for row in os.environ.get("SANSOS_ADR_BASELINE", "").split("\n"):
-    if not row.strip():
-        continue
-    path, n = row.split("\t")
-    if path == "TOTAL":
-        declared_total = int(n)
-    else:
-        want[path] = int(n)
-if declared_total is None or declared_total != sum(want.values()):
-    print("TABLE-BROKEN", declared_total, sum(want.values()), sep="\t"); sys.exit(0)
-
-# ── THE SECOND READER. The shell's `git grep -ho` above counted OCCURRENCES of
-# the same pattern over the same pathspec; this walks the tracked files itself.
-# Nothing compared the two in `check-scratch-paths.sh`'s first version, and when
-# its walker silently dropped seven sites the check still passed — measuring a
-# smaller population and reporting on it confidently.
-EXCLUDE_DIRS = (".loop/", "docs/adr/")
-def in_scope(p):
-    if not p or p.startswith(EXCLUDE_DIRS):
-        return False
-    b = os.path.basename(p)
-    return not (b.startswith("BACKLOG") and b.endswith(".tsv"))
-
-files = subprocess.run(["git", "ls-files", "-z"], capture_output=True, text=True,
-                       check=True).stdout.split("\0")
-seen = 0
-got = {}
-lines_of = {}
-for p in files:
-    if not in_scope(p):
-        continue
-    try:
-        text = open(p, encoding="utf-8", errors="replace").read()
-    except OSError:
-        continue            # deleted-but-tracked; git grep cannot read it either
-    for i, line in enumerate(text.split("\n")):
-        for m in AMB.finditer(line):
-            seen += 1
-            if bare(line, m.end()):
-                got[p] = got.get(p, 0) + 1
-                lines_of.setdefault(p, []).append(i + 1)
-
-risen = sorted(p for p in got if got[p] > want.get(p, 0))
-print("OK", seen, sum(got.values()), len(got), sep="\t")
-for p in risen:
-    print("RISEN", p, want.get(p, 0), got[p],
-          ",".join(str(n) for n in lines_of[p]), sep="\t")
-READER
-)
+reader=$(git ls-files -z | tr '\0' '\n' | SANSOS_ADR_BASELINE="$BASELINE" LC_ALL=C awk '
+function bare(line, endpos,   rest) {
+    rest = substr(line, endpos)
+    return !match(rest, /^[ \t]*\[[A-Z][A-Z0-9]*-[0-9]+[a-z0-9]*\]/)
+}
+function in_scope(p,   b) {
+    if (p == "" || index(p, ".loop/") == 1 || index(p, "docs/adr/") == 1) return 0
+    if (p ~ /^spec\/golden\// && (p ~ /\/fixture\// || p ~ /\/pool\//)) return 0
+    b = p; sub(/^.*\//, "", b)
+    return !(index(b, "BACKLOG") == 1 && b ~ /\.tsv$/)
+}
+BEGIN {
+    # THE CASES. Citations are concatenated, not spelled whole: this file is itself in scope and
+    # four of the six must be BARE for the refusing arm to mean anything.
+    A = "ADR-00"
+    c[1] = "cites " A "26 [D-002k] here";           w[1] = 0
+    c[2] = A "31[W-334]";                           w[2] = 0
+    c[3] = "see " A "29 for the array layout";      w[3] = 1
+    c[4] = A "30, and also elsewhere";              w[4] = 1
+    c[5] = A "28 [see below]";                      w[5] = 1
+    c[6] = A "27 and then later [D-002h]";          w[6] = 1
+    for (k = 1; k <= 6; k++) {
+        if (!match(c[k], /ADR-00(2[6-9]|3[01])/)) { printf "SELFTEST-BROKEN\t%s\n", c[k]; exit }
+        g = (bare(c[k], RSTART + RLENGTH) ? 1 : 0)
+        if (g != w[k]) { printf "SELFTEST-FAILED\t%s\t%s\t%s\n", c[k], (w[k] ? "True" : "False"), (g ? "True" : "False"); exit }
+    }
+    # THE BASELINE TABLE (arrives in the environment: stdin is the file list).
+    nrows = split(ENVIRON["SANSOS_ADR_BASELINE"], rows, "\n"); dt = ""; sum = 0
+    for (k = 1; k <= nrows; k++) {
+        if (rows[k] ~ /^[ \t\r\f\v]*$/) continue
+        split(rows[k], kv, "\t")
+        if (kv[1] == "TOTAL") dt = kv[2] + 0
+        else want[kv[1]] = kv[2] + 0
+    }
+    for (p in want) sum += want[p]
+    if (dt == "" || dt != sum) { printf "TABLE-BROKEN\t%s\t%d\n", (dt == "" ? "None" : dt), sum; exit }
+    # THE SECOND READER: walk the tracked files itself.
+    seen = 0; tot = 0; nf = 0
+    while ((getline p) > 0) {
+        if (!in_scope(p)) continue
+        ln = 0
+        while ((r = (getline line < p)) > 0) {
+            ln++; sub(/\r$/, "", line); off = 0; rest = line
+            while (match(rest, /ADR-00(2[6-9]|3[01])/)) {
+                seen++; endpos = off + RSTART + RLENGTH
+                if (bare(line, endpos)) {
+                    if (!(p in got)) nf++
+                    got[p]++; tot++
+                    lines_of[p] = ((p in lines_of) ? lines_of[p] "," : "") ln
+                }
+                off = endpos - 1; rest = substr(line, endpos)
+            }
+        }
+        close(p)
+    }
+    printf "OK\t%d\t%d\t%d\n", seen, tot, nf
+    for (p in got) if (got[p] > ((p in want) ? want[p] : 0)) printf "RISEN\t%s\t%d\t%d\t%s\n", p, ((p in want) ? want[p] : 0), got[p], lines_of[p]
+}' | { IFS= read -r _first || true; printf '%s\n' "$_first"; LC_ALL=C sort; })
 
 verdict=$(printf '%s\n' "$reader" | sed -n 1p | cut -f1)
 case "$verdict" in

@@ -72,6 +72,94 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 # NOT in $root: the gate fingerprints modified and untracked files, so a scratch
 # file dropped in the repo is a file that exists while the gate is looking.
+# ---- portable hex-word verifiers (replace inline python; POSIX sh) ----
+# ---- portable hex-word helpers (POSIX sh; 64-bit signed, bit-exact) -------
+# h2i HEX16 -> $I : the 64-bit pattern of a 16-digit hex word (two 32-bit
+# halves, so no shell has to parse a literal above INT64_MAX; shorter input
+# is zero-padded on the left, like int(x, 16)).
+h2i() {
+    _s=0000000000000000$1; _s=${_s#${_s%????????????????}}
+    I=$(( (0x${_s%????????} << 32) | 0x${_s#????????} ))
+}
+# loadvals PREFIX FILE -> PREFIX1..PREFIXn, PREFIX_n : one word per non-blank line.
+loadvals() {
+    _p=$1; _i=0
+    set -f
+    for _t in $(cat "$2"); do
+        _i=$((_i + 1)); h2i "$_t"; eval "$_p$_i=\$I"
+    done
+    set +f
+    eval "${_p}_n=\$_i"
+}
+# add MSG : append one line to the failure list $bad.
+add() { if [ -n "$bad" ]; then bad="$bad
+$1"; else bad=$1; fi; }
+# verify_um LINES BSS : the six-word user-mode verdict; stdout = message, rc 0/1.
+verify_um() {
+    loadvals w "$1"
+    if [ "$w_n" -ne 4 ]; then
+        echo "printed $w_n hex lines, expected 4: 1 satp as installed; 2 the word at the shared VA; 3 scause on the ecall; 4 sstatus at the same moment. Fewer than four means the machine stopped where the line stops — a bad root table kills the fetch after the satp write, and a page without U kills the sret"
+        return 1
+    fi
+    satp=$w1 shared=$w2 cause=$w3 sstatus=$w4
+    set -f; set -- $(cat "$2"); set +f
+    if [ $# -lt 2 ]; then echo "no .bss section in the ELF"; return 1; fi
+    h2i "$1"; bss_addr=$I; h2i "$2"; bss_size=$I
+    base=$(( (satp & ((1 << 44) - 1)) << 12 ))
+    mn=$(( 1 << 63 ))
+    bad=""
+    nib=$(( (satp >> 60) & 15 ))
+    if [ "$nib" -ne 8 ]; then
+        add "$(printf 'word 1, satp as installed: mode nibble %x, not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed' "$nib")"
+    fi
+    if [ $(( base % 4096 )) -ne 0 ]; then
+        add "$(printf 'word 1: the root table is at %016x, which is not page aligned — satp keeps a page NUMBER and the low bits are lost' "$base")"
+    fi
+    # bss_addr + bss_size is unbounded in the original: a carry out of bit 63
+    # (end < addr, unsigned) means the true sum exceeds any base + 6*4096.
+    bss_end=$(( bss_addr + bss_size ))
+    if ! { [ $(( (bss_addr ^ mn) <= (base ^ mn) )) -eq 1 ] \
+        && { [ $(( (bss_end ^ mn) < (bss_addr ^ mn) )) -eq 1 ] \
+          || [ $(( ((base + 6 * 4096) ^ mn) <= (bss_end ^ mn) )) -eq 1 ]; }; }; then
+        add "$(printf 'word 1: the root table is at %016x, and the six frames from it do not fit inside the .bss the ELF reserves (%016x + %x)' "$base" "$bss_addr" "$bss_size")"
+    fi
+    uf=$(( base + 4 * 4096 ))
+    if [ "$shared" -eq 0 ]; then
+        add "word 3, the word at the shared VA: zero, which is what an unwritten frame reads. Nothing distinguishes 'the window resolved' from 'the window resolved to nothing'"
+    elif [ "$shared" -ne "$uf" ]; then
+        add "$(printf "word 3, the word at the shared VA: %016x, and the fifth frame from the root table is %016x. The program stores the user's page address in the data frame and reads it back through a window at a virtual address that is not the frame's own, so a word that is not that address did not come through the window" "$shared" "$uf")"
+    fi
+    if [ "$cause" -ne 8 ]; then
+        extra=""
+        if [ "$cause" -eq 9 ]; then
+            extra=" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this tree has ever taken and is the one number that says the process never left supervisor mode"
+        fi
+        add "$(printf 'word 5, scause on the ecall: cause %u, expected 8, ENVIRONMENT CALL FROM U-MODE. The process did not trap from U-mode%s' "$cause" "$extra")"
+    fi
+    if [ $(( sstatus & 256 )) -ne 0 ]; then
+        add "$(printf 'word 6, sstatus at the same moment: SPP is set (%016x), so the trap came from supervisor mode. scause and SPP are demanded together because a kernel that sets a variable can produce either alone' "$sstatus")"
+    fi
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    printf 'satp %016x, tables at %016x, the window reads %016x, cause %u with SPP clear in %016x\n' \
+        "$satp" "$base" "$shared" "$cause" "$sstatus"
+}
+# verify_um_moved LO HI : the two link addresses must move words 1-2 and fix word 5.
+verify_um_moved() {
+    loadvals lo "$1"; loadvals hi "$2"
+    bad=""
+    if [ "$lo1" -eq "$hi1" ]; then
+        add "$(printf 'word 1, satp as installed: %016x at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened' "$lo1")"
+    fi
+    if [ "$lo2" -eq "$hi2" ]; then
+        add "$(printf 'word 2, the word at the shared VA: %016x at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened' "$lo2")"
+    fi
+    if [ "$lo3" -ne "$hi3" ]; then
+        add "$(printf 'word 5, scause on the ecall: %016x then %016x. A cause number is architectural. One that follows the link address is not coming from scause at all' "$lo3" "$hi3")"
+    fi
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    echo "satp and the windowed word both moved between the two link addresses and the cause number stayed put"
+}
+
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
@@ -88,7 +176,7 @@ prog=$root/spec/user-mode.sas
 
 fail=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$addr" "$prog" "$tmp/um.elf" >/dev/null
 
     # The section is found by NAME: `kosha` emits only the sections a program
@@ -118,73 +206,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
     # one-sided by construction and blind to a surplus (`W-081`).
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' > "$tmp/l.$addr" || true
 
-    if ! python3 - "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp as installed", "the word at the shared VA",
-        "scause on the ecall", "sstatus at the same moment")
-U_ECALL, SPP, PPN = 8, 1 << 8, (1 << 44) - 1
-USER_FRAME = 4 * 4096
-
-bad = []
-if len(v) != 4:
-    print(f"printed {len(v)} hex lines, expected 4: " +
-          "; ".join(f"{i + 1} {n}" for i, n in enumerate(NAME)) +
-          ". Fewer than four means the machine stopped where the line stops — "
-          "a bad root table kills the fetch after the satp write, and a page "
-          "without U kills the sret")
-    sys.exit(1)
-
-satp, shared, cause, sstatus = v
-bss = open(sys.argv[2]).read().split()
-bss_addr, bss_size = int(bss[0], 16), int(bss[1], 16)
-base = (satp & PPN) << 12
-
-# ---- the map ------------------------------------------------------------
-if satp >> 60 != 8:
-    bad.append(f"word 1, {NAME[0]}: mode nibble {satp >> 60:x}, not 8. Sv39 is "
-               "the only paging mode this tree installs, and a satp that is not "
-               "in it was never installed")
-if base % 4096:
-    bad.append(f"word 1: the root table is at {base:016x}, which is not page "
-               "aligned — satp keeps a page NUMBER and the low bits are lost")
-if not (bss_addr <= base and base + 6 * 4096 <= bss_addr + bss_size):
-    bad.append(f"word 1: the root table is at {base:016x}, and the six frames "
-               f"from it do not fit inside the .bss the ELF reserves "
-               f"({bss_addr:016x} + {bss_size:x})")
-
-# ---- the window ---------------------------------------------------------
-if shared == 0:
-    bad.append("word 3, the word at the shared VA: zero, which is what an "
-               "unwritten frame reads. Nothing distinguishes 'the window "
-               "resolved' from 'the window resolved to nothing'")
-elif shared != base + USER_FRAME:
-    bad.append(f"word 3, {NAME[1]}: {shared:016x}, and the fifth frame from the "
-               f"root table is {base + USER_FRAME:016x}. The program stores the "
-               "user's page address in the data frame and reads it back through "
-               "a window at a virtual address that is not the frame's own, so a "
-               "word that is not that address did not come through the window")
-
-# ---- userspace ----------------------------------------------------------
-if cause != U_ECALL:
-    extra = (" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this "
-             "tree has ever taken and is the one number that says the process "
-             "never left supervisor mode") if cause == 9 else ""
-    bad.append(f"word 5, {NAME[2]}: cause {cause}, expected 8, ENVIRONMENT CALL "
-               f"FROM U-MODE. The process did not trap from U-mode{extra}")
-if sstatus & SPP:
-    bad.append(f"word 6, {NAME[3]}: SPP is set ({sstatus:016x}), so the trap "
-               "came from supervisor mode. scause and SPP are demanded together "
-               "because a kernel that sets a variable can produce either alone")
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp:016x}, tables at {base:016x}, the window reads {shared:016x}, "
-      f"cause {cause} with SPP clear in {sstatus:016x}")
-sys.exit(0)
-PY
+    if ! verify_um "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -193,32 +215,7 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp as installed", "the word at the shared VA",
-        "scause on the ecall", "sstatus at the same moment")
-
-bad = []
-for i in (0, 1):
-    if lo[i] == hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link "
-                   "addresses. It is derived from where the image was loaded, so "
-                   "a value that did not move is a constant in the source and the "
-                   "derivation it stands for never happened")
-if lo[2] != hi[2]:
-    bad.append(f"word 5, {NAME[2]}: {lo[2]:016x} then {hi[2]:016x}. A cause "
-               "number is architectural. One that follows the link address is "
-               "not coming from scause at all")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("satp and the windowed word both moved between the two link addresses and "
-      "the cause number stayed put")
-sys.exit(0)
-PY
+    if ! verify_um_moved "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

@@ -48,7 +48,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
 
 # $1 = link address, $2 = source file (so a mutant can be run through the same path)
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$2" "$tmp/k.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060). The bound is
     # load-bearing here rather than defensive: the wait loop has no exit that

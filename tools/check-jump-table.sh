@@ -46,8 +46,7 @@ run() {
   if wait "$qpid"; then echo 0; else echo $?; fi
 }
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  "$root/spec/jump-table.sas" "$tmp/table.elf"
+"$root/tools/sadhana-native.sh" "$root/spec/jump-table.sas" "$tmp/table.elf"
 
 got=$(run "$tmp/table.elf")
 if [ "$got" != "0" ]; then
@@ -63,8 +62,7 @@ cmp -s "$root/spec/jump-table.sas" "$tmp/swapped.sas" && {
   echo "FAIL: the swap edited nothing, so the discrimination is untested" >&2
   exit 1
 }
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  "$tmp/swapped.sas" "$tmp/swapped.elf"
+"$root/tools/sadhana-native.sh" "$tmp/swapped.sas" "$tmp/swapped.elf"
 
 got=$(run "$tmp/swapped.elf")
 if [ "$got" = "0" ]; then
@@ -79,11 +77,10 @@ fi
 #
 # It has to be run, not merely linked. A wrong pointer in a table produces a
 # file that links cleanly and jumps to whatever the zeros happened to become.
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  --वस्तु "$root/spec/jump-table.sas" "$tmp/table.o"
+"$root/tools/sadhana-native.sh" --वस्तु "$root/spec/jump-table.sas" "$tmp/table.o"
 
 if command -v riscv64-elf-readelf >/dev/null; then
-  n=$(riscv64-elf-readelf -r "$tmp/table.o" 2>/dev/null | grep -c 'R_RISCV_64' || true)
+  n=$(riscv64-elf-readelf -r "$tmp/table.o" 2>/dev/null | grep -a -c 'R_RISCV_64' || true)
   if [ "$n" -ne 2 ]; then
     echo "FAIL: the object has $n R_RISCV_64 records; the table has two entries" >&2
     echo "  a resolved-too-early address would link and point at nothing" >&2
@@ -91,8 +88,7 @@ if command -v riscv64-elf-readelf >/dev/null; then
   fi
 fi
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  --संयोजय "$tmp/table.o" "$tmp/from-object.elf"
+"$root/tools/sadhana-native.sh" --संयोजय "$tmp/table.o" "$tmp/from-object.elf"
 
 got=$(run "$tmp/from-object.elf")
 if [ "$got" != "0" ]; then
@@ -100,10 +96,8 @@ if [ "$got" != "0" ]; then
   exit 1
 fi
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  --वस्तु "$tmp/swapped.sas" "$tmp/swapped.o"
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-  --संयोजय "$tmp/swapped.o" "$tmp/swapped-from-object.elf"
+"$root/tools/sadhana-native.sh" --वस्तु "$tmp/swapped.sas" "$tmp/swapped.o"
+"$root/tools/sadhana-native.sh" --संयोजय "$tmp/swapped.o" "$tmp/swapped-from-object.elf"
 got=$(run "$tmp/swapped-from-object.elf")
 if [ "$got" = "0" ]; then
   echo "FAIL: swapping the table changed nothing through the object path" >&2

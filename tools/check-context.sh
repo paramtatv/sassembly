@@ -28,6 +28,68 @@
 # order, so the leading digit of each value says which pattern it belongs to.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# ---- portable hex-word verifiers (replace inline python; POSIX sh) ----
+# ---- portable hex-word helpers (POSIX sh; 64-bit signed, bit-exact) -------
+# h2i HEX16 -> $I : the 64-bit pattern of a 16-digit hex word (two 32-bit
+# halves, so no shell has to parse a literal above INT64_MAX; shorter input
+# is zero-padded on the left, like int(x, 16)).
+h2i() {
+    _s=0000000000000000$1; _s=${_s#${_s%????????????????}}
+    I=$(( (0x${_s%????????} << 32) | 0x${_s#????????} ))
+}
+# loadvals PREFIX FILE -> PREFIX1..PREFIXn, PREFIX_n : one word per non-blank line.
+loadvals() {
+    _p=$1; _i=0
+    set -f
+    for _t in $(cat "$2"); do
+        _i=$((_i + 1)); h2i "$_t"; eval "$_p$_i=\$I"
+    done
+    set +f
+    eval "${_p}_n=\$_i"
+}
+# add MSG : append one line to the failure list $bad.
+add() { if [ -n "$bad" ]; then bad="$bad
+$1"; else bad=$1; fi; }
+# verify_ctx LINES : 24 words, contexts A (0xa00+j) and B (0xb00+j); rc 0/1.
+verify_ctx() {
+    loadvals c "$1"
+    bad=""
+    for cn in A B; do
+        if [ "$cn" = A ]; then off=0; base=2560; other=2816; else off=12; base=2816; other=2560; fi
+        j=0
+        while [ "$j" -lt 12 ]; do
+            eval "g=\$c$((off + j + 1))"
+            want=$((base + j)); d=$((g - other))
+            if [ "$g" -eq "$want" ]; then
+                :
+            elif [ "$g" -eq $((other + j)) ]; then
+                add "$(printf "context %s, register %s: holds 0x%x, which is the OTHER context's value for that slot. The switch did not save or restore register %s, so the two threads share it — a leak that only shows when something is actually living there" "$cn" "$j" "$g" "$j")"
+            elif [ "$d" -ge 0 ] && [ "$d" -lt 12 ]; then
+                add "$(printf "context %s, register %s: holds 0x%x — another context's value from a DIFFERENT slot, so the save order is shifted" "$cn" "$j" "$g")"
+            else
+                add "$(printf 'context %s, register %s: 0x%x, expected 0x%x' "$cn" "$j" "$g" "$want")"
+            fi
+            j=$((j + 1))
+        done
+    done
+    dup=0; a=1
+    while [ "$a" -le 24 ]; do
+        b=$((a + 1))
+        while [ "$b" -le $(( a <= 12 ? 12 : 24 )) ]; do
+            eval "x=\$c$a y=\$c$b"
+            [ "$x" -ne "$y" ] || dup=1
+            b=$((b + 1))
+        done
+        a=$((a + 1))
+    done
+    if [ "$dup" -eq 1 ]; then
+        add "some registers hold identical values, so an off-by-one in the save order could not be seen — the patterns must stay distinct per register"
+    fi
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    printf 'context A restored 0x%x..0x%x and B restored 0x%x..0x%x; all twelve distinct in each, and neither context holds a value from the other\n' \
+        "$c1" "$c12" "$c13" "$c24"
+}
+
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "SKIPPED: qemu-system-riscv64 is not installed"
@@ -35,7 +97,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/context.sas" "$tmp/c.elf" >/dev/null
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$tmp/c.elf" > "$tmp/out" 2>&1 &
@@ -61,34 +123,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         echo "        restored from context A, then twelve from context B)"
         fail=1; continue
     fi
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-A, B = v[:12], v[12:]
-bad = []
-for name, got, base, other in (("A", A, 0xa00, 0xb00), ("B", B, 0xb00, 0xa00)):
-    for j, g in enumerate(got):
-        want = base + j
-        if g == want:
-            continue
-        if g == other + j:
-            bad.append(f"context {name}, register {j}: holds {g:#x}, which is the OTHER "
-                       f"context's value for that slot. The switch did not save or restore "
-                       f"register {j}, so the two threads share it — a leak that only shows "
-                       "when something is actually living there")
-        elif g in (other + k for k in range(12)):
-            bad.append(f"context {name}, register {j}: holds {g:#x} — another context's "
-                       "value from a DIFFERENT slot, so the save order is shifted")
-        else:
-            bad.append(f"context {name}, register {j}: {g:#x}, expected {want:#x}")
-if len(set(A)) != 12 or len(set(B)) != 12:
-    bad.append("some registers hold identical values, so an off-by-one in the save order "
-               "could not be seen — the patterns must stay distinct per register")
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"context A restored {A[0]:#x}..{A[-1]:#x} and B restored {B[0]:#x}..{B[-1]:#x}; "
-      "all twelve distinct in each, and neither context holds a value from the other")
-PY
+    if ! verify_ctx "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done

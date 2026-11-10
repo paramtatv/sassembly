@@ -2,6 +2,13 @@
 
 Earlier releases are described in their `ANNOUNCEMENT-*.md` files. This file starts at v1.1.0.
 
+## v1.2.0
+
+- **Native route:** halt, exit-code, SBI, rounding and argument parity with the reference interpreter; step ceiling and infinite-loop (SpinForever) detection; `--version` parity; `VERDICT`, `SCANOUT` and virtio deferral native; wasm32 matches the reference interpreter.
+- **Compiler:** in-place record-region reclaim (large compiles fit the 512 MiB region); register-allocation block-order fix; shift-immediate reserved bits and refusal witnesses.
+- **Tools and sources:** 152 files ported from the monorepo (`crates/sadhana-t1`, `tools/`, `tools/selfcheck`, `spec/net`, `docs/adr`).
+- **Known limits (see LIMITS.md):** 5 of 49 probes differ in exit code from the reference interpreter (`csr_satp_write`, `csr_sie_read`, `csr_stvec_write`, `csr_time`, `store_into_code`); the native route still needs python3; no Windows build.
+
 ## v1.1.0
 
 ### Native packages: no Rust, no emulator

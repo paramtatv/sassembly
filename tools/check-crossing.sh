@@ -77,6 +77,101 @@
 # machine reports a green tree. This exits **77** when it cannot run and **1**
 # when it runs and fails, and never 0 without having watched a machine.
 set -eu
+# Verdict functions (formerly python3 heredocs). Words are the 16-digit lowercase hex lines the
+# run printed; compared as strings, so no 64-bit overflow. Only the .bss address/size go through $(( )).
+cr_name() {
+    case $1 in
+        1) printf '%s' "satp for A";; 2) printf '%s' "scause on A's ecall";; 3) printf '%s' "the word A sent";;
+        4) printf '%s' "satp for B";; 5) printf '%s' "scause on B's ecall";; 6) printf '%s' "the word B sent back";;
+    esac
+}
+cr_dec() {  # lowercase hex word -> unsigned decimal, as python's {c}
+    printf '%s\n' "$1" | LC_ALL=C awk '{
+        n = 0
+        for (i = 1; i <= length($0); i++) {
+            c = index("0123456789abcdef", substr($0, i, 1)) - 1
+            for (j = 1; j <= n; j++) { x = d[j] * 16 + c; d[j] = x % 10; c = int(x / 10) }
+            while (c > 0) { n++; d[n] = c % 10; c = int(c / 10) }
+        }
+        if (n == 0) { print 0; exit }
+        s = ""; for (j = n; j >= 1; j--) s = s d[j]; print s }'
+}
+cr_word() { sed -n "${2}p" "$1"; }
+cr_bad() { cr_b="$cr_b$1
+"; }
+crossing_verdict() {  # LINES BSS -> message on stdout, rc 0/1
+    cr_f=$1; cr_n=$(awk 'NF { k++ } END { print k + 0 }' "$cr_f")
+    if [ "$cr_n" -ne 6 ]; then
+        printf '%s\n' "printed $cr_n hex lines, expected 6: 1 satp for A; 2 scause on A's ecall; 3 the word A sent; 4 satp for B; 5 scause on B's ecall; 6 the word B sent back. Fewer than six means the machine stopped where the line stops — a window page without U kills the user's load before its ecall, and a root table that does not map the kernel kills the fetch right after its own satp write"
+        return 1
+    fi
+    cr_sa=$(cr_word "$cr_f" 1); cr_ca=$(cr_word "$cr_f" 2); cr_msg=$(cr_word "$cr_f" 3)
+    cr_sb=$(cr_word "$cr_f" 4); cr_cb=$(cr_word "$cr_f" 5); cr_back=$(cr_word "$cr_f" 6)
+    set -- $(cat "$2")
+    if [ $# -lt 2 ]; then echo "bss file malformed"; return 1; fi
+    cr_baddr=$((0x$1)); cr_bsize=$((0x$2))
+    cr_ppna=$((0x${cr_sa#?????})); cr_ppnb=$((0x${cr_sb#?????}))
+    cr_base=$((cr_ppna * 4096)); cr_basex=$(printf '%016x' "$cr_base")
+    cr_b=""
+    for cr_i in 1 4; do
+        if [ "$cr_i" = 1 ]; then cr_s=$cr_sa; else cr_s=$cr_sb; fi
+        cr_nib=$(printf '%s' "$cr_s" | cut -c1)
+        if [ "$cr_nib" != 8 ]; then
+            cr_bad "word $cr_i, $(cr_name $cr_i): mode nibble $cr_nib, not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed"
+        fi
+    done
+    if [ "$cr_sa" = "$cr_sb" ]; then
+        cr_bad "words 1 and 4 are the same satp ($cr_sa), so both processes ran in ONE address space and nothing crossed a boundary because there was no boundary"
+    elif [ "$cr_ppnb" -ne $((cr_ppna + 1)) ]; then
+        cr_bad "word 4, $(cr_name 4): page number $(printf '%x' "$cr_ppnb"), and the declared layout puts B's root in the frame after A's, $(printf '%x' $((cr_ppna + 1))). The satp that was installed is not the table the source says was built"
+    fi
+    if [ $((cr_base % 4096)) -ne 0 ]; then
+        cr_bad "word 1: A's root table is at $cr_basex, which is not page aligned — satp keeps a page NUMBER and the low bits are lost"
+    fi
+    if ! { [ "$cr_baddr" -le "$cr_base" ] && [ $((cr_base + 10 * 4096)) -le $((cr_baddr + cr_bsize)) ]; }; then
+        cr_bad "word 1: the frames start at $cr_basex, and the ten of them do not fit inside the .bss the ELF reserves ($(printf '%016x' "$cr_baddr") + $(printf '%x' "$cr_bsize"))"
+    fi
+    for cr_i in 2 5; do
+        if [ "$cr_i" = 2 ]; then cr_c=$cr_ca; cr_who=A; else cr_c=$cr_cb; cr_who=B; fi
+        cr_d=$(cr_dec "$cr_c"); cr_x=""
+        if [ "$cr_d" = 9 ]; then cr_x=" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this tree took before C-002k and is the one number that says the process never left supervisor mode"; fi
+        if [ "$cr_d" != 8 ]; then
+            cr_bad "word $cr_i, $(cr_name $cr_i): cause $cr_d, expected 8, ENVIRONMENT CALL FROM U-MODE. Process $cr_who did not trap from U-mode$cr_x"
+        fi
+    done
+    cr_inbox=$(printf '%016x' $((cr_base + 8 * 4096)))
+    if [ "$cr_msg" = 0000000000000000 ]; then
+        cr_bad "word 3, the word A sent: zero, which is what an unwritten frame reads. Nothing distinguishes 'A sent 0' from 'A's load never reached its inbox'"
+    elif [ "$cr_msg" != "$cr_inbox" ]; then
+        cr_bad "word 3, $(cr_name 3): $cr_msg, and A's inbox frame is $cr_inbox by the declared layout. That address is what the program writes into that frame before paging is on, so a word that is not it did not come through A's window"
+    fi
+    if [ "$cr_back" = 0000000000000000 ]; then
+        cr_bad "word 6, the word B sent back: zero, and zero is exactly what A's inbox is emptied to before B runs. B read a frame A had just been cleared out of — its window is reaching A's inbox, not its own, so the two window tables are one and nothing crossed"
+    elif [ "$cr_back" != "$cr_msg" ]; then
+        cr_bad "word 6, $(cr_name 6): $cr_back, and the word A sent was $cr_msg. B loaded from the same virtual address under its own satp, so a different word means what the kernel wrote into B's inbox is not what B found there"
+    fi
+    if [ -n "$cr_b" ]; then printf '%s' "$cr_b"; return 1; fi
+    printf '%s\n' "satp $cr_sa/$cr_sb, tables at $cr_basex, $cr_msg out of A's inbox and $cr_back out of B's, both ecalls cause 8"
+}
+crossing_moves() {  # LOFILE HIFILE
+    cm_b=""
+    for cm_i in 0 2 3 5; do
+        cm_l=$(cr_word "$1" $((cm_i + 1))); cm_h=$(cr_word "$2" $((cm_i + 1)))
+        if [ "$cm_l" = "$cm_h" ]; then
+            cm_b="${cm_b}word $((cm_i + 1)), $(cr_name $((cm_i + 1))): $cm_l at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened
+"
+        fi
+    done
+    for cm_i in 1 4; do
+        cm_l=$(cr_word "$1" $((cm_i + 1))); cm_h=$(cr_word "$2" $((cm_i + 1)))
+        if [ "$cm_l" != "$cm_h" ]; then
+            cm_b="${cm_b}word $((cm_i + 1)), $(cr_name $((cm_i + 1))): $cm_l then $cm_h. A cause number is architectural. One that follows the link address is not coming from scause at all
+"
+        fi
+    done
+    if [ -n "$cm_b" ]; then printf '%s' "$cm_b"; return 1; fi
+    echo "both satps and the word on both sides of the crossing moved between the two link addresses, and both cause numbers stayed put"
+}
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 # NOT in $root: the gate fingerprints modified and untracked files, so a scratch
@@ -97,7 +192,7 @@ prog=$root/spec/crossing.sas
 
 fail=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$addr" "$prog" "$tmp/cr.elf" >/dev/null
 
     # The section is found by NAME: `kosha` emits only the sections a program
@@ -127,91 +222,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
     # one-sided by construction and blind to a surplus (`W-081`).
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' > "$tmp/l.$addr" || true
 
-    if ! python3 - "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp for A", "scause on A's ecall", "the word A sent",
-        "satp for B", "scause on B's ecall", "the word B sent back")
-U_ECALL, PPN = 8, (1 << 44) - 1
-FRAMES, INBOX_A = 10, 8 * 4096
-
-bad = []
-if len(v) != 6:
-    print(f"printed {len(v)} hex lines, expected 6: " +
-          "; ".join(f"{i + 1} {n}" for i, n in enumerate(NAME)) +
-          ". Fewer than six means the machine stopped where the line stops — a "
-          "window page without U kills the user's load before its ecall, and a "
-          "root table that does not map the kernel kills the fetch right after "
-          "its own satp write")
-    sys.exit(1)
-
-satp_a, cause_a, msg, satp_b, cause_b, back = v
-bss = open(sys.argv[2]).read().split()
-bss_addr, bss_size = int(bss[0], 16), int(bss[1], 16)
-base = (satp_a & PPN) << 12
-
-# ---- two address spaces to cross between --------------------------------
-for i, s in ((1, satp_a), (4, satp_b)):
-    if s >> 60 != 8:
-        bad.append(f"word {i}, {NAME[i - 1]}: mode nibble {s >> 60:x}, not 8. "
-                   "Sv39 is the only paging mode this tree installs, and a satp "
-                   "that is not in it was never installed")
-if satp_a == satp_b:
-    bad.append(f"words 1 and 4 are the same satp ({satp_a:016x}), so both "
-               "processes ran in ONE address space and nothing crossed a "
-               "boundary because there was no boundary")
-elif (satp_b & PPN) != (satp_a & PPN) + 1:
-    bad.append(f"word 4, {NAME[3]}: page number {satp_b & PPN:x}, and the "
-               f"declared layout puts B's root in the frame after A's, "
-               f"{(satp_a & PPN) + 1:x}. The satp that was installed is not the "
-               "table the source says was built")
-if base % 4096:
-    bad.append(f"word 1: A's root table is at {base:016x}, which is not page "
-               "aligned — satp keeps a page NUMBER and the low bits are lost")
-if not (bss_addr <= base and base + FRAMES * 4096 <= bss_addr + bss_size):
-    bad.append(f"word 1: the frames start at {base:016x}, and the ten of them do "
-               f"not fit inside the .bss the ELF reserves ({bss_addr:016x} + "
-               f"{bss_size:x})")
-
-# ---- both of them in U-mode ---------------------------------------------
-for i, c, who in ((2, cause_a, "A"), (5, cause_b, "B")):
-    extra = (" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this "
-             "tree took before C-002k and is the one number that says the "
-             "process never left supervisor mode") if c == 9 else ""
-    if c != U_ECALL:
-        bad.append(f"word {i}, {NAME[i - 1]}: cause {c}, expected 8, ENVIRONMENT "
-                   f"CALL FROM U-MODE. Process {who} did not trap from U-mode"
-                   + extra)
-
-# ---- the crossing -------------------------------------------------------
-if msg == 0:
-    bad.append("word 3, the word A sent: zero, which is what an unwritten frame "
-               "reads. Nothing distinguishes 'A sent 0' from 'A's load never "
-               "reached its inbox'")
-elif msg != base + INBOX_A:
-    bad.append(f"word 3, {NAME[2]}: {msg:016x}, and A's inbox frame is "
-               f"{base + INBOX_A:016x} by the declared layout. That address is "
-               "what the program writes into that frame before paging is on, so "
-               "a word that is not it did not come through A's window")
-if back == 0:
-    bad.append("word 6, the word B sent back: zero, and zero is exactly what A's "
-               "inbox is emptied to before B runs. B read a frame A had just "
-               "been cleared out of — its window is reaching A's inbox, not its "
-               "own, so the two window tables are one and nothing crossed")
-elif back != msg:
-    bad.append(f"word 6, {NAME[5]}: {back:016x}, and the word A sent was "
-               f"{msg:016x}. B loaded from the same virtual address under its own "
-               "satp, so a different word means what the kernel wrote into B's "
-               "inbox is not what B found there")
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp_a:016x}/{satp_b:016x}, tables at {base:016x}, {msg:016x} out "
-      f"of A's inbox and {back:016x} out of B's, both ecalls cause 8")
-sys.exit(0)
-PY
+    if ! crossing_verdict "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -220,34 +231,7 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp for A", "scause on A's ecall", "the word A sent",
-        "satp for B", "scause on B's ecall", "the word B sent back")
-MOVES, FIXED = (0, 2, 3, 5), (1, 4)
-
-bad = []
-for i in MOVES:
-    if lo[i] == hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link "
-                   "addresses. It is derived from where the image was loaded, so "
-                   "a value that did not move is a constant in the source and the "
-                   "derivation it stands for never happened")
-for i in FIXED:
-    if lo[i] != hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} then {hi[i]:016x}. A "
-                   "cause number is architectural. One that follows the link "
-                   "address is not coming from scause at all")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("both satps and the word on both sides of the crossing moved between the "
-      "two link addresses, and both cause numbers stayed put")
-sys.exit(0)
-PY
+    if ! crossing_moves "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

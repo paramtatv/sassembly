@@ -9,7 +9,7 @@
 
 ॰ सञ्चारपरीक्षा — THE NETWORK LIBRARY'S PROGRAM: a self-test, a pinger and a responder
 ॰ (ADR-0048). Built with the six files beside it (spec/net/*.t1); tools/check-net-t1.sh and
-॰ crates/yantra/tests/net_t1.rs build and run it.
+॰ net_t1 build and run it.
 ॰
 ॰ ARGUMENTS, found by their tags as yantra hands them over (the same four globals as
 ॰ spec/virtio-gpu-draw.t1). With NONE the program runs the SELF-TEST and never touches a

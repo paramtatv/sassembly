@@ -43,7 +43,7 @@
 #
 # But a digest routine that returned a constant would satisfy every comparison
 # in the program and the program could not tell. So this check recomputes
-# FNV-1a-64 ITSELF, in Python, over the slot's bytes read out of the ELF at the
+# FNV-1a-64 ITSELF, in awk, over the slot's bytes read out of the ELF at the
 # address and length the loader printed, and requires the two to agree.
 #
 # ## What moves and what does not
@@ -88,7 +88,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/bootloader.sas" "$tmp/b.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060). The bound has to
     # exist: slot क hangs by design and only the guest's own watchdog gets out of
@@ -111,232 +111,173 @@ run_at() {
 }
 
 fail=0; prev_inv=""; prev_base=""
+# The verifier is awk (POSIX; BWK and GNU alike): addresses are exact doubles, and the
+# 64-bit digests are 16-digit hex strings and FNV-1a-64 runs on four 16-bit limbs.
+cat > "$tmp/v.awk" <<'AWK'
+# Verifier for tools/check-bootloader.sh. Input 1: the printed words, one 16-digit hex per line.
+# Input 2: `od -An -v -tu1` of the ELF. Awk doubles are exact to 2^53, so addresses and
+# lengths are numbers and every 64-bit digest stays a 16-digit hex string (never a number).
+function hexn(s,   i, v) { v = 0; s = tolower(s)
+    for (i = 1; i <= length(s); i++) v = v * 16 + index("0123456789abcdef", substr(s, i, 1)) - 1
+    return v }
+function tohex(n, w,   s) { s = ""
+    if (n == 0) s = "0"
+    while (n > 0) { s = substr("0123456789abcdef", n % 16 + 1, 1) s; n = int(n / 16) }
+    while (length(s) < w) s = "0" s
+    return s }
+function hx(n) { return n < 0 ? "-0x" tohex(-n, 1) : "0x" tohex(n, 1) }
+function xor8(a, b,   r, k) { r = 0
+    for (k = 128; k >= 1; k = k / 2) {
+        if ((a >= k) != (b >= k)) r += k
+        if (a >= k) a -= k
+        if (b >= k) b -= k }
+    return r }
+function le(o, n,   v, k) { v = 0
+    for (k = n - 1; k >= 0; k--) v = v * 256 + B[o + k]
+    return v }
+# FNV-1a 64 over n octets of the ELF at offset o; four 16-bit limbs, prime = 2^40 + 0x1b3.
+function fnv(o, n,   h0, h1, h2, h3, i, lo, low24, x, c, r0, r1, r2, r3) {
+    h3 = 52210; h2 = 40164; h1 = 33826; h0 = 8997
+    for (i = 0; i < n; i++) {
+        lo = h0 % 256; h0 = h0 - lo + xor8(lo, B[o + i])
+        low24 = (h0 + (h1 % 256) * 65536) * 256
+        r0 = h0 * 435; c = int(r0 / 65536); r0 = r0 % 65536
+        r1 = h1 * 435 + c; c = int(r1 / 65536); r1 = r1 % 65536
+        r2 = h2 * 435 + c + low24 % 65536; c = int(r2 / 65536); r2 = r2 % 65536
+        r3 = (h3 * 435 + c + int(low24 / 65536)) % 65536
+        h0 = r0; h1 = r1; h2 = r2; h3 = r3 }
+    return tohex(h3, 4) tohex(h2, 4) tohex(h1, 4) tohex(h0, 4) }
+function die(m) { print m; fin = 1; exit 1 }
+function addbad(m) { bad[nb++] = m }
+function lst(a, n,   s, k) { s = "["
+    for (k = 0; k < n; k++) s = s (k ? ", " : "") a[k]
+    return s "]" }
+function keys(set,   k, n, s) { n = 0; s = "["
+    for (k = 0; k < 256; k++) if (k in set) { s = s (n ? ", " : "") k; n++ }
+    return s "]" }
+function cnt(sc, kind, slot,   i, n) { n = 0
+    for (i = 0; i < ne; i++) if (S[i] == sc && K[i] == kind && (slot == "" || SL[i] == slot)) n++
+    return n }
+function image(va, n,   k) {
+    for (k = 0; k < ns; k++) if (SV[k] <= va && va + n <= SV[k] + SF[k]) return SO[k] + (va - SV[k])
+    return -1 }
+BEGIN {
+    if (MODE != "bases") next_mode = 1
+    else {
+        split(PREV, p, " "); split(CUR, q, " ")
+        d = 2097152   # 0x80400000 - 0x80200000
+        da = hexn(q[1]) - hexn(p[1]); db = hexn(q[2]) - hexn(p[2])
+        if (da != d || db != d) {
+            print "  FAIL  the slot bases moved by " hx(da) " and " hx(db) ", expected " hx(d) " each."
+            print "        A base that does not move is a constant, and a loader printing"
+            print "        constants would pass every other assertion here."
+            rcb = 1 }
+        bmode = 1; exit rcb }
+}
+FILENAME == WF { if ($0 ~ /[^ \t]/) { gsub(/[ \t\r]/, ""); W[nw++] = $0 } ; next }
+{ for (f = 1; f <= NF; f++) B[nb_++] = $f + 0 }
+END {
+    if (bmode) exit rcb
+    MUDRA = 0; STHANA = 11; ARAMBHA = 10; VICHARA = 1; KSHAYA = 2; APARIKSHA = 3
+    PRATYAVARTANA = 4; AVATARANA = 5; PRAVESHA = 6; MARKA = 7; ABHUTYA = 8; PUNARARAMBHA = 9
+    NAME[0] = "मुद्रा"; NAME[11] = "स्थान"; NAME[10] = "प्रारम्भ"; NAME[1] = "विचार"
+    NAME[2] = "क्षय"; NAME[3] = "अपरीक्षा"; NAME[4] = "प्रत्यावर्तन"
+    NAME[5] = "अवतरण"; NAME[6] = "प्रवेश"; NAME[7] = "मार्क"
+    NAME[8] = "अबूट्य"; NAME[9] = "पुनरारम्भ"
+    PAY[11] = 2; PAY[0] = 1; PAY[3] = 1; PAY[9] = 1
+    SLOTN[0] = "क"; SLOTN[1] = "ख"; SLOTN[255] = "-"
+    nb = 0
+    if (nw == 0) die("nothing printed at all. The image did not reach its first ecall, or it\nshut down before printing. Bisect: print at the very first instruction;\nif that line appears, the program started and the fault is later.")
+    ne = 0; i = 0
+    while (i < nw) {
+        w = W[i]; i++
+        kind = hexn(substr(w, 1, 2)); sc = hexn(substr(w, 3, 2)); slot = hexn(substr(w, 5, 2)); cn = hexn(substr(w, 7, 2))
+        if (kind > 11) die("word " (i - 1) " is " w ": kind 0x" tohex(kind, 2) " is not an event this check knows")
+        if (substr(w, 9, 8) != "00000000") die("word " (i - 1) " is " w ": an event word's low 32 bits must be zero, so\nthe stream is out of step — a payload word was read as an event")
+        n = (kind in PAY) ? PAY[kind] : 0
+        if (i + n > nw) die("the stream ends inside a " NAME[kind] " event, which owes " n " more word(s).\nThe machine was killed mid-print, or a slot hung with the watchdog unarmed.")
+        K[ne] = kind; S[ne] = sc; SL[ne] = slot; C[ne] = cn; P1[ne] = W[i]; P2[ne] = W[i + 1]; ne++
+        i += n }
+    # a scenario that never started has not failed its properties — it has not been tested
+    maxran = 0
+    for (e = 0; e < ne; e++) if (S[e]) { ran[S[e]] = 1; if (S[e] > maxran) maxran = S[e] }
+    nm = 0
+    for (s = 1; s <= 3; s++) if (!(s in ran)) miss[nm++] = s
+    if (nm) addbad("scenario(s) " lst(miss, nm) " never ran; the machine was still in scenario " maxran " when this check killed it, so nothing below that point was exercised. Whatever went wrong there comes first")
+    # the recorded digests, and the ELF they claim to be over
+    phoff = le(32, 8); phentsize = le(54, 2); phnum = le(56, 2); ns = 0
+    for (k = 0; k < phnum; k++) {
+        o = phoff + k * phentsize
+        if (le(o, 4) == 1) { SO[ns] = le(o + 8, 8); SV[ns] = le(o + 16, 8); SF[ns] = le(o + 32, 8); ns++ } }
+    for (e = 0; e < ne; e++) {
+        if (K[e] == STHANA) { LOC[SL[e]] = 1; LB[SL[e]] = hexn(P1[e]); LN[SL[e]] = hexn(P2[e]) }
+        if (K[e] == MUDRA) { REC[SL[e]] = 1; RD[SL[e]] = P1[e] } }
+    if (keys(LOC) != "[0, 1]" || keys(REC) != "[0, 1]")
+        die("the loader located slots " keys(LOC) " and recorded digests for " keys(REC) "; both must cover exactly क and ख")
+    for (s = 0; s <= 1; s++) {
+        base = LB[s]; ln = LN[s]
+        if (ln == 0) { addbad("slot " SLOTN[s] " has length 0, so its digest is over nothing"); continue }
+        o = image(base, ln)
+        if (o < 0) { addbad("slot " SLOTN[s] " claims " hx(base) "+" ln ", which is not inside any loadable segment of the ELF — the loader is digesting memory that was never part of the image"); continue }
+        want = fnv(o, ln)
+        if (want != RD[s]) addbad("slot " SLOTN[s] ": the loader recorded " RD[s] ", but FNV-1a-64 over the " ln " octets at " hx(base) " IN THE ELF is " want ". The digest is not a function of the image it names, so every comparison the loader makes is comparing something else") }
+    if (RD[0] == RD[1]) addbad("both slots recorded the digest " RD[0] ", and their bytes differ — so the digest does not depend on its input and any slot would verify against any recording")
+    # scenario 1: the kernel hangs
+    if (1 in ran) {
+        ke = 0; kl = 0; nr = 0
+        for (e = 0; e < ne; e++) if (S[e] == 1) {
+            if (K[e] == PRAVESHA && SL[e] == 0) ke++
+            if (K[e] == AVATARANA && SL[e] == 0) { KLC[kl++] = C[e] }
+            if (K[e] == PUNARARAMBHA) RSC[nr++] = P1[e] }
+        if (ke != 3) addbad("scenario 1: slot क was entered " ke " times, expected 3 — the budget is three attempts and क hangs every time, so it must consume all three and no more")
+        else if (lst(KLC, kl) != "[2, 1, 0]") addbad("scenario 1: the counter written before each of क's three boots was " lst(KLC, kl) ", expected [2, 1, 0]. क never returns, so a counter that does not fall means the loader wrote it somewhere the hung kernel had to reach — or rewrote the state on the boot path, which counts nothing")
+        for (j = 0; j < kl; j++) {
+            ok = 0
+            for (e = 0; e < ne; e++) if (S[e] == 1 && K[e] == PRAVESHA && SL[e] == 0 && C[e] == KLC[j]) ok = 1
+            if (!ok) addbad("scenario 1: the loader wrote counter " KLC[j] " for क but क never ran — the counter moved without a boot behind it") }
+        for (e = 0; e < ne; e++) if (S[e] == 1 && K[e] == MARKA && SL[e] == 0) { addbad("scenario 1: slot क marked itself good, but क hangs. Whatever ran, it was not the slot this check is about"); break }
+        if (nr != 3) addbad("scenario 1: the watchdog fired " nr " times, expected 3 — one per hung boot. A hang that is not caught is a brick")
+        for (j = 0; j < nr; j++) if (RSC[j] != "8000000000000005") addbad("scenario 1: a reset was taken with scause " RSC[j] ", expected 8000000000000005 (interrupt, cause 5, the clock). Something other than the watchdog ended that boot")
+        jj = -1
+        for (e = 0; e < ne; e++) if (S[e] == 1 && K[e] == KSHAYA && SL[e] == 0) { jj = e; break }
+        if (jj < 0) addbad("scenario 1: क's budget never ran out, so the fallback was never reached")
+        else {
+            t4 = 0; t6 = 0; t7 = 0
+            for (e = jj; e < ne; e++) if (S[e] == 1) {
+                if (K[e] == PRATYAVARTANA && SL[e] == 1) t4 = 1
+                if (K[e] == PRAVESHA && SL[e] == 1) t6 = 1
+                if (K[e] == MARKA && SL[e] == 1) t7 = 1 }
+            if (!t4) addbad("scenario 1: क was exhausted and the loader did not fall back to ख")
+            else if (!t6) addbad("scenario 1: the loader fell back to ख and never entered it. Counting to zero is not a fallback; the other slot has to run")
+            else if (!t7) addbad("scenario 1: ख was entered and never marked itself good, so the machine did not finish booting (doc 16 §4.3 step 6)") } }
+    # scenario 2: क does not verify
+    r2 = -1
+    if (2 in ran) {
+        for (e = 0; e < ne; e++) if (S[e] == 2 && K[e] == APARIKSHA && SL[e] == 0) { r2 = e; break }
+        if (r2 < 0) addbad("scenario 2: slot क was corrupted and the loader did not refuse it")
+        else if (P1[r2] == RD[0]) addbad("scenario 2: क was refused, but the digest it computed (" P1[r2] ") equals the recorded one — the refusal was not caused by the content")
+        if (cnt(2, PRAVESHA, 0)) addbad("scenario 2: SLOT क RAN. Its digest did not match and the loader entered it anyway. A loader that verifies and boots regardless is worse than one that does not verify, because it reports a safety it does not provide")
+        if (cnt(2, AVATARANA, 0)) addbad("scenario 2: the loader spent one of क's attempts on a slot it refused. Nothing was attempted, and the count is of attempts")
+        if (!cnt(2, MARKA, 1)) addbad("scenario 2: ख never marked itself good — refusing क has to leave the machine booted, not stopped") }
+    # scenario 3: neither slot verifies
+    if (3 in ran) {
+        last = -1
+        for (e = 0; e < ne; e++) if (S[e] == 3) { last = e; if (K[e] == APARIKSHA) { R3[SL[e]] = 1; R3D[SL[e]] = P1[e] } }
+        if (keys(R3) != "[0, 1]") addbad("scenario 3: both slots are corrupt; the loader refused " keys(R3))
+        if (cnt(3, PRAVESHA, "")) addbad("scenario 3: a slot RAN with neither slot verifying. This is the case that separates a loader which refuses from one which merely reports")
+        if (!cnt(3, ABHUTYA, "")) addbad("scenario 3: no slot verified and the loader did not say so. Stopping with a reason is the correct end here; silence is not")
+        else if (K[last] != ABHUTYA) addbad("scenario 3: the loader carried on after declaring nothing bootable")
+        if ((0 in R3) && r2 >= 0 && R3D[0] != P1[r2]) addbad("क's digest came out " P1[r2] " in scenario 2 and " R3D[0] " in scenario 3 from identical bytes — the digest is not a function of content alone") }
+    if (nb) { for (k = 0; k < nb; k++) print "  " bad[k]; exit 1 }
+    print RD[0], RD[1] > MACH
+    print tohex(LB[0], 1), tohex(LB[1], 1) > MACH
+    print "क hung 3 times and burnt 3 attempts, ख booted and marked good; क refused unverified and never entered; neither verifying, nothing entered at all"
+}
+AWK
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l"
-    if ! python3 - "$tmp/l" "$tmp/b.elf" "$tmp/m" > "$tmp/v" 2>&1 <<'PY'
-import struct, sys
-
-words_path, elf_path, machine_path = sys.argv[1], sys.argv[2], sys.argv[3]
-words = [l.strip() for l in open(words_path) if l.strip()]
-
-# ---- the event stream ---------------------------------------------------
-# [63:56] kind  [55:48] scenario  [47:40] slot (0=क, 1=ख, 0xff=none)
-# [39:32] the slot's remaining attempts  [31:0] zero.
-# A kind says how many payload words follow it, so the parse is positional and
-# a payload word can never be mistaken for an event.
-MUDRA, STHANA = 0x00, 0x0b          # digest recorded / slot located
-ARAMBHA = 0x0a                      # power-on for a scenario
-VICHARA, KSHAYA, APARIKSHA = 1, 2, 3    # considering / out of attempts / refused
-PRATYAVARTANA, AVATARANA = 4, 5     # fall back to the other slot / counter written, jumping
-PRAVESHA, MARKA = 6, 7              # the SLOT'S OWN first instruction / it marked itself good
-ABHUTYA, PUNARARAMBHA = 8, 9        # nothing bootable / the watchdog reset us
-PAYLOAD = {STHANA: 2, MUDRA: 1, APARIKSHA: 1, PUNARARAMBHA: 1}
-NAME = {MUDRA: "मुद्रा", STHANA: "स्थान", ARAMBHA: "प्रारम्भ", VICHARA: "विचार",
-        KSHAYA: "क्षय", APARIKSHA: "अपरीक्षा", PRATYAVARTANA: "प्रत्यावर्तन",
-        AVATARANA: "अवतरण", PRAVESHA: "प्रवेश", MARKA: "मार्क",
-        ABHUTYA: "अबूट्य", PUNARARAMBHA: "पुनरारम्भ"}
-SLOT = {0: "क", 1: "ख", 0xff: "-"}
-
-bad = []
-def die(msg):
-    print(msg)
-    sys.exit(1)
-
-if not words:
-    die("nothing printed at all. The image did not reach its first ecall, or it\n"
-        "shut down before printing. Bisect: print at the very first instruction;\n"
-        "if that line appears, the program started and the fault is later.")
-
-ev, i = [], 0
-while i < len(words):
-    w = int(words[i], 16); i += 1
-    kind, sc, slot, cnt = w >> 56, (w >> 48) & 0xff, (w >> 40) & 0xff, (w >> 32) & 0xff
-    if kind not in PAYLOAD and kind not in NAME:
-        die(f"word {i-1} is {w:016x}: kind {kind:#04x} is not an event this check knows")
-    if w & 0xffffffff:
-        die(f"word {i-1} is {w:016x}: an event word's low 32 bits must be zero, so\n"
-            f"the stream is out of step — a payload word was read as an event")
-    n = PAYLOAD.get(kind, 0)
-    if i + n > len(words):
-        die(f"the stream ends inside a {NAME[kind]} event, which owes {n} more word(s).\n"
-            "The machine was killed mid-print, or a slot hung with the watchdog unarmed.")
-    ev.append((kind, sc, slot, cnt, [int(x, 16) for x in words[i:i+n]]))
-    i += n
-
-def of(sc, *kinds):
-    return [e for e in ev if e[1] == sc and (not kinds or e[0] in kinds)]
-
-# A scenario that never started has not failed its properties — it has not been
-# tested. Saying "the loader did not refuse क" about a scenario the machine never
-# reached is a false sentence, and a false sentence in a diagnostic sends the
-# reader to the wrong place. So the missing scenarios are named once, and their
-# assertions are skipped rather than reported as failures.
-ran = sorted({e[1] for e in ev if e[1]})
-missing = [s for s in (1, 2, 3) if s not in ran]
-if missing:
-    bad.append(f"scenario(s) {missing} never ran; the machine was still in scenario "
-               f"{max(ran) if ran else 0} when this check killed it, so nothing below "
-               "that point was exercised. Whatever went wrong there comes first")
-
-# ---- the recorded digests, and the ELF they claim to be over -------------
-b = open(elf_path, 'rb').read()
-phoff, = struct.unpack_from('<Q', b, 0x20)
-phentsize, phnum = struct.unpack_from('<HH', b, 0x36)
-segs = []
-for k in range(phnum):
-    typ, _fl, off, va, _pa, fsz, _msz, _al = struct.unpack_from('<IIQQQQQQ', b, phoff + k*phentsize)
-    if typ == 1:
-        segs.append((va, off, fsz))
-
-def image(va, n):
-    for v, o, f in segs:
-        if v <= va and va + n <= v + f:
-            return b[o + (va - v): o + (va - v) + n]
-    return None
-
-def fnv1a64(bs):
-    h = 0xcbf29ce484222325
-    for x in bs:
-        h ^= x
-        h = (h * 0x100000001b3) & 0xffffffffffffffff
-    return h
-
-located = {e[2]: e[4] for e in ev if e[0] == STHANA}
-recorded = {e[2]: e[4][0] for e in ev if e[0] == MUDRA}
-if sorted(located) != [0, 1] or sorted(recorded) != [0, 1]:
-    die(f"the loader located slots {sorted(located)} and recorded digests for "
-        f"{sorted(recorded)}; both must cover exactly क and ख")
-
-for s in (0, 1):
-    base, ln = located[s]
-    if ln == 0:
-        bad.append(f"slot {SLOT[s]} has length 0, so its digest is over nothing")
-        continue
-    img = image(base, ln)
-    if img is None:
-        bad.append(f"slot {SLOT[s]} claims {base:#x}+{ln}, which is not inside any "
-                   "loadable segment of the ELF — the loader is digesting memory that "
-                   "was never part of the image")
-        continue
-    want = fnv1a64(img)
-    if want != recorded[s]:
-        bad.append(f"slot {SLOT[s]}: the loader recorded {recorded[s]:016x}, but FNV-1a-64 "
-                   f"over the {ln} octets at {base:#x} IN THE ELF is {want:016x}. The digest "
-                   "is not a function of the image it names, so every comparison the "
-                   "loader makes is comparing something else")
-
-if recorded.get(0) == recorded.get(1):
-    bad.append(f"both slots recorded the digest {recorded.get(0):016x}, and their bytes "
-               "differ — so the digest does not depend on its input and any slot would "
-               "verify against any recording")
-
-# ---- scenario 1: the kernel hangs ---------------------------------------
-if 1 in ran:
- enters1 = [e for e in of(1, PRAVESHA)]
- launch1 = [e for e in of(1, AVATARANA)]
- k_enters = [e for e in enters1 if e[2] == 0]
- k_launch = [e for e in launch1 if e[2] == 0]
- resets = of(1, PUNARARAMBHA)
-
- if len(k_enters) != 3:
-    bad.append(f"scenario 1: slot क was entered {len(k_enters)} times, expected 3 — the "
-               "budget is three attempts and क hangs every time, so it must consume all "
-               "three and no more")
- elif [e[3] for e in k_launch] != [2, 1, 0]:
-    bad.append(f"scenario 1: the counter written before each of क's three boots was "
-               f"{[e[3] for e in k_launch]}, expected [2, 1, 0]. क never returns, so a "
-               "counter that does not fall means the loader wrote it somewhere the hung "
-               "kernel had to reach — or rewrote the state on the boot path, which counts "
-               "nothing")
- for e in k_launch:
-    if not any(x[0] == PRAVESHA and x[2] == 0 and x[3] == e[3] for x in enters1):
-        bad.append(f"scenario 1: the loader wrote counter {e[3]} for क but क never ran — "
-                   "the counter moved without a boot behind it")
- if any(e[0] == MARKA and e[2] == 0 for e in of(1)):
-    bad.append("scenario 1: slot क marked itself good, but क hangs. Whatever ran, it was "
-               "not the slot this check is about")
- if len(resets) != 3:
-    bad.append(f"scenario 1: the watchdog fired {len(resets)} times, expected 3 — one per "
-               "hung boot. A hang that is not caught is a brick")
- for e in resets:
-    if e[4][0] != 0x8000000000000005:
-        bad.append(f"scenario 1: a reset was taken with scause {e[4][0]:016x}, expected "
-                   "8000000000000005 (interrupt, cause 5, the clock). Something other than "
-                   "the watchdog ended that boot")
-
- seq1 = [(e[0], e[2]) for e in of(1)]
- try:
-    j = seq1.index((KSHAYA, 0))
- except ValueError:
-    bad.append("scenario 1: क's budget never ran out, so the fallback was never reached")
- else:
-    tail = seq1[j:]
-    if (PRATYAVARTANA, 1) not in tail:
-        bad.append("scenario 1: क was exhausted and the loader did not fall back to ख")
-    elif (PRAVESHA, 1) not in tail:
-        bad.append("scenario 1: the loader fell back to ख and never entered it. Counting to "
-                   "zero is not a fallback; the other slot has to run")
-    elif (MARKA, 1) not in tail:
-        bad.append("scenario 1: ख was entered and never marked itself good, so the machine "
-                   "did not finish booting (doc 16 §4.3 step 6)")
-
-# ---- scenario 2: क does not verify --------------------------------------
-ref2 = []
-if 2 in ran:
- ref2 = [e for e in of(2, APARIKSHA) if e[2] == 0]
- if not ref2:
-    bad.append("scenario 2: slot क was corrupted and the loader did not refuse it")
- else:
-    got = ref2[0][4][0]
-    if got == recorded[0]:
-        bad.append(f"scenario 2: क was refused, but the digest it computed ({got:016x}) "
-                   "equals the recorded one — the refusal was not caused by the content")
- if any(e[2] == 0 for e in of(2, PRAVESHA)):
-    bad.append("scenario 2: SLOT क RAN. Its digest did not match and the loader entered it "
-               "anyway. A loader that verifies and boots regardless is worse than one that "
-               "does not verify, because it reports a safety it does not provide")
- if any(e[2] == 0 for e in of(2, AVATARANA)):
-    bad.append("scenario 2: the loader spent one of क's attempts on a slot it refused. "
-               "Nothing was attempted, and the count is of attempts")
- if not any(e[2] == 1 and e[0] == MARKA for e in of(2)):
-    bad.append("scenario 2: ख never marked itself good — refusing क has to leave the "
-               "machine booted, not stopped")
-
-# ---- scenario 3: neither slot verifies ----------------------------------
-if 3 in ran:
- ref3 = {e[2]: e[4][0] for e in of(3, APARIKSHA)}
- if sorted(ref3) != [0, 1]:
-    bad.append(f"scenario 3: both slots are corrupt; the loader refused {sorted(ref3)}")
- if of(3, PRAVESHA):
-    bad.append("scenario 3: a slot RAN with neither slot verifying. This is the case that "
-               "separates a loader which refuses from one which merely reports")
- if not of(3, ABHUTYA):
-    bad.append("scenario 3: no slot verified and the loader did not say so. Stopping with a "
-               "reason is the correct end here; silence is not")
- elif of(3)[-1][0] != ABHUTYA:
-    bad.append("scenario 3: the loader carried on after declaring nothing bootable")
- if 0 in ref3 and ref2 and ref3[0] != ref2[0][4][0]:
-    bad.append(f"क's digest came out {ref2[0][4][0]:016x} in scenario 2 and {ref3[0]:016x} "
-               "in scenario 3 from identical bytes — the digest is not a function of "
-               "content alone")
-
-if bad:
-    print("\n".join("  " + x for x in bad))
-    sys.exit(1)
-
-# What must be identical between link addresses, and what must move.
-#
-# Only the digests are carried across. The lengths and the event stream were here
-# too and were removed: every field of them is already pinned by the per-address
-# assertions above, so comparing them again could not fail — coverage-shaped and
-# empty. See the note above the comparison for why the digest line stays.
-with open(machine_path, 'w') as f:
-    f.write("%016x %016x\n" % (recorded[0], recorded[1]))
-    f.write("%x %x\n" % (located[0][0], located[1][0]))
-
-print("क hung 3 times and burnt 3 attempts, ख booted and marked good; क refused "
-      "unverified and never entered; neither verifying, nothing entered at all")
-PY
+    od -An -v -tu1 "$tmp/b.elf" > "$tmp/e.od"
+    if ! awk -v WF="$tmp/l" -v MACH="$tmp/m" -f "$tmp/v.awk" "$tmp/l" "$tmp/e.od" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
 
     printf "  %s -> %s\n" "$addr" "$(tail -1 "$tmp/v")"
@@ -376,17 +317,7 @@ PY
         # constant", and this is the backstop that starts mattering when a slot
         # image is a linked kernel rather than the position-independent code it
         # is now. Guard, not coverage — the same status as the digest above.
-        python3 - "$prev_base" "$base" <<'PYB' || fail=1
-import sys
-pa, pb = (int(x, 16) for x in sys.argv[1].split())
-qa, qb = (int(x, 16) for x in sys.argv[2].split())
-d = 0x80400000 - 0x80200000
-if (qa - pa, qb - pb) != (d, d):
-    print(f"  FAIL  the slot bases moved by {qa-pa:#x} and {qb-pb:#x}, expected {d:#x} each."
-          "\n        A base that does not move is a constant, and a loader printing"
-          "\n        constants would pass every other assertion here.")
-    sys.exit(1)
-PYB
+        awk -v MODE=bases -v PREV="$prev_base" -v CUR="$base" -f "$tmp/v.awk" || fail=1
     fi
     prev_inv=$inv; prev_base=$base
 done

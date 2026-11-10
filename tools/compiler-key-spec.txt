@@ -8,7 +8,7 @@
 # cache); tools/check-compiler-key.sh fails until it is classified. A malformed line keys ALL of spec/ (fails closed). This
 # file's own octets are in the key too.
 #
-# THE READ SET, measured 2026-10-10 on a Linux x86_64 host (x86_64-linux) at 61ebfc4a by strace -f (openat/open/stat/newfstatat/statx/
+# THE READ SET, measured 2026-10-10 on ubuntu-local (x86_64-linux) at 61ebfc4a by strace -f (openat/open/stat/newfstatat/statx/
 # access/readlink/getdents64) over: cargo build --release -p sadhana --bin t1_image (fresh target dir); t1_image over the
 # compiler as t1-build.sh's stage1() runs it and over tools/native-spike/t1/anuvada.t1 as translator_elf() runs it (each with
 # yantra-run beside it, which its differential gate runs); the native Stage 1 compiling the packed corpus (it opens only
@@ -66,7 +66,19 @@ skip spec/clock/
 skip spec/crypto/
 skip spec/demo/
 skip spec/entropy/
+skip spec/native-tests/
+skip spec/vectors/unicode/
 skip spec/entry/
+skip spec/fdt-synth.dtb
 skip spec/golden/
+skip spec/native-tests/
 skip spec/net/
+skip spec/native-tests/   # native sanskrit-text tests+fixtures: run by gates, never read by the compiler build
+skip spec/vectors/   # vendored UCD conformance inputs (Unicode-3.0): test oracles, never read by the compiler build
 skip spec/rung/
+skip spec/truth/
+skip spec/shaper/   # native shaper T1 sources: built by their own check, never read by the compiler build
+skip spec/README-frozen-generators.md
+skip spec/highlight-constants.tsv
+skip spec/laghava-accepted.tsv   # laghava reviewed-accept table (ADR-0055): read by tools/check-laghava.sh, never by the compiler build
+skip spec/golden-n2/

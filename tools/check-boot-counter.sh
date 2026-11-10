@@ -55,7 +55,7 @@ new_disk() {
 }
 
 assemble() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$prog" "$2" >/dev/null
 }
 
@@ -98,7 +98,7 @@ cycle() {  # $1 = elf, $2 = disk, $3 = where to leave the cleaned output
 # here, because the checks-column scanner in yantra/tests/application.rs is
 # textual and would read the mention as a claim that THIS check tests THAT
 # program, which it does not.)
-counter() { grep -E '^[0-9a-f]{16}$' "$1" | tail -1; }
+counter() { grep -aE '^[0-9a-f]{16}$' "$1" | tail -1; }
 
 # FRESH or SEEN, whichever the program said. Empty if it said neither.
 #
@@ -107,14 +107,14 @@ counter() { grep -E '^[0-9a-f]{16}$' "$1" | tail -1; }
 # nothing on this host and every verdict came back empty while the counters were
 # perfectly correct.
 verdict() {
-    grep -E '^BOOT-COUNTER-(FRESH|SEEN)$' "$1" | tail -1 | sed 's/^BOOT-COUNTER-//'
+    grep -aE '^BOOT-COUNTER-(FRESH|SEEN)$' "$1" | tail -1 | sed 's/^BOOT-COUNTER-//'
 }
 
 # The program names each way it can fail; a named failure is reported as itself
 # rather than as a missing number.
 complain() {  # $1 = output file, $2 = which run
     for tag in NO-DEVICE NO-QUEUE READ-FAILED WRITE-FAILED; do
-        if grep -q "^BOOT-COUNTER-$tag$" "$1"; then
+        if grep -aq "^BOOT-COUNTER-$tag$" "$1"; then
             echo "  FAIL  run $2 -> the driver reported $tag"
             return 0
         fi

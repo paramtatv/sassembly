@@ -1,111 +1,109 @@
 #!/usr/bin/env bash
-# W-302 — THE SELF-HOSTED IMAGE ASSEMBLES EACH spec/*.sas, NATIVELY.
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
+# W-302 — THE SELF-HOSTED IMAGE ASSEMBLES EACH spec/*.sas TO THE LOADED IMAGE Rust `sadhana` WROTE. No cargo.
 #
-# tools/check-w302-loaded-identity.sh grades the .t1 chain INTERPRETED. This
-# grades the SELF-HOSTED image: t1_image builds the compiler's twenty-one
-# sources plus the entry module spec/entry/assemble.t1 into one image whose
-# startup calls पाठसेतुःॱमुख्यम्; yantra-run runs it once per program and
-# address, the .sas on the input channel (YANTRA_INPUT) and the load address
-# as its one argument, and its stdout is the ELF. The committed comparator
-# (crates/sadhana-t1/tests/w302_loaded_identity.rs, IDENTITY RULED (a)) grades
-# each against Rust `sadhana [--स्थान <addr>]`:
+# Twin of the retired crates/sadhana-t1/tests/w302_loaded_identity census. The oracle (Rust `sadhana`,
+# IDENTITY RULED (a) 2026-10-03) is FROZEN in tools/check-w302-native.tsv: per program and load address, the
+# sha256 of Rust's image restricted to ELF-header octets 0..40 and 48..58, every program header and every
+# PT_LOAD's bytes (tools/check-w302-native.pl; the section table is excluded by the ruling). This script runs the
+# native chain (tools/sadhana-native.sh: the t1-built wrapper image under tools/t1-run.sh) on every row, three ways
+# (image from source; object per source via --वस्तु then --संयोजय; the two-object LINK), and compares projections.
+# A row whose golden is REFUSED must be refused by the native side too (namaste-main alone). A MISSING output is
+# a failure, never a match.
 #
-#   W302_NATIVE=<image> W302_YANTRA_RUN=<yantra-run> W302_SADHANA=<sadhana> \
-#     cargo test --release -p sadhana-t1 --test w302_loaded_identity -- \
-#       --ignored --exact the_48_programs_load_identically_from_the_native_image
-#
-# THE BUILD IS THE DEAR PART (a Stage-1-sized interpreted build, tens of
-# minutes). W302_NATIVE=<image> skips it and grades that image instead; the
-# script then prints the image's sha256 and says it did not build it, because
-# an image older than the tree it is graded against measures the wrong tree.
-#
-# Usage: tools/check-w302-native.sh
-# Exits 0 when every run is identical (or the expected refusal), 1 on any
-# failure, 77 when it cannot run.
-
+# NEGATIVE CONTROL (always run, first): one projected octet of the first golden is flipped; the comparison must
+# say DIFFER, and a not-an-ELF file must be REFUSED. If either passes, the check is vacuous and fails.
+# Regenerate the table (needs a Rust sadhana, W302_SADHANA=<bin>): tools/check-w302-native.sh --regen
+# Env: W302_ONLY=<regex> restricts the rows run (smoke), W302_NATIVE_MODES="src obj" (default both),
+# W302_JOBS=<n> parallel runs (default: core count).
+# Exits 0 all identical, 1 any failure, 77 cannot run.
 (eval ': <(:)') 2>/dev/null || exec /usr/bin/env bash "$0" "$@"
-
 set -uo pipefail
 cd "$(dirname "$0")/.."
-
-for t in cargo python3; do
-  if ! command -v "$t" >/dev/null 2>&1; then
-    echo "CANNOT RUN: $t is not on PATH — nothing was built, so nothing is compared"
-    exit 77
-  fi
-done
-
+export LC_ALL=C.UTF-8 2>/dev/null || true
+GOLD=tools/check-w302-native.tsv
+PROJ="perl tools/check-w302-native.pl"
+command -v perl >/dev/null 2>&1 || { echo "CANNOT RUN: perl"; exit 77; }
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/w302-native.XXXXXX") || exit 77
 trap 'rm -rf "$WORK"' EXIT
 
-sha() { { sha256sum "$1" 2>/dev/null || shasum -a 256 "$1"; } | cut -c1-16; }
+if [ "${1:-}" = "--regen" ]; then
+  [ -n "${W302_SADHANA:-}" ] && [ -x "$W302_SADHANA" ] || { echo "FAIL: --regen needs W302_SADHANA=<rust sadhana>"; exit 1; }
+  {
+    printf '# W-302 frozen oracle: sha256 of Rust sadhana image under ruling (a) (tools/check-w302-native.pl). program(+program)\taddr(- = default)\tsha256|REFUSED\n'
+    while IFS=$'\t' read -r name addr; do
+      a=(); [ "$addr" != "-" ] && a=(--स्थान "$addr")
+      rm -f "$WORK/r.elf"; srcs=(); IFS=+ read -ra ps <<<"$name"; for p in "${ps[@]}"; do srcs+=("spec/$p.sas"); done
+      "$W302_SADHANA" ${a[@]+"${a[@]}"} "${srcs[@]}" "$WORK/r.elf" >/dev/null 2>&1
+      if [ -s "$WORK/r.elf" ]; then h=$($PROJ "$WORK/r.elf") || h=REFUSED; else h=REFUSED; fi
+      printf '%s\t%s\t%s\n' "$name" "$addr" "$h"
+    done < <(
+      D=०षोड्८०२०००००; E=०षोड्८०४०००००
+      for p in bare-metal jump-table lib-mudraka namaste namaste-main; do printf '%s\t-\n' "$p"; done
+      printf 'namaste-main+lib-mudraka\t-\n'
+      printf 'atithi\t-\natithi\t०षोड्२०००००००\n'
+      for p in boot-sbi fdt-header virtio-blk virtio-console virtio-net; do printf '%s\t%s\n' "$p" "$D"; done
+      for p in arena boot-counter bootloader buddy capability compositor context crossing freelist higher-half irq journal kernel mapping merge milestone-k1 milestone-k2 network notification pager-handoff pager paging powerbox pty root-task schedule second-space split stress-ram stress timer trap-seam trap untyped user-mode virtio-gpu virtio-sound; do printf '%s\t%s\n%s\t%s\n' "$p" "$D" "$p" "$E"; done
+    )
+  } > "$GOLD"
+  echo "wrote $GOLD ($(grep -a -vc '^#' "$GOLD") rows)"; exit 0
+fi
 
-pick() {
-  python3 -c '
-import json, sys
-want = sys.argv[1]
-for line in sys.stdin:
-    try:
-        m = json.loads(line)
-    except ValueError:
-        continue
-    if m.get("reason") == "compiler-artifact" and m.get("executable") \
-       and m.get("target", {}).get("name") == want:
-        print(m["executable"])
-' "$1"
+[ -s "$GOLD" ] || { echo "FAIL: $GOLD missing"; exit 1; }
+# Probe: can the native side run at all? 77 => could not run.
+./tools/sadhana-native.sh spec/namaste.sas "$WORK/probe.elf" >"$WORK/probe.log" 2>&1; prc=$?
+[ "$prc" -eq 77 ] && { echo "CANNOT RUN: no Stage 1 / wrapper image for sadhana-native (exit 77)"; exit 77; }
+[ "$prc" -eq 0 ] || { echo "FAIL: sadhana-native probe exit $prc"; tail -5 "$WORK/probe.log"; exit 1; }
+
+fail=0 n=0
+# verdict GOLDEN IMAGE -> prints ok|DIFFER|REFUSED-both|MISSING
+verdict() {
+  local g=$1 img=$2 h
+  if [ ! -s "$img" ]; then [ "$g" = REFUSED ] && echo REFUSED-both || echo MISSING; return; fi
+  if ! h=$($PROJ "$img"); then h=REFUSED; fi
+  if [ "$g" = REFUSED ]; then echo "DIFFER(golden refused, native produced)"; return; fi
+  [ "$h" = "$g" ] && echo ok || { [ "$h" = REFUSED ] && echo "REFUSED(native)" || echo DIFFER; }
 }
 
-# Release, always.
-built() { cargo build --release -p "$1" --bin "$2" --message-format=json 2>/dev/null | pick "$2"; }
-SADHANA=$(built sadhana sadhana)
-T1_IMAGE=$(built sadhana t1_image)
-YANTRA_RUN=$(built yantra yantra-run)
-for b in "$SADHANA" "$T1_IMAGE" "$YANTRA_RUN"; do
-  if [ -z "$b" ] || [ ! -x "$b" ]; then
-    echo "FAIL: a release binary did not build (sadhana, t1_image, yantra-run); run cargo build --release -p sadhana -p yantra to see why"
-    exit 1
+# --- negative control
+g1=$(awk -F'\t' '!/^#/ && $3!="REFUSED"{print $3; exit}' "$GOLD")
+bad="${g1%?}$([ "${g1: -1}" = 0 ] && echo 1 || echo 0)"
+printf 'not an elf' > "$WORK/junk.elf"
+if [ "$(verdict "$bad" "$WORK/junk.elf")" = ok ] || [ "$($PROJ "$WORK/junk.elf" >/dev/null 2>&1; echo $?)" != 2 ]; then
+  echo "FAIL: negative control is vacuous (junk image accepted)"; exit 1; fi
+./tools/sadhana-native.sh spec/namaste.sas "$WORK/nc.elf" >/dev/null 2>&1
+if [ "$(verdict "$bad" "$WORK/nc.elf")" != DIFFER ]; then echo "FAIL: negative control is vacuous (mutated golden matched)"; exit 1; fi
+echo "negative control: mutated golden -> DIFFER, junk image -> REFUSED (as required)"
+
+modes=${W302_NATIVE_MODES:-"src obj"}
+# one N NAME ADDR GOLD MODE -> writes "ok|FAIL  NAME @ ADDR [MODE]: VERDICT" to $WORK/v.N (runs are independent;
+# they fan out W302_JOBS wide, default the core count, so the census fits a 300 s budget — L-C6R1-SPLIT car-alone).
+one() {
+  local n=$1 name=$2 addr=$3 gold=$4 m=$5 out="$WORK/o$1.elf" a=() srcs=() ps=() objs=() k=0 okobj=1 s v
+  [ "$addr" != "-" ] && a=(--स्थान "$addr")
+  IFS=+ read -ra ps <<<"$name"; for s in "${ps[@]}"; do srcs+=("spec/$s.sas"); done
+  if [ "$m" = src ]; then
+    ./tools/sadhana-native.sh ${a[@]+"${a[@]}"} "${srcs[@]}" "$out" >/dev/null 2>&1
+  else
+    for s in "${srcs[@]}"; do k=$((k+1)); ./tools/sadhana-native.sh --वस्तु "$s" "$WORK/o$n.$k.o" >/dev/null 2>&1 || okobj=0; objs+=("$WORK/o$n.$k.o"); done
+    [ $okobj = 1 ] && ./tools/sadhana-native.sh ${a[@]+"${a[@]}"} --संयोजय "${objs[@]}" "$out" >/dev/null 2>&1
   fi
+  v=$(verdict "$gold" "$out")
+  case $v in ok|REFUSED-both) echo "ok    $name @ $addr [$m]: $v";; *) echo "FAIL  $name @ $addr [$m]: $v";; esac > "$WORK/v.$n"
+}
+export -f one verdict; export WORK PROJ
+J=${W302_JOBS:-$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)}
+while IFS=$'\t' read -r name addr gold; do
+  case $name in '#'*|'') continue;; esac
+  [ -n "${W302_ONLY:-}" ] && ! [[ $name$'\t'$addr =~ $W302_ONLY ]] && continue
+  for m in $modes; do n=$((n+1)); printf '%s\0%s\0%s\0%s\0%s\0' "$n" "$name" "$addr" "$gold" "$m"; done
+done < "$GOLD" > "$WORK/jobs"
+n=$(tr -cd '\0' < "$WORK/jobs" | wc -c); n=$((n/5))
+xargs -0 -n 5 -P "$J" bash -c 'one "$@"' one < "$WORK/jobs"
+i=0; while [ $i -lt "$n" ]; do i=$((i+1))
+  if [ -s "$WORK/v.$i" ]; then cat "$WORK/v.$i"; grep -a -q '^FAIL' "$WORK/v.$i" && fail=1; else echo "FAIL  run $i: no verdict"; fail=1; fi
 done
-
-if [ -n "${W302_NATIVE:-}" ]; then
-  NATIVE=$W302_NATIVE
-  if [ ! -s "$NATIVE" ]; then
-    echo "FAIL: W302_NATIVE=$NATIVE is not a non-empty file"
-    exit 1
-  fi
-  echo "native:  $NATIVE — GIVEN, NOT BUILT by this run; sha256 $(sha "$NATIVE")"
-else
-  NATIVE="$WORK/assemble.elf"
-  echo "native:  building the wrapper image (the corpus + spec/entry/assemble.t1), tens of minutes"
-  if ! "$T1_IMAGE" --spec-root spec --compiler crates/sadhana-t1/src \
-       --load spec/entry/assemble.t1 --entry पाठसेतुः मुख्यम् --no-predict \
-       --accept-divergence "the wrapper assembles the .sas its input channel is handed, and the census hands each of 48 programs its own input later; this build has no input, so its predict compares nothing the census runs" \
-       -o "$NATIVE" crates/sadhana-t1/src/*.t1 spec/entry/assemble.t1 > "$WORK/build.log" 2>&1; then
-    echo "FAIL: t1_image did not build the wrapper image:"
-    tail -20 "$WORK/build.log"
-    exit 1
-  fi
-  grep -E '^(build|write):' "$WORK/build.log"
-  echo "native:  sha256 $(sha "$NATIVE")"
-fi
-
-BIN=$(cargo test --release -p sadhana-t1 --test w302_loaded_identity --no-run \
-        --message-format=json 2>/dev/null | pick w302_loaded_identity)
-if [ -z "$BIN" ] || [ ! -x "$BIN" ]; then
-  echo "FAIL: the census test did not build; run the cargo line without 2>/dev/null to see why"
-  exit 1
-fi
-
-# The image from source (mode 0, section table compared), then the object
-# files (mode 1 per source, mode 2 on the files), both natively.
-for t in the_48_programs_load_identically_from_the_native_image \
-         the_48_programs_load_identically_through_native_object_files; do
-  if ! W302_SADHANA="$SADHANA" W302_YANTRA_RUN="$YANTRA_RUN" W302_NATIVE="$NATIVE" \
-       W302_OUT="$WORK/out" "$BIN" --ignored --exact \
-       "$t" --nocapture --test-threads 1; then
-    echo "FAIL: W-302 native loaded-image identity does not hold ($t) — the CENSUS lines above name each run"
-    exit 1
-  fi
-done
-echo "PASS: the self-hosted image assembles every census program to Rust's loaded image, directly and through object files"
-exit 0
+[ "$n" -gt 0 ] || { echo "FAIL: no rows ran"; exit 1; }
+if [ "$fail" -eq 0 ]; then echo "PASS: native image matches Rust's frozen loaded image on all $n runs"; exit 0; fi
+echo "FAIL: native loaded-image identity does not hold"; exit 1

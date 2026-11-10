@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"  # the verdict function below uses bash arithmetic and arrays
 # Splitting across orders — task `C-001e3a`, doc 11 §7.1.5.
 #
 # `C-001e2` allocated at ONE order. This is the first program where the order
@@ -43,7 +44,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/split.sas" "$tmp/s.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060).
     qemu-system-riscv64 -machine virt -nographic -bios default \
@@ -66,6 +67,38 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -8
 }
 
+# verdict_split FILE: 8 hex lines (the block, then seven list heads for orders 6..12); diagnostics on stdout, rc 1 on failure.
+verdict_split() {
+    local v=() l i=0 LO=6 HI=12 block heads=() k got want why bad=()
+    while IFS= read -r l || [ -n "$l" ]; do
+        [ -n "${l//[[:space:]]/}" ] || continue
+        v[i]=$((16#${l//[[:space:]]/})); i=$((i+1))
+    done < "$1"
+    block=${v[0]}; heads=("${v[@]:1}")
+    if [ "$block" -eq 0 ]; then
+        bad+=("the allocation returned 0 — the arena was empty at the start, so the search for a non-empty order never found the whole block")
+    elif [ $((block & ((1<<HI)-1))) -ne 0 ]; then
+        bad+=("$(printf '%016x is not aligned to %d — buddy arithmetic walks outside a region that is not aligned to its own size, so every address below is meaningless' "$block" $((1<<HI)))")
+    fi
+    for ((k=LO; k<=HI; k++)); do
+        got=${heads[k-LO]}
+        if [ "$k" -eq "$HI" ]; then
+            want=0; why="the arena was handed out, so nothing whole is left"
+        else
+            want=$((block ^ (1<<k))); why="the half left behind when order $((k+1)) was split"
+        fi
+        if [ "$got" -ne "$want" ]; then
+            if [ "$got" -eq 0 ]; then
+                bad+=("$(printf 'order %d: list is EMPTY, expected %016x — the split stopped before reaching this order, so the block handed back is larger than was asked for and the remainder is lost' "$k" "$want")")
+            else
+                bad+=("$(printf 'order %d: list holds %016x, expected %016x (%s)' "$k" "$got" "$want" "$why")")
+            fi
+        fi
+    done
+    if [ "${#bad[@]}" -gt 0 ]; then printf '%s\n' "${bad[@]}"; return 1; fi
+    printf 'block %016x aligned to %d, one free block at each of orders %d..%d on its buddy address, order %d empty\n' "$block" $((1<<HI)) $LO $((HI-1)) $HI
+}
+
 fail=0
 prev_block=""
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
@@ -76,44 +109,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         fail=1; continue
     fi
 
-    if ! python3 - "$tmp/lines" > "$tmp/verdict" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-block, heads = v[0], v[1:]          # heads[i] is the list for order 6+i
-LO, HI = 6, 12
-bad = []
-
-if block == 0:
-    bad.append("the allocation returned 0 — the arena was empty at the start, "
-               "so the search for a non-empty order never found the whole block")
-elif block % (1 << HI):
-    bad.append(f"{block:016x} is not aligned to {1<<HI} — buddy arithmetic walks "
-               "outside a region that is not aligned to its own size, so every "
-               "address below is meaningless")
-
-for i, k in enumerate(range(LO, HI + 1)):
-    got = heads[i]
-    if k == HI:
-        want = 0                     # the whole block was taken and split
-        why = "the arena was handed out, so nothing whole is left"
-    else:
-        want = block ^ (1 << k)      # C-001e1's identity, recomputed here
-        why = f"the half left behind when order {k+1} was split"
-    if got != want:
-        if got == 0:
-            bad.append(f"order {k}: list is EMPTY, expected {want:016x} — "
-                       "the split stopped before reaching this order, so the "
-                       "block handed back is larger than was asked for and the "
-                       "remainder is lost")
-        else:
-            bad.append(f"order {k}: list holds {got:016x}, expected {want:016x} "
-                       f"({why})")
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"block {block:016x} aligned to {1<<HI}, one free block at each of "
-      f"orders {LO}..{HI-1} on its buddy address, order {HI} empty")
-PY
+    if ! verdict_split "$tmp/lines" > "$tmp/verdict" 2>&1
     then
         sed 's/^/  FAIL  /' "$tmp/verdict"
         fail=1; continue

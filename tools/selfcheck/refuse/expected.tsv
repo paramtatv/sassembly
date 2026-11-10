@@ -22,3 +22,8 @@ fj_build_382_growth	0x382
 fj_build_382_marker	0x382
 fj_build_382_matrix_product	0x382
 fj_build_382_matrix_transpose	0x382
+c44_value_first	2:0
+c44_value_middle	2:0
+c44_value_last	2:0
+c44_value_nested	2:0
+c44_value_defined_after	2:0

@@ -85,13 +85,6 @@ qemu-system-riscv64 -device help 2>&1 | grep -aq 'virtio-sound-device' || {
 prog=$(CDPATH= cd -- "$here/.." && pwd)/spec/virtio-sound.sas
 [ -f "$prog" ] || { echo "RED, as written: virtio-sound.sas does not exist."; exit 1; }
 
-# The audio half needs a WAV reader. There is no shell one, so this is python3,
-# and its absence is reported as 77 at the END, after the status words have
-# still been checked and printed. Exiting 77 up here would throw away a
-# measurement this host can perfectly well make.
-have_python=1
-command -v python3 >/dev/null 2>&1 || have_python=0
-
 # ---- the assembler ----------------------------------------------------------
 # `cargo run`, and ONLY `cargo run` — the same way every other check in this
 # tree assembles.
@@ -110,114 +103,111 @@ command -v python3 >/dev/null 2>&1 || have_python=0
 # the Sanskrit diagnostic, which is the only thing that says WHY.
 assemble() {  # $1 = link address, $2 = output elf
     root=$(CDPATH= cd -- "$here/.." && pwd)
-    out=$(cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-        --स्थान "$1" "$prog" "$2" 2>&1) || {
+    asm_rc=0
+    out=$("$root/tools/sadhana-native.sh" --स्थान "$1" "$prog" "$2" 2>&1) || asm_rc=$?
+    [ "$asm_rc" -eq 77 ] && { echo "  SKIP  no native assembler image (exit 77)"; exit 77; }
+    [ "$asm_rc" -eq 0 ] || {
         echo "  FAIL  the program does not assemble at $1:"
         echo "$out" | sed 's/^/          /'
         exit 1; }
 }
 
 # ---- the WAV reader: what the HOST actually played --------------------------
-cat > "$tmp/wave.py" <<'PY'
-import itertools, struct, sys
-
-AMP    = 2000     # the guest stores +/-2000 as int16
-RUN    = 64       # samples between sign flips: 32 stereo frames
-FIRST  = -AMP     # the guest's first sample
-WANT   = 4096     # 4 periods x 2048 bytes / 2 bytes per sample
-
-path = sys.argv[1]
-try:
-    data = open(path, 'rb').read()
-except OSError as e:
-    print("  FAIL  the wav capture could not be read: %s" % e)
-    sys.exit(1)
-
-bad = 0
-def fail(msg):
-    global bad
-    print("  FAIL  " + msg); bad = 1
-def note(msg):
-    print("        " + msg)
-
-if len(data) < 44 or data[0:4] != b'RIFF' or data[8:12] != b'WAVE':
-    fail("the capture is not a RIFF/WAVE file (%d bytes) — QEMU's wav backend"
-         % len(data))
-    note("wrote nothing the device had pulled out of guest memory")
-    sys.exit(1)
-
-audiofmt, ch, rate, byterate, align, bits = struct.unpack('<HHIIHH', data[20:36])
-pcm = data[44:]
-n = len(pcm) // 2
-v = list(struct.unpack('<%dh' % n, pcm[:n * 2])) if n else []
-
-print("  wav header    %d Hz, %d ch, %d-bit, %d bytes of pcm" % (rate, ch, bits, n * 2))
-
-if (audiofmt, ch, bits) != (1, 2, 16):
-    fail("the capture is format %d, %d channels, %d bits, not 16-bit stereo PCM"
-         % (audiofmt, ch, bits))
-
-# Silence at the very edges is the HOST's, not the guest's: the backend voice can
-# be running for a moment before the first period lands. Strip it and say so, but
-# any silence INSIDE the wave still shows up as a broken run below.
-a, b = 0, len(v)
-while a < b and v[a] == 0:
-    a += 1
-while b > a and v[b - 1] == 0:
-    b -= 1
-pad = a + (len(v) - b)
-core = v[a:b]
-if pad:
-    note("%d samples of host-side silence trimmed from the edges" % pad)
-
-if not core:
-    fail("the capture holds no non-zero samples: the device consumed no frames")
-    sys.exit(1)
-
-runs = [(k, len(list(g))) for k, g in itertools.groupby(core)]
-vals = sorted(set(k for k, _ in runs))
-lens = sorted(set(L for _, L in runs))
-
-print("  samples       %d (%d expected)" % (len(core), WANT))
-print("  values        %s" % ", ".join(str(x) for x in vals))
-print("  runs          %d, lengths %s" % (len(runs), ", ".join(str(x) for x in lens)))
-print("  first sample  %d" % core[0])
-
-if len(core) != WANT:
-    fail("the host played %d samples; the guest submitted 4 periods of 2048"
-         % len(core))
-    note("bytes, which is %d samples of 16-bit audio" % WANT)
-if vals != [-AMP, AMP]:
-    fail("the played values are %s, not the -%d / +%d square wave the guest"
-         % (vals, AMP, AMP))
-    note("stored into the buffer it handed the device")
-if lens != [RUN]:
-    fail("the sign flips every %s samples, not every %d" % (lens, RUN))
-    note("a run of any other length means the stream rate or the channel count")
-    note("is not what SET_PARAMS asked for — QEMU resamples to the backend rate,")
-    note("so 44100 would land here as 69.7, and mono would halve every run")
-if core[0] != FIRST:
-    fail("the wave starts at %d, not the %d the guest wrote first" % (core[0], FIRST))
-if any(runs[i][0] == runs[i + 1][0] for i in range(len(runs) - 1)):
-    fail("two adjacent runs carry the same value: the wave is not alternating")
-sys.exit(bad)
-PY
+# awk over `od` bytes: no interpreter beyond what the rest of this script uses.
+wave_check() {  # $1 = wav path ; prints the report, rc 1 on any failure
+    if [ ! -r "$1" ] || [ -d "$1" ]; then
+        echo "  FAIL  the wav capture could not be read: [Errno 2] No such file or directory: '$1'"
+        return 1
+    fi
+    LC_ALL=C od -An -v -t u1 "$1" | LC_ALL=C awk '
+    function fail(m) { print "  FAIL  " m; bad = 1 }
+    function note(m) { print "        " m }
+    function lst(a, n,   i, s) { s = "["; for (i = 1; i <= n; i++) s = s (i > 1 ? ", " : "") a[i]; return s "]" }
+    function s16(i,   x) { x = d[i] + 256 * d[i + 1]; return x >= 32768 ? x - 65536 : x }
+    BEGIN { len = 0; AMP = 2000; RUN = 64; WANT = 4096 }
+    { for (i = 1; i <= NF; i++) d[len++] = $i + 0 }
+    END {
+        if (len < 44 || d[0] != 82 || d[1] != 73 || d[2] != 70 || d[3] != 70 || \
+            d[8] != 87 || d[9] != 65 || d[10] != 86 || d[11] != 69) {
+            fail("the capture is not a RIFF/WAVE file (" len " bytes) \342\200\224 QEMU\047s wav backend")
+            note("wrote nothing the device had pulled out of guest memory")
+            exit 1
+        }
+        fmt = d[20] + 256 * d[21]; ch = d[22] + 256 * d[23]
+        rate = d[24] + 256 * (d[25] + 256 * (d[26] + 256 * d[27]))
+        bits = d[34] + 256 * d[35]
+        n = int((len - 44) / 2)
+        for (i = 0; i < n; i++) v[i] = s16(44 + 2 * i)
+        print "  wav header    " rate " Hz, " ch " ch, " bits "-bit, " n * 2 " bytes of pcm"
+        if (fmt != 1 || ch != 2 || bits != 16)
+            fail("the capture is format " fmt ", " ch " channels, " bits " bits, not 16-bit stereo PCM")
+        a = 0; b = n
+        while (a < b && v[a] == 0) a++
+        while (b > a && v[b - 1] == 0) b--
+        pad = a + (n - b)
+        if (pad) note(pad " samples of host-side silence trimmed from the edges")
+        cn = b - a
+        if (cn == 0) {
+            fail("the capture holds no non-zero samples: the device consumed no frames")
+            exit 1
+        }
+        for (i = 0; i < cn; i++) c[i] = v[a + i]
+        nr = 0
+        for (i = 0; i < cn; i++) {
+            if (i == 0 || c[i] != c[i - 1]) { nr++; rv[nr] = c[i]; rl[nr] = 0 }
+            rl[nr]++
+        }
+        nv = 0; nl = 0
+        for (i = 1; i <= nr; i++) {
+            if (!(rv[i] in sv)) { sv[rv[i]] = 1; va[++nv] = rv[i] + 0 }
+            if (!(rl[i] in sl)) { sl[rl[i]] = 1; la[++nl] = rl[i] + 0 }
+        }
+        for (i = 2; i <= nv; i++) { x = va[i]; for (j = i - 1; j >= 1 && va[j] > x; j--) va[j + 1] = va[j]; va[j + 1] = x }
+        for (i = 2; i <= nl; i++) { x = la[i]; for (j = i - 1; j >= 1 && la[j] > x; j--) la[j + 1] = la[j]; la[j + 1] = x }
+        vs = ""; for (i = 1; i <= nv; i++) vs = vs (i > 1 ? ", " : "") va[i]
+        ls = ""; for (i = 1; i <= nl; i++) ls = ls (i > 1 ? ", " : "") la[i]
+        print "  samples       " cn " (" WANT " expected)"
+        print "  values        " vs
+        print "  runs          " nr ", lengths " ls
+        print "  first sample  " c[0]
+        if (cn != WANT) {
+            fail("the host played " cn " samples; the guest submitted 4 periods of 2048")
+            note("bytes, which is " WANT " samples of 16-bit audio")
+        }
+        if (!(nv == 2 && va[1] == -AMP && va[2] == AMP)) {
+            fail("the played values are " lst(va, nv) ", not the -" AMP " / +" AMP " square wave the guest")
+            note("stored into the buffer it handed the device")
+        }
+        if (!(nl == 1 && la[1] == RUN)) {
+            fail("the sign flips every " lst(la, nl) " samples, not every " RUN)
+            note("a run of any other length means the stream rate or the channel count")
+            note("is not what SET_PARAMS asked for \342\200\224 QEMU resamples to the backend rate,")
+            note("so 44100 would land here as 69.7, and mono would halve every run")
+        }
+        if (c[0] != -AMP) fail("the wave starts at " c[0] ", not the " (-AMP) " the guest wrote first")
+        for (i = 1; i < nr; i++) if (rv[i] == rv[i + 1]) { fail("two adjacent runs carry the same value: the wave is not alternating"); break }
+        exit bad
+    }'
+}
 
 # ---- the empty-capture reader, for the negative run -------------------------
-cat > "$tmp/silent.py" <<'PY'
-import struct, sys
-data = open(sys.argv[1], 'rb').read() if len(sys.argv) > 1 else b''
-pcm = data[44:] if len(data) >= 44 else b''
-n = len(pcm) // 2
-v = struct.unpack('<%dh' % n, pcm[:n * 2]) if n else ()
-loud = sum(1 for x in v if x != 0)
-print("  capture       %d bytes, %d samples, %d of them non-zero" % (len(data), n, loud))
-if loud:
-    print("  FAIL  the negative run played %d non-zero samples with no virtio-sound" % loud)
-    print("        device on the command line — the audio above is not the driver's.")
-    sys.exit(1)
-sys.exit(0)
-PY
+silent_check() {  # $1 = wav path
+    LC_ALL=C od -An -v -t u1 "$1" | LC_ALL=C awk '
+    BEGIN { len = 0 }
+    { for (i = 1; i <= NF; i++) d[len++] = $i + 0 }
+    END {
+        n = len >= 44 ? int((len - 44) / 2) : 0
+        loud = 0
+        for (i = 0; i < n; i++) if (d[44 + 2 * i] != 0 || d[45 + 2 * i] != 0) loud++
+        print "  capture       " len " bytes, " n " samples, " loud " of them non-zero"
+        if (loud) {
+            print "  FAIL  the negative run played " loud " non-zero samples with no virtio-sound"
+            print "        device on the command line \342\200\224 the audio above is not the driver\047s."
+            exit 1
+        }
+        exit 0
+    }'
+}
 
 # One run: boot, wait for the machine to shut itself down, keep the transcript
 # and the WAV.
@@ -232,7 +222,7 @@ run() {  # $1 = elf, $2 = cleaned output, $3 = wav path, $4 = extra device args
     # drops what has not played yet. A driver that STOPs on the last return
     # therefore passed or failed by host speed: measured 2026-10-06, the same
     # ELF kept 4096 samples on the Mac (QEMU 11.0.3) and 3852-3880 on
-    # A Linux x86-64 host (QEMU 10.1.0), and BOTH kept ~2160-2192 at 1 ms. At 1 ms
+    # ubuntu-local (QEMU 10.1.0), and BOTH kept ~2160-2192 at 1 ms. At 1 ms
     # that driver fails on every host; one that waits for play-out (section
     # 14क of virtio-sound.sas) keeps all 4096 on both, at 1 ms, 10 ms, 100 ms
     # and under -icount. Nothing below is loosened.
@@ -383,11 +373,10 @@ for pair in "a:0x80200000" "b:0x80400000"; do
         fail=1
     fi
 
-    [ "$have_python" -eq 1 ] || continue
     if [ ! -s "$tmp/$name.wav" ]; then
         echo "  FAIL  run $i: QEMU's wav backend left no capture at all."; fail=1; continue
     fi
-    python3 "$tmp/wave.py" "$tmp/$name.wav" || fail=1
+    wave_check "$tmp/$name.wav" || fail=1
 done
 
 # ---- the negative control ---------------------------------------------------
@@ -416,10 +405,8 @@ for tag in DONE PERIOD START; do
 done
 # Both branches are stated. A silent skip here would be the check quietly
 # declining to make its own control, which is the thing this control is for.
-if [ "$have_python" -eq 0 ]; then
-    echo "  capture       not read: python3 is absent"
-elif [ -f "$tmp/none.wav" ]; then
-    python3 "$tmp/silent.py" "$tmp/none.wav" || fail=1
+if [ -f "$tmp/none.wav" ]; then
+    silent_check "$tmp/none.wav" || fail=1
 else
     echo "  capture       QEMU's wav backend created no file at all — the audio"
     echo "                above cannot have come from anywhere but the device"
@@ -427,16 +414,6 @@ fi
 
 echo
 [ "$fail" -eq 0 ] || { echo "F-009: the virtio-sound driver did not play."; exit 1; }
-
-if [ "$have_python" -eq 0 ]; then
-    echo "SKIPPED: python3 is not installed, so nothing here could read the WAV"
-    echo "         QEMU's audio backend wrote. Every control-queue command and"
-    echo "         every period was checked and the device answered"
-    echo "         VIRTIO_SND_S_OK to each, at both link addresses — but nothing"
-    echo "         has listened to the HOST's copy of the audio, and that is the"
-    echo "         row. Exiting 77 rather than 0."
-    exit 77
-fi
 
 echo "ok  F-009: a waveform the guest wrote came out of the host's audio backend."
 echo

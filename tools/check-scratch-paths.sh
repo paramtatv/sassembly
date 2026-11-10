@@ -86,10 +86,6 @@ echo "check-scratch-paths: 0 fixed-name scratch paths (was 12 before W-301)"
 # between `temp_dir()` and the clock. A narrower window reported 25 unstamped
 # sites including ones that were already fixed: the first version of this
 # measurement was wrong, not the code.
-command -v python3 >/dev/null 2>&1 || {
-    echo "CANNOT RUN: python3 is needed to read the window around each site."
-    exit 77
-}
 CEILING=0
 # ── THE READER WALKS FILES. IT USED TO PARSE `grep -A` OUTPUT AND THAT WAS WRONG
 #
@@ -108,32 +104,32 @@ CEILING=0
 # in each direction.
 #
 # So: walk the files, and look both ways. No separator ambiguity to get wrong.
-reader=$(python3 - <<'READER'
-import os
-total = 0
-bad = []
-for root, dirs, files in os.walk("crates"):
-    dirs[:] = [d for d in dirs if d != "target"]
-    for fn in sorted(files):
-        if not fn.endswith(".rs"):
-            continue
-        path = os.path.join(root, fn)
-        lines = open(path, encoding="utf-8", errors="replace").read().split("\n")
-        for i, line in enumerate(lines):
-            if "temp_dir()" not in line:
-                continue
-            total += 1
-            # BOTH DIRECTIONS: the clock may be computed into a variable above the
-            # join, or spelled inline below it.
-            window = " ".join(lines[max(0, i - 6):i + 15])
-            if "as_nanos" not in window:
-                bad.append(f"{path}:{i + 1}")
-print(total)
-print(len(bad))
-for b in bad:
-    print(b)
-READER
-)
+reader=$(find crates -type d -name target -prune -o \( -type f -o -type l \) -name '*.rs' -exec awk '
+    function flush(   i, j, lo, hi, ok, a, b) {
+        for (i = 1; i <= n; i++) {
+            if (index(L[i], "temp_dir()") == 0) continue
+            print "T"
+            lo = i - 6; if (lo < 1) lo = 1
+            hi = i + 14; if (hi > n) hi = n
+            ok = 0
+            for (j = lo; j <= hi; j++) if (index(L[j], "as_nanos") > 0) { ok = 1; break }
+            if (!ok && substr(cur, 1, 18) == "crates/yantra/src/") {
+                # clockless: an EXCLUSIVE create that retries on AlreadyExists replaces the stamp (tests/w375_clock.rs)
+                a = 0; b = 0
+                for (j = lo; j <= hi; j++) { if (index(L[j], "fs::create_dir(&") > 0) a = 1; if (index(L[j], "AlreadyExists") > 0) b = 1 }
+                if (a && b) ok = 1
+            }
+            if (!ok) print "B " cur ":" i
+        }
+    }
+    FNR == 1 { if (cur != "") flush(); cur = FILENAME; n = 0 }
+    { L[++n] = $0 }
+    END { if (cur != "") flush() }
+' {} + 2>/dev/null | LC_ALL=C awk '
+    $0 == "T" { total++; next }
+    { bad[++nb] = substr($0, 3) }
+    END { print total + 0; print nb + 0; for (i = 1; i <= nb; i++) print bad[i] }
+')
 seen=$(printf '%s\n' "$reader" | sed -n 1p)
 unstamped=$(printf '%s\n' "$reader" | sed -n 2p)
 offenders=$(printf '%s\n' "$reader" | sed -n '3,$p')
@@ -146,7 +142,7 @@ offenders=$(printf '%s\n' "$reader" | sed -n '3,$p')
 # confidently. A guard falsified only against the sites its reader can SEE cannot
 # catch its reader going blind.
 if [ "$seen" -ne "$total" ]; then
-    echo "RED: the two readers disagree — grep found $total temp_dir() reference(s),"
+    echo "RED: the two readers disagree — the text search found $total temp_dir() reference(s),"
     echo "  the walker found $seen. One of them is dropping lines, and until they"
     echo "  agree every count below is about an unknown population."
     exit 1

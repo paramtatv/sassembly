@@ -34,7 +34,8 @@
   मूल्यम् ॱॱ न६४ ऽ        ॰ its address
   खण्डः ॱॱ संज्ञाखण्ड ऽ     ॰ which section the name lives in. a बूल was enough while
                         ॰ there were two sections and became a lie when ॱरिक्त arrived
-  वैश्विकम् ॱॱ बूल        ॰ true when ॥ वैश्विकम् … ॥ declared it visible outside this object
+  वैश्विकम् ॱॱ बूल ऽ      ॰ true when ॥ वैश्विकम् … ॥ declared it visible outside this object
+  दुर्बलम् ॱॱ बूल        ॰ true when ॥ दुर्बलम् … ॥ marked it weak (also वैश्विकम्): a strong definition replaces it
 समाप्तम् ।
 
 आयातः अष्टक ।

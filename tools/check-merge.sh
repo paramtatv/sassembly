@@ -46,7 +46,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/merge.sas" "$tmp/m.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060).
     qemu-system-riscv64 -machine virt -nographic -bios default \
@@ -80,65 +80,53 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         fail=1; continue
     fi
 
-    if ! python3 - "$tmp/lines" > "$tmp/verdict" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-p1, p2, after_one, after_two = v[0], v[1], v[2:9], v[9:16]
-LO, HI = 6, 12
-bad = []
-
-if p1 == 0 or p2 == 0:
-    bad.append("an allocation returned 0 — the arena was empty before anything "
-               "was released, so nothing below is about coalescing")
-elif p1 % (1 << HI):
-    bad.append(f"{p1:016x} is not aligned to {1<<HI} — buddy arithmetic walks "
-               "outside a region not aligned to its own size")
-elif p2 != p1 ^ (1 << LO):
-    bad.append(f"the second block is {p2:016x}, not {p1 ^ (1<<LO):016x} — the two "
-               "are supposed to be each other's buddy, which is the only reason "
-               "the release order below asks anything")
-
-for i, k in enumerate(range(LO, HI + 1)):
-    got = after_one[i]
-    if k == LO:
-        want, why = p1, "the released block, alone, because its buddy is in use"
-    elif k == HI:
-        want, why = 0, "the arena was handed out and only half of it is back"
-    else:
-        want, why = p1 ^ (1 << k), f"untouched, exactly as splitting order {k+1} left it"
-    if got != want:
-        if k == HI and got != 0:
-            bad.append(f"after ONE release order {HI} holds {got:016x} — the arena "
-                       "was merged back whole while the second block is STILL IN "
-                       "USE. The allocator merged without checking that the buddy "
-                       "was free, so that address is now inside a free block and "
-                       "will be handed out a second time")
-        else:
-            bad.append(f"after ONE release, order {k}: {got:016x}, expected "
-                       f"{want:016x} ({why})")
-
-for i, k in enumerate(range(LO, HI + 1)):
-    got = after_two[i]
-    want = p1 if k == HI else 0
-    if got != want:
-        if k == HI:
-            bad.append(f"after BOTH releases order {HI} holds {got:016x}, not "
-                       f"{p1:016x} — the arena did not come back whole. A merge "
-                       "that stops one order early fails nothing at the time and "
-                       "leaves the region permanently unable to satisfy a large "
-                       "request")
-        else:
-            bad.append(f"after BOTH releases order {k} still holds {got:016x} — "
-                       "that block was merged into a larger one and left on the "
-                       "smaller list as well, so the same octets are now reachable "
-                       "from two free lists at once")
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"blocks {p1:016x} and {p2:016x} are buddies; releasing the first merges "
-      f"nothing, releasing the second returns orders {LO}..{HI-1} to empty and "
-      f"order {HI} to one whole block")
-PY
+    if ! LC_ALL=C awk '
+function hx(s,  i, v) { v = 0; for (i = 1; i <= length(s); i++) v = v * 16 + index("0123456789abcdef", substr(s, i, 1)) - 1; return v }
+function flip(s, k,  pos, bit, d) {
+    pos = 16 - int(k / 4); bit = 2 ^ (k % 4); d = hx(substr(s, pos, 1))
+    d = (int(d / bit) % 2) ? d - bit : d + bit
+    return substr(s, 1, pos - 1) substr("0123456789abcdef", d + 1, 1) substr(s, pos + 1)
+}
+{ if ($0 ~ /[^ \t\r\n]/) v[++nv] = $0 }
+END {
+    Z = "0000000000000000"; LO = 6; HI = 12; nb = 0
+    p1 = v[1]; p2 = v[2]
+    if (p1 == Z || p2 == Z)
+        bad[++nb] = "an allocation returned 0 — the arena was empty before anything was released, so nothing below is about coalescing"
+    else if (substr(p1, 14, 3) != "000")
+        bad[++nb] = p1 " is not aligned to 4096 — buddy arithmetic walks outside a region not aligned to its own size"
+    else if (p2 != flip(p1, LO))
+        bad[++nb] = "the second block is " p2 ", not " flip(p1, LO) " — the two are supposed to be each other\047s buddy, which is the only reason the release order below asks anything"
+    for (k = LO; k <= HI; k++) {
+        got = v[3 + k - LO]
+        if (k == LO) want = p1
+        else if (k == HI) want = Z
+        else want = flip(p1, k)
+        if (got != want) {
+            if (k == HI && got != Z)
+                bad[++nb] = "after ONE release order " HI " holds " got " — the arena was merged back whole while the second block is STILL IN USE. The allocator merged without checking that the buddy was free, so that address is now inside a free block and will be handed out a second time"
+            else {
+                if (k == LO) why = "the released block, alone, because its buddy is in use"
+                else if (k == HI) why = "the arena was handed out and only half of it is back"
+                else why = "untouched, exactly as splitting order " (k + 1) " left it"
+                bad[++nb] = "after ONE release, order " k ": " got ", expected " want " (" why ")"
+            }
+        }
+    }
+    for (k = LO; k <= HI; k++) {
+        got = v[10 + k - LO]
+        want = (k == HI) ? p1 : Z
+        if (got != want) {
+            if (k == HI)
+                bad[++nb] = "after BOTH releases order " HI " holds " got ", not " p1 " — the arena did not come back whole. A merge that stops one order early fails nothing at the time and leaves the region permanently unable to satisfy a large request"
+            else
+                bad[++nb] = "after BOTH releases order " k " still holds " got " — that block was merged into a larger one and left on the smaller list as well, so the same octets are now reachable from two free lists at once"
+        }
+    }
+    if (nb) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+    print "blocks " p1 " and " p2 " are buddies; releasing the first merges nothing, releasing the second returns orders " LO ".." (HI - 1) " to empty and order " HI " to one whole block"
+}
+' "$tmp/lines" > "$tmp/verdict" 2>&1
     then
         sed 's/^/  FAIL  /' "$tmp/verdict"
         fail=1; continue

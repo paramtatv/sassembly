@@ -14,8 +14,8 @@
 #
 # ## What it runs, and why not QEMU
 #
-#     cargo run -p sadhana -- spec/namaste.sas <tmp>/namaste.elf
-#     cargo run -p yantra --bin yantra-run -- <tmp>/namaste.elf
+#     tools/sadhana-native.sh spec/namaste.sas <tmp>/namaste.elf
+#     tools/t1-run.sh <tmp>/namaste.elf
 #
 # Both are in-workspace. `yantra` models the UART at `0x1000_0000`
 # (crates/yantra/src/lib.rs:173), so the bytes the program stores reach the
@@ -100,8 +100,8 @@ APP_LOAD=$(awk '$1 == "0x2000_0000" {print $2}' spec/application-load.tsv)
 # and a generated artefact inside the repository inherits every check the tree
 # gets, including the secret scanner that reads untracked files.
 work=$(mktemp -d) || { echo "  FAIL  could not create a work directory"; exit 1; }
-cleanup() { rm -f "$work"/*.elf 2>/dev/null; rmdir "$work" 2>/dev/null; }
-trap cleanup EXIT
+cleanup() { rm -rf "$work" 2>/dev/null; }
+trap cleanup EXIT; trap 'exit 143' INT TERM
 
 for f in "$PROGRAM" "$CONTROL"; do
     [ -f "$f" ] || { echo "  FAIL  $f is missing; this check has nothing to run"; exit 1; }
@@ -109,7 +109,7 @@ done
 
 # Drift guard, before anything is built. If the program no longer CONTAINS the
 # message, the expectation below is about a program that no longer exists.
-if ! grep -q "$EXPECT" "$PROGRAM"; then
+if ! grep -aq "$EXPECT" "$PROGRAM"; then
     echo "  REFUSED  $PROGRAM no longer contains \"$EXPECT\"."
     echo "           The expectation here is recorded for the program as written."
     echo "           If the message changed on purpose, change EXPECT and"
@@ -121,10 +121,14 @@ fi
 # One `run` for both arms: the control is only a control if it goes through the
 # identical path. A second, simpler code path for the negative case would be
 # testing something other than what arm 1 tests.
+# The native assembler exits 77 when no Stage 1 image can be had: could not run, not a failure.
+tools/sadhana-native.sh "$PROGRAM" "$work/probe.elf" >/dev/null 2>&1
+[ $? -eq 77 ] && { echo "  CANNOT RUN  sadhana-native.sh: no wrapper image (exit 77)"; exit 77; }
+
 roundtrip() {
     src=$1; elf=$work/$(basename "$src" .sas).elf
-    cargo run --quiet -p sadhana -- "$src" "$elf" >/dev/null 2>&1 || return 2
-    cargo run --quiet -p yantra --bin yantra-run -- "$elf" 2>&1
+    tools/sadhana-native.sh "$src" "$elf" >/dev/null 2>&1 || return 2
+    bash tools/t1-run.sh "$elf" 2>&1
 }
 
 echo "  assembling and running $PROGRAM"
@@ -132,7 +136,7 @@ out=$(roundtrip "$PROGRAM")
 rc=$?
 if [ "$rc" -eq 2 ]; then
     echo "  FAIL  sadhana could not assemble $PROGRAM"
-    cargo run --quiet -p sadhana -- "$PROGRAM" "$work/x.elf" 2>&1 | tail -10 | sed 's/^/        /'
+    tools/sadhana-native.sh "$PROGRAM" "$work/x.elf" 2>&1 | tail -10 | sed 's/^/        /'
     exit 1
 fi
 
@@ -201,7 +205,7 @@ esac
 sas_elf=$work/namaste.elf
 dev_src=$work/नमस्ते.सस
 cp "$PROGRAM" "$dev_src" || { echo "  FAIL  could not write a .सस copy"; exit 1; }
-if ! cargo run --quiet -p sadhana -- "$dev_src" "$work/devanagari.elf" >/dev/null 2>&1; then
+if ! tools/sadhana-native.sh "$dev_src" "$work/devanagari.elf" >/dev/null 2>&1; then
     echo "  FAIL  sadhana could not assemble a source file named नमस्ते.सस."
     echo "        The row makes .सस first-class; if the toolchain cannot read one,"
     echo "        the editor's file association points at something that does not work."
@@ -251,29 +255,17 @@ printf '  ok    %-28s %s\n' "registry" "namaste=boot-proof, atithi=app"
 
 echo "  assembling and hosting $APPLICATION"
 app_elf=$work/atithi.elf
-if ! cargo run --quiet -p sadhana -- --स्थान "$APP_LOAD" "$APPLICATION" "$app_elf" >/dev/null 2>&1; then
+if ! tools/sadhana-native.sh --स्थान "$APP_LOAD" "$APPLICATION" "$app_elf" >/dev/null 2>&1; then
     echo "  FAIL  sadhana could not assemble $APPLICATION at $APP_LOAD"
-    cargo run --quiet -p sadhana -- --स्थान "$APP_LOAD" "$APPLICATION" "$app_elf" 2>&1 |
+    tools/sadhana-native.sh --स्थान "$APP_LOAD" "$APPLICATION" "$app_elf" 2>&1 |
         tail -10 | sed 's/^/        /'
     exit 1
 fi
-app_out=$(cargo run --quiet -p yantra --bin yantra-host -- "$app_elf" 2>&1)
-case "$app_out" in
-    *"$EXPECT_APP"*) printf '  ok    %-28s %s\n' "surface carries the string" "$EXPECT_APP" ;;
-    *) echo "  FAIL  the application's surface did not carry \"$EXPECT_APP\":"
-       printf '%s\n' "$app_out" | sed 's/^/        /'
-       exit 1 ;;
-esac
-# An application EXITS; it does not halt the machine. `Ended::Stopped` is the
-# machine stopping, which nothing reachable through this ABI produces — so
-# asserting the exit separately from the text catches a program that printed and
-# then died, the same way the finisher assertion does for a boot-proof.
-case "$app_out" in
-    *"Exited { status: 0 }"*) printf '  ok    %-28s %s\n' "application exited" "status 0, machine still running" ;;
-    *) echo "  FAIL  the application did not exit cleanly (ADR-0015 A5):"
-       printf '%s\n' "$app_out" | grep -E 'ended|scause' | sed 's/^/        /'
-       exit 1 ;;
-esac
+# R3-YAN retired yantra-host and no native supervisor exists (census-map NATIVE-GAP): the
+# hosted legs cannot run on ANY host. They are named HOSTNA with the reason, never a pass.
+hostna() { printf '  HOSTNA  %-26s %s\n' "$1" "no native supervisor (R3-YAN retired yantra-host; NATIVE-GAP)"; }
+hostna "surface carries the string"
+hostna "application exited"
 
 # THE DISPATCH CONTROL, BOTH DIRECTIONS. The arms above show each kind works on
 # its own path. They do NOT show the two paths are different — and that is the
@@ -281,8 +273,12 @@ esac
 # path and require both to fail. If either succeeds, one runner handles both and
 # the dispatch this check exists to assert is not doing anything.
 bare_app=$work/atithi-bare.elf
-cargo run --quiet -p sadhana -- "$APPLICATION" "$bare_app" >/dev/null 2>&1
-wrong=$(cargo run --quiet -p yantra --bin yantra-run -- "$bare_app" 2>&1)
+if ! tools/sadhana-native.sh "$APPLICATION" "$bare_app" >/dev/null 2>&1; then
+    echo "  FAIL  sadhana could not assemble $APPLICATION for the bare-path control."
+    echo "        Without an ELF the refusal below would be vacuous."
+    exit 1
+fi
+wrong=$(bash tools/t1-run.sh "$bare_app" 2>&1)
 case "$wrong" in
     *"$EXPECT_APP"*)
         echo "  FAIL  the application produced its output when run as a BOOT-PROOF."
@@ -292,17 +288,8 @@ case "$wrong" in
     *) printf '  ok    %-28s %s\n' "app via bare path" "refused (this is the owner's bug)" ;;
 esac
 
-hosted_proof=$(cargo run --quiet -p yantra --bin yantra-host -- "$sas_elf" 2>&1)
-case "$hosted_proof" in
-    *"$EXPECT"*)
-        echo "  FAIL  the boot-proof produced its output when run as an APPLICATION."
-        echo "        A boot-proof is linked into the supervisor's own gigabyte and writes"
-        echo "        to a device; if hosting one works, the loader is not enforcing what"
-        echo "        ADR-0015 says it enforces."
-        exit 1 ;;
-    *) printf '  ok    %-28s %s\n' "boot-proof via host path" "refused" ;;
-esac
+hostna "boot-proof via host path"
 
 echo
-echo "the round trip: source -> sadhana -> ELF -> yantra -> the message, asserted,"
-echo "for BOTH kinds ADR-0015 defines, and neither kind runs on the other's path."
+echo "the round trip: source -> sadhana -> ELF asserted for both kinds; hosted legs HOSTNA"
+echo "(no native supervisor); the application does not run on the boot-proof path."

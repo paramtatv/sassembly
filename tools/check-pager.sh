@@ -73,7 +73,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/pager.sas" "$tmp/p.elf" >/dev/null
     # Bounded by an explicit SIGKILL, never perl's alarm: QEMU handles SIGALRM
     # and survives it (W-060). The bound is load-bearing here — an unresolved
@@ -91,6 +91,154 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -21
 }
 
+# verify_pager FILE — the verdict on the 21 hex words; prints what the pager
+# check prints, exits 1 on any finding. POSIX sh, 64-bit $(( )), no python.
+verify_pager() {
+    vp_n=0
+    while read -r vp_l; do
+        [ -n "$vp_l" ] || continue
+        vp_h=${vp_l%????????}; vp_o=${vp_l#????????}
+        eval "v$vp_n=\$(( (0x$vp_h << 32) | 0x$vp_o ))"
+        vp_n=$((vp_n + 1))
+    done < "$1"
+    vp_V=1; vp_R=2; vp_W=4; vp_X=8
+    vp_FRAME=$((2 << 30)); vp_HOLE=$((4 << 30))
+    vp_SEED=$((0x6c1 << 32 | 0x000006c1)); vp_MARK=$((0x652 << 32 | 0x00000652))
+    vp_bad=""
+    vp_add() { if [ -n "$vp_bad" ]; then vp_bad="$vp_bad
+$1"; else vp_bad=$1; fi; }
+    vp_hx() { printf '0x%x' "$1"; }
+    vp_cn() {
+        case $1 in
+            13) printf 'load page fault (13)' ;;
+            15) printf 'store/AMO page fault (15)' ;;
+            12) printf 'instruction page fault (12)' ;;
+            *) printf '%u' "$1" ;;
+        esac
+    }
+    # vp_entry name pte grant deny gname dname
+    vp_entry() {
+        ve_name=$1; ve_pte=$2; ve_grant=$3; ve_deny=$4; ve_gname=$5; ve_dname=$6
+        if [ $((ve_pte & vp_V)) -eq 0 ]; then
+            vp_add "the $ve_name fault was resolved with entry $(vp_hx "$ve_pte"), which has V clear — the pager answered with a mapping that does not map"
+            return
+        fi
+        ve_pf=$(( (ve_pte >> 10) & ((1 << 54) - 1) ))
+        ve_hi=$((ve_pf >> 52)); ve_lo=$(( (ve_pf & ((1 << 52) - 1)) << 12 ))
+        if [ "$ve_hi" -eq 0 ]; then ve_fr=$(vp_hx "$ve_lo"); else ve_fr=$(printf '0x%x%016x' "$ve_hi" "$ve_lo"); fi
+        if [ "$ve_hi" -ne 0 ] || [ "$ve_lo" -ne "$vp_FRAME" ]; then
+            vp_add "the $ve_name fault was resolved onto frame $ve_fr, not the kernel's own gigapage $(vp_hx "$vp_FRAME") — the pager installed an entry but not the one it meant, and the alias no longer names the memory below it"
+        fi
+        if [ $((ve_pte & ve_grant)) -eq 0 ]; then
+            vp_add "the $ve_name fault was resolved with entry $(vp_hx "$ve_pte"), which does not grant $ve_gname — the pager did not act on the cause it was given, so the very same fault is about to arrive again"
+        fi
+        if [ $((ve_pte & ve_deny)) -ne 0 ]; then
+            vp_add "the $ve_name fault was resolved with entry $(vp_hx "$ve_pte"), which grants $ve_dname as well as $ve_gname"
+        fi
+        if [ $((ve_pte & vp_W)) -ne 0 ] && [ $((ve_pte & vp_X)) -ne 0 ]; then
+            vp_add "the $ve_name fault was resolved with entry $(vp_hx "$ve_pte"): writable AND executable. W^X is the rule \`C-002c\` fixed globally, and a pager that breaks it while resolving breaks it everywhere"
+        fi
+    }
+
+    # ---- fault 1: a load, on an entry that is not there at all ----
+    addr=$v0; pc=$v1; cause=$v2; stval=$v3; sepc=$v4; pte=$v5; seen=$v6
+    if [ "$cause" -ne 13 ]; then
+        vp_add "reading an unmapped address reported $(vp_cn "$cause"), expected $(vp_cn 13)"
+    fi
+    if [ "$stval" -ne "$addr" ]; then
+        vp_x=""
+        if [ "$stval" -eq $((addr & ~0xfff)) ]; then vp_x=" — that is the base of the page, not the address, and a pager cannot place a byte it was never told about"; fi
+        vp_add "the load fault reported stval $(vp_hx "$stval"), but the address touched was $(vp_hx "$addr")$vp_x"
+    fi
+    if [ "$sepc" -ne "$pc" ]; then
+        vp_x=""
+        if [ "$sepc" -eq "$addr" ]; then vp_x=" — that is the faulting ADDRESS, not the faulting instruction"; fi
+        vp_add "the load fault reported sepc $(vp_hx "$sepc"), but the faulting load is at $(vp_hx "$pc")$vp_x"
+    fi
+    if [ "$stval" -eq "$sepc" ]; then
+        vp_add "the load fault reported the same value for stval and sepc; a data fault has an address and an instruction and they are two different things"
+    fi
+    vp_entry load "$pte" $vp_R $vp_X R X
+    if [ "$seen" -ne "$vp_SEED" ]; then
+        vp_add "reading through the resolved alias gave $(vp_hx "$seen"), expected $(vp_hx "$vp_SEED") — the fault was made to go away without the mapping reaching the right memory"
+    fi
+    sepc1=$sepc; pte1=$pte
+
+    # ---- fault 2: a store, on an entry that is valid and readable but not writable ----
+    addr2=$v7; pc=$v8; cause2=$v9; stval=$v10; sepc=$v11; pte=$v12; back=$v13
+    if [ "$cause2" -ne 15 ]; then
+        vp_add "writing a mapped read-only address reported $(vp_cn "$cause2"), expected $(vp_cn 15) — this is exactly the fault copy-on-write is built on, and a pager that sees it as a read fault will hand back a shared page"
+    fi
+    if [ "$stval" -ne "$addr2" ]; then
+        vp_add "the store fault reported stval $(vp_hx "$stval"), but the address written was $(vp_hx "$addr2")"
+    fi
+    if [ "$sepc" -ne "$pc" ]; then
+        vp_add "the store fault reported sepc $(vp_hx "$sepc"), but the faulting store is at $(vp_hx "$pc")"
+    fi
+    if [ "$stval" -eq "$sepc" ]; then
+        vp_add "the store fault reported the same value for stval and sepc"
+    fi
+    vp_entry store "$pte" $vp_W $vp_X W X
+    if [ "$back" -ne "$vp_MARK" ]; then
+        vp_add "the byte written through the alias read back as $(vp_hx "$back") from the low address, expected $(vp_hx "$vp_MARK") — the alias and the low address are not the same frame, so the pager resolved onto memory nobody else can see"
+    fi
+    sepc2=$sepc; pte2=$pte
+
+    # ---- fault 3: an instruction fetch, on an entry that is readable and writable ----
+    addr3=$v14; cause3=$v15; stval=$v16; sepc=$v17; pte=$v18; landed=$v19
+    if [ "$cause3" -ne 12 ]; then
+        vp_add "jumping into a mapped non-executable page reported $(vp_cn "$cause3"), expected $(vp_cn 12)"
+    fi
+    if [ "$stval" -ne "$addr3" ]; then
+        vp_add "the instruction fault reported stval $(vp_hx "$stval"), expected $(vp_hx "$addr3")"
+    fi
+    if [ "$sepc" -ne "$addr3" ]; then
+        vp_add "the instruction fault reported sepc $(vp_hx "$sepc"), expected $(vp_hx "$addr3")"
+    fi
+    if [ "$stval" -ne "$sepc" ]; then
+        vp_add "the instruction fault reported stval $(vp_hx "$stval") and sepc $(vp_hx "$sepc"). On an instruction fault the faulting address IS the PC, and a handler that reports two different things for them has invented one of them"
+    fi
+    vp_entry instruction "$pte" $vp_X $vp_W X W
+    if [ "$landed" -ne "$addr3" ]; then
+        vp_add "after the instruction fault was resolved, execution continued at $(vp_hx "$landed"), not $(vp_hx "$addr3") — the pager did not put control back where the fault was taken"
+    fi
+    sepc3=$sepc; pte3=$pte
+
+    # ---- the three causes are the point: they must not collapse into one ----
+    if [ "$cause" -eq "$cause2" ]; then
+        vp_add "the load fault and the store fault both reported cause $(printf '%u' "$cause") — they are one fault to the pager, and copy-on-write needs them to be two"
+    fi
+    if [ "$cause" -eq "$cause3" ]; then
+        vp_add "the load fault and the instruction fault both reported cause $(printf '%u' "$cause") — they are one fault to the pager, and copy-on-write needs them to be two"
+    fi
+    if [ "$cause2" -eq "$cause3" ]; then
+        vp_add "the store fault and the instruction fault both reported cause $(printf '%u' "$cause2") — they are one fault to the pager, and copy-on-write needs them to be two"
+    fi
+
+    # ---- all three on one gigapage, so the cause cannot have come from the address ----
+    for vp_k in "load $addr" "store $addr2" "instruction $addr3"; do
+        set -- $vp_k
+        if [ "$2" -lt "$vp_HOLE" ] || [ "$2" -ge $((vp_HOLE + (1 << 30))) ]; then
+            vp_add "the $1 fault was taken at $(vp_hx "$2"), which is outside the empty gigapage $(vp_hx "$vp_HOLE")..$(vp_hx $((vp_HOLE + (1 << 30)))) the pager owns"
+        fi
+    done
+
+    # ---- delivered once, and exactly once ----
+    if [ "$v20" -ne 3 ]; then
+        vp_x=""
+        if [ "$v20" -gt 3 ] || [ "$v20" -lt 0 ]; then vp_x=" — a fault was handed out again, so the handler returned without resolving it"; fi
+        vp_add "$(printf '%u' "$v20") faults were delivered, expected 3$vp_x"
+    fi
+
+    if [ -n "$vp_bad" ]; then
+        printf '%s\n' "$vp_bad"
+        return 1
+    fi
+    echo "stval, scause and sepc are the real ones at all three faults; load, store and instruction stay distinct on one gigapage; each was delivered exactly once"
+    printf 'MOVES %016x %016x %016x %016x %016x %016x\n' "$v0" "$v7" "$v14" "$sepc1" "$sepc2" "$sepc3"
+    printf 'FIXED %016x %016x %016x %016x %016x %016x\n' "$v2" "$v9" "$v15" "$pte1" "$pte2" "$pte3"
+}
+
 fail=0; first=""
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l"
@@ -105,137 +253,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         fi
         fail=1; continue
     fi
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-
-V, R, W, X, A, D = 1, 2, 4, 8, 64, 128
-FRAME = 2 << 30                 # the kernel's own gigapage, which the hole aliases
-HOLE  = 4 << 30                 # 4 GiB .. 5 GiB, the entry left empty on purpose
-SEED  = 0x6c1000006c1           # 1729 in both halves, planted below, read via the alias
-MARK  = 0x65200000652           # 1618 in both halves, written via the alias, read below
-
-# name, cause, the right the pager must grant, the right it must NOT grant
-KINDS = [("load",        13, R, X),
-         ("store",       15, W, X),
-         ("instruction", 12, X, W)]
-CAUSE = {13: "load page fault (13)", 15: "store/AMO page fault (15)",
-         12: "instruction page fault (12)"}
-
-want, told, sepcs, ptes = [v[0], v[7], v[14]], [v[2], v[9], v[15]], [], []
-bad = []
-
-def entry(i, name, pte, grant, deny, gname, dname):
-    if not pte & V:
-        bad.append(f"the {name} fault was resolved with entry {pte:#x}, which has V clear "
-                   "— the pager answered with a mapping that does not map")
-        return
-    if (pte >> 10) << 12 != FRAME:
-        bad.append(f"the {name} fault was resolved onto frame {(pte >> 10) << 12:#x}, not the "
-                   f"kernel's own gigapage {FRAME:#x} — the pager installed an entry but not "
-                   "the one it meant, and the alias no longer names the memory below it")
-    if not pte & grant:
-        bad.append(f"the {name} fault was resolved with entry {pte:#x}, which does not grant "
-                   f"{gname} — the pager did not act on the cause it was given, so the very "
-                   "same fault is about to arrive again")
-    if pte & deny:
-        bad.append(f"the {name} fault was resolved with entry {pte:#x}, which grants {dname} "
-                   f"as well as {gname}")
-    if pte & W and pte & X:
-        bad.append(f"the {name} fault was resolved with entry {pte:#x}: writable AND "
-                   "executable. W^X is the rule `C-002c` fixed globally, and a pager that "
-                   "breaks it while resolving breaks it everywhere")
-
-# ---- fault 1: a load, on an entry that is not there at all ----
-addr, pc, cause, stval, sepc, pte, seen = v[0:7]
-if cause != 13:
-    bad.append(f"reading an unmapped address reported {CAUSE.get(cause, cause)}, "
-               f"expected {CAUSE[13]}")
-if stval != addr:
-    bad.append(f"the load fault reported stval {stval:#x}, but the address touched was "
-               f"{addr:#x}" + (" — that is the base of the page, not the address, and a "
-               "pager cannot place a byte it was never told about"
-               if stval == addr & ~0xfff else ""))
-if sepc != pc:
-    bad.append(f"the load fault reported sepc {sepc:#x}, but the faulting load is at "
-               f"{pc:#x}" + (" — that is the faulting ADDRESS, not the faulting "
-               "instruction" if sepc == addr else ""))
-if stval == sepc:
-    bad.append("the load fault reported the same value for stval and sepc; a data fault "
-               "has an address and an instruction and they are two different things")
-entry(0, "load", pte, R, X, "R", "X")
-if seen != SEED:
-    bad.append(f"reading through the resolved alias gave {seen:#x}, expected {SEED:#x} — the "
-               "fault was made to go away without the mapping reaching the right memory")
-sepcs.append(sepc); ptes.append(pte)
-
-# ---- fault 2: a store, on an entry that is valid and readable but not writable ----
-addr, pc, cause, stval, sepc, pte, back = v[7:14]
-if cause != 15:
-    bad.append(f"writing a mapped read-only address reported {CAUSE.get(cause, cause)}, "
-               f"expected {CAUSE[15]} — this is exactly the fault copy-on-write is built "
-               "on, and a pager that sees it as a read fault will hand back a shared page")
-if stval != addr:
-    bad.append(f"the store fault reported stval {stval:#x}, but the address written was "
-               f"{addr:#x}")
-if sepc != pc:
-    bad.append(f"the store fault reported sepc {sepc:#x}, but the faulting store is at {pc:#x}")
-if stval == sepc:
-    bad.append("the store fault reported the same value for stval and sepc")
-entry(1, "store", pte, W, X, "W", "X")
-if back != MARK:
-    bad.append(f"the byte written through the alias read back as {back:#x} from the low "
-               f"address, expected {MARK:#x} — the alias and the low address are not the "
-               "same frame, so the pager resolved onto memory nobody else can see")
-sepcs.append(sepc); ptes.append(pte)
-
-# ---- fault 3: an instruction fetch, on an entry that is readable and writable ----
-addr, cause, stval, sepc, pte, landed = v[14:20]
-if cause != 12:
-    bad.append(f"jumping into a mapped non-executable page reported {CAUSE.get(cause, cause)}, "
-               f"expected {CAUSE[12]}")
-if stval != addr:
-    bad.append(f"the instruction fault reported stval {stval:#x}, expected {addr:#x}")
-if sepc != addr:
-    bad.append(f"the instruction fault reported sepc {sepc:#x}, expected {addr:#x}")
-if stval != sepc:
-    bad.append(f"the instruction fault reported stval {stval:#x} and sepc {sepc:#x}. On an "
-               "instruction fault the faulting address IS the PC, and a handler that "
-               "reports two different things for them has invented one of them")
-entry(2, "instruction", pte, X, W, "X", "W")
-if landed != addr:
-    bad.append(f"after the instruction fault was resolved, execution continued at "
-               f"{landed:#x}, not {addr:#x} — the pager did not put control back where the "
-               "fault was taken")
-sepcs.append(sepc); ptes.append(pte)
-
-# ---- the three causes are the point: they must not collapse into one ----
-for i in range(3):
-    for j in range(i + 1, 3):
-        if told[i] == told[j]:
-            bad.append(f"the {KINDS[i][0]} fault and the {KINDS[j][0]} fault both reported "
-                       f"cause {told[i]} — they are one fault to the pager, and copy-on-write "
-                       "needs them to be two")
-
-# ---- all three on one gigapage, so the cause cannot have come from the address ----
-for (name, _, _, _), a in zip(KINDS, want):
-    if not HOLE <= a < HOLE + (1 << 30):
-        bad.append(f"the {name} fault was taken at {a:#x}, which is outside the empty "
-                   f"gigapage {HOLE:#x}..{HOLE + (1 << 30):#x} the pager owns")
-
-# ---- delivered once, and exactly once ----
-if v[20] != 3:
-    bad.append(f"{v[20]} faults were delivered, expected 3" + (" — a fault was handed out "
-               "again, so the handler returned without resolving it" if v[20] > 3 else ""))
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print("stval, scause and sepc are the real ones at all three faults; load, store and "
-      "instruction stay distinct on one gigapage; each was delivered exactly once")
-# machine-readable tail for the cross-run comparison
-print("MOVES " + " ".join(f"{x:016x}" for x in want + sepcs))
-print("FIXED " + " ".join(f"{x:016x}" for x in told + ptes))
-PY
+    if ! verify_pager "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(sed -n 1p "$tmp/v")"
 

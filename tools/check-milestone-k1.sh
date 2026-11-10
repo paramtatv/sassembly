@@ -35,7 +35,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/milestone-k1.sas" "$tmp/m.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060). The bound is
     # load-bearing: the wait loop has no exit that does not go through the
@@ -51,6 +51,19 @@ run_at() {
     # would kill has already been reaped.
     wait "$qpid" 2>/dev/null || true; pkill -P "$watcher" 2>/dev/null || true; kill "$watcher" 2>/dev/null || true
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -3
+}
+
+# $1 is 16 lowercase hex digits (grep-filtered above), so alignment and range
+# are decided on the digits themselves: no 64-bit arithmetic to overflow.
+k1_arena_check() {
+    case "$1" in
+        *000) ;;
+        *) printf '%s\n' "the arena $1 is not 4096-aligned, so buddy arithmetic would walk outside it"; return 1 ;;
+    esac
+    case "$1" in
+        000000008[0-7]??????) ;;
+        *) printf '%s\n' "the arena $1 is outside this machine's RAM"; return 1 ;;
+    esac
 }
 
 fail=0; prev_h=""; prev_a=""; prev_c=""
@@ -90,17 +103,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
             echo "        the same zero. Both mean the kernel cannot name its own RAM."
             fail=1; continue ;;
     esac
-    msg=$(python3 - "$arena" <<'PYA'
-import sys
-a = int(sys.argv[1], 16)
-if a % 4096:
-    print(f"the arena {a:016x} is not 4096-aligned, so buddy arithmetic would walk outside it")
-    sys.exit(1)
-if not (0x80000000 <= a < 0x88000000):
-    print(f"the arena {a:016x} is outside this machine's RAM")
-    sys.exit(1)
-PYA
-) || { echo "  FAIL  $msg"; fail=1; continue; }
+    msg=$(k1_arena_check "$arena") || { echo "  FAIL  $msg"; fail=1; continue; }
 
     printf "  %s -> scause %s, handler %s, arena %s\n" "$addr" "$cause" "$handler" "$arena"
 

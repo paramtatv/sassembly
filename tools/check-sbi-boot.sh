@@ -33,7 +33,7 @@ if ! command -v qemu-system-riscv64 >/dev/null; then
 fi
 
 # ०षोड्८०२००००० is 0x80200000 — where OpenSBI's fw_dynamic leaves its payload.
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
   --स्थान ०षोड्८०२००००० "$root/spec/boot-sbi.sas" "$tmp/boot.elf"
 
 # No -bios: QEMU loads its bundled OpenSBI, which is the point of the task.

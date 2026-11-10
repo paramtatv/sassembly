@@ -34,7 +34,7 @@ command -v node >/dev/null || {
 
 [ -f spec/parse-shape-t0.tsv ] || {
     echo "  FAIL  spec/parse-shape-t0.tsv is missing — the oracle this check reads."
-    echo "        Regenerate with: UPDATE_GOLDEN=1 cargo test -p sadhana --test parse_shape"
+    echo "        Regenerate from the frozen oracle history (the Rust parse_shape test is retired)"
     exit 1
 }
 

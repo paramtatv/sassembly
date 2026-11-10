@@ -262,6 +262,25 @@
     प्रत्यागमनम् २६८४४३६७२ ।
 इति
 
+॰ ॥ THE SPAWN WINDOW (ADR-0050, CAP-SPAWN) ॥ a6 11-09 per owner 10-15 a6-decides: `प्रक्षेपणम्` is the
+॰ name ruled by a6.
+॰ Modelled exactly on `पत्रलेखनम्`: the arguments are RUNS, and the lowering
+॰ forwards each run's pointer — `.t1` has no address-of. FOUR stores, the last
+॰ one does the work: `मार्गः` -> ०x१००० २००० (PATH), `पात्रम्` -> ०x१००० २००८
+॰ (BUFFER), `प्राचलः` -> ०x१००० २०२० (PARAM), `स्थितिः` -> ०x१००० २०७८ (SPAWN;
+॰ the stored run is the three-word STATUS the host writes into). The body
+॰ answers २६८४४३७६८ (०x१००० २०७८), its own device address, when no lowering
+॰ replaced the call.
+सार्वजनिक वृत्तिः प्रक्षेपणम् आदाय मार्गः ॱॱ अङ्कः अन्तः अ८ ऽ पात्रम् ॱॱ अङ्कः अन्तः अ८ ऽ प्राचलः ॱॱ अङ्कः अन्तः अ८ ऽ स्थितिः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    प्रत्यागमनम् २६८४४३७६८ ।
+इति
+
+॰ go-only: ONE store of the status run to the SPAWN word (a6 11-09 per owner 10-15 a6-decides).
+॰ Reproduces the oracle n and r modes (no PATH named: BadAddress).
+सार्वजनिक वृत्तिः प्रक्षेपारम्भः आदाय स्थितिः ॱॱ अङ्कः अन्तः न६४ ददाति न६४ आदि
+    प्रत्यागमनम् २६८४४३७६८ ।
+इति
+
 ॰ ॥ THE DEVICE REGISTER WINDOW (`W-350`) ॥ THE THIRD CHANNEL OUT OF A PROGRAM,
 ॰ and the first one that READS. `मुद्रणम्` and `पत्रलेखनम्` above both only
 ॰ write; `yantra::load` has no device arm at all, so a Sassembly program could

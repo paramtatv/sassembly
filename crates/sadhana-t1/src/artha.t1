@@ -1,6 +1,6 @@
 मण्डलम् अर्थ ॥ ॰ artha — the port of crates/sadhana/src/t1/{resolve,typecheck,types}.rs
 
-॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE,
+॰ ADR-0030 [D-002h] REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE,
 ॰ THE FOURTH OF THE REPAIR after `ir.t1`, `ast.t1` and `vishlesana.t1`. All 39
 ॰ of its 64-bit integer positions read `अ६४` and now read `न६४`, and not one
 ॰ moves the other way: this file holds NO signed quantity at all. Every site is
@@ -185,6 +185,7 @@
 सार्वजनिक चरः शून्यार्थभेद ॱॱ न६४ भवति १० ।       ॰ Ty::Void
 सार्वजनिक चरः अभावार्थभेद ॱॱ न६४ भवति ११ ।       ॰ Ty::Never
 सार्वजनिक चरः दोषार्थभेद ॱॱ न६४ भवति १२ ।        ॰ Ty::Error — poison, for recovery
+सार्वजनिक चरः सारण्यर्थभेद ॱॱ न६४ भवति १३ ।       ॰ Ty::Array{elem,capacity}: capacity in विस्तार, element in अन्तःसूचकाङ्क
 
 ॰ `W-248` — THE SPELLING THE TEXT READER MET AND DOES NOT KNOW, kept rather
 ॰ than counted alone: a count says how often and a name says which, and the
@@ -200,6 +201,45 @@
 ॰ inside its own fix. Appender shape: advance, then write.
 सार्वजनिक चरः अज्ञातप्रकारपाठकोश ॱॱ अङ्कः अन्तः पाठ भवति ० ।
 सार्वजनिक चरः अज्ञातप्रकारपाठसूचकाङ्क ॱॱ न६४ भवति ० ।
+॰ ॥ A ROUTINE WITH PARAMETERS IN VALUE POSITION ॥ (C44, 2026-10-15) count, first-site
+॰ flag and line, and the node index of the call's callee (exempt from the test).
+सार्वजनिक चरः अवृत्तिमूल्यसंख्या ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः अवृत्तिमूल्यमस्ति ॱॱ बूल भवति असत्यम् ।
+सार्वजनिक चरः अवृत्तिमूल्यपङ्क्ति ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः कार्यपदसूचकाङ्क ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः अवृत्तिमूल्यानुज्ञा ॱॱ बूल भवति असत्यम् ।
+
+॰ W-228 amendment (2026-09-04): THE KIND OF A SYMBOL, by SymbolId+1, beside its
+॰ declared type — १ routine, २ type, ३ machine, ४ module binding, ५ import
+॰ (`व्याकर`'s declaration kinds, as pass one meets them), ६ parameter, ७ local.
+॰ A ZERO-ARGUMENT CALL IS A BARE NAME to every pass after the parser: `व्याकर`
+॰ pushes one call node per argument, so `आरम्भः ।` has none, and the IR could
+॰ lower it only through the Identifier stub because the node carried the
+॰ symbol and not what the symbol IS. It carries it here: a node's
+॰ `संज्ञासूचकाङ्क` leads to this arena, and a routine kind in value position
+॰ is a call. MEASURED before choosing: W-208's census counts such sites as
+॰ zero-argument calls (`args` bucket ०); the alternative, an explicit empty
+॰ argument form, would make one construct two spellings. `घोष्यमाणभेदः` is set
+॰ by the caller BEFORE `घोषणम्` and copied in by it, the way `पठनस्थान` is
+॰ handed to `दोषयोजनम्`: `घोषणम्`'s three-parameter shape is called by name
+॰ from six Rust tests and does not change; a caller that sets nothing
+॰ declares kind ०, unknown.
+सार्वजनिक चरः संज्ञाभेदकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+
+॰ ॥ संज्ञाघोषणाकोश ॥ THE DECLARATION A SYMBOL CAME FROM. W-231, keyed by
+॰ SymbolId+1 exactly as its two siblings above are.
+॰
+॰ `संज्ञाप्रकारकोश` says what a symbol IS and `संज्ञाभेदकोश` says what KIND it is;
+॰ neither reaches the declaration itself, and the FIELD arm needs it. To type
+॰ `वाक्यम् ॱ भेद` the checker goes: the record's type → its `संज्ञा` (the struct's
+॰ SymbolId) → THE STRUCT'S DECLARATION → its field run `प्राचलादि`..`प्राचलान्त`
+॰ (`W-215`) → the field named `भेद` → that field's `प्रकारसूचकाङ्क`. The middle
+॰ step is this arena and existed nowhere.
+॰
+॰ THE ALTERNATIVE WAS A NAME SEARCH over `घोषणाकोश` — going from a symbol back
+॰ to its text and matching — which is the "a name is not a location" mistake
+॰ `अनिर्णीतपङ्क्ति` was added to end.
+सार्वजनिक चरः संज्ञाघोषणाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 
 ॰ ॥ AND WHY, NOT ONLY WHICH ॥ `W-265`, 2026-09-05.
 ॰
@@ -221,6 +261,14 @@
 सार्वजनिक चरः रिक्तप्रकारकारण ॱॱ न६४ भवति ३ ।     ॰ an empty spelling — there is no name to resolve
 सार्वजनिक चरः बहुमण्डलप्रकारकारण ॱॱ न६४ भवति ४ ।  ॰ bare; MORE THAN ONE module declares it
 सार्वजनिक चरः अमण्डलप्रकारकारण ॱॱ न६४ भवति ५ ।    ॰ `मण्डलॱनाम` whose मण्डल the store does not hold
+सार्वजनिक चरः रिक्तसारणीकारण ॱॱ न६४ भवति ६ ।     ॰ `अङ्कः ० अन्तः T` — a zero capacity holds nothing; refused AFTER it parses (typecheck.rs)
+सार्वजनिक चरः अघोषितप्रकारकारण ॱॱ न६४ भवति ७ ।   ॰ bare, in a KNOWN module, and NO module declares the spelling (`चरः क ॱॱ इ६४`): refuses the PROGRAM, ADR-NILRUN
+सार्वजनिक चरः अघोषितप्रकारसंख्या ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः रिक्तसारणीसंख्या ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः रिक्तसारणीपङ्क्ति ॱॱ न६४ भवति ० ।   ॰ the FIRST zero capacity's line and akṣara (the numeral token), for the refusal record
+सार्वजनिक चरः रिक्तसारणीअक्षर ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः सारणीविस्तारस्मृतिः ॱॱ न६४ भवति ० ।   ॰ M1: the विस्तार of the last array type built (observation seam)
+सार्वजनिक चरः सारणीभेदस्मृतिः ॱॱ न६४ भवति ० ।     ॰ M1: the भेद of the last array type built
 
 सार्वजनिक चरः अज्ञातप्रकारकारण ॱॱ न६४ भवति ० ।    ॰ the LAST refusal's reason
 सार्वजनिक चरः अज्ञातप्रकारकारणकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।  ॰ and the run, beside the spellings
@@ -492,6 +540,24 @@
         प्रत्यागमनम् सत्यम् ।
     इति
 
+    ॰ ADR-0026 [D-002k] (C23v2): a bounded array's capacity (main's sarani node, in विस्तार)
+    ॰ is part of its identity, and its element is compared on what it holds: equal
+    ॰ indices are sufficient, never necessary (the element of `अङ्कः ८ अन्तः अ८` written
+    ॰ on a parameter and on a return type lands at two arena indices of one type).
+    यदि वामः ॱ भेद समम् सारण्यर्थभेद आदि
+        यदि वामः ॱ विस्तार असमम् दक्षिणः ॱ विस्तार आदि
+            प्रत्यागमनम् असत्यम् ।
+        इति
+        यदि वामः ॱ अन्तःसूचकाङ्क असमम् दक्षिणः ॱ अन्तःसूचकाङ्क आदि
+            चरः वामान्तः ॱॱ अर्थप्रकार भवति अर्थप्रकारकोश अङ्कः वामः ॱ अन्तःसूचकाङ्क अन्तः ।
+            चरः दक्षिणान्तः ॱॱ अर्थप्रकार भवति अर्थप्रकारकोश अङ्कः दक्षिणः ॱ अन्तःसूचकाङ्क अन्तः ।
+            यदि प्रकारसाम्यम् वामान्तः दक्षिणान्तः समम् असत्यम् आदि
+                प्रत्यागमनम् असत्यम् ।
+            इति
+        इति
+        प्रत्यागमनम् सत्यम् ।
+    इति
+
     यदि संज्ञावाहकार्थः वामः ॱ भेद आदि
         यदि वामः ॱ संज्ञा असमम् दक्षिणः ॱ संज्ञा आदि
             प्रत्यागमनम् असत्यम् ।
@@ -671,7 +737,7 @@
     ॰ than blocker (d)'s placeholder ०. Pushes one अ८-unsigned अर्थप्रकार into
     ॰ `अर्थप्रकारकोश` and points `अन्तःसूचकाङ्क` at it.
     ॰ `W-248`: BOTH SPELLINGS, and the second is the FROZEN one. `spec/grammar-t1.ebnf:226`
-    ॰ has `type_name = … | "पाठ"`, changed from `पाठः` by ADR-0029 on 2026-08-31 —
+    ॰ has `type_name = … | "पाठ"`, changed from `पाठः` by ADR-0029 [D-002h] on 2026-08-31 —
     ॰ and this routine was still matching only the retired spelling, so every
     ॰ `ददाति पाठ` in the corpus read as poison. Found by the refusal list this row
     ॰ added: `पाठ` came back named, which is what naming a refusal is for. The
@@ -882,6 +948,14 @@
         प्रत्यागमनम् प्रकारसंज्ञार्थः स्थलम् ।
     इति
     यदि मण्डलाङ्कः अधिकम् ० आदि
+        ॰ ADR-NILRUN (B): NO module declares this spelling at all — an UNDECLARED
+        ॰ bare name in its own module. Refused by name (reason ७) and counted, so
+        ॰ the verdict reads it; the rest stay stub causes (`असञ्चितप्रकारकारण`).
+        चरः अघोषितबहुत्वम् ॱॱ न६४ भवति प्रकारसंज्ञासंख्या नाम ।
+        यदि अघोषितबहुत्वम् समम् ० आदि
+            अघोषितप्रकारसंख्या भवति अघोषितप्रकारसंख्या योगः १ ।
+            प्रत्यागमनम् प्रकारपाठनिषेधः नाम अघोषितप्रकारकारण ।
+        इति
         प्रत्यागमनम् प्रकारपाठनिषेधः नाम असञ्चितप्रकारकारण ।
     इति
 
@@ -893,7 +967,10 @@
     ॰ the wrong record's fields while reporting success.
     चरः बहुत्वम् ॱॱ न६४ भवति प्रकारसंज्ञासंख्या नाम ।
     यदि बहुत्वम् समम् ० आदि
-        प्रत्यागमनम् प्रकारपाठनिषेधः नाम अनामप्रकारकारण ।
+        ॰ module ० here is also every TEXT read with no module (`प्रकारपाठार्थः`), where an
+        ॰ absent count is lack of information and stays a stub cause; the statement-level
+        ॰ node path (`मूलप्रकारभेद` arm) decides UNDECLARED itself, ADR-NILRUN (B).
+        प्रत्यागमनम् प्रकारपाठनिषेधः नाम असञ्चितप्रकारकारण ।
     इति
     यदि बहुत्वम् अधिकम् १ आदि
         प्रत्यागमनम् प्रकारपाठनिषेधः नाम बहुमण्डलप्रकारकारण ।
@@ -1102,6 +1179,46 @@
     ॰ fully built, so this arm is the load-bearing piece and nothing else is.
     यदि अभिव्यञ्जकः ॱ भेद समम् वास्तुॱनामाभिव्यञ्जकभेद आदि
         चरः संज्ञासूचकः ॱॱ न६४ भवति अभिव्यञ्जकः ॱ संज्ञासूचकाङ्क ।
+        ॰ ══ A ROUTINE WITH PARAMETERS IS NOT A VALUE ══ (C44, 2026-10-15)
+        ॰ `spec/grammar-t1.ebnf` (the flat call rule: "no value that is itself
+        ॰ callable") and ADR-0027 [D-002h]: a routine name in value position IS a call of
+        ॰ zero arguments, so only a routine that takes none may stand there. A
+        ॰ routine with parameters named as an argument or bare lowered to a
+        ॰ zero-argument call of something needing arguments and faulted at run
+        ॰ time. The callee of a call is exempt (`कार्यपदसूचकाङ्क`, set by the call
+        ॰ arm); kinds that are not routines never reach this test.
+        यदि संज्ञासूचकः असमम् ० आदि
+            यदि संज्ञासूचकः न्यूनम् संज्ञाभेदकोश ॱ दैर्घ्य आदि
+                यदि सूचकाङ्क असमम् कार्यपदसूचकाङ्क आदि
+                    यदि संज्ञाभेदकोश अङ्कः संज्ञासूचकः अन्तः समम् व्याकरॱवृत्तिघोषणाभेद आदि
+                        यदि संज्ञासूचकः न्यूनम् संज्ञाघोषणाकोश ॱ दैर्घ्य आदि
+                            चरः मूल्यघोषणाङ्कः ॱॱ न६४ भवति संज्ञाघोषणाकोश अङ्कः संज्ञासूचकः अन्तः ।
+                            यदि मूल्यघोषणाङ्कः अधिकम् ० आदि
+                                यदि मूल्यघोषणाङ्कः न्यूनम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+                                    चरः मूल्यघोषणा ॱॱ व्याकरॱघोषणा भवति व्याकरॱघोषणाकोश अङ्कः मूल्यघोषणाङ्कः अन्तः ।
+                                    यदि मूल्यघोषणा असमम् शून्यम् आदि
+                                        यदि मूल्यघोषणा ॱ प्राचलादि अधिकम् ० आदि
+                                          यदि अवृत्तिमूल्यानुज्ञा समम् असत्यम् आदि
+                                            अवृत्तिमूल्यसंख्या भवति आरभ्य अवृत्तिमूल्यसंख्या योगः १ समाप्तम् ।
+                                            यदि अवृत्तिमूल्यमस्ति समम् असत्यम् आदि
+                                                ॰ the line recorded is the ROUTINE'S declaration (a name node carries no token)
+                                                यदि मूल्यघोषणा ॱ नामसूचकाङ्क न्यूनम् पदविभागॱचिह्नककोश ॱ दैर्घ्य आदि
+                                                    चरः मूल्यनामचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः मूल्यघोषणा ॱ नामसूचकाङ्क अन्तः ।
+                                                    अवृत्तिमूल्यपङ्क्ति भवति मूल्यनामचिह्नकम् ॱ पङ्क्ति ।
+                                                इति
+                                                अवृत्तिमूल्यमस्ति भवति सत्यम् ।
+                                            इति
+                                            प्रत्यागमनम् दोषार्थः ।
+                                          इति
+                                        इति
+                                    इति
+                                इति
+                            इति
+                        इति
+                    इति
+                इति
+            इति
+        इति
         यदि संज्ञासूचकः असमम् ० आदि
             यदि संज्ञासूचकः न्यूनम् संज्ञाप्रकारकोश ॱ दैर्घ्य आदि
                 चरः प्रकारसूचकः ॱॱ न६४ भवति संज्ञाप्रकारकोश अङ्कः संज्ञासूचकः अन्तः ।
@@ -1270,12 +1387,41 @@
         ॰ carries one argument on `दक्षिणसूचकाङ्क` and the next call node on
         ॰ `वामसूचकाङ्क` — so typing this one and recursing into the callee below
         ॰ reaches every argument exactly once.
+        ॰ ══ WHOSE ARGUMENTS MAY BE ROUTINES (C44) ══ the spine's bottom is the real
+        ॰ callee. A bottom that is a plain name with a symbol is a routine or a
+        ॰ variable this pass knows, so its arguments are values and a routine with
+        ॰ parameters among them is refused. A bottom WITHOUT a symbol is a qualified
+        ॰ name (`समान्तरॱचालनम्` takes the routine to fork as an argument; other
+        ॰ members are taken on trust, see the import note in the name arm): what
+        ॰ its arguments may be is that callee's rule, not this pass's.
+        चरः तलम् ॱॱ न६४ भवति पात्रम् ।
+        चरः तलचलति ॱॱ बूल भवति सत्यम् ।
+        चरः मूल्यवृत्त्यनुज्ञा ॱॱ बूल भवति असत्यम् ।
+        यावत् तलचलति समम् सत्यम् आदि
+            तलचलति भवति असत्यम् ।
+            यदि तलम् न्यूनम् कोशः ॱ दैर्घ्य आदि
+                चरः तलपदम् ॱॱ वास्तुॱअभिव्यञ्जक भवति कोशः अङ्कः तलम् अन्तः ।
+                यदि तलपदम् ॱ भेद समम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि
+                    तलम् भवति तलपदम् ॱ वामसूचकाङ्क ।
+                    तलचलति भवति सत्यम् ।
+                इति
+                यदि तलपदम् ॱ भेद समम् वास्तुॱनामाभिव्यञ्जकभेद आदि
+                    यदि तलपदम् ॱ संज्ञासूचकाङ्क समम् ० आदि
+                        मूल्यवृत्त्यनुज्ञा भवति सत्यम् ।
+                    इति
+                इति
+            इति
+        इति
+        चरः पूर्वानुज्ञा ॱॱ बूल भवति अवृत्तिमूल्यानुज्ञा ।
+        अवृत्तिमूल्यानुज्ञा भवति मूल्यवृत्त्यनुज्ञा ।
         चरः तर्काङ्कः ॱॱ न६४ भवति अभिव्यञ्जकः ॱ दक्षिणसूचकाङ्क ।
         यदि तर्काङ्कः अधिकम् ० आदि
             यदि तर्काङ्कः न्यूनम् कोशः ॱ दैर्घ्य आदि
                 चरः तर्कार्थः ॱॱ अर्थप्रकार भवति अभिव्यञ्जकप्रकारः कोशः तर्काङ्कः ।
             इति
         इति
+        अवृत्तिमूल्यानुज्ञा भवति पूर्वानुज्ञा ।
+        कार्यपदसूचकाङ्क भवति पात्रम् ।
         प्रत्यागमनम् अभिव्यञ्जकप्रकारः कोशः पात्रम् ।
     इति
 
@@ -1596,7 +1742,7 @@
             प्रत्यागमनम् वामार्थः ।
         इति
 
-        ॰ TWO NON-LITERALS THAT DISAGREE ARE REFUSED. This is the ADR-0030
+        ॰ TWO NON-LITERALS THAT DISAGREE ARE REFUSED. This is the ADR-0030 [D-002h]
         ॰ producer/consumer class made visible; each refusal is a finding to
         ॰ NAME in the census, never to soften here.
         प्रत्यागमनम् दोषार्थः ।
@@ -1655,7 +1801,7 @@
 ॰
 ॰     AND IT RUNS. tests/t1_execution.rs calls पाठांशयोजनम् twice and gets
 ॰     १ then २, with a mutation that pins the cursor and requires both calls
-॰     to collide. No allocator is involved and ADR-0028 is not waited on —
+॰     to collide. No allocator is involved and ADR-0028 [D-002b] is not waited on —
 ॰     that ADR says so itself, in the amendment at its head.
 ॰
 ॰     So the eleven stubs below were not blocked by the language. SIX OF
@@ -1671,7 +1817,7 @@
 ॰     therefore rebuilds rather than truncates, which is O(n); the margin on
 ॰     that routine says why a depth counter was rejected for it.
 ॰
-॰     ADR-0026 (`D-002k`, 2026-08-29) IS STILL NOT WHAT ANSWERED THIS, and
+॰     ADR-0026 [D-002k] (`D-002k`, 2026-08-29) IS STILL NOT WHAT ANSWERED THIS, and
 ॰     it is named here so a reader does not credit the wrong thing. Its
 ॰     `अङ्कः <numeral> अन्तः T` is a FIXED capacity bounded at compile time.
 ॰     What actually answered growth is the idiom this paragraph had already
@@ -1755,6 +1901,12 @@
     ॰ or the next program inherits the previous one's answer.
     अनिर्णीतमस्ति भवति असत्यम् ।
     अनिर्णीतपङ्क्ति भवति ० ।
+    रिक्तसारणीसंख्या भवति ० ।
+    अघोषितप्रकारसंख्या भवति ० ।
+    रिक्तसारणीपङ्क्ति भवति ० ।
+    रिक्तसारणीअक्षर भवति ० ।
+    सारणीविस्तारस्मृतिः भवति ० ।
+    सारणीभेदस्मृतिः भवति ० ।
 
     ॰ W-223 part 2: this reset OWNS the store-facing state. The refusal flag and
     ॰ the four counters are cleared here for the same reason `अनिर्णीत` is — a
@@ -1932,38 +2084,6 @@
 ॰ Identifier arm through the symbol the resolver wrote onto the node, so the answer
 ॰ is SCOPE-CORRECT without the checker owning a scope: resolution already was.
 सार्वजनिक चरः संज्ञाप्रकारकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
-
-॰ W-228 amendment (2026-09-04): THE KIND OF A SYMBOL, by SymbolId+1, beside its
-॰ declared type — १ routine, २ type, ३ machine, ४ module binding, ५ import
-॰ (`व्याकर`'s declaration kinds, as pass one meets them), ६ parameter, ७ local.
-॰ A ZERO-ARGUMENT CALL IS A BARE NAME to every pass after the parser: `व्याकर`
-॰ pushes one call node per argument, so `आरम्भः ।` has none, and the IR could
-॰ lower it only through the Identifier stub because the node carried the
-॰ symbol and not what the symbol IS. It carries it here: a node's
-॰ `संज्ञासूचकाङ्क` leads to this arena, and a routine kind in value position
-॰ is a call. MEASURED before choosing: W-208's census counts such sites as
-॰ zero-argument calls (`args` bucket ०); the alternative, an explicit empty
-॰ argument form, would make one construct two spellings. `घोष्यमाणभेदः` is set
-॰ by the caller BEFORE `घोषणम्` and copied in by it, the way `पठनस्थान` is
-॰ handed to `दोषयोजनम्`: `घोषणम्`'s three-parameter shape is called by name
-॰ from six Rust tests and does not change; a caller that sets nothing
-॰ declares kind ०, unknown.
-सार्वजनिक चरः संज्ञाभेदकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
-
-॰ ॥ संज्ञाघोषणाकोश ॥ THE DECLARATION A SYMBOL CAME FROM. W-231, keyed by
-॰ SymbolId+1 exactly as its two siblings above are.
-॰
-॰ `संज्ञाप्रकारकोश` says what a symbol IS and `संज्ञाभेदकोश` says what KIND it is;
-॰ neither reaches the declaration itself, and the FIELD arm needs it. To type
-॰ `वाक्यम् ॱ भेद` the checker goes: the record's type → its `संज्ञा` (the struct's
-॰ SymbolId) → THE STRUCT'S DECLARATION → its field run `प्राचलादि`..`प्राचलान्त`
-॰ (`W-215`) → the field named `भेद` → that field's `प्रकारसूचकाङ्क`. The middle
-॰ step is this arena and existed nowhere.
-॰
-॰ THE ALTERNATIVE WAS A NAME SEARCH over `घोषणाकोश` — going from a symbol back
-॰ to its text and matching — which is the "a name is not a location" mistake
-॰ `अनिर्णीतपङ्क्ति` was added to end.
-सार्वजनिक चरः संज्ञाघोषणाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 
 ॰ The declaration index the next `घोषणम्` should record, set by the declaring
 ॰ site and cleared after — the same one-shot handshake `घोष्यमाणभेदः` uses.
@@ -2323,6 +2443,26 @@
                 इति
                 परिसरनिर्गमः निर्णायकः ।
             इति
+            ॰ R3FXB (W-267): A RECORD'S FIELD TYPES ARE READ HERE TOO. A संरचना has no
+            ॰ body to walk, so a field typed with a name no module declares was never
+            ॰ read by anything unless some statement accessed it, and the program
+            ॰ built a record it could not describe. Each field's type is typed
+            ॰ through `प्रकारार्थः`, whose named arm counts an undeclared bare name
+            ॰ (reason ७) so the verdict refuses it BY NAME.
+            यदि घोषणा ॱ भेद समम् व्याकरॱप्रकारघोषणाभेद आदि
+                यदि घोषणा ॱ प्राचलादि अधिकम् ० आदि
+                    चरः क्षेत्रप्राचलक्रमः ॱॱ अ६४ भवति घोषणा ॱ प्राचलादि ।
+                    यावत् क्षेत्रप्राचलक्रमः न्यूनम् आरभ्य घोषणा ॱ प्राचलान्त योगः १ समाप्तम् आदि
+                        चरः क्षेत्रप्राचलम् ॱॱ व्याकरॱप्राचल भवति व्याकरॱप्राचलकोश अङ्कः क्षेत्रप्राचलक्रमः अन्तः ।
+                        यदि क्षेत्रप्राचलम् असमम् शून्यम् आदि
+                            यदि क्षेत्रप्राचलम् ॱ प्रकारसूचकाङ्क असमम् ० आदि
+                                चरः क्षेत्रप्रकारः ॱॱ न६४ भवति अर्थप्रकारयोजनम् आरभ्य प्रकारार्थः वास्तुॱअभिव्यञ्जककोश क्षेत्रप्राचलम् ॱ प्रकारसूचकाङ्क समाप्तम् ।
+                            इति
+                        इति
+                        क्षेत्रप्राचलक्रमः भवति क्षेत्रप्राचलक्रमः योगः १ ।
+                    इति
+                इति
+            इति
         इति
         पुनःक्रमः भवति पुनःक्रमः योगः १ ।
     इति
@@ -2434,14 +2574,19 @@
         चरः आधारः ॱॱ न६४ भवति अन्वेषणशिखर ।
         चरः अन्वेषणम् ॱॱ अ६४ भवति क्रमः ।
         ॰ W-229: `>=` is `बृहत्समम्` (ADR-0037); the chain `x न्यूनम् y समम् असत्यम्` the corpus wrote before it had the word is one the frozen grammar refuses, and read flat it is `x < (y == false)`, right only because बूल is one octet wide.
-        यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
-            यदि अन्वेषणम् न्यूनम् १ आदि
-                अन्वेषणम् भवति ० ।
-            इति अन्यथा आदि
-                अन्वेषणकोश अङ्कः अन्वेषणशिखर अन्तः भवति अन्वेषणम् ।
-                अन्वेषणशिखर भवति आरभ्य अन्वेषणशिखर योगः १ समाप्तम् ।
-                चरः चरणम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः अन्वेषणम् अन्तः ।
-                अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
+        ॰ B0: an EMPTY block is प्रथमः ० (slot ० reserved); the search below
+        ॰ resets अन्वेषणम् to ० on `< १` and never leaves, so it is skipped
+        ॰ there. Scope entry/exit above and below still run.
+        यदि प्रथमः बृहत्समम् १ आदि
+            यावत् अन्वेषणम् बृहत्समम् प्रथमः आदि
+                यदि अन्वेषणम् न्यूनम् १ आदि
+                    अन्वेषणम् भवति ० ।
+                इति अन्यथा आदि
+                    अन्वेषणकोश अङ्कः अन्वेषणशिखर अन्तः भवति अन्वेषणम् ।
+                    अन्वेषणशिखर भवति आरभ्य अन्वेषणशिखर योगः १ समाप्तम् ।
+                    चरः चरणम् ॱॱ वास्तुॱवाक्य भवति वास्तुॱवाक्यकोश अङ्कः अन्वेषणम् अन्तः ।
+                    अन्वेषणम् भवति आरभ्य चरणम् ॱ आदिसूचकाङ्क वियोगः १ समाप्तम् ।
+                इति
             इति
         इति
 
@@ -2641,6 +2786,9 @@
 ॰ shape `W-248` says to write rather than a bare first-only: a count of ३ with
 ॰ one site named says there is more to find, where a first-only record says
 ॰ nothing about what it did not keep.
+॰ M1 (G0-s4-BA): RECORDING A REFUSAL IS NOT MAKING ONE. The zero-capacity array refusal (reason 6)
+॰ only wrote the unknown-spelling record, which the build never reads, so a zero array built rc0.
+॰ This count is read by `कार्यक्रमप्रकारपरीक्षा`, which then answers असत्यम्. Cleared in `निर्णायकारम्भः`.
 सार्वजनिक चरः असत्क्षेत्रसंख्या ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः असत्क्षेत्रमस्ति ॱॱ बूल भवति असत्यम् ।
 सार्वजनिक चरः असत्क्षेत्रनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।     ॰ the field asked for
@@ -3908,6 +4056,11 @@
     अनिर्णीतधारपङ्क्ति भवति ० ।
     अऋण्यमस्ति भवति असत्यम् ।
     अऋण्यभेद भवति ० ।
+    अवृत्तिमूल्यसंख्या भवति ० ।
+    अवृत्तिमूल्यमस्ति भवति असत्यम् ।
+    अवृत्तिमूल्यपङ्क्ति भवति ० ।
+    कार्यपदसूचकाङ्क भवति ० ।
+    अवृत्तिमूल्यानुज्ञा भवति असत्यम् ।
     ॰ `W-359`: the count and the bool; the name is left standing (see above).
     वर्धनबन्धदोषसंख्या भवति ० ।
     वर्धनबन्धदोषमस्ति भवति असत्यम् ।
@@ -3981,6 +4134,8 @@
             ॰ compare a return type against.
             यदि घोषणा ॱ भेद समम् व्याकरॱवृत्तिघोषणाभेद आदि
                 चरः बन्धदोषाः ॱॱ न६४ भवति वर्धनबन्धपरीक्षा क्रमः ।
+                ॰ R8b: a routine body is in TAIL position (its last value is the routine's).
+                पुच्छे भवति सत्यम् ।
                 चरः शरीरार्थः ॱॱ अर्थप्रकार भवति वाक्यप्रकारः वास्तुॱवाक्यकोश घोषणा ॱ शरीरसूचकाङ्क ।
                 चरः प्रत्यागमनार्थः ॱॱ अर्थप्रकार भवति शून्यार्थः ।
 
@@ -4023,11 +4178,23 @@
         फलम् भवति असत्यम् ।
     इति
 
+    यदि रिक्तसारणीसंख्या अधिकम् ० आदि   ॰ M1: a zero-capacity array anywhere refuses the program
+        फलम् भवति असत्यम् ।
+    इति
+
+    यदि अघोषितप्रकारसंख्या अधिकम् ० आदि   ॰ ADR-NILRUN (B): an undeclared bare type name refuses the program
+        फलम् भवति असत्यम् ।
+    इति
+
     यदि असञ्चितक्षेत्रसंख्या अधिकम् ० आदि
         फलम् भवति असत्यम् ।
     इति
 
     यदि अऋण्यसंख्या अधिकम् ० आदि
+        फलम् भवति असत्यम् ।
+    इति
+
+    यदि अवृत्तिमूल्यसंख्या अधिकम् ० आदि
         फलम् भवति असत्यम् ।
     इति
 
@@ -4108,6 +4275,7 @@
 
         चरः अन्तिमार्थः ॱॱ अर्थप्रकार भवति शून्यार्थः ।
         चरः दुष्टम् ॱॱ बूल भवति असत्यम् ।
+        चरः आगतपुच्छम् ॱॱ बूल भवति पुच्छे ।
 
         ॰ THE SCAN IS FOR EFFECT ONLY; THE ANSWER IS READ AT THE BOTTOM. Skipped
         ॰ entirely when प्रथमः is ० — with the search index already there
@@ -4197,7 +4365,14 @@
         ॰ arrives THROUGH IT never set `दुष्टम्` — which is why the first run of
         ॰ this instrument printed nothing for five refusing files. Recorded here
         ॰ too, or the proof names only half the paths.
-        पुच्छे भवति सत्यम् ।
+        ॰ R8b: THE LAST CHILD IS IN TAIL POSITION ONLY IF THE BLOCK ITSELF IS.
+        ॰ This wrote सत्यम् unconditionally, so a block whose value is read by
+        ॰ nobody (a `यावत्` body, a mid-body `यदि` arm) still judged the branch
+        ॰ join of its last `यदि`; a one-armed `यदि` ending in a value-typed bare
+        ॰ call then answered दोषार्थः, the loop body poisoned, and the routine
+        ॰ was refused with no cause shown (link 1601). The flag now carries the
+        ॰ position the block was ENTERED in (`आगतपुच्छम्`).
+        पुच्छे भवति आगतपुच्छम् ।
         चरः अन्तिमम् ॱॱ अर्थप्रकार भवति वाक्यप्रकारः कोशः वाक्यम् ॱ दक्षिणसूचकाङ्क ।
         यदि अन्तिमम् ॱ भेद समम् दोषार्थभेद आदि
             यदि दुष्टवाक्यमस्ति समम् असत्यम् आदि
@@ -4294,6 +4469,8 @@
             प्रत्यागमनम् एकयुग्मम् ।
         इति
 
+        ॰ R8b: the else body is in the same position as the then body.
+        पुच्छे भवति पुच्छम् ।
         चरः अन्यार्थः ॱॱ अर्थप्रकार भवति वाक्यप्रकारः कोशः वाक्यम् ॱ अन्यसूचकाङ्क ।
         चरः युग्मम् ॱॱ अर्थप्रकार भवति युग्मार्थः शरीरार्थः अन्यार्थः ।
         यदि युग्मम् ॱ भेद समम् दोषार्थभेद आदि
@@ -4335,6 +4512,8 @@
             इति
         इति
 
+        ॰ R8b: A LOOP BODY'S VALUE IS DISCARDED (see above) — never tail position.
+        पुच्छे भवति असत्यम् ।
         चरः शरीरार्थः ॱॱ अर्थप्रकार भवति वाक्यप्रकारः कोशः वाक्यम् ॱ दक्षिणसूचकाङ्क ।
         यदि शरीरार्थः ॱ भेद समम् दोषार्थभेद आदि
             यदि दुष्टकारण समम् ० आदि
@@ -4664,6 +4843,18 @@
         यदि मूलम् ॱ भेद असमम् दोषार्थभेद आदि
             प्रत्यागमनम् मूलम् ।
         इति
+        ॰ ADR-NILRUN (B): the PROGRAM's own node names a type no module declares — reason ७, counted.
+        ॰ BARE names only: `प्रकारसंज्ञासंख्या` counts bare spellings, so a QUALIFIED
+        ॰ `मण्डलॱनाम` always counts ० here and is resolved by `नामप्रकारार्थः` instead
+        ॰ (R3P3i: Stage 2 refused `पदविभागॱचिह्नक`, fixpoint status 1601).
+        चरः अघोषितउपसर्गः ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱमण्डलउपसर्गः नामपाठ ।
+        यदि अघोषितउपसर्गः ॱ दैर्घ्य समम् ० आदि
+            चरः अघोषितबहुत्वम् ॱॱ न६४ भवति प्रकारसंज्ञासंख्या नामपाठ ।
+            यदि अघोषितबहुत्वम् समम् ० आदि
+                अघोषितप्रकारसंख्या भवति अघोषितप्रकारसंख्या योगः १ ।
+                प्रत्यागमनम् प्रकारपाठनिषेधः नामपाठ अघोषितप्रकारकारण ।
+            इति
+        इति
         प्रत्यागमनम् नामप्रकारार्थः नामपाठ ० ।
     इति
 
@@ -4672,6 +4863,25 @@
     चरः फलम् ॱॱ अर्थप्रकार भवति दोषार्थः ।
     फलम् ॱ अन्तःसूचकाङ्क भवति अर्थप्रकारयोजनम् आन्तरप्रकार ।
 
+    ॰ The bounded array. Capacity rode in दक्षिणसूचकाङ्क (a VALUE, not an
+    ॰ index). Zero is refused HERE, after the parser accepted it, as Rust's
+    ॰ typechecker does; the parser refuses only a NEGATIVE bound.
+    यदि भेदः समम् वास्तुॱसारणिप्रकारभेद आदि
+        यदि प्रकारम् ॱ दक्षिणसूचकाङ्क समम् ० आदि
+            चरः रिक्तचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः प्रकारम् ॱ मूल्यसूचकाङ्क अन्तः ।
+            यदि रिक्तसारणीसंख्या समम् ० आदि
+                रिक्तसारणीपङ्क्ति भवति रिक्तचिह्नकम् ॱ पङ्क्ति ।
+                रिक्तसारणीअक्षर भवति रिक्तचिह्नकम् ॱ अक्षर ।
+            इति
+            रिक्तसारणीसंख्या भवति रिक्तसारणीसंख्या योगः १ ।
+            प्रत्यागमनम् प्रकारपाठनिषेधः उक्तम् ० इति रिक्तसारणीकारण ।
+        इति
+        फलम् ॱ भेद भवति सारण्यर्थभेद ।
+        फलम् ॱ विस्तार भवति प्रकारम् ॱ दक्षिणसूचकाङ्क ।
+        सारणीविस्तारस्मृतिः भवति फलम् ॱ विस्तार ।
+        सारणीभेदस्मृतिः भवति फलम् ॱ भेद ।
+        प्रत्यागमनम् फलम् ।
+    इति
     यदि भेदः समम् वास्तुॱखण्डप्रकारभेद आदि
         फलम् ॱ भेद भवति खण्डार्थभेद ।
         प्रत्यागमनम् फलम् ।

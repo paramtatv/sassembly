@@ -1,6 +1,6 @@
 मण्डलम् सहायकवृद्धि ॥
 
-॰ W-356 RISK (1) PROBE, a peer session 2026-10-03: the append sites are in a HELPER
+॰ W-356 RISK (1) PROBE, sansos-b1 2026-10-03: the append sites are in a HELPER
 ॰ that is lexically NOT in a loop, and the helper is CALLED from a loop. A
 ॰ lexical loop-depth predicate takes the out-of-line call at these sites, so
 ॰ the executed count shows what loop-only inlining costs this shape. Status

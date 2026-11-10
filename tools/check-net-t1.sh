@@ -23,16 +23,16 @@
 # the used ring, bounded. The device is not pinned: QEMU puts it in the last virtio-mmio slot
 # and the driver's scan (slots 0, 2, 3, ... 7, never 1) finds it.
 #
-# The rest of the library's tests are crates/yantra/tests/net_t1.rs (--include-ignored).
+# The rest of the library's tests are net_t1 (--include-ignored).
 #
-# Exits 0 on PASS, 1 on FAIL, 77 when QEMU or python3 is absent.
+# Exits 0 on PASS, 1 on FAIL, 77 when QEMU is absent. Native only: no cargo, no yantra-run.
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-tmp=$(mktemp -d)
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/cknett1.XXXXXX") || { echo "SKIPPED: no temporary directory"; exit 77; }
 trap 'rm -rf "$tmp"' EXIT
 
-for t in qemu-system-riscv64 python3; do
+for t in qemu-system-riscv64; do
   command -v "$t" >/dev/null 2>&1 || {
     echo "SKIPPED: $t is not installed"
     echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
@@ -40,10 +40,7 @@ for t in qemu-system-riscv64 python3; do
 done
 
 RAM=738197504                     # the driver's region is at 0xA800_0000
-: "${CARGO_TARGET_DIR:=$root/target}"
-echo "Building t1_image and yantra-run (release)..."
-cargo build --quiet --release --manifest-path "$root/Cargo.toml" --bin t1_image --bin yantra-run
-T1="$CARGO_TARGET_DIR/release/t1_image"
+T1="$root/tools/t1-build.sh"   # R3-SAD retired t1_image (Rust): same arguments, native route
 qemu-system-riscv64 --version | head -1
 
 net="$root/spec/net"
@@ -57,63 +54,90 @@ build() {
   "$T1" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
       --entry "$3" मुख्यम् -o "$tmp/$1.elf" $files > "$tmp/$1.build.log" 2>&1 || true
   [ -s "$tmp/$1.elf" ] || { echo "  FAIL  $1: the program did not build:"; tail -20 "$tmp/$1.build.log"; exit 1; }
-  grep -q '^gate:     AGREED' "$tmp/$1.build.log" && echo "  PASS  build $1: the differential gate says AGREED" \
-    || { echo "  FAIL  build $1: no AGREED"; exit 1; }
+  grep -a -q " octets) by " "$tmp/$1.build.log" && echo "  PASS  build $1: t1-build.sh wrote the image (R3-SAD: the native route replaces the t1_image AGREED gate)" \
+    || { echo "  FAIL  build $1: t1-build.sh did not report the image written"; exit 1; }
 }
 
 # qemu NAME: run the role q of $tmp/NAME.elf; serial in $tmp/NAME.serial, capture $tmp/NAME.pcap
 qemu() {
-  addr=$(python3 "$root/tools/t1-qemu-args.py" --ram $RAM "$tmp/$1.elf" "$tmp/$1.q" "$tmp/$1.args" "$tmp/$1.elf" q \
+  addr=$(sh "$root/tools/t1-qemu-args.sh" --ram $RAM "$tmp/$1.elf" "$tmp/$1.q" "$tmp/$1.args" "$tmp/$1.elf" q \
       | sed -n 's/^addr //p')
-  timeout 120 qemu-system-riscv64 -machine virt -bios none -m 768M -display none -kernel "$tmp/$1.q" \
+  qemu-system-riscv64 -machine virt -bios none -m 768M -display none -kernel "$tmp/$1.q" \
       -device "loader,file=$tmp/$1.args,addr=$addr" \
       -netdev user,id=n0 -device virtio-net-device,netdev=n0 \
       -object filter-dump,id=f1,netdev=n0,file="$tmp/$1.pcap" \
       -serial "file:$tmp/$1.serial" -monitor none -no-reboot > "$tmp/$1.out" 2>&1 || true
 }
 
+# pcap_bytes FILE: the capture as decimal bytes, one stream (portable od).
 # kinds PCAP: arp1/arp2, icmp8/icmp0, udp>53 (to port 53) and udp<53 (from port 53), in order
 kinds() {
-python3 - "$1" <<'PY'
-import struct, sys
-d = open(sys.argv[1], "rb").read()
-o, out = 24, []
-while o < len(d):
-    _, _, cl, _ = struct.unpack("<IIII", d[o:o + 16]); fr = d[o + 16:o + 16 + cl]; o += 16 + cl
-    et = fr[12:14].hex()
-    if et == "0806": out.append("arp%d" % fr[21])
-    elif et == "0800" and fr[23] == 1: out.append("icmp%d" % fr[34])
-    elif et == "0800" and fr[23] == 17:
-        sp, dp = struct.unpack(">HH", fr[34:38])
-        if dp == 53: out.append("udp>53")
-        elif sp == 53: out.append("udp<53")
-print(" ".join(out))
-PY
+od -An -v -tu1 "$1" | LC_ALL=C awk '
+{ for (i = 1; i <= NF; i++) d[n++] = $i + 0 }
+function le32(i) { return d[i] + d[i+1] * 256 + d[i+2] * 65536 + d[i+3] * 16777216 }
+function be16(i) { return d[i] * 256 + d[i+1] }
+END {
+    o = 24; out = ""
+    while (o < n) {
+        cl = le32(o + 8); f = o + 16; o += 16 + cl
+        et = (d[f+12] == 8 && d[f+13] == 6) ? "arp" : ((d[f+12] == 8 && d[f+13] == 0) ? "ip" : "")
+        if (et == "arp") out = out (out == "" ? "" : " ") "arp" d[f+21]
+        else if (et == "ip" && d[f+23] == 1) out = out (out == "" ? "" : " ") "icmp" d[f+34]
+        else if (et == "ip" && d[f+23] == 17) {
+            sp = be16(f + 34); dp = be16(f + 36)
+            if (dp == 53) out = out (out == "" ? "" : " ") "udp>53"
+            else if (sp == 53) out = out (out == "" ? "" : " ") "udp<53"
+        }
+    }
+    print out
+}'
 }
 
 # answer PCAP: the first A record's address of the DNS response in the capture, as a number
 answer() {
-python3 - "$1" <<'PY'
-import struct, sys
-d = open(sys.argv[1], "rb").read()
-o = 24
-while o < len(d):
-    _, _, cl, _ = struct.unpack("<IIII", d[o:o + 16]); fr = d[o + 16:o + 16 + cl]; o += 16 + cl
-    if fr[12:14].hex() == "0800" and fr[23] == 17 and struct.unpack(">H", fr[34:36])[0] == 53:
-        m = fr[42:]
-        qd, an = struct.unpack(">HH", m[4:8]); p = 12
-        for _ in range(qd):
-            while m[p]: p += 1 + m[p]
-            p += 5
-        for _ in range(an):
-            while m[p] and m[p] < 192: p += 1 + m[p]
-            p += 2 if m[p] >= 192 else 1
-            t, c, _ttl, rl = struct.unpack(">HHIH", m[p:p + 10]); p += 10
-            if t == 1 and rl == 4:
-                print(struct.unpack(">I", m[p:p + 4])[0]); sys.exit(0)
-            p += rl
-print("none")
-PY
+od -An -v -tu1 "$1" | LC_ALL=C awk '
+{ for (i = 1; i <= NF; i++) d[n++] = $i + 0 }
+function le32(i) { return d[i] + d[i+1] * 256 + d[i+2] * 65536 + d[i+3] * 16777216 }
+function be16(i) { return d[i] * 256 + d[i+1] }
+function be32(i) { return d[i] * 16777216 + d[i+1] * 65536 + d[i+2] * 256 + d[i+3] }
+END {
+    o = 24
+    while (o < n) {
+        cl = le32(o + 8); f = o + 16; o += 16 + cl
+        if (d[f+12] == 8 && d[f+13] == 0 && d[f+23] == 17 && be16(f + 34) == 53) {
+            m = f + 42                      # m[i] is d[m + i]
+            qd = be16(m + 4); an = be16(m + 6); p = 12
+            for (k = 0; k < qd; k++) {
+                while (d[m+p] != 0) p += 1 + d[m+p]
+                p += 5
+            }
+            for (k = 0; k < an; k++) {
+                while (d[m+p] != 0 && d[m+p] < 192) p += 1 + d[m+p]
+                p += (d[m+p] >= 192) ? 2 : 1
+                t = be16(m + p); rl = be16(m + p + 8); p += 10
+                if (t == 1 && rl == 4) { printf "%d\n", be32(m + p); exit }
+                p += rl
+            }
+        }
+    }
+    print "none"
+}'
+}
+
+# rcode PCAP: the RCODE of the DNS response in the capture (slirp relays to the HOST resolver, so the capture, not a constant, is the oracle)
+rcode() {
+od -An -v -tu1 "$1" | LC_ALL=C awk '
+{ for (i = 1; i <= NF; i++) d[n++] = $i + 0 }
+function le32(i) { return d[i] + d[i+1] * 256 + d[i+2] * 65536 + d[i+3] * 16777216 }
+function be16(i) { return d[i] * 256 + d[i+1] }
+END {
+    o = 24
+    while (o < n) {
+        cl = le32(o + 8); f = o + 16; o += 16 + cl
+        if (d[f+12] == 8 && d[f+13] == 0 && d[f+23] == 17 && be16(f + 34) == 53) { printf "%d\n", d[f + 42 + 3] % 16; exit }
+    }
+    print "none"
+}'
 }
 
 fail=0
@@ -131,14 +155,19 @@ build dns net-udp-demo.t1 सन्देशपरीक्षा
 qemu dns
 q=$(LC_ALL=C tr -d '\r' < "$tmp/dns.serial" | sed -n 's/^Q //p')
 a=$(LC_ALL=C tr -d '\r' < "$tmp/dns.serial" | sed -n 's/^A //p')
-if [ "$q" = 0 ]; then echo "  PASS  QEMU DNS: the guest says Q 0 and A ${a:-<none>} for localhost, asked of 10.0.2.3"
-else echo "  FAIL  QEMU DNS: the guest says Q ${q:-<none>}"; fail=1; fi
+c=$(answer "$tmp/dns.pcap"); rc=$(rcode "$tmp/dns.pcap")
+# rcode 0: guest must print Q 0 and the pcap's A; rcode 3 (host resolver has no localhost): guest must print the NXDOMAIN status and no A
+if [ "$rc" = 0 ]; then
+    if [ "$q" = 0 ] && [ "$c" != none ] && [ "$c" = "${a:-x}" ]; then echo "  PASS  QEMU DNS: rcode 0, the guest says Q 0 and A $a, equal to the A record in slirp's response"
+    else echo "  FAIL  QEMU DNS: rcode 0 but the guest says Q ${q:-<none>} A ${a:-<none>}, the response's A is $c"; fail=1; fi
+elif [ "$rc" = 3 ]; then
+    if [ "$q" = 56963891 ] && [ -z "$a" ]; then echo "  PASS  QEMU DNS: rcode 3 (host resolver: no such name), the guest says Q 56963891 and no A"
+    else echo "  FAIL  QEMU DNS: rcode 3 but the guest says Q ${q:-<none>} A ${a:-<none>}"; fail=1; fi
+else echo "  FAIL  QEMU DNS: the response's rcode is ${rc:-<none>} (want 0 or 3)"; fail=1; fi
 k=$(kinds "$tmp/dns.pcap")
 if [ "$k" = "arp1 arp2 udp>53 udp<53" ]; then echo "  PASS  QEMU's own capture: $k"
 else echo "  FAIL  QEMU's own capture: ${k:-<none>} (want: arp1 arp2 udp>53 udp<53)"; fail=1; fi
-c=$(answer "$tmp/dns.pcap")
-if [ "$c" != none ] && [ "$c" = "${a:-x}" ]; then echo "  PASS  the A record in slirp's response is the address the guest printed ($c)"
-else echo "  FAIL  the response's A record is ${c:-<none>}, the guest printed ${a:-<none>}"; fail=1; fi
+
 
 [ "$fail" = 0 ] && echo "PASS" || echo "FAIL"
 exit "$fail"

@@ -1,7 +1,7 @@
 # AMD64 register names — the table ADR-0029 calls for.
 #
 # The NUMBER column is NOT the x86 encoding. It is the index
-# `X86_64Emitter::reg_name` matches on (crates/sadhana/src/t1/x86_64.rs:102),
+# `X86_64Emitter::reg_name` matches on (the retired x86_64 twin:102),
 # which is what the register allocator hands out: 0..13, fourteen allocatable
 # registers, panicking past 13 with "out of registers". A reader that takes
 # these for ModRM numbers will emit the wrong instruction.

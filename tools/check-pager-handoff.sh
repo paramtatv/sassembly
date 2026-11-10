@@ -487,9 +487,533 @@ prog=$root/spec/pager-handoff.sas
   echo "  to be while the row that satisfies it is still open."
   exit 1; }
 
+# ---- the word contract, in POSIX sh ----------------------------------------
+# sh arithmetic is signed 64-bit; printf %x and %u print the unsigned value and
+# ph_ult compares unsigned. Hex words are parsed in 32-bit halves.
+ph_names() { cat <<'EOF'
+satp for F
+satp for P
+scause at F's fault
+stval at F's fault
+sepc at F's fault
+the cause P read
+the stval P read
+the sepc P read
+scause on P's ecall
+the frame P named
+the leaf the kernel installed
+scause at F's second fault
+stval at the second fault
+sepc at the second fault
+the word F read on the first resume
+the cause P read the second time
+the stval P read the second time
+the sepc P read the second time
+scause on P's second ecall
+the frame P named the second time
+the second leaf the kernel installed
+scause at F's third fault
+stval at the third fault
+sepc at the third fault
+the word F read on the second resume
+the cause P read the third time
+the stval P read the third time
+the sepc P read the third time
+scause on P's third ecall
+the frame P named the third time
+the refused leaf read back
+scause when F next trapped
+sepc when F next trapped
+what F wrote down about the refusal
+scause at F's fourth fault
+stval at the fourth fault
+sepc at the fourth fault
+the cause P read the fourth time
+the stval P read the fourth time
+the sepc P read the fourth time
+scause on P's fourth ecall
+the frame P named the fourth time
+the first frame the kernel says P owns
+the first frame the kernel says P does not own
+the distrusted leaf read back
+scause when F trapped after that
+sepc when F trapped after that
+what F wrote down about the distrust
+scause at F's fifth fault
+stval at the fifth fault
+sepc at the fifth fault
+scause when the deadline expired
+satp when the deadline expired
+sepc when the deadline expired
+the unanswered leaf read back
+scause when F trapped after that
+sepc when F trapped after that
+what F wrote down about the silence
+faults delivered
+deadlines that expired
+answers the pager gave
+answers the kernel refused
+EOF
+}
+ph_nm() { ph_names | awk -v n="$1" 'NR==n { printf "%s", $0 }'; }
+ph_h() { printf '%016x' "$1"; }
+ph_x() { if [ "$1" -eq 0 ]; then printf 0x0; else printf '%#x' "$1"; fi; }
+ph_cause() {
+    case $1 in
+        12) printf 'instruction page fault (12)';;
+        13) printf 'load page fault (13)';;
+        15) printf 'store/AMO page fault (15)';;
+        8) printf 'environment call from U-mode (8)';;
+        9) printf 'environment call from S-mode (9)';;
+        *) printf '%u' "$1";;
+    esac
+}
+# the frame a leaf names: (leaf >> 10) << 12, the shift made logical
+ph_fr() { echo $(( (($1 >> 10) & 18014398509481983) << 12 )); }
+ph_fh() { ph_t=$(( ($1 >> 62) & 3 )); if [ "$ph_t" -ne 0 ]; then printf "%x%016x" "$ph_t" "$(ph_fr "$1")"; else printf "%016x" "$(ph_fr "$1")"; fi; }
+ph_fe() { [ $(( ($1 >> 62) & 3 )) -eq 0 ] && [ "$(ph_fr "$1")" -eq "$2" ]; }
+ph_ugt() { [ $(( $1 ^ (-9223372036854775807 - 1) )) -gt $(( $2 ^ (-9223372036854775807 - 1) )) ]; }
+ph_bad() { ph_BAD="$ph_BAD$1
+"; }
+ph_ult() { [ $(( ($1 ^ ph_MIN) < ($2 ^ ph_MIN) )) -eq 1 ]; }
+# lo <= x < lo + 4096, unsigned
+ph_inpage() { if ph_ult "$1" "$2"; then return 1; fi; ph_ult "$1" $(( $2 + 4096 )); }
+# one hex word (up to 16 digits) into ph_PV
+ph_parse() {
+    ph_s=0000000000000000${1#0x}
+    ph_a=${ph_s%????????}
+    ph_lo=${ph_s#"$ph_a"}
+    ph_hi=${ph_a#"${ph_a%????????}"}
+    ph_PV=$(( (0x$ph_hi << 32) | 0x$ph_lo ))
+}
+
+ph_took() {  # w cause stval sepc want_va want_leaf
+    w=$1; c=$2; sv=$3; sp=$4; wv=$5; wl=$6
+    if [ "$c" -ne 13 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_cause "$c"), expected $(ph_cause 13). F's touch is a load"
+    fi
+    if [ "$sv" -ne "$wv" ]; then
+        extra=""
+        if [ "$sv" -eq $(( wv & ~4095 )) ]; then
+            extra=" — that is the base of the page, not the address, and a pager cannot place a byte it was never told about"
+        elif [ "$sv" -eq 0 ]; then
+            extra=" — zero is what stval reads when nothing wrote it, so nothing distinguishes this from a package assembled without looking"
+        fi
+        ph_bad "word $((w + 1)), $(ph_nm $((w + 1))): $(ph_h "$sv"), and the address F touches is $(ph_h "$wv") by the declared layout — megapage $ph_HOLE_MEGA of the image gigapage $(ph_h "$giga"), leaf $wl$extra"
+    fi
+    if ! ph_inpage "$sp" $(( base + ph_USER )); then
+        extra=""
+        if [ "$sp" -eq "$sv" ]; then extra=" — it is the faulting ADDRESS"; fi
+        ph_bad "word $((w + 2)), $(ph_nm $((w + 2))): $(ph_h "$sp"), which is outside the shared user page $(ph_h $((base + ph_USER)))..$(ph_h $((base + ph_USER + 4096))). The faulting load is one of the instructions on that page, and an sepc pointing anywhere else is not the instruction that faulted$extra"
+    fi
+    if [ "$sv" -eq "$sp" ]; then
+        ph_bad "words $((w + 1)) and $((w + 2)) are the same value; a load fault has an address and an instruction and they are two different things"
+    fi
+}
+
+ph_crossed() {  # w p_cause p_stval p_sepc ecall cause stval sepc k
+    w=$1; pc=$2; ps=$3; pp=$4; ec=$5; kc=$6; ks=$7; kp=$8; k=$9
+    decoy=$(( base + ph_INBOX_F ))
+    if [ "$pc" -eq "$decoy" ] && [ "$ps" -eq "$decoy" ] && [ "$pp" -eq "$decoy" ]; then
+        ph_bad "words $w, $((w + 1)) and $((w + 2)) are three copies of $(ph_h "$decoy"), which is F's own inbox frame and the decoy planted in it before paging was on. P read F's inbox, not its own — the two window tables are reaching one frame and the package never crossed"
+    else
+        i=0
+        for pair in "$pc $kc" "$ps $ks" "$pp $kp"; do
+            set -- $pair; got=$1; want=$2
+            if [ "$got" -ne "$want" ]; then
+                if [ "$got" -eq 0 ]; then
+                    ph_bad "word $((w + i)), $(ph_nm $((w + i))): zero, which is what an unwritten inbox reads. Nothing distinguishes 'the kernel wrote a zero' from 'the package never arrived'"
+                else
+                    ph_bad "word $((w + i)), $(ph_nm $((w + i))): $(ph_h "$got"), and the kernel took $(ph_h "$want") (word $((k + i))). P is reading its inbox under its own satp, so a different value means what the kernel wrote is not what P found there — the package did not survive the crossing intact, which is the one thing this row is about"
+                fi
+            fi
+            i=$((i + 1))
+        done
+    fi
+    if [ "$ec" -ne 8 ]; then
+        ph_bad "word $((w + 3)), $(ph_nm $((w + 3))): $(ph_cause "$ec"), expected $(ph_cause 8). P answered from supervisor mode, so it is not a userspace pager — doc 11 §3.3 puts the policy OUTSIDE the kernel and a pager inside it is the arrangement this row exists to replace"
+    fi
+}
+
+ph_answered() {  # w named want_frame
+    w=$1; nd=$2; wf=$3
+    if [ "$nd" -eq 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): zero, which this contract spells REFUSAL. The pager still owns a frame at this point and had no ground to refuse — a refusal here is not a policy, it is a pager that lost track of what it owns"
+        return 0
+    fi
+    if [ $(( nd % 4096 )) -ne 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_h "$nd") is not page aligned, so it is not a frame; whatever the kernel installs from it will not be the page the pager meant"
+    fi
+    if [ "$nd" -ne "$wf" ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_h "$nd"), and the page the pager hands back at this point is $(ph_h "$wf") by the declared layout. The kernel received an answer, but not the one the pager was supposed to give — look at the pager's own slot, not at the kernel's install path"
+    fi
+}
+
+ph_installed() {  # w leaf named want_frame
+    w=$1; lf=$2; nd=$3; wf=$4
+    if [ $(( lf & 1 )) -eq 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf"), which has V clear — the fault was answered with a mapping that does not map, so the load is about to fault again"
+        return 0
+    fi
+    fr=$(ph_fr "$lf")
+    if ! ph_fe "$lf" "$nd"; then
+        ph_bad "word $w, $(ph_nm "$w"): frame $(ph_fh "$lf"), and the pager NAMED $(ph_h "$nd") (word $((w - 1))). The kernel installed something other than the answer it was given — the answer travels in a register between those two words and this is where it was dropped. This comparison is why word 10 exists: without it a kernel that ignores the answer and a pager that repeats itself print the same picture"
+    elif [ "$fr" -ne "$wf" ]; then
+        ph_bad "word $w, $(ph_nm "$w"): frame $(ph_fh "$lf"), and the page the pager hands back is $(ph_h "$wf") by the declared layout. The kernel installed exactly what it was told, so the kernel is not the fault here — the pager named the wrong frame"
+    fi
+    if [ $(( lf & 2 )) -eq 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf") does not grant R, and the fault was a LOAD. The cause said what was needed and the answer did not act on it"
+    fi
+    if [ $(( lf & 16 )) -eq 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf") does not carry U. F is in U-mode, so resuming it onto a page without U hands it the same fault again under a different name"
+    fi
+    if [ $(( lf & 4 )) -ne 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf") grants W for a load fault — more than the cause asked for, and copy-on-write is exactly the policy that breaks when a read fault is answered with a writable page"
+    fi
+    if [ $(( lf & 8 )) -ne 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf") grants X for a load fault"
+    fi
+    if [ $(( lf & 4 )) -ne 0 ] && [ $(( lf & 8 )) -ne 0 ]; then
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_x "$lf") is writable AND executable. W^X is the rule C-002c fixed globally, and a pager that breaks it while resolving breaks it everywhere"
+    fi
+}
+
+ph_resumed() {  # w read_back want_frame
+    w=$1; rb=$2; wf=$3
+    if [ "$rb" -ne "$wf" ]; then
+        extra=""
+        if [ "$rb" -eq 0 ]; then extra=" — zero is an untouched frame"; fi
+        ph_bad "word $w, $(ph_nm "$w"): $(ph_h "$rb"), and the page the pager handed back holds its own address $(ph_h "$wf"), written into it before paging was on. The fault was made to go away without the mapping reaching the memory the pager named$extra"
+    fi
+}
+
+ph_dups() {  # kind word:value ...
+    kind=$1; shift
+    while [ $# -gt 1 ]; do
+        a=$1; shift
+        for b in "$@"; do
+            if [ "${a#*:}" -eq "${b#*:}" ]; then
+                if [ "$kind" = addr ]; then
+                    ph_bad "words ${a%%:*} and ${b%%:*} are the same address $(ph_h "${a#*:}"). Each fault is supposed to be at the next leaf of the same empty megapage; two faults at one address are one address faulting twice, which means the answer before it never took"
+                else
+                    ph_bad "words ${a%%:*} and ${b%%:*} are the same instruction $(ph_h "${a#*:}"). F is supposed to reach a further load each time; the same instruction faulting twice is the previous one re-running, and re-running is what happens when nothing was installed"
+                fi
+            fi
+        done
+    done
+}
+
+# ph_verify <hex-lines-file> <bss-file>: one run's sixty-two words
+ph_verify() (
+    ph_F1=$1; ph_F2=$2
+    ph_BAD=""
+    ph_MIN=$(( 1 << 63 ))
+    ph_PPN=$(( (1 << 44) - 1 ))
+    ph_S_TIMER=$(( (1 << 63) | 5 ))
+    ph_FRAMES=13
+    ph_USER=$(( 7 * 4096 )); ph_INBOX_F=$(( 8 * 4096 ))
+    ph_GIVEN=$(( 11 * 4096 )); ph_GIVEN2=$(( 12 * 4096 ))
+    ph_OWN_FIRST=$(( 11 * 4096 )); ph_OWN_LIMIT=$(( 13 * 4096 ))
+    ph_NOT_OWNED=0
+    ph_HOLE_MEGA=400
+    ph_MEGA=$(( 1 << 21 ))
+
+    set --
+    while read -r ph_line || [ -n "$ph_line" ]; do
+        ph_line=$(printf '%s' "$ph_line" | tr -d ' \t\r')
+        [ -n "$ph_line" ] || continue
+        ph_parse "$ph_line"
+        set -- "$@" "$ph_PV"
+    done < "$ph_F1"
+    n=$#
+    if [ "$n" -ne 62 ]; then
+        why="Stopping short means the machine stopped where the line stops — an unresolved fault re-runs its instruction forever and prints nothing more, and a package that never reached P leaves P blocked on an inbox that stays empty"
+        if [ "$n" -eq 21 ]; then
+            why="Twenty-one is exactly what C-002h2c1's program prints, so nothing is wrong with the machine: this is the red a contract is supposed to be while the row that satisfies it is open. C-002h2c2a added words 10, 20 and 30 for what the pager SAID and words 22-34 for a third fault it REFUSES; C-002h2c2b is the program that owes them"
+        fi
+        if [ "$n" -eq 35 ]; then
+            why="Thirty-five is exactly what C-002h2c2b's program prints, and it ran to its own shutdown, so nothing is wrong with the machine: this is the red a contract is supposed to be while the row that satisfies it is open. C-002h2c2c1 added words for a fault the pager never answers, bounded by a deadline the kernel armed rather than by the kill in this script, and C-002h2c3a added words 35-48 for one where the pager names a frame it does not own and the KERNEL refuses; C-002h2c2c2 and C-002h2c3b are the programs that owe them"
+        fi
+        if [ "$n" -eq 47 ]; then
+            why="Forty-seven is exactly what C-002h2c2c2's program prints, and it ran to its own shutdown, so nothing is wrong with the machine: this is the red a contract is supposed to be while the row that satisfies it is open. C-002h2c3a added words 35-48 for a FOURTH fault where the pager names a frame that is not its — frame 0, F's own root table — and the KERNEL refuses it against a record of what P owns that P cannot reach, plus word 62 counting that refusal; the silence moved to words 49-58 because a fault the pager must ANSWER cannot come after one it never answers. C-002h2c3b is the program that owes them"
+        fi
+        printf '%s\n' "printed $n hex lines, expected 62: $(ph_names | awk '{ printf "%s%d %s", (NR > 1 ? "; " : ""), NR, $0 }'). $why"
+        exit 1
+    fi
+
+    satp_f=$1 satp_p=$2 cause=$3 stval=$4 sepc=$5
+    p_cause=$6 p_stval=$7 p_sepc=$8 ecall=$9 named=${10} leaf=${11}
+    cause2=${12} stval2=${13} sepc2=${14} read_back=${15}
+    p_cause2=${16} p_stval2=${17} p_sepc2=${18} ecall2=${19} named2=${20} leaf2=${21}
+    cause3=${22} stval3=${23} sepc3=${24} read_back2=${25}
+    p_cause3=${26} p_stval3=${27} p_sepc3=${28} ecall3=${29} named3=${30} leaf3=${31}
+    f_cause=${32} f_sepc=${33} f_wrote=${34}
+    cause4=${35} stval4=${36} sepc4=${37}
+    p_cause4=${38} p_stval4=${39} p_sepc4=${40} ecall4=${41} named4=${42}
+    own_first=${43} own_limit=${44} leaf4=${45}
+    f_cause2=${46} f_sepc2=${47} f_wrote2=${48}
+    cause5=${49} stval5=${50} sepc5=${51}
+    late_cause=${52} late_satp=${53} late_sepc=${54} leaf5=${55}
+    f_cause3=${56} f_sepc3=${57} f_wrote3=${58}
+    count=${59} deadlines=${60} answers=${61} refused_by_kernel=${62}
+
+    set -- $(tr -s ' \t\r\n' ' ' < "$ph_F2")
+    ph_parse "$1"; bss_addr=$ph_PV
+    ph_parse "$2"; bss_size=$ph_PV
+    base=$(( (satp_f & ph_PPN) << 12 ))
+    giga=$(( (base >> 30) << 30 ))
+    hole_leaf=$(( (base >> 21) & 511 ))
+    fault_va=$(( giga + ph_HOLE_MEGA * ph_MEGA + hole_leaf * 4096 ))
+    hole_leaf2=$(( (hole_leaf + 1) & 511 ))
+    fault_va2=$(( giga + ph_HOLE_MEGA * ph_MEGA + hole_leaf2 * 4096 ))
+    hole_leaf3=$(( (hole_leaf + 2) & 511 ))
+    fault_va3=$(( giga + ph_HOLE_MEGA * ph_MEGA + hole_leaf3 * 4096 ))
+    hole_leaf4=$(( (hole_leaf + 3) & 511 ))
+    fault_va4=$(( giga + ph_HOLE_MEGA * ph_MEGA + hole_leaf4 * 4096 ))
+    hole_leaf5=$(( (hole_leaf + 4) & 511 ))
+    fault_va5=$(( giga + ph_HOLE_MEGA * ph_MEGA + hole_leaf5 * 4096 ))
+
+    for pair in "1 $satp_f" "2 $satp_p"; do
+        set -- $pair
+        if [ $(( ($2 >> 60) & 15 )) -ne 8 ]; then
+            ph_bad "word $1, $(ph_nm "$1"): mode nibble $(printf '%x' $(( ($2 >> 60) & 15 ))), not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed"
+        fi
+    done
+    if [ "$satp_f" -eq "$satp_p" ]; then
+        ph_bad "words 1 and 2 are the same satp ($(ph_h "$satp_f")), so the pager ran in the faulter's own address space. There is no handoff without a boundary to hand across, and C-002h already proved the package inside one address space"
+    elif [ $(( satp_p & ph_PPN )) -ne $(( (satp_f & ph_PPN) + 1 )) ]; then
+        ph_bad "word 2, $(ph_nm 2): page number $(printf '%x' $(( satp_p & ph_PPN ))), and the declared layout puts P's root in the frame after F's, $(printf '%x' $(( (satp_f & ph_PPN) + 1 ))). The satp that was installed is not the table the source says was built"
+    fi
+    if [ $(( base % 4096 )) -ne 0 ]; then
+        ph_bad "word 1: F's root table is at $(ph_h "$base"), which is not page aligned — satp keeps a page NUMBER and the low bits are lost"
+    fi
+    if ph_ult "$base" "$bss_addr" || ph_ult $(( bss_addr + bss_size )) $(( base + ph_FRAMES * 4096 )); then
+        ph_bad "word 1: the frames start at $(ph_h "$base"), and the $ph_FRAMES of them do not fit inside the .bss the ELF reserves ($(ph_h "$bss_addr") + $(printf '%x' "$bss_size"))"
+    fi
+    if [ $(( (base >> 21) & 2047 )) -ne $(( ((base + ph_FRAMES * 4096 - 1) >> 21) & 2047 )) ]; then
+        ph_bad "the $ph_FRAMES frames from $(ph_h "$base") straddle a megapage boundary, so they are not all mapped by the one shared page table the layout says maps them"
+    fi
+
+    ph_took 3 "$cause" "$stval" "$sepc" "$fault_va" "$hole_leaf"
+    ph_crossed 6 "$p_cause" "$p_stval" "$p_sepc" "$ecall" "$cause" "$stval" "$sepc" 3
+    ph_answered 10 "$named" $((base + ph_GIVEN))
+    ph_installed 11 "$leaf" "$named" $((base + ph_GIVEN))
+    ph_took 12 "$cause2" "$stval2" "$sepc2" "$fault_va2" "$hole_leaf2"
+    ph_resumed 15 "$read_back" $((base + ph_GIVEN))
+    ph_crossed 16 "$p_cause2" "$p_stval2" "$p_sepc2" "$ecall2" "$cause2" "$stval2" "$sepc2" 12
+    ph_answered 20 "$named2" $((base + ph_GIVEN2))
+    ph_installed 21 "$leaf2" "$named2" $((base + ph_GIVEN2))
+    ph_took 22 "$cause3" "$stval3" "$sepc3" "$fault_va3" "$hole_leaf3"
+    ph_resumed 25 "$read_back2" $((base + ph_GIVEN2))
+    ph_crossed 26 "$p_cause3" "$p_stval3" "$p_sepc3" "$ecall3" "$cause3" "$stval3" "$sepc3" 22
+    ph_took 35 "$cause4" "$stval4" "$sepc4" "$fault_va4" "$hole_leaf4"
+    ph_crossed 38 "$p_cause4" "$p_stval4" "$p_sepc4" "$ecall4" "$cause4" "$stval4" "$sepc4" 35
+    ph_took 49 "$cause5" "$stval5" "$sepc5" "$fault_va5" "$hole_leaf5"
+
+    ph_dups addr "4:$stval" "13:$stval2" "23:$stval3" "36:$stval4" "50:$stval5"
+    ph_dups pc "5:$sepc" "14:$sepc2" "24:$sepc3" "37:$sepc4" "51:$sepc5"
+
+    if [ "$named" -eq "$named2" ]; then
+        ph_bad "words 10 and 20: the pager NAMED the same frame $(ph_h "$named") twice. Its fourth inbox slot is the frame it hands out next and it is supposed to add 4096 to it and write it back, in U-mode through its own window, BEFORE it answers. Look at the pager's store to slot 4. The kernel is not implicated: these two words are what the kernel received, printed before it acted on either"
+    fi
+    if [ $(( leaf & 1 )) -ne 0 ] && [ $(( leaf2 & 1 )) -ne 0 ] && [ "$(( (leaf >> 10) & 18014398509481983 ))" -eq "$(( (leaf2 >> 10) & 18014398509481983 ))" ] && [ "$named" -ne "$named2" ]; then
+        ph_bad "words 11 and 21 install the SAME frame $(ph_fh "$leaf") for two different faults, and the pager named two DIFFERENT frames (words 10 and 20). So this is the kernel: it threw the answer away and mapped the frame it would have chosen anyway. Look at the kernel's leaf-installing path. C-002h2b's green could not tell a leaf the pager named from one the kernel chose, and until C-002h2c2a added word 10 this message had to name two causes at once"
+    fi
+    if [ "$read_back" -eq "$read_back2" ]; then
+        ph_bad "words 15 and 25 read the same seed $(ph_h "$read_back") after two faults answered with two different frames. Each handed-back page holds its own address and nothing else does, so one seed read twice means the second mapping reached the first frame"
+    fi
+
+    if [ "$named3" -ne 0 ]; then
+        ph_bad "word 30, $(ph_nm 30): $(ph_h "$named3"), and the pager owns two frames and has handed out both. A third frame from a pager that owns two is a pager handing out memory that is not its to give, which is the failure C-002h2c3 is about; here it means the refusal never happened and every word after this one is about something else"
+    fi
+    if [ "$leaf3" -ne 0 ]; then
+        ph_bad "word 31, $(ph_nm 31): $(ph_x "$leaf3"), read back at the refused address after the refusal, and it should be zero. Something was installed for a fault that was REFUSED — a refusal that quietly maps a page is a resolution wearing the word 'no', and F would be resumed onto memory nobody agreed to give it"
+    fi
+    if [ "$f_cause" -ne 8 ]; then
+        ph_bad "word 32, $(ph_nm 32): $(ph_cause "$f_cause"), expected $(ph_cause 8). After a refusal F is supposed to RUN — at an address it chose in advance — and call. Another page fault here means F was resumed onto the load that was refused and faulted on it again, which is the infinite loop this row exists to replace"
+    fi
+    if ! ph_inpage "$f_sepc" $((base + ph_USER)); then
+        ph_bad "word 33, $(ph_nm 33): $(ph_h "$f_sepc"), which is outside the shared user page $(ph_h $((base + ph_USER)))..$(ph_h $((base + ph_USER + 4096))). F's refusal entry is one of the instructions on that page"
+    elif [ "$f_sepc" -eq "$sepc3" ]; then
+        ph_bad "word 33, $(ph_nm 33): $(ph_h "$f_sepc"), which is word 24 — the load that was refused. F was resumed at the faulting instruction after being told there would be no page for it, so it can only fault again. A refusal has to send F somewhere ELSE"
+    fi
+    if [ "$f_wrote" -ne "$stval3" ]; then
+        extra=""
+        if [ "$f_wrote" -eq 0 ]; then extra=" — zero is the slot untouched, so F never reached the store at all"; fi
+        ph_bad "word 34, $(ph_nm 34): $(ph_h "$f_wrote"), and the address that was refused is $(ph_h "$stval3") (word 23). F writes this into its own inbox with its own instructions through its own map, so what is here is what F learned — and a refusal F cannot name the address of is one it cannot act on$extra"
+    fi
+    if [ "$named4" -eq 0 ]; then
+        ph_bad "word 42, $(ph_nm 42): zero, which this contract spells REFUSAL, and the pager is supposed to ANSWER this fault — with frame 0, which is not its to give. A refusal here is the pager declining to do the one thing this round exists to catch the kernel at, and words 43 to 45 would then be about nothing"
+    elif [ $(( named4 % 4096 )) -ne 0 ]; then
+        ph_bad "word 42, $(ph_nm 42): $(ph_h "$named4") is not page aligned, so it is not a frame at all. The answer this round is about is a frame that is REAL and belongs to somebody else — a misaligned word would be refused by arithmetic and would prove nothing about ownership"
+    elif [ "$named4" -ne $((base + ph_NOT_OWNED)) ]; then
+        extra=""
+        if ! ph_ult "$named4" $((base + ph_OWN_FIRST)) && ph_ult "$named4" $((base + ph_OWN_LIMIT)); then
+            extra=" — and that IS a frame P owns, so a kernel that installed it would be right to; there is nothing here for the record to refuse"
+        fi
+        ph_bad "word 42, $(ph_nm 42): $(ph_h "$named4"), and the frame the pager names on this fault is $(ph_h $((base + ph_NOT_OWNED))) by the declared layout — frame 0, F's own root page table$extra. It is chosen because it is real memory in use, belongs to F and the kernel both, and a kernel that installed it would hand F a readable mapping of its own page tables"
+    fi
+    if [ "$own_first" -ne $((base + ph_OWN_FIRST)) ]; then
+        extra=""
+        if [ "$own_first" -eq 0 ]; then extra=" — zero is an unwritten record, and a record nobody wrote refuses everything or nothing"; fi
+        ph_bad "word 43, $(ph_nm 43): $(ph_h "$own_first"), and the first frame P owns is $(ph_h $((base + ph_OWN_FIRST))) by the declared layout — frame 11, the one it handed out on the first fault. The kernel is enforcing a record that does not describe this pager$extra"
+    fi
+    if [ "$own_limit" -ne $((base + ph_OWN_LIMIT)) ]; then
+        extra=""
+        if [ "$own_limit" -eq 0 ]; then extra=" — zero is an unwritten record"; fi
+        ph_bad "word 44, $(ph_nm 44): $(ph_h "$own_limit"), and the first frame P does NOT own is $(ph_h $((base + ph_OWN_LIMIT))) — frame 13, which this layout does not have. P owns frames 11 and 12 and nothing else, so the limit is the frame after the last one it handed out$extra"
+    fi
+    if ! ph_ult "$own_first" "$own_limit"; then
+        ph_bad "words 43 and 44: the kernel says P owns [$(ph_h "$own_first"), $(ph_h "$own_limit")), which is empty or inverted. A pager that owns nothing could not have answered the first two faults, and words 11 and 21 say it did"
+    elif ! ph_ult "$named4" "$own_first" && ph_ult "$named4" "$own_limit"; then
+        ph_bad "word 42, $(ph_nm 42): $(ph_h "$named4") falls INSIDE the range the kernel says P owns, [$(ph_h "$own_first"), $(ph_h "$own_limit")) (words 43 and 44). Then there was nothing to refuse, and word 45 being zero means the kernel dropped an answer it should have installed rather than refused one it should not have"
+    fi
+    if [ "$leaf4" -ne 0 ]; then
+        extra=""
+        if [ $(( leaf4 & 1 )) -ne 0 ] && ph_fe "$leaf4" "$named4"; then
+            extra=" — and that is exactly the frame P named, so the kernel installed what it was told without consulting the record at all. This is the confused deputy: F now has a readable mapping of its own root page table, put there with full privilege on the word of a thread that had none"
+        fi
+        ph_bad "word 45, $(ph_nm 45): $(ph_x "$leaf4"), read back at the distrusted address, and it should be zero$extra. A frame the pager had no right to give is not made right by the kernel installing it"
+    fi
+    if [ "$f_cause2" -ne 8 ]; then
+        ph_bad "word 46, $(ph_nm 46): $(ph_cause "$f_cause2"), expected $(ph_cause 8). After the kernel refuses an answer F is supposed to RUN and call, exactly as it does after the pager's own refusal. Another page fault here means F was resumed onto the load, which is the infinite loop word 32 already ruled out for the other refusal"
+    fi
+    if [ "$f_sepc2" -ne "$f_sepc" ]; then
+        extra=""
+        if [ "$f_sepc2" -eq "$sepc4" ]; then
+            extra=" — that is word 37, the load whose answer was refused, so F is about to take the same fault again"
+        fi
+        ph_bad "word 47, $(ph_nm 47): $(ph_h "$f_sepc2"), and F's refusal entry is $(ph_h "$f_sepc") (word 33)$extra. F is not supposed to be able to tell the kernel's refusal from the pager's: it asked for a page and did not get one, and which of the two was at fault is between the kernel and P. One ending, not three"
+    fi
+    if [ "$f_wrote2" -ne "$stval4" ]; then
+        extra=""
+        if [ "$f_wrote2" -eq "$f_wrote" ]; then
+            extra=" — and that is word 34, the address that was REFUSED by the pager. F wrote the same address down twice, so the second report is the first one repeated and F never learned which address was distrusted"
+        elif [ "$f_wrote2" -eq 0 ]; then
+            extra=" — zero is the slot untouched, so F never reached the store at all"
+        fi
+        ph_bad "word 48, $(ph_nm 48): $(ph_h "$f_wrote2"), and the address whose answer was distrusted is $(ph_h "$stval4") (word 36)$extra. F writes this into its own inbox with its own instructions through its own map, so what is here is what F learned"
+    fi
+    if [ "$late_cause" -ne "$ph_S_TIMER" ]; then
+        if [ $(( (late_cause >> 63) & 1 )) -eq 0 ]; then
+            ph_bad "word 52, $(ph_nm 52): $(ph_cause "$late_cause"), which is an EXCEPTION — bit 63 is clear. Something the pager did trapped; nothing took the processor away from a pager that was still running. A kernel that is not running cannot count, so the only bound on a thread that will not yield is a trap armed before control left: a supervisor timer, scause $(ph_h "$ph_S_TIMER")"
+        else
+            ph_bad "word 38, $(ph_nm 38): interrupt $(( late_cause & ~(1 << 63) )), expected 5, the supervisor timer ($(ph_h "$ph_S_TIMER")). A software or external interrupt arrived instead; the deadline this row is about is a clock the kernel set with SBI set_timer before it handed the processor to the pager"
+        fi
+    fi
+    if [ "$late_satp" -ne "$satp_p" ]; then
+        why="A timer that fires proves only that time passed. What makes it evidence that the PAGER stalled is the address space that was running when it expired"
+        if [ "$late_satp" -eq "$satp_f" ]; then
+            why="That is word 1, F's own satp: the deadline expired while the FAULTER was running, so it fired at the wrong thread and resolved a fault F was still in the middle of taking"
+        fi
+        ph_bad "word 53, $(ph_nm 53): $(ph_h "$late_satp"), and P's satp is $(ph_h "$satp_p") (word 2). $why"
+    fi
+    if ! ph_inpage "$late_sepc" $((base + ph_USER)); then
+        ph_bad "word 54, $(ph_nm 54): $(ph_h "$late_sepc"), which is outside the shared user page $(ph_h $((base + ph_USER)))..$(ph_h $((base + ph_USER + 4096))). The pager that failed to answer is supposed to be somewhere in its own code, and a deadline that expired anywhere else is not a stalled pager"
+    else
+        for ent in "5:$sepc:F's first load" "14:$sepc2:F's second load" "24:$sepc3:the load that was refused" "37:$sepc4:the load whose answer was distrusted" "51:$sepc5:the load nobody answered" "33:$f_sepc:F's refusal entry"; do
+            ew=${ent%%:*}; er=${ent#*:}; epc=${er%%:*}; ewho=${er#*:}
+            if [ "$late_sepc" -eq "$epc" ]; then
+                ph_bad "word 40, $(ph_nm 40): $(ph_h "$late_sepc"), which is word $ew — $ewho. F was running when the deadline expired, so the processor was never handed to the pager at all and there was no silence to bound"
+            fi
+        done
+    fi
+    if [ "$leaf5" -ne 0 ]; then
+        ph_bad "word 55, $(ph_nm 55): $(ph_x "$leaf5"), read back at the unanswered address after the deadline, and it should be zero. A deadline is not permission to map a frame nobody named: no pager chose that page, so installing one makes the kernel the pager and the stall invisible"
+    fi
+    if [ "$f_cause3" -ne 8 ]; then
+        ph_bad "word 56, $(ph_nm 56): $(ph_cause "$f_cause3"), expected $(ph_cause 8). After the deadline F is supposed to RUN and call, the same way it does after a refusal. Another page fault here means F was resumed onto the load nobody answered, which is the infinite loop the deadline exists to end"
+    fi
+    if [ "$f_sepc3" -ne "$f_sepc" ]; then
+        extra=""
+        if [ "$f_sepc3" -eq "$sepc5" ]; then
+            extra=" — that is word 51, the load nobody answered, so F is about to take the same fault again"
+        fi
+        ph_bad "word 57, $(ph_nm 57): $(ph_h "$f_sepc3"), and F's refusal entry is $(ph_h "$f_sepc") (word 33)$extra. F chose ONE address in advance for a fault that will not be resolved, and left it where the kernel could find it. A silence that resumes F somewhere else is one F would need a second handler for, and the kernel would be inventing a destination rather than using the one F gave it"
+    fi
+    if [ "$f_wrote3" -ne "$stval5" ]; then
+        extra=""
+        if [ "$f_wrote3" -eq "$f_wrote2" ]; then
+            extra=" — and that is word 48, the address whose answer was DISTRUSTED. F wrote the same address down twice, so the third report is the second one repeated and F never learned which address went unanswered"
+        elif [ "$f_wrote3" -eq "$f_wrote" ]; then
+            extra=" — and that is word 34, the address the PAGER refused, two rounds back. F is reporting an address it learned long before this one"
+        elif [ "$f_wrote3" -eq 0 ]; then
+            extra=" — zero is the slot untouched, so F never reached the store at all"
+        fi
+        ph_bad "word 58, $(ph_nm 58): $(ph_h "$f_wrote3"), and the address that went unanswered is $(ph_h "$stval5") (word 50)$extra. F writes this into its own inbox with its own instructions through its own map, so what is here is what F learned"
+    fi
+    if [ "$count" -ne 5 ]; then
+        extra=" — F did not reach all five of its loads, so the fault the missing round is about never happened"
+        if ph_ugt "$count" 5; then extra=" — a fault was handed out again, so F was resumed without the leaf being installed and the same load re-ran"; fi
+        ph_bad "word 59, $(ph_nm 59): $(printf '%u' "$count") faults delivered, expected 5$extra"
+    fi
+    if [ "$deadlines" -ne 1 ]; then
+        extra=" — the clock kept firing, so it was not disarmed when the answer came, and a deadline that expires under a pager which IS answering will eventually cut one off mid-reply"
+        if [ "$deadlines" -eq 0 ]; then extra=" — zero means nothing was armed, or it was armed for a moment that never arrives, and the fifth fault ended some other way"; fi
+        ph_bad "word 60, $(ph_nm 60): $(printf '%u' "$deadlines") deadlines expired, expected 1$extra"
+    fi
+    if [ "$answers" -ne 4 ]; then
+        extra=" — fewer than four means an answer that arrived in the first four rounds was lost, so the silence here is not the only one"
+        if ph_ugt "$answers" 4; then extra=" — two frames, a refusal and a frame that was not the pager's to give are four answers, and a fifth means the pager DID answer the fault the silence is about: it answered late, which is a slow pager and not a silent one, and the deadline then fired on a fault that was already resolved"; fi
+        ph_bad "word 61, $(ph_nm 61): $(printf '%u' "$answers") answers from the pager, expected 4$extra"
+    fi
+    if [ "$refused_by_kernel" -ne 1 ]; then
+        extra=" — more than one means an answer in the first three rounds was refused too, and words 11 and 21 say those two were installed, so the record is refusing frames the pager does own"
+        if [ "$refused_by_kernel" -eq 0 ]; then extra=" — zero means the record was never consulted, or consulting it changed nothing: the pager named frame 0 and the kernel took it. Distrust that never refuses anything is the layout again, which is what this row exists to replace"; fi
+        ph_bad "word 62, $(ph_nm 62): the kernel refused $(printf '%u' "$refused_by_kernel") answers, expected 1$extra"
+    fi
+
+    if [ -n "$ph_BAD" ]; then
+        printf '%s' "$ph_BAD"
+        exit 1
+    fi
+    printf '%s\n' "satp $(ph_h "$satp_f")/$(ph_h "$satp_p"), tables at $(ph_h "$base"); F faulted at $(ph_h "$stval") from $(ph_h "$sepc"), P read that package out of its own inbox and answered from U-mode naming $(ph_h "$named"), leaf $(ph_x "$leaf") went in, and F resumed and read $(ph_h "$read_back"); it then faulted at $(ph_h "$stval2"), P named the NEXT frame $(ph_h "$named2"), leaf $(ph_x "$leaf2") went in, and F read $(ph_h "$read_back2"); at $(ph_h "$stval3") P had nothing left and REFUSED, nothing was installed, and F ran on at $(ph_h "$f_sepc") and wrote down $(ph_h "$f_wrote"); at $(ph_h "$stval4") P named $(ph_h "$named4"), which is outside the [$(ph_h "$own_first"), $(ph_h "$own_limit")) the kernel says it owns, and the KERNEL refused it — nothing was installed and F came back to $(ph_h "$f_sepc2") and wrote down $(ph_h "$f_wrote2"); at $(ph_h "$stval5") P said nothing at all and the kernel's own deadline expired on it at $(ph_h "$late_sepc") under P's satp, nothing was installed there either, and F came back to the same entry $(ph_h "$f_sepc3") and wrote down $(ph_h "$f_wrote3")"
+    exit 0
+)
+
+# ph_moves <low-run-lines> <high-run-lines>: what moved, and what had better not
+ph_moves() (
+    ph_BAD=""
+    ph_load() {  # file prefix
+        ph_k=0
+        while read -r ph_line || [ -n "$ph_line" ]; do
+            ph_line=$(printf '%s' "$ph_line" | tr -d ' \t\r')
+            [ -n "$ph_line" ] || continue
+            ph_parse "$ph_line"
+            eval "$2$ph_k=\$ph_PV"
+            ph_k=$((ph_k + 1))
+        done < "$1"
+    }
+    ph_load "$1" lo_
+    ph_load "$2" hi_
+    for i in 0 1 3 4 6 7 9 10 12 13 14 16 17 19 20 22 23 24 26 27 32 33 35 36 38 39 41 42 43 46 47 49 50 52 53 56 57; do
+        eval "a=\$lo_$i b=\$hi_$i"
+        if [ "$a" -eq "$b" ]; then
+            why="It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened"
+            case $i in 6|7|16|17|26|27|38|39) why="$why — and for the package P read, that is the whole guard: a package identical at both link addresses is one P could have been born holding";; esac
+            case $i in 33|47|57) why="$why — and for the address F wrote down, that is the whole guard: an address identical at both link addresses is one F did not learn from the refusal, from the distrust or from the silence";; esac
+            case $i in 42|43) why="$why — and the kernel's record of what P owns is a pair of addresses in this image's own frames, so one that did not move is a constant compiled in rather than a record the kernel keeps";; esac
+            if [ "$i" -eq 52 ]; then why="$why — and a satp that did not move is not the one word 2 printed, so it is not evidence about which address space was running"; fi
+            ph_bad "word $((i + 1)), $(ph_nm $((i + 1))): $(ph_h "$a") at both link addresses. $why"
+        fi
+    done
+    for i in 2 5 8 11 15 18 21 25 28 29 30 31 34 37 40 44 45 48 51 54 55 58 59 60 61; do
+        eval "a=\$lo_$i b=\$hi_$i"
+        if [ "$a" -ne "$b" ]; then
+            ph_bad "word $((i + 1)), $(ph_nm $((i + 1))): $(ph_h "$a") then $(ph_h "$b"). A cause number is architectural, a count is a count, and a refusal and the leaf read back after it are absences; one that follows the link address is not being read from the machine at all"
+        fi
+    done
+    if [ -n "$ph_BAD" ]; then
+        printf '%s' "$ph_BAD"
+        exit 1
+    fi
+    printf '%s\n' "both satps, all four packages on both sides of the crossing, the frames the pager named, both installed leaves, both words read through them, the kernel's record of what the pager owns, all five faulting addresses, the satp and the instruction the deadline expired on and all three addresses F wrote down all moved between the two link addresses, and the cause numbers, the timer, the refusal, the three leaves read back after a fault that was not resolved and the four counts stayed put"
+    exit 0
+)
+
 fail=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$addr" "$prog" "$tmp/ph.elf" >/dev/null
 
     # The section is found by NAME: `kosha` emits only the sections a program
@@ -536,628 +1060,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
     # one-sided by construction and blind to a surplus (`W-081`).
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' > "$tmp/l.$addr" || true
 
-    if ! python3 - "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp for F", "satp for P", "scause at F's fault", "stval at F's fault",
-        "sepc at F's fault", "the cause P read", "the stval P read",
-        "the sepc P read", "scause on P's ecall", "the frame P named",
-        "the leaf the kernel installed",
-        "scause at F's second fault", "stval at the second fault",
-        "sepc at the second fault", "the word F read on the first resume",
-        "the cause P read the second time", "the stval P read the second time",
-        "the sepc P read the second time", "scause on P's second ecall",
-        "the frame P named the second time",
-        "the second leaf the kernel installed",
-        "scause at F's third fault", "stval at the third fault",
-        "sepc at the third fault", "the word F read on the second resume",
-        "the cause P read the third time", "the stval P read the third time",
-        "the sepc P read the third time", "scause on P's third ecall",
-        "the frame P named the third time", "the refused leaf read back",
-        "scause when F next trapped", "sepc when F next trapped",
-        "what F wrote down about the refusal",
-        "scause at F's fourth fault", "stval at the fourth fault",
-        "sepc at the fourth fault", "the cause P read the fourth time",
-        "the stval P read the fourth time", "the sepc P read the fourth time",
-        "scause on P's fourth ecall", "the frame P named the fourth time",
-        "the first frame the kernel says P owns",
-        "the first frame the kernel says P does not own",
-        "the distrusted leaf read back", "scause when F trapped after that",
-        "sepc when F trapped after that",
-        "what F wrote down about the distrust",
-        "scause at F's fifth fault", "stval at the fifth fault",
-        "sepc at the fifth fault", "scause when the deadline expired",
-        "satp when the deadline expired", "sepc when the deadline expired",
-        "the unanswered leaf read back", "scause when F trapped after that",
-        "sepc when F trapped after that",
-        "what F wrote down about the silence",
-        "faults delivered", "deadlines that expired", "answers the pager gave",
-        "answers the kernel refused")
-
-V, R, W, X, U, A, D = 1, 2, 4, 8, 16, 64, 128
-U_ECALL, LOAD_FAULT, PPN = 8, 13, (1 << 44) - 1
-# Bit 63 says interrupt and code 5 is the supervisor timer. Not a number this
-# contract was free to choose: a kernel that is not running cannot count, so the
-# only bound on a U-mode thread that will not yield is a trap armed in advance.
-S_TIMER = (1 << 63) | 5
-FRAMES = 13
-USER, INBOX_F, HOLE_TABLE = 7 * 4096, 8 * 4096, 10 * 4096
-GIVEN, GIVEN2 = 11 * 4096, 12 * 4096   # handed back first, and second
-REFUSED = 0                            # and the third answer is no frame at all
-# The kernel's own record of what P may hand out: a first frame and a limit,
-# half-open. The limit is frame 13 — the first frame that does not exist — so
-# "the first frame P does not own" and "the end of the layout" are one fact.
-OWN_FIRST, OWN_LIMIT = 11 * 4096, 13 * 4096
-# And the frame P names on the fourth fault, which is not its: frame 0, F's own
-# root page table. Real memory, in use, belonging to F and to the kernel both,
-# and NOT zero — `base` is not zero, so it does not collide with the refusal.
-NOT_OWNED = 0 * 4096
-HOLE_MEGA = 400                        # the megapage F's map leaves empty
-MEGA = 1 << 21
-CAUSE = {12: "instruction page fault (12)", 13: "load page fault (13)",
-         15: "store/AMO page fault (15)", 8: "environment call from U-mode (8)",
-         9: "environment call from S-mode (9)"}
-
-bad = []
-if len(v) != 62:
-    why = ("Stopping short means the machine stopped where the line stops — an "
-           "unresolved fault re-runs its instruction forever and prints nothing "
-           "more, and a package that never reached P leaves P blocked on an inbox "
-           "that stays empty")
-    if len(v) == 21:
-        why = ("Twenty-one is exactly what C-002h2c1's program prints, so nothing is "
-               "wrong with the machine: this is the red a contract is supposed to be "
-               "while the row that satisfies it is open. C-002h2c2a added words 10, "
-               "20 and 30 for what the pager SAID and words 22-34 for a third fault "
-               "it REFUSES; C-002h2c2b is the program that owes them")
-    if len(v) == 35:
-        why = ("Thirty-five is exactly what C-002h2c2b's program prints, and it ran to "
-               "its own shutdown, so nothing is wrong with the machine: this is the red "
-               "a contract is supposed to be while the row that satisfies it is open. "
-               "C-002h2c2c1 added words for a fault the pager never answers, bounded by "
-               "a deadline the kernel armed rather than by the kill in this script, and "
-               "C-002h2c3a added words 35-48 for one where the pager names a frame it "
-               "does not own and the KERNEL refuses; C-002h2c2c2 and C-002h2c3b are the "
-               "programs that owe them")
-    if len(v) == 47:
-        why = ("Forty-seven is exactly what C-002h2c2c2's program prints, and it ran to "
-               "its own shutdown, so nothing is wrong with the machine: this is the red "
-               "a contract is supposed to be while the row that satisfies it is open. "
-               "C-002h2c3a added words 35-48 for a FOURTH fault where the pager names a "
-               "frame that is not its — frame 0, F's own root table — and the KERNEL "
-               "refuses it against a record of what P owns that P cannot reach, plus "
-               "word 62 counting that refusal; the silence moved to words 49-58 because "
-               "a fault the pager must ANSWER cannot come after one it never answers. "
-               "C-002h2c3b is the program that owes them")
-    print(f"printed {len(v)} hex lines, expected 62: " +
-          "; ".join(f"{i + 1} {n}" for i, n in enumerate(NAME)) + ". " + why)
-    sys.exit(1)
-
-(satp_f, satp_p, cause, stval, sepc,
- p_cause, p_stval, p_sepc, ecall, named, leaf,
- cause2, stval2, sepc2, read_back,
- p_cause2, p_stval2, p_sepc2, ecall2, named2, leaf2,
- cause3, stval3, sepc3, read_back2,
- p_cause3, p_stval3, p_sepc3, ecall3, named3, leaf3,
- f_cause, f_sepc, f_wrote,
- cause4, stval4, sepc4,
- p_cause4, p_stval4, p_sepc4, ecall4, named4,
- own_first, own_limit, leaf4,
- f_cause2, f_sepc2, f_wrote2,
- cause5, stval5, sepc5,
- late_cause, late_satp, late_sepc, leaf5,
- f_cause3, f_sepc3, f_wrote3,
- count, deadlines, answers, refused_by_kernel) = v
-
-bss = open(sys.argv[2]).read().split()
-bss_addr, bss_size = int(bss[0], 16), int(bss[1], 16)
-base = (satp_f & PPN) << 12
-giga = (base >> 30) << 30
-# The leaf in it is the image's own megapage index, so the faulting address moves
-# with the link address; a constant leaf would make word 4 a function of the
-# gigapage alone and MOVES could never be satisfied.
-hole_leaf = (base >> 21) & 511
-fault_va = giga + HOLE_MEGA * MEGA + hole_leaf * 4096
-# The second fault is the NEXT leaf of the same empty table, masked back into
-# range so that an image linked in the last megapage of a gigapage does not put
-# it in megapage 401, which is mapped and would not fault at all.
-hole_leaf2 = (hole_leaf + 1) & 511
-fault_va2 = giga + HOLE_MEGA * MEGA + hole_leaf2 * 4096
-hole_leaf3 = (hole_leaf + 2) & 511
-fault_va3 = giga + HOLE_MEGA * MEGA + hole_leaf3 * 4096
-hole_leaf4 = (hole_leaf + 3) & 511
-fault_va4 = giga + HOLE_MEGA * MEGA + hole_leaf4 * 4096
-hole_leaf5 = (hole_leaf + 4) & 511
-fault_va5 = giga + HOLE_MEGA * MEGA + hole_leaf5 * 4096
-
-# ---- two address spaces, so that there is a boundary to hand across --------
-for i, s in ((1, satp_f), (2, satp_p)):
-    if s >> 60 != 8:
-        bad.append(f"word {i}, {NAME[i - 1]}: mode nibble {s >> 60:x}, not 8. Sv39 "
-                   "is the only paging mode this tree installs, and a satp that is "
-                   "not in it was never installed")
-if satp_f == satp_p:
-    bad.append(f"words 1 and 2 are the same satp ({satp_f:016x}), so the pager ran "
-               "in the faulter's own address space. There is no handoff without a "
-               "boundary to hand across, and C-002h already proved the package "
-               "inside one address space")
-elif (satp_p & PPN) != (satp_f & PPN) + 1:
-    bad.append(f"word 2, {NAME[1]}: page number {satp_p & PPN:x}, and the declared "
-               f"layout puts P's root in the frame after F's, {(satp_f & PPN) + 1:x}. "
-               "The satp that was installed is not the table the source says was built")
-if base % 4096:
-    bad.append(f"word 1: F's root table is at {base:016x}, which is not page aligned "
-               "— satp keeps a page NUMBER and the low bits are lost")
-if not (bss_addr <= base and base + FRAMES * 4096 <= bss_addr + bss_size):
-    bad.append(f"word 1: the frames start at {base:016x}, and the {FRAMES} of them do "
-               f"not fit inside the .bss the ELF reserves ({bss_addr:016x} + "
-               f"{bss_size:x})")
-if (base >> 21) != ((base + FRAMES * 4096 - 1) >> 21):
-    bad.append(f"the {FRAMES} frames from {base:016x} straddle a megapage boundary, so "
-               "they are not all mapped by the one shared page table the layout says "
-               "maps them")
-
-# ---- both rounds run through the same assertions ---------------------------
-# The second fault is not a different KIND of event, so it is not checked by a
-# different set of rules. `w` is the word number of each round's first word, and
-# every message below names the word it is actually about; duplicating the block
-# is how the two halves would drift apart.
-def kernel_took(w, cause, stval, sepc, want_va, want_leaf):
-    if cause != LOAD_FAULT:
-        bad.append(f"word {w}, {NAME[w - 1]}: {CAUSE.get(cause, cause)}, expected "
-                   f"{CAUSE[LOAD_FAULT]}. F's touch is a load")
-    if stval != want_va:
-        extra = ""
-        if stval == want_va & ~0xfff:
-            extra = (" — that is the base of the page, not the address, and a pager "
-                     "cannot place a byte it was never told about")
-        elif stval == 0:
-            extra = (" — zero is what stval reads when nothing wrote it, so nothing "
-                     "distinguishes this from a package assembled without looking")
-        bad.append(f"word {w + 1}, {NAME[w]}: {stval:016x}, and the address F touches "
-                   f"is {want_va:016x} by the declared layout — megapage {HOLE_MEGA} of "
-                   f"the image gigapage {giga:016x}, leaf {want_leaf}{extra}")
-    if not (base + USER <= sepc < base + USER + 4096):
-        bad.append(f"word {w + 2}, {NAME[w + 1]}: {sepc:016x}, which is outside the "
-                   f"shared user page {base + USER:016x}..{base + USER + 4096:016x}. "
-                   "The faulting load is one of the instructions on that page, and an "
-                   "sepc pointing anywhere else is not the instruction that faulted"
-                   + (" — it is the faulting ADDRESS" if sepc == stval else ""))
-    if stval == sepc:
-        bad.append(f"words {w + 1} and {w + 2} are the same value; a load fault has an "
-                   "address and an instruction and they are two different things")
-
-
-def crossed(w, p_cause, p_stval, p_sepc, ecall, cause, stval, sepc, k):
-    """`w` is the word number of `the cause P read`; `k` of the kernel's own."""
-    decoy = base + INBOX_F
-    if p_cause == p_stval == p_sepc == decoy:
-        bad.append(f"words {w}, {w + 1} and {w + 2} are three copies of {decoy:016x}, "
-                   "which is F's own inbox frame and the decoy planted in it before "
-                   "paging was on. P read F's inbox, not its own — the two window "
-                   "tables are reaching one frame and the package never crossed")
-    else:
-        for i, (got, want) in enumerate(((p_cause, cause), (p_stval, stval),
-                                         (p_sepc, sepc))):
-            if got == want:
-                continue
-            if got == 0:
-                bad.append(f"word {w + i}, {NAME[w + i - 1]}: zero, which is what an "
-                           "unwritten inbox reads. Nothing distinguishes 'the kernel "
-                           "wrote a zero' from 'the package never arrived'")
-            else:
-                bad.append(f"word {w + i}, {NAME[w + i - 1]}: {got:016x}, and the "
-                           f"kernel took {want:016x} (word {k + i}). P is reading its "
-                           "inbox under its own satp, so a different value means what "
-                           "the kernel wrote is not what P found there — the package "
-                           "did not survive the crossing intact, which is the one "
-                           "thing this row is about")
-    if ecall != U_ECALL:
-        bad.append(f"word {w + 3}, {NAME[w + 2]}: {CAUSE.get(ecall, ecall)}, expected "
-                   f"{CAUSE[U_ECALL]}. P answered from supervisor mode, so it is not a "
-                   "userspace pager — doc 11 §3.3 puts the policy OUTSIDE the kernel "
-                   "and a pager inside it is the arrangement this row exists to "
-                   "replace")
-
-
-def answered(w, named, want_frame):
-    """Word 10, 20: the frame P NAMED, as the kernel received it, before it acts.
-
-    `C-002h2c1` had no such word and could not separate a kernel that ignored
-    the answer from a pager that never bumped its slot. This is that word.
-    """
-    if named == REFUSED:
-        bad.append(f"word {w}, {NAME[w - 1]}: zero, which this contract spells REFUSAL. "
-                   "The pager still owns a frame at this point and had no ground to "
-                   "refuse — a refusal here is not a policy, it is a pager that lost "
-                   "track of what it owns")
-        return
-    if named % 4096:
-        bad.append(f"word {w}, {NAME[w - 1]}: {named:016x} is not page aligned, so it "
-                   "is not a frame; whatever the kernel installs from it will not be "
-                   "the page the pager meant")
-    if named != want_frame:
-        bad.append(f"word {w}, {NAME[w - 1]}: {named:016x}, and the page the pager "
-                   f"hands back at this point is {want_frame:016x} by the declared "
-                   "layout. The kernel received an answer, but not the one the pager "
-                   "was supposed to give — look at the pager's own slot, not at the "
-                   "kernel's install path")
-
-
-def installed(w, leaf, named, want_frame):
-    if not leaf & V:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x}, which has V clear — the fault "
-                   "was answered with a mapping that does not map, so the load is "
-                   "about to fault again")
-        return
-    if (leaf >> 10) << 12 != named:
-        bad.append(f"word {w}, {NAME[w - 1]}: frame {(leaf >> 10) << 12:016x}, and the "
-                   f"pager NAMED {named:016x} (word {w - 1}). The kernel installed "
-                   "something other than the answer it was given — the answer travels "
-                   "in a register between those two words and this is where it was "
-                   "dropped. This comparison is why word 10 exists: without it a "
-                   "kernel that ignores the answer and a pager that repeats itself "
-                   "print the same picture")
-    elif (leaf >> 10) << 12 != want_frame:
-        bad.append(f"word {w}, {NAME[w - 1]}: frame {(leaf >> 10) << 12:016x}, and the "
-                   f"page the pager hands back is {want_frame:016x} by the declared "
-                   "layout. The kernel installed exactly what it was told, so the "
-                   "kernel is not the fault here — the pager named the wrong frame")
-    if not leaf & R:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x} does not grant R, and the fault "
-                   "was a LOAD. The cause said what was needed and the answer did not "
-                   "act on it")
-    if not leaf & U:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x} does not carry U. F is in "
-                   "U-mode, so resuming it onto a page without U hands it the same "
-                   "fault again under a different name")
-    if leaf & W:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x} grants W for a load fault — "
-                   "more than the cause asked for, and copy-on-write is exactly the "
-                   "policy that breaks when a read fault is answered with a writable "
-                   "page")
-    if leaf & X:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x} grants X for a load fault")
-    if leaf & W and leaf & X:
-        bad.append(f"word {w}, {NAME[w - 1]}: {leaf:#x} is writable AND executable. "
-                   "W^X is the rule C-002c fixed globally, and a pager that breaks it "
-                   "while resolving breaks it everywhere")
-
-
-def resumed(w, read_back, want_frame):
-    if read_back != want_frame:
-        bad.append(f"word {w}, {NAME[w - 1]}: {read_back:016x}, and the page the pager "
-                   f"handed back holds its own address {want_frame:016x}, written into "
-                   "it before paging was on. The fault was made to go away without the "
-                   "mapping reaching the memory the pager named"
-                   + (" — zero is an untouched frame" if read_back == 0 else ""))
-
-
-kernel_took(3, cause, stval, sepc, fault_va, hole_leaf)
-crossed(6, p_cause, p_stval, p_sepc, ecall, cause, stval, sepc, 3)
-answered(10, named, base + GIVEN)
-installed(11, leaf, named, base + GIVEN)
-kernel_took(12, cause2, stval2, sepc2, fault_va2, hole_leaf2)
-resumed(15, read_back, base + GIVEN)
-crossed(16, p_cause2, p_stval2, p_sepc2, ecall2, cause2, stval2, sepc2, 12)
-answered(20, named2, base + GIVEN2)
-installed(21, leaf2, named2, base + GIVEN2)
-kernel_took(22, cause3, stval3, sepc3, fault_va3, hole_leaf3)
-resumed(25, read_back2, base + GIVEN2)
-crossed(26, p_cause3, p_stval3, p_sepc3, ecall3, cause3, stval3, sepc3, 22)
-kernel_took(35, cause4, stval4, sepc4, fault_va4, hole_leaf4)
-crossed(38, p_cause4, p_stval4, p_sepc4, ecall4, cause4, stval4, sepc4, 35)
-kernel_took(49, cause5, stval5, sepc5, fault_va5, hole_leaf5)
-
-# ---- five faults, and five DIFFERENT faults --------------------------------
-ADDRS = ((4, stval), (13, stval2), (23, stval3), (36, stval4), (50, stval5))
-PCS = ((5, sepc), (14, sepc2), (24, sepc3), (37, sepc4), (51, sepc5))
-for i, (wa, a) in enumerate(ADDRS):
-    for wb, b in ADDRS[i + 1:]:
-        if a == b:
-            bad.append(f"words {wa} and {wb} are the same address {a:016x}. Each fault "
-                       "is supposed to be at the next leaf of the same empty megapage; "
-                       "two faults at one address are one address faulting twice, "
-                       "which means the answer before it never took")
-for i, (wa, a) in enumerate(PCS):
-    for wb, b in PCS[i + 1:]:
-        if a == b:
-            bad.append(f"words {wa} and {wb} are the same instruction {a:016x}. F is "
-                       "supposed to reach a further load each time; the same "
-                       "instruction faulting twice is the previous one re-running, and "
-                       "re-running is what happens when nothing was installed")
-
-# ---- and it was answered with a DIFFERENT frame ----------------------------
-# This is the whole of C-002h2c1. Everything above it passes unchanged under a
-# kernel that reads the pager's answer and under one that throws it away, and
-# these two are what tell them apart.
-if named == named2:
-    bad.append(f"words 10 and 20: the pager NAMED the same frame {named:016x} twice. "
-               "Its fourth inbox slot is the frame it hands out next and it is "
-               "supposed to add 4096 to it and write it back, in U-mode through its "
-               "own window, BEFORE it answers. Look at the pager's store to slot 4. "
-               "The kernel is not implicated: these two words are what the kernel "
-               "received, printed before it acted on either")
-if leaf & V and leaf2 & V and (leaf >> 10) == (leaf2 >> 10) and named != named2:
-    bad.append(f"words 11 and 21 install the SAME frame {(leaf >> 10) << 12:016x} for "
-               "two different faults, and the pager named two DIFFERENT frames (words "
-               "10 and 20). So this is the kernel: it threw the answer away and mapped "
-               "the frame it would have chosen anyway. Look at the kernel's "
-               "leaf-installing path. C-002h2b's green could not tell a leaf the pager "
-               "named from one the kernel chose, and until C-002h2c2a added word 10 "
-               "this message had to name two causes at once")
-if read_back == read_back2:
-    bad.append(f"words 15 and 25 read the same seed {read_back:016x} after two faults "
-               "answered with two different frames. Each handed-back page holds its "
-               "own address and nothing else does, so one seed read twice means the "
-               "second mapping reached the first frame")
-
-# ---- the third answer is a REFUSAL, and F is owed a defined outcome --------
-# This is C-002h2c2a. Everything above passes under a pager that had a third
-# frame to give; what is asserted here is that a pager with nothing left says
-# so, that the kernel does not paper over it, and that F finds out.
-if named3 != REFUSED:
-    bad.append(f"word 30, {NAME[29]}: {named3:016x}, and the pager owns two frames and "
-               "has handed out both. A third frame from a pager that owns two is a "
-               "pager handing out memory that is not its to give, which is the failure "
-               "C-002h2c3 is about; here it means the refusal never happened and every "
-               "word after this one is about something else")
-if leaf3 != 0:
-    bad.append(f"word 31, {NAME[30]}: {leaf3:#x}, read back at the refused address "
-               "after the refusal, and it should be zero. Something was installed for "
-               "a fault that was REFUSED — a refusal that quietly maps a page is a "
-               "resolution wearing the word 'no', and F would be resumed onto memory "
-               "nobody agreed to give it")
-if f_cause != U_ECALL:
-    bad.append(f"word 32, {NAME[31]}: {CAUSE.get(f_cause, f_cause)}, expected "
-               f"{CAUSE[U_ECALL]}. After a refusal F is supposed to RUN — at an address "
-               "it chose in advance — and call. Another page fault here means F was "
-               "resumed onto the load that was refused and faulted on it again, which "
-               "is the infinite loop this row exists to replace")
-if not (base + USER <= f_sepc < base + USER + 4096):
-    bad.append(f"word 33, {NAME[32]}: {f_sepc:016x}, which is outside the shared user "
-               f"page {base + USER:016x}..{base + USER + 4096:016x}. F's refusal entry "
-               "is one of the instructions on that page")
-elif f_sepc == sepc3:
-    bad.append(f"word 33, {NAME[32]}: {f_sepc:016x}, which is word 24 — the load that "
-               "was refused. F was resumed at the faulting instruction after being "
-               "told there would be no page for it, so it can only fault again. A "
-               "refusal has to send F somewhere ELSE")
-if f_wrote != stval3:
-    bad.append(f"word 34, {NAME[33]}: {f_wrote:016x}, and the address that was refused "
-               f"is {stval3:016x} (word 23). F writes this into its own inbox with its "
-               "own instructions through its own map, so what is here is what F "
-               "learned — and a refusal F cannot name the address of is one it cannot "
-               "act on"
-               + (" — zero is the slot untouched, so F never reached the store at all"
-                  if f_wrote == 0 else ""))
-# ---- the fourth answer is a frame P does not own, and the KERNEL refuses ---
-# This is C-002h2c3a. Everything above passes under a kernel that installs
-# whatever it is told — words 11 and 21 assert exactly that it does. What is
-# asserted here is that the kernel holds a record of what this pager may hand
-# out, that it consults it, and that an answer outside it is refused rather
-# than installed.
-if named4 == REFUSED:
-    bad.append(f"word 42, {NAME[41]}: zero, which this contract spells REFUSAL, and "
-               "the pager is supposed to ANSWER this fault — with frame 0, which is "
-               "not its to give. A refusal here is the pager declining to do the one "
-               "thing this round exists to catch the kernel at, and words 43 to 45 "
-               "would then be about nothing")
-elif named4 % 4096:
-    bad.append(f"word 42, {NAME[41]}: {named4:016x} is not page aligned, so it is not "
-               "a frame at all. The answer this round is about is a frame that is "
-               "REAL and belongs to somebody else — a misaligned word would be refused "
-               "by arithmetic and would prove nothing about ownership")
-elif named4 != base + NOT_OWNED:
-    extra = ""
-    if base + OWN_FIRST <= named4 < base + OWN_LIMIT:
-        extra = (" — and that IS a frame P owns, so a kernel that installed it would "
-                 "be right to; there is nothing here for the record to refuse")
-    bad.append(f"word 42, {NAME[41]}: {named4:016x}, and the frame the pager names on "
-               f"this fault is {base + NOT_OWNED:016x} by the declared layout — frame "
-               f"0, F's own root page table{extra}. It is chosen because it is real "
-               "memory in use, belongs to F and the kernel both, and a kernel that "
-               "installed it would hand F a readable mapping of its own page tables")
-if own_first != base + OWN_FIRST:
-    bad.append(f"word 43, {NAME[42]}: {own_first:016x}, and the first frame P owns is "
-               f"{base + OWN_FIRST:016x} by the declared layout — frame 11, the one it "
-               "handed out on the first fault. The kernel is enforcing a record that "
-               "does not describe this pager"
-               + (" — zero is an unwritten record, and a record nobody wrote refuses "
-                  "everything or nothing" if own_first == 0 else ""))
-if own_limit != base + OWN_LIMIT:
-    bad.append(f"word 44, {NAME[43]}: {own_limit:016x}, and the first frame P does NOT "
-               f"own is {base + OWN_LIMIT:016x} — frame 13, which this layout does not "
-               "have. P owns frames 11 and 12 and nothing else, so the limit is the "
-               "frame after the last one it handed out"
-               + (" — zero is an unwritten record" if own_limit == 0 else ""))
-if own_first >= own_limit:
-    bad.append(f"words 43 and 44: the kernel says P owns [{own_first:016x}, "
-               f"{own_limit:016x}), which is empty or inverted. A pager that owns "
-               "nothing could not have answered the first two faults, and words 11 and "
-               "21 say it did")
-elif own_first <= named4 < own_limit:
-    bad.append(f"word 42, {NAME[41]}: {named4:016x} falls INSIDE the range the kernel "
-               f"says P owns, [{own_first:016x}, {own_limit:016x}) (words 43 and 44). "
-               "Then there was nothing to refuse, and word 45 being zero means the "
-               "kernel dropped an answer it should have installed rather than refused "
-               "one it should not have")
-if leaf4 != 0:
-    extra = ""
-    if leaf4 & V and (leaf4 >> 10) << 12 == named4:
-        extra = (" — and that is exactly the frame P named, so the kernel installed "
-                 "what it was told without consulting the record at all. This is the "
-                 "confused deputy: F now has a readable mapping of its own root page "
-                 "table, put there with full privilege on the word of a thread that "
-                 "had none")
-    bad.append(f"word 45, {NAME[44]}: {leaf4:#x}, read back at the distrusted address, "
-               f"and it should be zero{extra}. A frame the pager had no right to give "
-               "is not made right by the kernel installing it")
-if f_cause2 != U_ECALL:
-    bad.append(f"word 46, {NAME[45]}: {CAUSE.get(f_cause2, f_cause2)}, expected "
-               f"{CAUSE[U_ECALL]}. After the kernel refuses an answer F is supposed to "
-               "RUN and call, exactly as it does after the pager's own refusal. "
-               "Another page fault here means F was resumed onto the load, which is "
-               "the infinite loop word 32 already ruled out for the other refusal")
-if f_sepc2 != f_sepc:
-    extra = ""
-    if f_sepc2 == sepc4:
-        extra = (" — that is word 37, the load whose answer was refused, so F is about "
-                 "to take the same fault again")
-    bad.append(f"word 47, {NAME[46]}: {f_sepc2:016x}, and F's refusal entry is "
-               f"{f_sepc:016x} (word 33){extra}. F is not supposed to be able to tell "
-               "the kernel's refusal from the pager's: it asked for a page and did not "
-               "get one, and which of the two was at fault is between the kernel and "
-               "P. One ending, not three")
-if f_wrote2 != stval4:
-    extra = ""
-    if f_wrote2 == f_wrote:
-        extra = (" — and that is word 34, the address that was REFUSED by the pager. F "
-                 "wrote the same address down twice, so the second report is the first "
-                 "one repeated and F never learned which address was distrusted")
-    elif f_wrote2 == 0:
-        extra = " — zero is the slot untouched, so F never reached the store at all"
-    bad.append(f"word 48, {NAME[47]}: {f_wrote2:016x}, and the address whose answer was "
-               f"distrusted is {stval4:016x} (word 36){extra}. F writes this into its "
-               "own inbox with its own instructions through its own map, so what is "
-               "here is what F learned")
-# ---- the fifth answer never comes, and the KERNEL ends it ------------------
-# This is C-002h2c2c1. Everything above passes under a pager that always says
-# something. What is asserted here is that a pager that says nothing is bounded
-# by the kernel rather than by the kill in this script, that the bound is
-# charged where it belongs, and that F walks away with the same defined outcome
-# a refusal gives it.
-if late_cause != S_TIMER:
-    if not late_cause >> 63:
-        bad.append(f"word 52, {NAME[51]}: {CAUSE.get(late_cause, late_cause)}, which is "
-                   "an EXCEPTION — bit 63 is clear. Something the pager did trapped; "
-                   "nothing took the processor away from a pager that was still "
-                   "running. A kernel that is not running cannot count, so the only "
-                   "bound on a thread that will not yield is a trap armed before "
-                   f"control left: a supervisor timer, scause {S_TIMER:016x}")
-    else:
-        bad.append(f"word 38, {NAME[37]}: interrupt {late_cause & ~(1 << 63)}, expected "
-                   f"5, the supervisor timer ({S_TIMER:016x}). A software or external "
-                   "interrupt arrived instead; the deadline this row is about is a "
-                   "clock the kernel set with SBI set_timer before it handed the "
-                   "processor to the pager")
-if late_satp != satp_p:
-    why = ("A timer that fires proves only that time passed. What makes it evidence "
-           "that the PAGER stalled is the address space that was running when it "
-           "expired")
-    if late_satp == satp_f:
-        why = ("That is word 1, F's own satp: the deadline expired while the FAULTER "
-               "was running, so it fired at the wrong thread and resolved a fault F "
-               "was still in the middle of taking")
-    bad.append(f"word 53, {NAME[52]}: {late_satp:016x}, and P's satp is {satp_p:016x} "
-               f"(word 2). {why}")
-if not (base + USER <= late_sepc < base + USER + 4096):
-    bad.append(f"word 54, {NAME[53]}: {late_sepc:016x}, which is outside the shared "
-               f"user page {base + USER:016x}..{base + USER + 4096:016x}. The pager "
-               "that failed to answer is supposed to be somewhere in its own code, "
-               "and a deadline that expired anywhere else is not a stalled pager")
-else:
-    for w, pc, whose in ((5, sepc, "F's first load"), (14, sepc2, "F's second load"),
-                         (24, sepc3, "the load that was refused"),
-                         (37, sepc4, "the load whose answer was distrusted"),
-                         (51, sepc5, "the load nobody answered"),
-                         (33, f_sepc, "F's refusal entry")):
-        if late_sepc == pc:
-            bad.append(f"word 40, {NAME[39]}: {late_sepc:016x}, which is word {w} — "
-                       f"{whose}. F was running when the deadline expired, so the "
-                       "processor was never handed to the pager at all and there was "
-                       "no silence to bound")
-if leaf5 != 0:
-    bad.append(f"word 55, {NAME[54]}: {leaf5:#x}, read back at the unanswered address "
-               "after the deadline, and it should be zero. A deadline is not "
-               "permission to map a frame nobody named: no pager chose that page, so "
-               "installing one makes the kernel the pager and the stall invisible")
-if f_cause3 != U_ECALL:
-    bad.append(f"word 56, {NAME[55]}: {CAUSE.get(f_cause3, f_cause3)}, expected "
-               f"{CAUSE[U_ECALL]}. After the deadline F is supposed to RUN and call, "
-               "the same way it does after a refusal. Another page fault here means F "
-               "was resumed onto the load nobody answered, which is the infinite loop "
-               "the deadline exists to end")
-if f_sepc3 != f_sepc:
-    extra = ""
-    if f_sepc3 == sepc5:
-        extra = (" — that is word 51, the load nobody answered, so F is about to take "
-                 "the same fault again")
-    bad.append(f"word 57, {NAME[56]}: {f_sepc3:016x}, and F's refusal entry is "
-               f"{f_sepc:016x} (word 33){extra}. F chose ONE address in advance for a "
-               "fault that will not be resolved, and left it where the kernel could "
-               "find it. A silence that resumes F somewhere else is one F would need a "
-               "second handler for, and the kernel would be inventing a destination "
-               "rather than using the one F gave it")
-if f_wrote3 != stval5:
-    extra = ""
-    if f_wrote3 == f_wrote2:
-        extra = (" — and that is word 48, the address whose answer was DISTRUSTED. F "
-                 "wrote the same address down twice, so the third report is the second "
-                 "one repeated and F never learned which address went unanswered")
-    elif f_wrote3 == f_wrote:
-        extra = (" — and that is word 34, the address the PAGER refused, two rounds "
-                 "back. F is reporting an address it learned long before this one")
-    elif f_wrote3 == 0:
-        extra = " — zero is the slot untouched, so F never reached the store at all"
-    bad.append(f"word 58, {NAME[57]}: {f_wrote3:016x}, and the address that went "
-               f"unanswered is {stval5:016x} (word 50){extra}. F writes this into its "
-               "own inbox with its own instructions through its own map, so what is "
-               "here is what F learned")
-if count != 5:
-    bad.append(f"word 59, {NAME[58]}: {count} faults delivered, expected 5"
-               + (" — a fault was handed out again, so F was resumed without the leaf "
-                  "being installed and the same load re-ran" if count > 5 else
-                  " — F did not reach all five of its loads, so the fault the missing "
-                  "round is about never happened"))
-if deadlines != 1:
-    bad.append(f"word 60, {NAME[59]}: {deadlines} deadlines expired, expected 1"
-               + (" — zero means nothing was armed, or it was armed for a moment that "
-                  "never arrives, and the fifth fault ended some other way"
-                  if deadlines == 0 else
-                  " — the clock kept firing, so it was not disarmed when the answer "
-                  "came, and a deadline that expires under a pager which IS answering "
-                  "will eventually cut one off mid-reply"))
-if answers != 4:
-    bad.append(f"word 61, {NAME[60]}: {answers} answers from the pager, expected 4"
-               + (" — two frames, a refusal and a frame that was not the pager's to "
-                  "give are four answers, and a fifth means the pager DID answer the "
-                  "fault the silence is about: it answered late, which is a slow pager "
-                  "and not a silent one, and the deadline then fired on a fault that "
-                  "was already resolved" if answers > 4 else
-                  " — fewer than four means an answer that arrived in the first four "
-                  "rounds was lost, so the silence here is not the only one"))
-if refused_by_kernel != 1:
-    bad.append(f"word 62, {NAME[61]}: the kernel refused {refused_by_kernel} answers, "
-               "expected 1"
-               + (" — zero means the record was never consulted, or consulting it "
-                  "changed nothing: the pager named frame 0 and the kernel took it. "
-                  "Distrust that never refuses anything is the layout again, which is "
-                  "what this row exists to replace" if refused_by_kernel == 0 else
-                  " — more than one means an answer in the first three rounds was "
-                  "refused too, and words 11 and 21 say those two were installed, so "
-                  "the record is refusing frames the pager does own"))
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp_f:016x}/{satp_p:016x}, tables at {base:016x}; F faulted at "
-      f"{stval:016x} from {sepc:016x}, P read that package out of its own inbox and "
-      f"answered from U-mode naming {named:016x}, leaf {leaf:#x} went in, and F "
-      f"resumed and read {read_back:016x}; it then faulted at {stval2:016x}, P named "
-      f"the NEXT frame {named2:016x}, leaf {leaf2:#x} went in, and F read "
-      f"{read_back2:016x}; at {stval3:016x} P had nothing left and REFUSED, nothing "
-      f"was installed, and F ran on at {f_sepc:016x} and wrote down {f_wrote:016x}; at "
-      f"{stval4:016x} P named {named4:016x}, which is outside the [{own_first:016x}, "
-      f"{own_limit:016x}) the kernel says it owns, and the KERNEL refused it — nothing "
-      f"was installed and F came back to {f_sepc2:016x} and wrote down "
-      f"{f_wrote2:016x}; at {stval5:016x} P said nothing at all and the kernel's own "
-      f"deadline expired on it at {late_sepc:016x} under P's satp, nothing was "
-      f"installed there either, and F came back to the same entry {f_sepc3:016x} and "
-      f"wrote down {f_wrote3:016x}")
-sys.exit(0)
-PY
+    if ! ph_verify "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -1166,91 +1069,7 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp for F", "satp for P", "scause at F's fault", "stval at F's fault",
-        "sepc at F's fault", "the cause P read", "the stval P read",
-        "the sepc P read", "scause on P's ecall", "the frame P named",
-        "the leaf the kernel installed",
-        "scause at F's second fault", "stval at the second fault",
-        "sepc at the second fault", "the word F read on the first resume",
-        "the cause P read the second time", "the stval P read the second time",
-        "the sepc P read the second time", "scause on P's second ecall",
-        "the frame P named the second time",
-        "the second leaf the kernel installed",
-        "scause at F's third fault", "stval at the third fault",
-        "sepc at the third fault", "the word F read on the second resume",
-        "the cause P read the third time", "the stval P read the third time",
-        "the sepc P read the third time", "scause on P's third ecall",
-        "the frame P named the third time", "the refused leaf read back",
-        "scause when F next trapped", "sepc when F next trapped",
-        "what F wrote down about the refusal",
-        "scause at F's fourth fault", "stval at the fourth fault",
-        "sepc at the fourth fault", "the cause P read the fourth time",
-        "the stval P read the fourth time", "the sepc P read the fourth time",
-        "scause on P's fourth ecall", "the frame P named the fourth time",
-        "the first frame the kernel says P owns",
-        "the first frame the kernel says P does not own",
-        "the distrusted leaf read back", "scause when F trapped after that",
-        "sepc when F trapped after that",
-        "what F wrote down about the distrust",
-        "scause at F's fifth fault", "stval at the fifth fault",
-        "sepc at the fifth fault", "scause when the deadline expired",
-        "satp when the deadline expired", "sepc when the deadline expired",
-        "the unanswered leaf read back", "scause when F trapped after that",
-        "sepc when F trapped after that",
-        "what F wrote down about the silence",
-        "faults delivered", "deadlines that expired", "answers the pager gave",
-        "answers the kernel refused")
-MOVES = (0, 1, 3, 4, 6, 7, 9, 10, 12, 13, 14, 16, 17, 19, 20, 22, 23, 24, 26,
-         27, 32, 33, 35, 36, 38, 39, 41, 42, 43, 46, 47, 49, 50, 52, 53, 56,
-         57)
-FIXED = (2, 5, 8, 11, 15, 18, 21, 25, 28, 29, 30, 31, 34, 37, 40, 44, 45, 48,
-         51, 54, 55, 58, 59, 60, 61)
-
-bad = []
-for i in MOVES:
-    if lo[i] == hi[i]:
-        why = ("It is derived from where the image was loaded, so a value that did "
-               "not move is a constant in the source and the derivation it stands "
-               "for never happened")
-        if i in (6, 7, 16, 17, 26, 27, 38, 39):
-            why += (" — and for the package P read, that is the whole guard: a "
-                    "package identical at both link addresses is one P could have "
-                    "been born holding")
-        if i in (33, 47, 57):
-            why += (" — and for the address F wrote down, that is the whole guard: an "
-                    "address identical at both link addresses is one F did not learn "
-                    "from the refusal, from the distrust or from the silence")
-        if i in (42, 43):
-            why += (" — and the kernel's record of what P owns is a pair of addresses "
-                    "in this image's own frames, so one that did not move is a "
-                    "constant compiled in rather than a record the kernel keeps")
-        if i == 52:
-            why += (" — and a satp that did not move is not the one word 2 printed, so "
-                    "it is not evidence about which address space was running")
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link addresses. {why}")
-for i in FIXED:
-    if lo[i] != hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} then {hi[i]:016x}. A cause "
-                   "number is architectural, a count is a count, and a refusal and the "
-                   "leaf read back after it are absences; one that follows the link "
-                   "address is not being read from the machine at all")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("both satps, all four packages on both sides of the crossing, the frames the "
-      "pager named, both installed leaves, both words read through them, the kernel's "
-      "record of what the pager owns, all five faulting addresses, the satp and the "
-      "instruction the deadline expired on and all three addresses F wrote down all "
-      "moved between the two link addresses, and the cause numbers, the timer, the "
-      "refusal, the three leaves read back after a fault that was not resolved and the "
-      "four counts stayed put")
-sys.exit(0)
-PY
+    if ! ph_moves "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

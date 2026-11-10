@@ -41,7 +41,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/arena.sas" "$tmp/a.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060).
     qemu-system-riscv64 -machine virt -nographic -bios default \
@@ -60,6 +60,50 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -4
 }
 
+# The verdict on the four printed words, in awk (no interpreter needed). Values
+# are held as 32-bit halves joined into a double: exact below 2^53, which covers
+# every address this machine can have.
+arena_verdict() {
+    LC_ALL=C awk '
+    function hx(s) { return (index("0123456789abcdef", substr(s, 1, 1)) - 1) }
+    function val(s,   i, v) {
+        v = 0
+        for (i = 1; i <= length(s); i++)
+            v = v * 16 + index("0123456789abcdef", substr(s, i, 1)) - 1
+        return v
+    }
+    function h16(v,   s, d) {
+        s = ""
+        while (v > 0) { d = v - 16 * int(v / 16); s = substr("0123456789abcdef", d + 1, 1) s; v = int(v / 16) }
+        while (length(s) < 16) s = "0" s
+        return s
+    }
+    function hmin(v,   s) { s = h16(v); sub(/^0+/, "", s); return (s == "" ? "0" : s) }
+    function add(m) { bad[++nb] = m }
+    { if ($0 ~ /[^ \t]/) { n++; w[n] = $0 } }
+    END {
+        ram_base = val(w[1]); ram_size = val(w[2]); image_end = val(w[3]); arena = val(w[4])
+        ALIGN = 4096
+        if (ram_base == 0 || ram_size == 0) {
+            add("RAM base or size is 0 \342\200\224 /memory'"'"'s reg was not found, so nothing below describes this machine. Zero is not where RAM starts.")
+        } else {
+            ram_end = ram_base + ram_size
+            if (!(ram_base <= image_end && image_end < ram_end))
+                add("the image ends at " h16(image_end) ", outside the reported RAM " h16(ram_base) ".." h16(ram_end) " \342\200\224 one of the two readings is wrong")
+            if (arena < image_end)
+                add("the arena starts at " h16(arena) ", BELOW the image end " h16(image_end) " \342\200\224 it would hand out the octets the kernel is executing from, and the allocation would look perfectly ordinary")
+            if (!(ram_base <= arena && arena < ram_end))
+                add("the arena at " h16(arena) " is outside RAM " h16(ram_base) ".." h16(ram_end) " \342\200\224 those addresses answer nothing: reads give zero, writes go nowhere, and no trap is taken")
+            if (arena % ALIGN != 0)
+                add("the arena at " h16(arena) " is not " ALIGN "-aligned, so buddy arithmetic walks outside it (C-001e3a)")
+            if (arena - image_end >= ALIGN)
+                add("the arena at " h16(arena) " is " sprintf("%.0f", arena - image_end) " octets above the image end " h16(image_end) " \342\200\224 more than one alignment step, so it was not rounded up from the image but placed somewhere else")
+        }
+        if (nb > 0) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+        print "RAM " h16(ram_base) "+" hmin(ram_size) ", image ends " h16(image_end) ", arena " h16(arena) " \342\200\224 aligned, above the image, inside RAM"
+    }' "$1"
+}
+
 fail=0
 prev_arena=""
 prev_ram=""
@@ -72,42 +116,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         fail=1; continue
     fi
 
-    if ! python3 - "$tmp/lines" > "$tmp/verdict" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-ram_base, ram_size, image_end, arena = v
-ALIGN = 4096
-bad = []
-
-if ram_base == 0 or ram_size == 0:
-    bad.append("RAM base or size is 0 — /memory's reg was not found, so nothing "
-               "below describes this machine. Zero is not where RAM starts.")
-else:
-    ram_end = ram_base + ram_size
-    if not (ram_base <= image_end < ram_end):
-        bad.append(f"the image ends at {image_end:016x}, outside the reported RAM "
-                   f"{ram_base:016x}..{ram_end:016x} — one of the two readings is wrong")
-    if arena < image_end:
-        bad.append(f"the arena starts at {arena:016x}, BELOW the image end "
-                   f"{image_end:016x} — it would hand out the octets the kernel is "
-                   "executing from, and the allocation would look perfectly ordinary")
-    if not (ram_base <= arena < ram_end):
-        bad.append(f"the arena at {arena:016x} is outside RAM "
-                   f"{ram_base:016x}..{ram_end:016x} — those addresses answer nothing: "
-                   "reads give zero, writes go nowhere, and no trap is taken")
-    if arena % ALIGN:
-        bad.append(f"the arena at {arena:016x} is not {ALIGN}-aligned, so buddy "
-                   "arithmetic walks outside it (C-001e3a)")
-    if arena - image_end >= ALIGN:
-        bad.append(f"the arena at {arena:016x} is {arena-image_end} octets above the "
-                   f"image end {image_end:016x} — more than one alignment step, so it "
-                   "was not rounded up from the image but placed somewhere else")
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"RAM {ram_base:016x}+{ram_size:x}, image ends {image_end:016x}, "
-      f"arena {arena:016x} — aligned, above the image, inside RAM")
-PY
+    if ! arena_verdict "$tmp/lines" > "$tmp/verdict" 2>&1
     then
         sed 's/^/  FAIL  /' "$tmp/verdict"
         fail=1; continue

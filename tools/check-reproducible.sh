@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # Task A-003 — verify the build is bit-reproducible.
 #
 # RELEASE ONLY, and the scope matters: this builds `--release` (line 84) and
@@ -8,7 +10,7 @@
 # `profile.dev` carries `debug = 2` and full DWARF, and that difference is most
 # of why one is reproducible and the other is not. The gate's step is labelled
 # bare `reproducible` (`gate.sh:94`), so the green tick reads broader than the
-# thing tested; this clause is where a reader finds out. Flagged by a peer session.
+# thing tested; this clause is where a reader finds out. Flagged by `sansos-f0`.
 #
 # This is not hygiene. Three things depend on it and none of them can be
 # retrofitted:
@@ -27,7 +29,13 @@
 #   2. compiled binaries     same source, same bytes
 #   3. build determinism     no timestamps, paths or hash-order in any output
 #
-# Usage: tools/check-reproducible.sh [--verbose]
+# Usage: tools/check-reproducible.sh [--verbose] [--generated]
+#   --generated  section 1 only (checked-in generated files == their generator's output), no
+#                release builds: cheap enough for every landing and the nightly. Exit 77 only when
+#                NO generator runner exists (no tools/lexgen/run.sh); the caller must
+#                treat that as UNMEASURED, never as a pass. Added after b7f9b6f5 (2026-10-12)
+#                landed with a stale spec/lexicon.tsv: this check ran only inside tools/gate.sh,
+#                which neither land.sh/land-remote.sh nor nightly.sh run.
 #
 # Re-exec under bash if invoked as `sh tools/check-reproducible.sh` — task
 # `W-052`. macOS `/bin/sh` is bash 3.2 in POSIX mode, which rejects the process
@@ -46,16 +54,20 @@
 (eval ': <(:)') 2>/dev/null || exec /usr/bin/env bash "$0" "$@"
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+# REPRO_ROOT: the tree to grade. land-remote.sh runs BASE's copy of this script (a tools-only
+# extract) over the candidate TREE, so the script's own location is not the tree (RR-wasm-STALE-RCA-19).
+cd "${REPRO_ROOT:-$(dirname "$0")/..}" || exit 2
 # CANNOT RUN (77) IS NOT A FAILURE. Without cargo nothing is built and the `fail`
 # count below would report "not reproducible" when no build happened. See
 # check-link.sh for the class that stopped every landing for two days.
-if ! command -v cargo >/dev/null 2>&1; then
-  echo "CANNOT RUN: cargo is not on PATH — nothing was built, so reproducibility is unmeasured"
+GENONLY=0; VERBOSE=
+for a in "$@"; do case $a in --generated) GENONLY=1 ;; *) VERBOSE=$a ;; esac; done
+# Generator runner: the native port (tools/lexgen/run.sh) always; it writes the output file in
+# place. No cargo fallback (P4: crates/lexgen retired).
+if [ ! -f tools/lexgen/run.sh ]; then
+  echo "CANNOT RUN: tools/lexgen/run.sh missing - generated files UNMEASURED"
   exit 77
 fi
-
-VERBOSE=${1:-}
 fail=0
 
 say()  { printf '%s\n' "$*"; }
@@ -70,11 +82,10 @@ say "generated artifacts must be a pure function of their inputs"
 # the check-that-passes-by-doing-nothing shape this script exists to refuse. So
 # adding one here is part of writing one, not a follow-up (`F-002b2`).
 gen_files="spec/aksara-widths.tsv"
-for gen in "ucdgen:crates/sanskrit-text/src/tables.rs" "lexgen:spec/lexicon.tsv" \
-           "encgen:crates/anayana/src/encoding_tables.rs" \
-           "mimegen:crates/adhvan/src/mimesniff_table.rs" \
-           "entgen:crates/renderer/src/vigraha/entities.rs" \
-           "idnagen:crates/adhvan/src/idna_tables.rs"; do
+# ucdgen, encgen, mimegen, entgen and idnagen moved to purged-rust/ on
+# 2026-10-10 (owner-approved Rust retirement); their checked-in outputs are
+# frozen and no longer regenerated, so only lexgen is verified here.
+for gen in "lexgen:spec/lexicon.tsv"; do
   tool=${gen%%:*}; out=${gen##*:}
   gen_files="$gen_files $out"
   before=$(shasum -a 256 "$out" | cut -d' ' -f1)
@@ -84,7 +95,8 @@ for gen in "ucdgen:crates/sanskrit-text/src/tables.rs" "lexgen:spec/lexicon.tsv"
   # is a green tick for a generator that crashed, and it is what CI reported on
   # every fresh checkout (`W-076`). Output stays discarded — it is noisy — but
   # the status is now load-bearing.
-  if ! cmd_out=$(cargo run -q -p "$tool" 2>&1); then
+  cmd_out=$(sh tools/lexgen/run.sh 2>&1)
+  if [ $? -ne 0 ]; then
     bad "$tool exited non-zero — nothing was regenerated, so this proves nothing"
     note "run research/specs/fetch-specs.sh unicode if the pinned UCD is absent"
     echo "$cmd_out"
@@ -98,6 +110,11 @@ for gen in "ucdgen:crates/sanskrit-text/src/tables.rs" "lexgen:spec/lexicon.tsv"
     [ -n "$VERBOSE" ] && say "      $before -> $after"
   fi
 done
+
+if [ "$GENONLY" = 1 ]; then
+  [ "$fail" -eq 0 ] && say "generated files reproducible." || say "NOT reproducible — regenerate and commit the generated files."
+  exit "$fail"
+fi
 
 # ---------------------------------------------------------------- 2. binaries
 say
@@ -119,12 +136,19 @@ build_and_hash() {
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+if ! sh tools/cargo-vacuous.sh --has; then
+  A=; B=; status_a=0; status_b=0
+  say "VACUOUS: no cargo workspace (no crates/*/Cargo.toml): no binaries exist to compare; native byte-identity = tools/t1-build.sh fixpoint"
+else
 A=$(build_and_hash "$tmp/a")
 status_a=$?
 B=$(build_and_hash "$tmp/b")
 status_b=$?
+fi
 
-if [ $status_a -ne 0 ] || [ $status_b -ne 0 ]; then
+if ! sh tools/cargo-vacuous.sh --has; then
+  :
+elif [ $status_a -ne 0 ] || [ $status_b -ne 0 ]; then
   bad "release build failed"
 elif [ -z "$A" ]; then
   bad "no binaries produced — nothing to compare"
@@ -150,58 +174,26 @@ else
   bad "absolute build path leaked into: $leaks"
 fi
 
-# SOURCE_DATE_EPOCH is the standard lever; if anything honours it, changing it
-# must not change the output.
-# Same trap as section 1, and here it is inside a command substitution where the
-# generator's status was discarded twice over: if ucdgen cannot run, both halves
-# leave tables.rs untouched, h1 equals h2, and the clock-independence claim is
-# reported as proven by two crashes (`W-076`).
-#
-# The comparison lives INSIDE the branch that produces its inputs. It was once
-# outside, fed by `h1=skipped; h2=untested` — two sentinels that differ, so one
-# absent generator printed BOTH "ucdgen exited non-zero" and "output depends on
-# the clock", the second of them a verdict on a comparison whose inputs never
-# existed. Two messages for one cause send the reader to the wrong fix
-# (`C-002c`), and the wrong one here accuses the clock.
-if ! out=$(cargo run -q -p ucdgen 2>&1); then
-  bad "ucdgen exited non-zero — SOURCE_DATE_EPOCH independence is untested"
-  echo "$out"
-else
-  out1=$(SOURCE_DATE_EPOCH=1 cargo run -q -p ucdgen 2>&1)
-  if [ $? -ne 0 ]; then
-    bad "ucdgen failed on run 1: $out1"
-  else
-    h1=$(shasum -a 256 crates/sanskrit-text/src/tables.rs | cut -d' ' -f1)
-    out2=$(SOURCE_DATE_EPOCH=1700000000 cargo run -q -p ucdgen 2>&1)
-    if [ $? -ne 0 ]; then
-      bad "ucdgen failed on run 2: $out2"
-    else
-      h2=$(shasum -a 256 crates/sanskrit-text/src/tables.rs | cut -d' ' -f1)
-      if [ "$h1" = "$h2" ]; then
-        ok "output is independent of SOURCE_DATE_EPOCH"
-      else
-        bad "output depends on the clock"
-      fi
-    fi
-  fi
-fi
+# The SOURCE_DATE_EPOCH check ran ucdgen, which moved to purged-rust/ on
+# 2026-10-10 (owner-approved Rust retirement); there is no live generator left
+# for it to exercise.
 
 say
 say "generated identity assets match their generator"
-# assets/marks/marks.svg and sheet-marks.html are written by tools/gen-marks.py.
+# assets/marks/marks.svg and sheet-marks.html are written by tools/gen-marks.sh (T1 port).
 # A hand-edit to either would survive review and then be silently reverted by the
 # next regeneration, so the claim "generated" is checked rather than trusted.
 _m=$(mktemp -d); trap 'rm -rf "$tmp" "$_m"' EXIT
 cp assets/marks/marks.svg "$_m/marks.svg"
 cp assets/marks/sheet-marks.html "$_m/sheet.html"
-if ! out=$(python3 tools/gen-marks.py 2>&1); then
-  bad "tools/gen-marks.py failed"
+if ! out=$(tools/gen-marks.sh 2>&1); then
+  bad "tools/gen-marks.sh failed"
   echo "$out"
 else
   if cmp -s "$_m/marks.svg" assets/marks/marks.svg && cmp -s "$_m/sheet.html" assets/marks/sheet-marks.html; then
     ok "marks.svg and sheet-marks.html regenerate byte-identically"
   else
-    bad "a generated identity asset was edited by hand — rerun tools/gen-marks.py"
+    bad "a generated identity asset was edited by hand — rerun tools/gen-marks.sh"
     cp "$_m/marks.svg" assets/marks/marks.svg
     cp "$_m/sheet.html" assets/marks/sheet-marks.html
   fi

@@ -10,22 +10,23 @@
 # 8 = क्षेत्रबाह्याह्वानवर्गविरोधभेद, क्षेत्रबाह्याह्वाननिषेधः 0x37f, a body routine called outside its region;
 # 9 = क्षेत्राशुद्धिवर्गविरोधभेद, क्षेत्राशुद्धाह्वाननिषेधः 0x381, a routine reachable from a region body is not region-pure;
 # 10 = संश्लिष्टनामवर्गविरोधभेद, संश्लिष्टनामनिषेधः 0x382, a routine declared under a name the build synthesises).
-# t1-build.sh relays the sink on stderr when it refuses. A row's code is checked against that pair.
+# A row may also name an `exit:shape` PAIR (e.g. 2:0 = the semantic pass refused, no region shape) for refusals that are not the
+# region family. t1-build.sh relays the sink on stderr when it refuses. A row's code is checked against that pair.
 #
 # FAILS CLOSED: exit 0 only if at least one program was checked and every one refused with its cause. A program
 # that BUILDS, refuses for another cause, has no cause dump, times out, has no row, or a row with no program fails.
 #
 # Env: SC_DIR   the programs' directory (default: this script's); refuse/ is under it
 #      SAS      the compiler checkout (default: this checkout) — passed to t1-build.sh
-#      SC_T1BUILD  the build tool (default tools/t1-build.sh beside this script)   SC_BUILD_TIMEOUT (900 s)
+#      SC_T1BUILD  the build tool (default tools/t1-build.sh beside this script)
 # NOT YET RUN BY THE LANDING: land-remote.sh is BASE's and runs only build.sh/run.sh (open item).
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 dir=${SC_DIR:-$here}/refuse
 t1b=${SC_T1BUILD:-$root/tools/t1-build.sh}
-tmo=${SC_BUILD_TIMEOUT:-900}
-wt="perl $here/../with-timeout.pl"
+# no wall-clock bound (owner 2026-10-19): the build runs until it exits
+wt="bash $here/../hb-run.sh"
 exp=$dir/expected.tsv
 [ -f "$exp" ] || { echo "build-refuse: no $exp" >&2; exit 2; }
 [ -x "$t1b" ] || [ -f "$t1b" ] || { echo "build-refuse: no t1-build at $t1b" >&2; exit 2; }
@@ -36,7 +37,7 @@ fail() { echo "BUILD-REFUSE MISMATCH $1: $2" >&2; bad=$((bad + 1)); }
 
 rows=$(awk -F'\t' '!/^#/ && NF >= 2 {print $1}' "$exp" | sort)
 [ "$(awk -F'\t' '!/^#/ && NF >= 2 {print $1}' "$exp" | sort | uniq -d)" = "" ] || fail expected.tsv "a DUPLICATE row"
-awk -F'\t' '!/^#/ && (NF < 2 || $1 == "" || $2 !~ /^0x3[78][0-9a-f]$/) { exit 1 }' "$exp" || fail expected.tsv "a blank or malformed row"
+awk -F'\t' '!/^#/ && (NF < 2 || $1 == "" || $2 !~ /^(0x3[78][0-9a-f]|[0-9]+:[0-9]+)$/) { exit 1 }' "$exp" || fail expected.tsv "a blank or malformed row"
 progs=$(cd "$dir" && ls *.t1 2>/dev/null | sed 's/\.t1$//' | sort)
 for n in $progs; do echo "$rows" | grep -qx "$n" || fail "$n" "has no row in refuse/expected.tsv"; done
 for n in $rows; do [ -f "$dir/$n.t1" ] || fail "$n" "has a row but no refuse/$n.t1"; done
@@ -48,21 +49,30 @@ for n in $names; do
   mod=$(sed -n '1s/^मण्डलम् \([^ ]*\) .*/\1/p' "$dir/$n.t1")
   [ -n "$mod" ] || { fail "$n" "has no module line"; continue; }
   count=$((count + 1))
-  YANTRA_INPUT_TRACE=3 SAS=${SAS:-$root} $wt "$tmo" bash "$t1b" --entry "$mod" मुख्यम् -o "$tmp/$n.elf" "$dir/$n.t1" > "$tmp/$n.out" 2> "$tmp/$n.err"
+  YANTRA_INPUT_TRACE=3 SAS=${SAS:-$root} $wt bash "$t1b" --entry "$mod" मुख्यम् -o "$tmp/$n.elf" "$dir/$n.t1" > "$tmp/$n.out" 2> "$tmp/$n.err"
   rc=$?
-  [ "$rc" = 124 ] && { fail "$n" "TIMEOUT after ${tmo}s"; continue; }
   if [ "$rc" = 0 ] || [ -s "$tmp/$n.elf" ]; then fail "$n" "BUILT (exit $rc): it must be refused with $want"; continue; fi
-  got=$(python3 - "$tmp/$n.err" <<'PY'
-import struct, sys
-b = open(sys.argv[1], "rb").read()
-i = b.find(b"\xe7\xe9")          # 231 closes the (empty) image, 233 opens the cause
-if i < 0 or len(b) < i + 10:
-    print("NONE"); sys.exit(0)
-exit_, shape = struct.unpack("<II", b[i + 2:i + 10])
-code = {(11, 7): "0x377", (11, 8): "0x37f", (11, 9): "0x381", (11, 10): "0x382"}.get((exit_, shape), "?")
-print("%s exit=%d shape=%d" % (code, exit_, shape))
-PY
-)
+  got=$(od -An -tx1 -v "$tmp/$n.err" | awk '
+    { for (k = 1; k <= NF; k++) b[n++] = $k }
+    END {
+      for (i = 0; i + 1 < n; i++) if (b[i] == "e7" && b[i + 1] == "e9") break
+      if (i + 1 >= n || n < i + 10) { print "NONE"; exit }
+      hx = "0123456789abcdef"
+      for (w = 0; w < 2; w++) {
+        v = 0
+        for (k = 3; k >= 0; k--) {
+          h = b[i + 2 + w * 4 + k]
+          v = v * 256 + (index(hx, substr(h, 1, 1)) - 1) * 16 + (index(hx, substr(h, 2, 1)) - 1)
+        }
+        if (w == 0) ex = v; else sh = v
+      }
+      code = sprintf("%.0f:%.0f", ex, sh)
+      if (ex == 11 && sh == 7) code = "0x377"
+      else if (ex == 11 && sh == 8) code = "0x37f"
+      else if (ex == 11 && sh == 9) code = "0x381"
+      else if (ex == 11 && sh == 10) code = "0x382"
+      printf "%s exit=%.0f shape=%.0f\n", code, ex, sh
+    }')
   case $got in
     NONE) fail "$n" "refused (exit $rc) but wrote no cause dump (marker 233): is Stage 1 older than trace level 3?" ;;
     "$want "*) echo "build-refuse: $n refused: $got" ;;

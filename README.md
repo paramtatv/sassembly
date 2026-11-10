@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.1.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.1.0"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.2.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.2.0"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-AGPL--3.0-A63A21?style=flat-square&labelColor=2B2521" alt="licence AGPL-3.0-only"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -44,6 +44,8 @@ itself.
 > a **research artifact**, not an application toolchain — see
 > [What this cannot do](#what-this-cannot-do), which is deliberately placed
 > before the tutorial.
+
+> **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Floating point, atomics, vectors, threads, event replay and most CSR/SBI calls still run through the reference interpreter (python3 required). Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
 
 ## Install
 
@@ -365,7 +367,7 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.1.0 — the language and its compiler are complete; v1.1.0 adds native packages (no Rust, no emulator) for four targets, register promotion, fork-join and arenas (see [CHANGELOG.md](CHANGELOG.md)) |
+| **status** | v1.2.0 (release notes below; the figures and install sections of this page are as measured for v1.1.0) — v1.1.0 the language and its compiler are complete; v1.1.0 adds native packages (no Rust, no emulator) for four targets, register promotion, fork-join and arenas (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 

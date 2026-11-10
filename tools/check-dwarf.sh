@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # Does a debugger agree with our line table? — task `B-011a`, doc 03 §3.
 #
 # The unit tests check the bytes we meant to write. This checks that an
@@ -23,7 +25,13 @@ SRC=spec/namaste.sas
 OUT=$(mktemp -d)
 trap 'rm -rf "$OUT"' EXIT
 
-cargo run --quiet -p sadhana -- -g "$SRC" "$OUT/n.elf" >/dev/null
+sh tools/sadhana-native.sh -g "$SRC" "$OUT/n.elf" >/dev/null
+
+# Negative-control hook (tools/check-dwarf-neg.sh): DWARF_MUTATE=1 flips the .debug_line
+# version word 5 -> 9 so a correct check MUST fail. Unset in every normal run.
+if [ "${DWARF_MUTATE:-}" = 1 ]; then
+  perl -0777 -pi -e 's/\x05\x00\x08\x00/\x09\x00\x08\x00/' "$OUT/n.elf"
+fi
 
 # Which lines of the source carry an instruction: a statement ends in the daṇḍa
 # `।`, which is what the grammar says and what the parser counts.
@@ -70,7 +78,7 @@ echo "$info" | grep -q 'Version:  *5' || { echo "the CU is not DWARF 5"; exit 1;
 # index per row blames every line on the first — a debugger stepping into a
 # library then shows the caller's source with the callee's lines. Plausible,
 # and wrong in the way that costs an hour.
-cargo run --quiet -p sadhana -- -g spec/namaste-main.sas spec/lib-mudraka.sas \
+sh tools/sadhana-native.sh -g spec/namaste-main.sas spec/lib-mudraka.sas \
   "$OUT/two.elf" >/dev/null
 named=$("$READELF" --debug-dump=decodedline "$OUT/two.elf" 2>&1 \
   | awk '$2 ~ /^[0-9]+$/ && $3 ~ /^0x/ { print $1 }' | sort -u | tr '\n' ' ')

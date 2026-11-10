@@ -24,7 +24,7 @@ if ! command -v qemu-system-riscv64 >/dev/null; then
   exit 77
 fi
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
   "$root/spec/bare-metal.sas" "$tmp/sansos.elf"
 
 # The reset vector on `-bios none` goes to 0x80000000 and does not read

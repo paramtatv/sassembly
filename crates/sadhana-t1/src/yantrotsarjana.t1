@@ -1352,9 +1352,8 @@
     प्रत्यागमनम् कुलम् शेषः ४०९६ ।
 इति
 
-सार्वजनिक वृत्तिः यन्त्रपाठावतरणम् आदाय मूल्यम् ॱॱ न६४ ऽ पाठारम्भ ॱॱ न६४ ऽ पाठमानम् ॱॱ न६४ ददाति न६४ आदि
-    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य मूल्यम् ऽ २ समाप्तम् ।
-
+॰ `यन्त्रपाठस्थलम्` — INTERN ONE LITERAL, NO CODE EMITTED: the pool entry (१-based) for the octets at `पाठारम्भ` for `पाठमानम्` in `मध्यरूपॱपाठाक्षरकोश`. Shared by the code path and the global-initialiser path.
+सार्वजनिक वृत्तिः यन्त्रपाठस्थलम् आदाय पाठारम्भ ॱॱ न६४ ऽ पाठमानम् ॱॱ न६४ ददाति न६४ आदि
     ॰ already pooled? WALK THE KEY'S CHAIN, compare octet for octet.
     ॰ Before 2026-09-13 this scanned EVERY pooled entry per literal — O(L²) in
     ॰ a module's literals, measured 395M → 1,586M interpreter steps when a
@@ -1408,6 +1407,14 @@
         यन्त्रपाठकुलशीर्षकोश अङ्कः कुलम् अन्तः भवति यन्त्रपाठसंख्यान ।
         स्थलम् भवति यन्त्रपाठसंख्यान ।
     इति
+
+    प्रत्यागमनम् स्थलम् ।
+इति
+
+सार्वजनिक वृत्तिः यन्त्रपाठावतरणम् आदाय मूल्यम् ॱॱ न६४ ऽ पाठारम्भ ॱॱ न६४ ऽ पाठमानम् ॱॱ न६४ ददाति न६४ आदि
+    चरः गन्तृ ॱॱ न६४ भवति यन्त्रलेखनम् आरभ्य मूल्यम् ऽ २ समाप्तम् ।
+
+    चरः स्थलम् ॱॱ न६४ भवति यन्त्रपाठस्थलम् आरभ्य पाठारम्भ ऽ पाठमानम् समाप्तम् ।
 
     ॰ the pool index is Rust's `strings.len() - 1`: ० for the first literal.
     चरः क्रमाङ्कः ॱॱ अ६४ भवति स्थलम् वियोगः १ ।
@@ -1935,6 +1942,13 @@
 सार्वजनिक चरः यन्त्रलङ्घनस्थानकोश ॱॱ अङ्कः अन्तः अ६४ भवति ० ।   ॰ by jump ordinal (1-based): instruction lines before the लङ्घनम्
 सार्वजनिक चरः यन्त्रलङ्घनलक्ष्यकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।  ॰ by jump ordinal: the target block id, or ० for यन्त्रनिर्गमचिह्नम्
 सार्वजनिक चरः यन्त्रलङ्घनसंख्या ॱॱ न६४ भवति ० ।                  ॰ how many rows the routine in hand has written
+॰ gap09 — THE RELAXED-ROUTINE CENSUS (Rust's `emit_module_and_relaxations`): one row
+॰ per ROUTINE the second pass re-emitted relaxed, however many of its branches
+॰ were far; the row is the routine's name symbol (`मध्यरूपॱवृत्ति.नाम`).
+॰ 1-based like every arena; reset per program in यन्त्रमण्डलोत्सर्जनम्. It is
+॰ read by tests and written nowhere else, so no emitted octet depends on it.
+सार्वजनिक चरः यन्त्रशिथिलवृत्तिकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः यन्त्रशिथिलसंख्या ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः यन्त्रनिर्गमस्थानम् ॱॱ अ६४ भवति ऋण१ ।            ॰ instruction lines before the exit label; ऋण१ = no epilogue yet
 
 ॰ record one J-type `लङ्घनम् शून्यःम्` — CALLED BEFORE ITS LINE IS WRITTEN, as
@@ -3216,7 +3230,7 @@
 ॰ only as a Rust const and as loose text on the port side is scaffolding". An
 ॰ inline literal honoured by both engines, behind one name, keeps both: a bare
 ॰ name of a zero-argument routine is a call, so every use is unchanged.
-॰ `t1_global_literal_initializer.rs` refuses a new global of the old shape.
+॰ `tools/check-src-ratchets.sh` refuses a new global of the old shape.
 सार्वजनिक वृत्तिः यन्त्ररचनाक्षेत्रनाम ददाति अङ्कः अन्तः अ८ आदि
     प्रत्यागमनम् उक्तम् रचनाक्षेत्रम् इति ।
 इति
@@ -3237,7 +3251,7 @@
 ॰ DECLARATIONS and these have none: the startup object defines the storage and
 ॰ every module merely refers to it. So the lookup could only ever miss, and did.
 ॰ Measured through the Rust twin, whose defect was the same one: all seven
-॰ `storage-probe.py --compare` fixtures answered `BUILD REFUSED — STOPPED AT
+॰ `storage-probe.sh --compare` fixtures answered `BUILD REFUSED — STOPPED AT
 ॰ emit: symbol SymbolId(10000003) has no name`, and the storage gate read as
 ॰ three array-indexing defects for five days because of it.
 ॰
@@ -3669,6 +3683,8 @@
             ॰ means clearing it — otherwise the caller reads pass one's verdict off
             ॰ यन्त्रनिषेधमस्ति and refuses a routine this pass just relaxed.
             यन्त्रनिषेधमस्ति भवति असत्यम् ।
+            यन्त्रशिथिलसंख्या भवति यन्त्रशिथिलसंख्या योगः १ ।
+            यन्त्रशिथिलवृत्तिकोश अङ्कः यन्त्रशिथिलसंख्या अन्तः भवति कार्यम् ॱ नाम ।
             विश्रम्भ भवति सत्यम् ।
             पुनरुत्सर्जनम् भवति सत्यम् ।
         इति
@@ -4062,7 +4078,7 @@
         ॰ a NAME and a name is the ADDRESS of what it names, so this emits a
         ॰ relocated pointer. **That is why a LIBRARY module works.** The three
         ॰ placements that put an allocation in a routine's entry block are recorded
-        ॰ dead in `tools/sassembly-model.py --placements`, and the third — the first
+        ॰ dead in `tools/sassembly-model.sh --placements`, and the third — the first
         ॰ zero-parameter routine — would have PASSED a single-module fixture and
         ॰ left every library module's globals null, against 265 qualified
         ॰ cross-module reads. The linker does not know which module is the entry,
@@ -4135,7 +4151,15 @@
         इति अन्यथा आदि
             उत्सर्जनॱपाठयोजनम् उक्तम् ॥ अष्टाष्टकाः इति ।
             उत्सर्जनॱविवरयोजनम् १ ।
-            यन्त्रषोडशाङ्कः मध्यरूपॱवैश्विकमूल्यकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            ॰ A STRING-LITERAL INITIALISER: the word is the ADDRESS of the pooled entry (a name in a data directive is its address, ADR-0013), whose length header sits at `पाठ<k> वियोगः ८` exactly as a local literal's does.
+            यदि मध्यरूपॱवैश्विकपाठध्वजकोश अङ्कः वैश्विकाङ्कः अन्तः असमम् ० आदि
+                चरः वैश्विकपाठस्थलम् ॱॱ न६४ भवति यन्त्रपाठस्थलम् आरभ्य मध्यरूपॱवैश्विकपाठारम्भकोश अङ्कः वैश्विकाङ्कः अन्तः ऽ मध्यरूपॱवैश्विकपाठमानकोश अङ्कः वैश्विकाङ्कः अन्तः समाप्तम् ।
+                उत्सर्जनॱपाठयोजनम् उक्तम् पाठ इति ।
+                चरः वैश्विकपाठक्रमाङ्कः ॱॱ अ६४ भवति वैश्विकपाठस्थलम् वियोगः १ ।
+                यन्त्राङ्कः वैश्विकपाठक्रमाङ्कः ।
+            इति अन्यथा आदि
+                यन्त्रषोडशाङ्कः मध्यरूपॱवैश्विकमूल्यकोश अङ्कः वैश्विकाङ्कः अन्तः ।
+            इति
             उत्सर्जनॱविवरयोजनम् १ ।
             उत्सर्जनॱपाठयोजनम् उक्तम् ॥ इति ।
             उत्सर्जनॱयतियोजनम् ।
@@ -4335,6 +4359,7 @@
     ॰ symbol the table does not hold — the check this seeding exists to satisfy.
     चरः बाह्यगणना ॱॱ न६४ भवति यन्त्रबाह्यनामसञ्चयः ।
     यन्त्रनिषेधमस्ति भवति असत्यम् ।
+    यन्त्रशिथिलसंख्या भवति ० ।
     ॰ `W-285` — THE RECORD FLAG WAS A GLOBAL HERE AND IS NOW A PARAMETER, and
     ॰ the deleted margin is worth one sentence because it was WRONG IN A WAY A
     ॰ TWIN CANNOT SEE. It said the remaining asymmetry — the port SCANS, this
@@ -4364,6 +4389,19 @@
         कुलक्रमः भवति कुलक्रमः योगः १ ।
     इति
     उत्सर्जनॱनिर्गमारम्भः ।
+    ॰ ONE hint store so the output run is allocated once at its size. A run grows
+    ॰ threefold and abandons the old block (no free), so appending a module of
+    ॰ ~18 MB octet by octet left 2+6 MB abandoned behind it. MEASURED on the K1
+    ॰ corpus: no module writes more than 200 octets per IR instruction (180 faults,
+    ॰ 200 does not), so IR count x 200 is the module's size from above. A hint,
+    ॰ not a bound: too small just grows as before; the store bound is clamped.
+    चरः निर्गमानुमानम् ॱॱ न६४ भवति मध्यरूपॱआज्ञासूचकाङ्क गुणनम् २०० ।
+    यदि निर्गमानुमानम् अधिकम् ३३५५४४३१ आदि
+        निर्गमानुमानम् भवति ३३५५४४३१ ।
+    इति
+    यदि उत्सर्जनॱनिर्गमकोश ॱ दैर्घ्य न्यूनम् निर्गमानुमानम् आदि
+        उत्सर्जनॱनिर्गमकोश अङ्कः आरभ्य निर्गमानुमानम् वियोगः १ समाप्तम् अन्तः भवति ० ।
+    इति
     चरः रिक्तम् ॱॱ अङ्कः अन्तः अ८ भवति ० ।
     यदि यन्त्रचिह्नपरीक्षा समम् असत्यम् आदि
         प्रत्यागमनम् रिक्तम् ।

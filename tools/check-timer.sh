@@ -38,7 +38,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
     --स्थान ०षोड्८०२००००० "$root/spec/timer.sas" "$tmp/timer.elf" >/dev/null
 
 # Bounded by SIGKILL, not perl's alarm: QEMU handles SIGALRM and survives it
@@ -74,7 +74,7 @@ printf "  scause -> %s\n" "$got"
 # proves only that interrupts can be enabled.
 sed 's/योगः अर्थ०म् शून्यःन ०न ।/योगः अर्थ०म् शून्यःन ऋण१न ।/' \
     "$root/spec/timer.sas" > "$tmp/far.sas"
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
     --स्थान ०षोड्८०२००००० "$tmp/far.sas" "$tmp/far.elf" >/dev/null
 qemu-system-riscv64 -machine virt -nographic -bios default \
     -kernel "$tmp/far.elf" > "$tmp/farout" 2>&1 &

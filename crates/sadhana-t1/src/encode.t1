@@ -971,7 +971,8 @@
 ॰ `चिह्नस्थानम्` walks to the length and skips a शून्यम् entry.
 सार्वजनिक संरचना चिह्नस्थान आरभ्य
   नाम ॱॱ अङ्कः अन्तः अ८ ऽ           ॰ the label
-  स्थान ॱॱ अ३२                     ॰ the address it stands at
+  स्थान ॱॱ अ३२ ऽ                    ॰ the address it stands at
+  दुर्बलम् ॱॱ बूल                   ॰ defined under `॥ दुर्बलम् ॥`: a use is left to the linker
 समाप्तम् ।
 
 ॰ a name this object could not resolve — Pending, encode.rs:172.
@@ -4424,14 +4425,14 @@
 ॰ the memory-read domain, so reading a base as a domain where no encoding
 ॰ of the family takes one made a label of that name definable and
 ॰ unreferenceable (`B-107`).
-सार्वजनिक वृत्तिः क्षेत्रपदम् आदाय पदम् ॱॱ वाक्यविभागॱकारकपद क्षेत्रयोग्यम् ॱॱ बूल ददाति बूल आदि
-    यदि पदम् ॱ सङ्ख्यात्व समम् सत्यम् आदि
+सार्वजनिक वृत्तिः क्षेत्रपदम् आदाय पदकोशाङ्कः ॱॱ न६४ ऽ क्षेत्रयोग्यम् ॱॱ बूल ददाति बूल आदि
+    यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ सङ्ख्यात्व समम् सत्यम् आदि
         प्रत्यागमनम् असत्यम् ।
     इति
     यदि क्षेत्रयोग्यम् समम् असत्यम् आदि
         प्रत्यागमनम् असत्यम् ।
     इति
-    चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति पदम् ॱ मूलपाठ ।
+    चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
     प्रत्यागमनम् क्षेत्रसमूहः मूलम् असमम् शून्यम् ।
 इति
 
@@ -4842,10 +4843,10 @@
 
     चरः गणकः ॱॱ अ६४ भवति ० ।
     यावत् गणकः न्यूनम् पदसंख्या आदि
-        चरः पदम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः पदारम्भः योगः गणकः अन्तः ।
-        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति पदम् ॱ मूलपाठ ।
-        चरः सङ्ख्यात्वम् ॱॱ बूल भवति पदम् ॱ सङ्ख्यात्व ।
-        चरः क्षेत्रम् ॱॱ बूल भवति क्षेत्रपदम् पदम् क्षेत्रयोग्यम् ।
+        चरः पदकोशाङ्कः ॱॱ अ६४ भवति पदारम्भः योगः गणकः ।
+        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
+        चरः सङ्ख्यात्वम् ॱॱ बूल भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ सङ्ख्यात्व ।
+        चरः क्षेत्रम् ॱॱ बूल भवति क्षेत्रपदम् पदकोशाङ्कः क्षेत्रयोग्यम् ।
         ॰ `V-009` (i) — ONE register-table walk per operand: the slot answers
         ॰ both `कोष्ठाङ्कः` (here) and `कोष्ठव्यूहः` (below), which `V-008`
         ॰ part 2 had asking the table twice for the same name.
@@ -4871,8 +4872,8 @@
             इति
             यदि कोष्ठसूचीव्यूहः कोष्ठसूचकः समम् सत्यम् आदि
                 व्यूहकोष्ठाः भवति व्यूहकोष्ठाः योगः १ ।
-                यदि पदम् ॱ कारक अधिकम् २ आदि
-                    यदि पदम् ॱ कारक न्यूनम् ५ आदि
+                यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ कारक अधिकम् २ आदि
+                    यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ कारक न्यूनम् ५ आदि
                         स्थानव्यूहः भवति सत्यम् ।
                     इति
                 इति
@@ -4924,10 +4925,10 @@
         यदि कुलान्तरवत् कुलम् ३२ समम् असत्यम् आदि
             चरः खोजी ॱॱ अ६४ भवति ० ।
             यावत् खोजी न्यूनम् पदसंख्या आदि
-                चरः पदम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः पदारम्भः योगः खोजी अन्तः ।
-                चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति पदम् ॱ मूलपाठ ।
-                यदि पदम् ॱ सङ्ख्यात्व समम् असत्यम् आदि
-                    यदि क्षेत्रपदम् पदम् क्षेत्रयोग्यम् समम् असत्यम् आदि
+                चरः पदकोशाङ्कः ॱॱ अ६४ भवति पदारम्भः योगः खोजी ।
+                चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
+                यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ सङ्ख्यात्व समम् असत्यम् आदि
+                    यदि क्षेत्रपदम् पदकोशाङ्कः क्षेत्रयोग्यम् समम् असत्यम् आदि
                         यदि कोष्ठाङ्कः मूलम् समम् शून्यम् आदि
                             पदार्थादिः भवति दोषपदार्थः मूलम् ।
                             सङ्केतनदोषरचना पङ्क्तिः २ पदार्थादिः १ ।
@@ -5071,11 +5072,11 @@
     यदि अन्तरवत् समम् असत्यम् आदि
         चरः परीक्षकः ॱॱ अ६४ भवति ० ।
         यावत् परीक्षकः न्यूनम् पदसंख्या आदि
-            चरः पदम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः पदारम्भः योगः परीक्षकः अन्तः ।
-            यदि पदम् ॱ सङ्ख्यात्व समम् असत्यम् आदि
-                यदि पदम् ॱ कारक अधिकम् २ आदि
-                    यदि पदम् ॱ कारक न्यूनम् ५ आदि
-                        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति पदम् ॱ मूलपाठ ।
+            चरः पदकोशाङ्कः ॱॱ अ६४ भवति पदारम्भः योगः परीक्षकः ।
+            यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ सङ्ख्यात्व समम् असत्यम् आदि
+                यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ कारक अधिकम् २ आदि
+                    यदि वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ कारक न्यूनम् ५ आदि
+                        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
                         यदि कोष्ठाङ्कः मूलम् असमम् शून्यम् आदि
                             स्थानाक्रान्तम् भवति सत्यम् ।
                         इति
@@ -5103,10 +5104,10 @@
 
     चरः चलः ॱॱ अ६४ भवति ० ।
     यावत् चलः न्यूनम् पदसंख्या आदि
-        चरः कारकम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः पदारम्भः योगः चलः अन्तः ।
-        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति कारकम् ॱ मूलपाठ ।
-        चरः भूमिका ॱॱ अ६४ भवति कारकम् ॱ कारक ।
-        चरः सङ्ख्यात्वम् ॱॱ बूल भवति कारकम् ॱ सङ्ख्यात्व ।
+        चरः पदकोशाङ्कः ॱॱ अ६४ भवति पदारम्भः योगः चलः ।
+        चरः मूलम् ॱॱ अङ्कः अन्तः अ८ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
+        चरः भूमिका ॱॱ अ६४ भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ कारक ।
+        चरः सङ्ख्यात्वम् ॱॱ बूल भवति वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ सङ्ख्यात्व ।
         चरः स्थानांशः ॱॱ सम्भाव्य अ६४ भवति स्थानभागः मूलम् ।
         ॰ Rust writes `continue`; T1 has none, so each arm sets this and the
         ॰ ones after it ask.
@@ -5131,6 +5132,14 @@
                 चरः लक्ष्यस्थानम् ॱॱ सम्भाव्य अ३२ भवति ० ।
                 यदि लक्ष्यस्थानक्रमः असमम् ० आदि
                     लक्ष्यस्थानम् भवति चिह्नानि अङ्कः आरभ्य लक्ष्यस्थानक्रमः वियोगः १ समाप्तम् अन्तः ॱ स्थान ।
+                    ॰ A WEAK-DEFINED NAME IS NOT BOUND HERE: another object's strong
+                    ॰ definition replaces it at link time, so a use of it is left as a
+                    ॰ relocation (and the field zero) when pending names are recorded.
+                    यदि प्रतीक्षाग्रहणम् समम् सत्यम् आदि
+                        यदि चिह्नानि अङ्कः आरभ्य लक्ष्यस्थानक्रमः वियोगः १ समाप्तम् अन्तः ॱ दुर्बलम् समम् सत्यम् आदि
+                            लक्ष्यस्थानक्रमः भवति ० ।
+                        इति
+                    इति
                 इति
 
                 ॰ E05 — with `pending` as `None` an undefined name is an
@@ -5211,6 +5220,11 @@
                         चरः लक्ष्यम् ॱॱ सम्भाव्य अ३२ भवति ० ।
                         यदि लक्ष्यक्रमः असमम् ० आदि
                             लक्ष्यम् भवति चिह्नानि अङ्कः आरभ्य लक्ष्यक्रमः वियोगः १ समाप्तम् अन्तः ॱ स्थान ।
+                            यदि प्रतीक्षाग्रहणम् समम् सत्यम् आदि
+                                यदि चिह्नानि अङ्कः आरभ्य लक्ष्यक्रमः वियोगः १ समाप्तम् अन्तः ॱ दुर्बलम् समम् सत्यम् आदि
+                                    लक्ष्यक्रमः भवति ० ।
+                                इति
+                            इति
                         इति
                         यदि लक्ष्यक्रमः समम् ० आदि
                             ॰ AN OBJECT MAY NAME WHAT IT DOES NOT DEFINE; an executable
@@ -5454,8 +5468,8 @@
             चरः पूर्वक्रमः ॱॱ अ६४ भवति पूरितम् पूरितानि पूर्तिसंख्या अवकाशः ॱ आवरण ।
             यदि पूर्वक्रमः न्यूनम् पूर्तिसंख्या आदि
                 चरः पूर्वसूचकः ॱॱ अ६४ भवति पूरितपदानि अङ्कः पूर्वक्रमः अन्तः ।
-                चरः पूर्वपदम् ॱॱ वाक्यविभागॱकारकपद भवति वाक्यविभागॱकारकपदकोश अङ्कः पदारम्भः योगः पूर्वसूचकः अन्तः ।
-                पदार्थादिः भवति दोषपदार्थः पूर्वपदम् ॱ मूलपाठ ।
+                चरः पदकोशाङ्कः ॱॱ अ६४ भवति पदारम्भः योगः पूर्वसूचकः ।
+                पदार्थादिः भवति दोषपदार्थः वाक्यविभागॱकारकपदकोश अङ्कः पदकोशाङ्कः अन्तः ॱ मूलपाठ ।
                 दोषपदार्थः मूलम् ।
                 दोषपदार्थः वृतसङ्केतः ॱ आज्ञा ।
                 सङ्केतनदोषरचना पङ्क्तिः १६ पदार्थादिः ३ ।
@@ -6078,7 +6092,18 @@
     पूर्वदोषः ॱ पदार्थारम्भ भवति अन्तिमसङ्केतनदोषः ॱ पदार्थारम्भ ।
     पूर्वदोषः ॱ पदार्थसंख्यान भवति अन्तिमसङ्केतनदोषः ॱ पदार्थसंख्यान ।
     पूर्वदोषः ॱ कारण भवति अन्तिमसङ्केतनदोषः ॱ कारण ।
+    ॰ RUST'S `compressed_at` CALLS `encode_at`, WHICH NEVER COLLECTS (encode.rs:798):
+    ॰ a label this table does not know is an error there, so the instruction
+    ॰ stays wide. Under `प्रतीक्षाग्रहणम्` (set by the object emitter) the same
+    ॰ name is RECORDED as a pending relocation and the encode SUCCEEDS with a
+    ॰ placeholder 0 — so a `pcrel_lo` addi on a data label (undefined in the
+    ॰ text-only table) was wide in layout, which collects nothing, and
+    ॰ compressed at emit: E23, 30 of 47 vectors. The probe therefore runs with
+    ॰ collection OFF, and the caller's setting is put back.
+    चरः पूर्वग्रहणम् ॱॱ बूल भवति प्रतीक्षाग्रहणम् ।
+    प्रतीक्षाग्रहणम् भवति असत्यम् ।
     चरः पदम् ॱॱ सम्भाव्य अ३२ भवति स्थानसङ्केतनम् आज्ञाम् क्रमसूचकः चिह्नानि ।
+    प्रतीक्षाग्रहणम् भवति पूर्वग्रहणम् ।
     ॰ THE RESTORE IS STILL A SHARE, AND IT IS INTENDED — the one `w250-shares`
     ॰ counts in this routine now that the save above is a copy. The global
     ॰ takes over a record that goes out of scope on the next line, so there is
@@ -6183,7 +6208,7 @@
 ॰ THE BLAST RADIUS IS EVERY `गणना` IN THE CORPUS — every `भेद` discriminant
 ॰ compared with `समम्`, in every native run ever taken.
 ॰
-॰ (a peer session found it in a minimal form and refined it twice; this is the
+॰ (sansos-4f found it in a minimal form and refined it twice; this is the
 ॰ confirmation at the real site, run because a claim that wide was about to
 ॰ become a change to `ir.t1`'s lowering.)
 ॰
@@ -6200,7 +6225,7 @@
 ॰ at the site measured individually correct: **the arguments were fine and the
 ॰ callee was running code that should not run.**
 ॰
-॰ A peer session reproduced it in a minimal form, both modules collected:
+॰ sansos-4f reproduced it in a minimal form, both modules collected:
 ॰   गणना लक्ष्यक { अकुञ्चितम् ऽ कुञ्चितम् }, passed as an argument
 ॰   interpreted  विस्तारः = ४   the correct branch
 ॰   native       विस्तारः = २   the कुञ्चितम् branch on an अकुञ्चितम् argument
@@ -6213,13 +6238,30 @@
 ॰ REFUTED. Every localisation came from a marker, and this one came from a
 ॰ minimal form built to a shape the markers had narrowed to — reading and
 ॰ measuring in turn, neither sufficient alone.
-सार्वजनिक वृत्तिः आज्ञाविस्तारः आदाय आज्ञाम् ॱॱ वाक्यविभागॱआज्ञा क्रमसूचकः ॱॱ अ३२ चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान लक्ष्यम् ॱॱ लक्ष्य ददाति न६४ आदि
-    यदि लक्ष्यम् समम् सङ्कुचितम् आदि
+सार्वजनिक वृत्तिः आज्ञाविस्तारः आदाय आज्ञाम् ॱॱ वाक्यविभागॱआज्ञा क्रमसूचकः ॱॱ अ३२ चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान लक्ष्यम् ॱॱ अ८ ददाति न६४ आदि
+    यदि लक्ष्यम् समम् १ आदि
         यदि सङ्कोचः आज्ञाम् क्रमसूचकः चिह्नानि असमम् शून्यम् आदि
             प्रत्यागमनम् २ ।
         इति
     इति
     प्रत्यागमनम् ४ ।
+इति
+
+॰ is this name one of the program's `॥ दुर्बलम् ॥` pushes? Such a symbol is
+॰ also global (वैश्विकत्वम्) and is the one a strong definition replaces at
+॰ link time. Compared in place, like वैश्विकत्वम्.
+सार्वजनिक वृत्तिः दुर्बलत्वम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम ऽ नाम ॱॱ अङ्कः अन्तः अ८ ददाति बूल आदि
+    चरः आदिः ॱॱ न६४ भवति कार्यक्रमः ॱ दुर्बलारम्भ ।
+    चरः सीमा ॱॱ न६४ भवति आदिः योगः कार्यक्रमः ॱ दुर्बलसंख्यान ।
+    चरः क्रमः ॱॱ न६४ भवति आदिः ।
+    यावत् क्रमः न्यूनम् सीमा आदि
+        चरः अंशः ॱॱ वाक्यविभागॱपाठांश भवति वाक्यविभागॱदुर्बलकोश अङ्कः क्रमः अन्तः ।
+        यदि परिधिसाम्यम् अंशः ॱ पाठ अंशः ॱ आरम्भ अंशः ॱ सीमा नाम समम् सत्यम् आदि
+            प्रत्यागमनम् सत्यम् ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    प्रत्यागमनम् असत्यम् ।
 इति
 
 ॰ the symbol table the two passes share — encode.rs:542-566.
@@ -6323,6 +6365,7 @@
         चरः नव ॱॱ चिह्नस्थान भवति ० ।
         नव ॱ नाम भवति चिह्ननाम चिह्नम् ॱ नाम चिह्नम् ॱ नामारम्भ चिह्नम् ॱ नामसीमा ।
         नव ॱ स्थान भवति स्थानम् ।
+        नव ॱ दुर्बलम् भवति दुर्बलत्वम् आरभ्य कार्यक्रमः ऽ नव ॱ नाम समाप्तम् ।
         चिह्नानि अङ्कः लेखः अन्तः भवति नव ।
         लेखः भवति लेखः योगः १ ।
         इति
@@ -6373,7 +6416,7 @@
 ॰ `compressed_at` first under `Target::Compressed` and writes ONLY the low
 ॰ halfword when it answers, so the pass that lays down octets has to know
 ॰ the target the layout was counted for.
-सार्वजनिक वृत्तिः उत्सर्जनक्रमः आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम स्थानानि ॱॱ अङ्कः अन्तः अ३२ चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान लक्ष्यम् ॱॱ लक्ष्य ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
+सार्वजनिक वृत्तिः उत्सर्जनक्रमः आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम स्थानानि ॱॱ अङ्कः अन्तः अ३२ चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान लक्ष्यम् ॱॱ अ८ ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
     चरः संख्यानम् ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञासंख्यान ।
     चरः आज्ञादिः ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञारम्भ ।
     चरः संरेखादिः ॱॱ अ६४ भवति कार्यक्रमः ॱ संरेखारम्भ ।
@@ -6498,7 +6541,7 @@
         ॰ two passes agree by construction — the E23 check above is what
         ॰ would say so if they did not.
         चरः अर्धम् ॱॱ सम्भाव्य अ१६ भवति शून्यम् ।
-        यदि लक्ष्यम् समम् सङ्कुचितम् आदि
+        यदि लक्ष्यम् समम् १ आदि
             अर्धम् भवति सङ्कोचः आज्ञाम् विन्यस्तस्थानम् चिह्नानि ।
         इति
 
@@ -6621,7 +6664,7 @@
 ॰ one, `स्थानसङ्केतनम्` for pass two. BOTH ARE WRITTEN NOW; what this needs
 ॰ is its own body, the symbol table built from `चिह्नकोश` between the two
 ॰ passes, and the growable text section named above.
-सार्वजनिक वृत्तिः लक्ष्यसङ्केतनम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम लक्ष्यम् ॱॱ लक्ष्य ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
+सार्वजनिक वृत्तिः लक्ष्यसङ्केतनम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम लक्ष्यम् ॱॱ अ८ ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
     ॰ THE SIBLING ENTRY POINT CLEARS THE VERDICT TOO. This routine reaches
     ॰ `उत्सर्जनक्रमः` as well, so it can SET `अन्तिमसङ्केतनसाफल्यम्`; leaving it
     ॰ uncleared here would let a program encode that succeeded answer for an
@@ -6780,7 +6823,7 @@
 ॰ flag has to reach `स्थानसङ्केतनम्`, which is a THIRD change to a
 ॰ signature that two rows have now settled. That is the decision this row
 ॰ owes and it is written down rather than made in passing.
-सार्वजनिक वृत्तिः लक्ष्यवस्तुसङ्केतनम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम लक्ष्यम् ॱॱ लक्ष्य ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
+सार्वजनिक वृत्तिः लक्ष्यवस्तुसङ्केतनम् आदाय कार्यक्रमः ॱॱ वाक्यविभागॱकार्यक्रम लक्ष्यम् ॱॱ अ८ ददाति दोषयुक्त अङ्कः अन्तः अ८ आदि
     चरः संख्यानम् ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञासंख्यान ।
     यदि विन्यासमुद्रणार्हम् समम् सत्यम् आदि
         चरः चिह्नककएक ॱॱ न६४ भवति चतुरष्टकमुद्रणम् १ ।
@@ -6993,7 +7036,7 @@
 ॰ threaded through rather than read from module state so that both
 ॰ callers hand in the table THEY built: text-only from `स्थानविन्यासः`,
 ॰ three-section from `लक्ष्यसङ्केतनम्`, exactly as Rust's two loops do.
-सार्वजनिक वृत्तिः विन्यासावृत्तिः आदाय कार्यक्रमः ॱॱ कार्यक्रम स्थानानि ॱॱ अङ्कः अन्तः अ३२ लक्ष्यम् ॱॱ लक्ष्य चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान ददाति अङ्कः अन्तः अ३२ आदि
+सार्वजनिक वृत्तिः विन्यासावृत्तिः आदाय कार्यक्रमः ॱॱ कार्यक्रम स्थानानि ॱॱ अङ्कः अन्तः अ३२ लक्ष्यम् ॱॱ अ८ चिह्नानि ॱॱ अङ्कः अन्तः चिह्नस्थान ददाति अङ्कः अन्तः अ३२ आदि
     चरः संख्यानम् ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञासंख्यान ।
     ॰ न६४, ADR-0030: a new binding is written in the file's remediated spelling.
     चरः आज्ञादिः ॱॱ न६४ भवति कार्यक्रमः ॱ आज्ञारम्भ ।
@@ -7045,10 +7088,10 @@
         ॰
         ॰ An emit BEFORE a statement establishes the fault is AT OR AFTER it, never
         ॰ that it IS it. I had written "the bind itself yields address zero" on
-        ॰ exactly that evidence. (a peer session named the gap before the run.)
+        ॰ exactly that evidence. (sansos-4f named the gap before the run.)
         ॰
         ॰ **AND "A CROSS-MODULE ELEMENT READ FAULTS" IS TOO STRONG — REFUTED
-        ॰ 2026-09-14 within the hour it was written.** A peer session built the minimal
+        ॰ 2026-09-14 within the hour it was written.** sansos-4f built the minimal
         ॰ form in a full corpus copy so both modules are collected: a cross-module
         ॰ SCALAR global, an arena LENGTH, a scalar ELEMENT, a RECORD-arena length,
         ॰ and a RECORD ELEMENT bound to a record local with a field read after.
@@ -7067,7 +7110,7 @@
         ॰ (`अर्थॱसंज्ञाप्रकारकोश ॱ दैर्घ्य`) and found it sound. A cross-module
         ॰ ELEMENT read bound into a record is a different operation, and the gap
         ॰ between lengths and elements is the same gap that sat between reads and
-        ॰ writes. (a peer session, by reading.)
+        ॰ writes. (sansos-4f, by reading.)
         यदि विन्यासमुद्रणार्हम् समम् सत्यम् आदि
             चरः कोशमापएक ॱॱ न६४ भवति चतुरष्टकमुद्रणम् १ ।
             चरः कोशमापद्वि ॱॱ न६४ भवति चतुरष्टकमुद्रणम् ७२०० ।
@@ -7100,7 +7143,7 @@
         ॰ length, a scalar element, a record-arena length, a record element bound
         ॰ to a record local, a field read after it, a foreign record passed as an
         ॰ argument, and a NIL arena of records passed as one. `चिह्नानि` IS nil on
-        ॰ iteration ०. (a peer session)
+        ॰ iteration ०. (sansos-4f)
         ॰
         ॰ THREE CANDIDATE SETS WERE ENUMERATED AND ALL THREE REFUTED — the
         ॰ exemplar, five differences, three reordered ones. Every localisation
@@ -7118,7 +7161,7 @@
     प्रत्यागमनम् स्थानानि ।
 इति
 
-सार्वजनिक वृत्तिः स्थानविन्यासः आदाय कार्यक्रमः ॱॱ कार्यक्रम लक्ष्यम् ॱॱ लक्ष्य ददाति अङ्कः अन्तः अ३२ आदि
+सार्वजनिक वृत्तिः स्थानविन्यासः आदाय कार्यक्रमः ॱॱ कार्यक्रम लक्ष्यम् ॱॱ अ८ ददाति अङ्कः अन्तः अ३२ आदि
     चरः संख्यानम् ॱॱ अ६४ भवति कार्यक्रमः ॱ आज्ञासंख्यान ।
 
     ॰ both are ONE longer than the instruction count: the last slot is the
@@ -7145,7 +7188,7 @@
         ॰
         ॰ THE NUMBER SAYS NO. Both engines print १ on round ० and ३ on round १:
         ॰
-        ॰     tools/marker-diff.py <predict sink> <native .out>
+        ॰     tools/marker.sh diff <predict sink> <native .out>
         ॰     7100 at records 3 and 71; the length two records later
         ॰     round ०: interpreted १, native १
         ॰     round १: interpreted ३, native ३
@@ -7319,6 +7362,7 @@
         संज्ञा ॱ खण्डाङ्कः भवति ० ।
         संज्ञा ॱ स्थापनम् भवति कोष्ठकनिवेशः चिह्नम् ॱ कोष्ठक ।
         संज्ञा ॱ वैश्विकम् भवति वैश्विकत्वम् आरभ्य कार्यक्रमः ऽ नाम समाप्तम् ।
+        संज्ञा ॱ दुर्बलम् भवति दुर्बलत्वम् आरभ्य कार्यक्रमः ऽ नाम समाप्तम् ।
 
         फलम् अङ्कः लेखः अन्तः भवति संज्ञा ।
         लेखः भवति लेखः योगः १ ।
@@ -7385,6 +7429,7 @@
     रिक्ता ॱ खण्डाङ्कः भवति ० ।
     रिक्ता ॱ स्थापनम् भवति संज्ञानिर्दिष्टनिवेशः ।
     रिक्ता ॱ वैश्विकम् भवति असत्यम् ।
+    रिक्ता ॱ दुर्बलम् भवति असत्यम् ।
     फलम् अङ्कः ० अन्तः भवति रिक्ता ।
 
     ॰ INDEX १ — THE SECTION SYMBOL FOR `ॱपाठ`, WHICH IS WHAT A `%pcrel_lo`
@@ -7414,6 +7459,7 @@
     पाठखण्डा ॱ खण्डाङ्कः भवति ० ।
     पाठखण्डा ॱ स्थापनम् भवति संज्ञापाठनिवेशः ।
     पाठखण्डा ॱ वैश्विकम् भवति असत्यम् ।
+    पाठखण्डा ॱ दुर्बलम् भवति असत्यम् ।
     फलम् अङ्कः १ अन्तः भवति पाठखण्डा ।
 
     चरः लेखः ॱॱ न६४ भवति २ ।
@@ -7430,11 +7476,11 @@
     ॰ label defines becomes an UNDEFINED symbol, global, so another object's
     ॰ export can resolve it — kosha.rs:240. A name asked for twice gets ONE
     ॰ symbol, or two records would name two indices for one thing.
+    ॰ THE LOOP ENDS BY ITS BOUND, NOT BY A RETURN: an early `प्रत्यागमनम्` here
+    ॰ left the data-only loop below unreachable (measured: the weak data case).
     चरः प्रतीक्षाक्रमः ॱॱ न६४ भवति १ ।
-    यावत् प्रतीक्षाक्रमः बृहत्समम् १ आदि
-        यदि प्रतीक्षाक्रमः अधिकम् प्रतीक्षासूचकाङ्क आदि
-            प्रत्यागमनम् फलम् ।
-        इति
+    चरः प्रतीक्षासीमा ॱॱ न६४ भवति प्रतीक्षासूचकाङ्क योगः १ ।
+    यावत् प्रतीक्षाक्रमः न्यूनम् प्रतीक्षासीमा आदि
         चरः लम्बिता ॱॱ प्रतीक्षा भवति प्रतीक्षाकोश अङ्कः प्रतीक्षाक्रमः अन्तः ।
         चरः लम्बितनाम ॱॱ अङ्कः अन्तः अ८ भवति लम्बिता ॱ नाम ।
         यदि संज्ञासूचकाङ्कः आरभ्य फलम् ऽ लम्बितनाम समाप्तम् समम् ० आदि
@@ -7444,10 +7490,35 @@
             अनिर्दिष्टा ॱ खण्डाङ्कः भवति ० ।
             अनिर्दिष्टा ॱ स्थापनम् भवति संज्ञानिर्दिष्टनिवेशः ।
             अनिर्दिष्टा ॱ वैश्विकम् भवति सत्यम् ।
+            अनिर्दिष्टा ॱ दुर्बलम् भवति दुर्बलत्वम् आरभ्य कार्यक्रमः ऽ लम्बितनाम समाप्तम् ।
             फलम् अङ्कः लेखः अन्तः भवति अनिर्दिष्टा ।
             लेखः भवति लेखः योगः १ ।
         इति
         प्रतीक्षाक्रमः भवति प्रतीक्षाक्रमः योगः १ ।
+    इति
+
+    ॰ A NAME ONLY A `.rela.data` RECORD ASKS FOR IS ALSO UNDEFINED. The loop above
+    ॰ sees code references only; a data-only reference (`॥ अष्टाष्टकाः X ॥`)
+    ॰ gave no symbol, so the record's index fell to ०, the empty-named symbol,
+    ॰ and an undefined WEAK name could not reach the linker as weak.
+    चरः निर्देशक्रमः ॱॱ न६४ भवति ० ।
+    यावत् निर्देशक्रमः न्यूनम् वाक्यविभागॱस्थाननिर्देशकोश ॱ दैर्घ्य आदि
+        चरः निर्देशः ॱॱ वाक्यविभागॱस्थाननिर्देश भवति वाक्यविभागॱस्थाननिर्देशकोश अङ्कः निर्देशक्रमः अन्तः ।
+        यदि निर्देशः असमम् शून्यम् आदि
+            चरः निर्देशनाम ॱॱ अङ्कः अन्तः अ८ भवति निर्देशः ॱ नाम ।
+            यदि संज्ञासूचकाङ्कः आरभ्य फलम् ऽ निर्देशनाम समाप्तम् समम् ० आदि
+                चरः अनिर्दिष्टा ॱॱ वास्तुॱवस्तुसंज्ञा भवति ० ।
+                अनिर्दिष्टा ॱ नाम भवति निर्देशनाम ।
+                अनिर्दिष्टा ॱ मूल्यम् भवति ० ।
+                अनिर्दिष्टा ॱ खण्डाङ्कः भवति ० ।
+                अनिर्दिष्टा ॱ स्थापनम् भवति संज्ञानिर्दिष्टनिवेशः ।
+                अनिर्दिष्टा ॱ वैश्विकम् भवति सत्यम् ।
+                अनिर्दिष्टा ॱ दुर्बलम् भवति दुर्बलत्वम् आरभ्य कार्यक्रमः ऽ निर्देशनाम समाप्तम् ।
+                फलम् अङ्कः लेखः अन्तः भवति अनिर्दिष्टा ।
+                लेखः भवति लेखः योगः १ ।
+            इति
+        इति
+        निर्देशक्रमः भवति निर्देशक्रमः योगः १ ।
     इति
 
     प्रत्यागमनम् फलम् ।

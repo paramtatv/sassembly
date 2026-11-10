@@ -5,7 +5,7 @@
 ॰ Every `.t1` source's declarations, in ONE store keyed by module, so that a
 ॰ qualified use `मण्डलॱनाम` and a qualified type position can be looked up
 ॰ against the MEMBER the module declares and not only against the import.
-॰ W-223's audit (a peer session, 2026-09-04) found all three of its premises false:
+॰ W-223's audit (sansos-30, 2026-09-04) found all three of its premises false:
 ॰ there is no export table, `व्याकर` holds the ONE source it parsed, and the
 ॰ harness parses one file at a time. This module is the space those premises
 ॰ assumed. It copies — `सङ्ग्रहः` reads `व्याकर`'s arenas after a parse and
@@ -14,7 +14,7 @@
 ॰
 ॰ Twin: `nirvahana.rs`'s loader tables (`Interpreter::declarations`, W-224's
 ॰ order-independent load), pinned in `t1_sources.rs` as `STORE_SYMBOLS`; the
-॰ census `measure_corpus_qualified_uses` (t1_paradigm_names.rs) asserts the two
+॰ census `measure_corpus_qualified_uses` (tools/golden/sadhana-t1/src/measure_corpus_qualified_uses.awk) asserts the two
 ॰ twins hold the same modules, names, kinds and types.
 ॰
 ॰ Kinds are `व्याकर`'s own: १ routine, २ type (संरचना), ३ machine, ४ global,
@@ -389,8 +389,7 @@
         चरः घोषणा ॱॱ व्याकरॱघोषणा भवति व्याकरॱघोषणाकोश अङ्कः क्रमः अन्तः ।
         यदि घोषणा असमम् शून्यम् आदि
             यदि घोषणा ॱ भेद समम् व्याकरॱवृत्तिघोषणाभेद आदि
-                चरः घोषणाचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः घोषणा ॱ नामसूचकाङ्क अन्तः ।
-                यदि सञ्चयपाठसाम्यम् आरभ्य पदविभागॱचिह्नकपाठः घोषणाचिह्नकम् ऽ नाम समाप्तम् समम् सत्यम् आदि
+                यदि पदविभागॱचिह्नकपाठसाम्यम् आरभ्य घोषणा ॱ नामसूचकाङ्क ऽ नाम समाप्तम् समम् सत्यम् आदि
                     प्रत्यागमनम् क्रमः ।
                 इति
             इति
@@ -520,8 +519,7 @@
     चरः प्राचलक्रमः ॱॱ अ६४ भवति घोषणा ॱ प्राचलादि ।
     यावत् प्राचलक्रमः न्यूनम् आरभ्य घोषणा ॱ प्राचलान्त योगः १ समाप्तम् आदि
         चरः प्राचलम् ॱॱ व्याकरॱप्राचल भवति व्याकरॱप्राचलकोश अङ्कः प्राचलक्रमः अन्तः ।
-        चरः प्राचलचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः प्राचलम् ॱ नामसूचकाङ्क अन्तः ।
-        यदि सञ्चयपाठसाम्यम् आरभ्य पदविभागॱचिह्नकपाठः प्राचलचिह्नकम् ऽ प्रत्यागतपाठ समाप्तम् समम् सत्यम् आदि
+        यदि पदविभागॱचिह्नकपाठसाम्यम् आरभ्य प्राचलम् ॱ नामसूचकाङ्क ऽ प्रत्यागतपाठ समाप्तम् समम् सत्यम् आदि
             यदि खण्डप्राचलम् प्राचलम् ॱ प्रकारसूचकाङ्क समम् सत्यम् आदि
                 चरः प्राचलस्थानम् ॱॱ न६४ भवति प्राचलक्रमः वियोगः घोषणा ॱ प्राचलादि ।
                 प्रत्यागमनम् प्राचलस्थानम् योगः १ ।

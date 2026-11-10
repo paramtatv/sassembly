@@ -74,7 +74,7 @@ ZERO16=00000000000000000000000000000000
 # not assemble, and a check that lets `sadhana` fail into `set -e` says nothing
 # about which line was wrong.
 assemble() {
-    if ! cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    if ! "$root/tools/sadhana-native.sh" \
             --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1; then
         echo "RED: spec/journal.sas did not assemble at $1 —"
         sed 's/^/    /' "$tmp/asm.log"
@@ -156,10 +156,10 @@ cycle() {  # $1 = elf, $2 = disk, $3 = where to leave the cleaned output
     LC_ALL=C tr -d '\r' < "$tmp/raw" > "$3"
 }
 
-verdict() { grep -E '^JOURNAL-[A-Z-]+$' "$1" | tail -1; }
+verdict() { grep -aE '^JOURNAL-[A-Z-]+$' "$1" | tail -1; }
 # Sixteen hex digits alone on a line — the shape the छापनम् helper prints. OpenSBI's
 # own hexadecimal is written `0x…` with a label, so it cannot collide.
-value()   { grep -E '^[0-9a-f]{16}$'   "$1" | tail -1; }
+value()   { grep -aE '^[0-9a-f]{16}$'   "$1" | tail -1; }
 
 fail=0
 note() { echo "  FAIL  $*"; fail=1; }
@@ -275,7 +275,7 @@ echo
 for f in "$tmp"/u1.out "$tmp"/u2.out "$tmp"/c1.out "$tmp"/c2.out "$tmp"/c3.out; do
     [ -f "$f" ] || continue
     for tag in NO-DEVICE NO-QUEUE IO-FAILED; do
-        if grep -q "^JOURNAL-$tag\$" "$f"; then
+        if grep -aq "^JOURNAL-$tag\$" "$f"; then
             echo "  note  the driver reported $tag in $(basename "$f")"
         fi
     done

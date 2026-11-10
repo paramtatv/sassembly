@@ -107,7 +107,7 @@ aksara_word    = aksara , { aksara } ;
 
 (* --- numerals -------------------------------------------------------- *)
 
-(* Exactly what crates/sanskrit-text/src/numeral.rs already accepts. The
+(* Exactly what crates/sadhana-t1/src/sanskrit_text.t1 accepts (the retired Rust numeral module did the same). The
    prefixes are Sanskrit words rather than Latin letters (0x, 0b), and hex
    digits 10–15 are अ आ इ ई उ ऊ — never free-standing, always behind the
    ०षोड् prefix, so a reader cannot mistake them for an identifier. *)

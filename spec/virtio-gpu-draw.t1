@@ -3,7 +3,7 @@
 
 ॰ प्रथमबिन्दु — ROW C-015's PICTURE, C-009's OWN: a ६४ x ३२ frame of ०x११२२३३
 ॰ with exactly one pixel of ०xc४७b२a at (१, १), carried to the screen by
-॰ spec/darshaka.t1 (the driver the GPU-driver project's v0.5.0 render also uses). The odd pixel's
+॰ spec/darshaka.t1 (the driver Uru's v0.5.0 render also uses). The odd pixel's
 ॰ place is what makes the pitch falsifiable: a wrong stride still paints a
 ॰ screen, but paints that pixel somewhere else.
 ॰

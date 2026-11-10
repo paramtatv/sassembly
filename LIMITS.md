@@ -1,4 +1,18 @@
-# Sassembly v1.1.0: verified limits
+# Sassembly v1.2: limits
+
+This page lists what a Sassembly v1.2 program can and cannot do. Section 1 is the v1.2 refresh: a native-versus-reference-interpreter probe run on `aarch64-macos` (49 probes, 0 with different stdout) and the open items. Section 2 is the per-capability table verified for v1.1.0 (2026-10-10). It was **not** re-run for v1.2; where section 1 and section 2 differ, section 1 holds. The `x86_64-macos` column was last probed on 2026-10-10.
+
+## 1. v1.2 refresh
+
+- **Native parity.** 49 probes on `aarch64-macos`: 44 agree with the reference interpreter in exit code and stdout; 5 differ in exit code only (native 3, interpreter 0): `csr_satp_write`, `csr_sie_read`, `csr_stvec_write`, `csr_time`, `store_into_code`. Stdout is the same in all 49. Halt, exit-code, step-ceiling and infinite-loop (SpinForever) behaviour agree.
+- **Python 3 is still required** by the native route: the RV64-to-native translator is run through `tools/native-spike/anuvada.py` (the reference translator), and `tools/t1-interp/yantra-run` is a wrapper around a Python shim. Retiring Python is not done in v1.2.
+- **Not available:** an entropy source; an outbound TCP client; Windows (no build); wasm32 is the integer subset only (no F/D, files or devices).
+- **Still through the reference interpreter:** threads (up to 64), event replay, SMP, floating point (F/D), atomics (A), vectors (V), most CSRs, SBI calls. `YANTRA_WATERMARK` and `VERDICT` still fall back on macOS.
+- **Memory.** Default guest RAM 20 MiB (plus 16 MiB headroom). The compiler's record region is 512 MiB (536,870,912 octets), reclaimed in place.
+- **Counts (2026-10-10 table below):** 82 rows: native 23, native/fallback 3, fallback 48, refused 1, missing 7. 71 probe programs: fallback 36, native 13, native-halt 22.
+- **Open, not verified for v1.2:** the whole-tree release gate verdict; a re-probe on `x86_64-macos`; U-mode application kind (no probe); 188 of 211 `yantra-run` call sites in the tooling still go through the Python shim.
+
+## 2. Verified for v1.1.0 (not re-run for v1.2)
 
 This page lists what a Sassembly v1.1.0 program can and cannot do. It is rewritten row by row for v1.1.0, and it keeps **only results that were verified**. Each claim was run on the four native targets (`x86_64-linux`, `aarch64-linux`, `aarch64-macos`, `x86_64-macos`) and under `yantra-run`. The release Stage 1 is `e0adbb0f…` (`sassembly-v1.1.0-stage1.elf`). Every probe image was built natively on each target, and the images were **byte-identical across all four**. The threads, files, randomness, memory and `YANTRA_RAM` rows were re-run with the release compiler and tools. The other rows were run with the previous v1.1.0 candidate compiler (`3476d012…`), which differs from the release compiler only in fork-join's region-purity checks. Every native result (exit status, halt line, stdout) was the same on all four targets. The only exception is a random draw, which differs by design.
 

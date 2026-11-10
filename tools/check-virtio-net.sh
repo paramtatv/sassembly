@@ -19,7 +19,7 @@ prog=$root/spec/virtio-net.sas
 }
 
 echo "Assembling..."
-cargo run -q -p sadhana -- --स्थान ०षोड्८०२००००० "$prog" "$tmp/vn.elf" || {
+"$root/tools/sadhana-native.sh" --स्थान ०षोड्८०२००००० "$prog" "$tmp/vn.elf" || {
   echo "Assembly failed."
   exit 1
 }

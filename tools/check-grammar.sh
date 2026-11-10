@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # Task B-034b — the tree-sitter grammar must agree with sadhana's parse.
 #
 # Checked by COUNTING, in both directions, against `spec/parse-shape-t0.tsv`.
@@ -49,15 +51,15 @@ if ! (cd "$GRAMMAR" && tree-sitter generate --js-runtime native >/dev/null 2>&1)
     exit 1
 fi
 
-python3 - "$GRAMMAR" "$ORACLE" <<'PY'
-import re, subprocess, sys, pathlib, collections
-
-grammar_dir, oracle_path = sys.argv[1], sys.argv[2]
-root = pathlib.Path('.')
+# The comparison is plain shell (awk/sort/comm); no interpreter is involved.
+export LC_ALL=C
+TAB=$(printf '\t')
+T=$(mktemp -d "${TMPDIR:-/tmp}/check-grammar.XXXXXX") || exit 1
+trap 'rm -rf "$T"' EXIT
 
 # The kinds the oracle records. A node kind this grammar produces that is not
 # here is invisible to the comparison, so the list is asserted below.
-KINDS = {'instruction', 'label', 'directive'}
+KINDS="directive instruction label"
 
 # THE ORACLE DEFINES THE CORPUS, so it is read before the sources and not after.
 #
@@ -75,120 +77,142 @@ KINDS = {'instruction', 'label', 'directive'}
 # _programs` already enforces file<->row correspondence in BOTH directions, so a
 # new `spec/` program cannot hide here by simply having no oracle row — that
 # test goes red first.
-oracle_files = set()
-for line in pathlib.Path(oracle_path).read_text(encoding='utf-8').splitlines():
-    f = line.split('\t')
-    if len(f) == 4 and f[0] != 'file' and not line.startswith('#'):
-        oracle_files.add(f[0])
+awk -F'\t' 'BEGIN { OFS = "\t" }
+    /^#/ { next }
+    $0 ~ /^[ \t\r\n\f\v]*$/ { next }
+    NF == 4 && $1 != "file" { print $1, $2 + 0, $3, $4 }' "$ORACLE" | sort -u > "$T/oracle"
+cut -f1 "$T/oracle" | sort -u > "$T/oracle_files"
 
-found = sorted(str(p) for p in root.glob('**/*.sas') if 'target/' not in str(p))
-sources = [s for s in found if s in oracle_files]
-skipped = [s for s in found if s not in oracle_files]
-if not sources:
-    print("  FAIL  no .sas files found — this check would pass having compared nothing")
-    sys.exit(1)
-if skipped:
-    print(f"  note  {len(skipped)} .sas file(s) carry no oracle row and are not T0 corpus:")
-    for s in skipped[:4]:
-        print(f"          {s}")
-    if len(skipped) > 4:
-        print(f"          ... and {len(skipped) - 4} more")
+find . -name '*.sas' | sed 's|^\./||' | grep -v 'target/' | sort -u > "$T/found"
+comm -12 "$T/found" "$T/oracle_files" > "$T/sources"
+comm -23 "$T/found" "$T/oracle_files" > "$T/skipped"
+nsources=$(wc -l < "$T/sources" | tr -d ' ')
+nskipped=$(wc -l < "$T/skipped" | tr -d ' ')
+if [ "$nsources" -eq 0 ]; then
+    echo "  FAIL  no .sas files found — this check would pass having compared nothing"
+    exit 1
+fi
+if [ "$nskipped" -gt 0 ]; then
+    echo "  note  $nskipped .sas file(s) carry no oracle row and are not T0 corpus:"
+    head -4 "$T/skipped" | while IFS= read -r s; do echo "          $s"; done
+    if [ "$nskipped" -gt 4 ]; then
+        echo "          ... and $((nskipped - 4)) more"
+    fi
+fi
 
-NODE = re.compile(r'\((\w+) \[(\d+), (\d+)\] - \[(\d+), (\d+)\]')
-
-mine = set()
-rules_seen = collections.Counter()
-errors = []
-
-for src in sources:
-    # Absolute: tree-sitter runs with cwd=grammar_dir so it finds the parser,
+# Row for row: tree-sitter prints `(kind [r, c] - [r, c]` for each node. The
+# name is the statement's `name:` field — the next node in the sexp (within two
+# nodes). Its bytes are read out of the source (byte columns, hence LC_ALL=C)
+# rather than re-derived, so this compares what the parser saw and not what
+# this script thinks the syntax is. A label's name excludes the `ॱॱ` mark, as
+# the oracle records the label, not the mark.
+: > "$T/mine.raw"; : > "$T/rules"; : > "$T/errors"
+here=$(pwd -P)
+while IFS= read -r src; do
+    # Absolute: tree-sitter runs with cwd=grammar dir so it finds the parser,
     # and a path relative to the repo root would silently not exist there. The
     # first version did exactly that, found 0 nodes in all 39 files, and this
     # check reported 179 disagreements rather than a pass — which is the whole
     # point of comparing against an oracle instead of counting errors.
-    out = subprocess.run(['tree-sitter', 'parse', str(pathlib.Path(src).resolve())],
-                         cwd=grammar_dir, capture_output=True, text=True)
     # `tree-sitter parse` exits non-zero when the tree contains an ERROR, and
     # prints the tree either way. Both are wanted: the tree to compare, the
     # status to report.
-    tree = out.stdout
-    if 'ERROR' in tree or 'MISSING' in tree:
-        errors.append(f"{src}: parse tree contains ERROR/MISSING")
+    (cd "$GRAMMAR" && tree-sitter parse "$here/$src" 2>/dev/null) > "$T/tree"
+    awk -v src="$src" -v mine="$T/mine.raw" -v rules="$T/rules" -v errs="$T/errors" '
+        BEGIN {
+            re = "\\([A-Za-z0-9_]+ \\[[0-9]+, [0-9]+\\] - \\[[0-9]+, [0-9]+\\]"
+            mark = "\340\245\261\340\245\261"
+        }
+        FNR == NR { L[FNR - 1] = $0; next }
+        {
+            if (index($0, "ERROR") || index($0, "MISSING")) bad = 1
+            s = $0
+            while (match(s, re)) {
+                piece = substr(s, RSTART, RLENGTH)
+                s = substr(s, RSTART + RLENGTH)
+                n++
+                K[n] = substr(piece, 2, index(piece, " ") - 2)
+                rest = substr(piece, index(piece, "["))
+                gsub(/[^0-9]+/, " ", rest)
+                split(rest, a, " ")
+                R[n] = a[1] + 0; C[n] = a[2] + 0; E[n] = a[4] + 0
+            }
+        }
+        END {
+            if (bad) print src ": parse tree contains ERROR/MISSING" >> errs
+            for (i = 1; i <= n; i++) {
+                kind = K[i]
+                print kind >> rules
+                if (kind != "instruction" && kind != "label" && kind != "directive") continue
+                found = 0
+                for (j = i + 1; j <= i + 2 && j <= n; j++) {
+                    if (K[j] == "mnemonic" || K[j] == "label_name" || K[j] == "word") {
+                        name = substr(L[R[j]], C[j] + 1, E[j] - C[j])
+                        found = 1
+                        break
+                    }
+                }
+                if (!found) {
+                    print src ":" (R[i] + 1) ": " kind " with no name node" >> errs
+                    continue
+                }
+                if (kind == "label" && length(name) >= 6 && substr(name, length(name) - 5) == mark)
+                    name = substr(name, 1, length(name) - 6)
+                print src "\t" (R[i] + 1) "\t" kind "\t" name >> mine
+            }
+        }' "$src" "$T/tree"
+done < "$T/sources"
+sort -u "$T/mine.raw" > "$T/mine"
 
-    lines = (root / src).read_bytes().split(b'\n')
-    nodes = [(m.group(1), int(m.group(2)), int(m.group(3)), int(m.group(5)), m.end())
-             for m in NODE.finditer(tree)]
-    for i, (kind, row, col, endcol, pos) in enumerate(nodes):
-        rules_seen[kind] += 1
-        if kind not in KINDS:
-            continue
-        # The name is the statement's `name:` field — the next node in the
-        # sexp. Read its bytes out of the source rather than re-deriving it,
-        # so this compares what the parser saw and not what this script thinks
-        # the syntax is.
-        name = None
-        for (k2, r2, c2, e2, _) in nodes[i + 1:i + 3]:
-            if k2 in ('mnemonic', 'label_name', 'word'):
-                name = lines[r2][c2:e2].decode('utf-8')
-                break
-        if name is None:
-            errors.append(f"{src}:{row+1}: {kind} with no name node")
-            continue
-        # A label's name excludes the `ॱॱ` that marks it, as the oracle records
-        # the label, not the mark.
-        if kind == 'label':
-            name = name.removesuffix('ॱॱ')
-        mine.add((src, row + 1, kind, name))
+if [ ! -s "$T/oracle" ]; then
+    echo "  FAIL  parsed 0 rows out of $ORACLE — its format moved"
+    exit 1
+fi
 
-oracle = set()
-for line in pathlib.Path(oracle_path).read_text(encoding='utf-8').splitlines():
-    if line.startswith('#') or not line.strip():
-        continue
-    f = line.split('\t')
-    if len(f) != 4 or f[0] == 'file':
-        continue
-    oracle.add((f[0], int(f[1]), f[2], f[3]))
-
-if not oracle:
-    print(f"  FAIL  parsed 0 rows out of {oracle_path} — its format moved")
-    sys.exit(1)
-
-missing = oracle - mine     # sadhana saw it, the grammar did not
-extra = mine - oracle       # the grammar invented it
+comm -23 "$T/oracle" "$T/mine" > "$T/missing.u"     # sadhana saw it, the grammar did not
+comm -13 "$T/oracle" "$T/mine" > "$T/extra.u"       # the grammar invented it
+srt() { sort -t "$TAB" -k1,1 -k2,2n -k3,3 -k4,4 "$1"; }
+srt "$T/missing.u" > "$T/missing"
+srt "$T/extra.u" > "$T/extra"
+cnt() { wc -l < "$1" | tr -d ' '; }
+nor=$(cnt "$T/oracle"); nmi=$(cnt "$T/mine")
 
 # Counts by kind, which is what catches statements swallowed wholesale.
-print("  kind          oracle   grammar")
-for k in sorted(KINDS):
-    o = sum(1 for r in oracle if r[2] == k)
-    g = sum(1 for r in mine if r[2] == k)
-    flag = '' if o == g else '   <-- DISAGREES'
-    print(f"  {k:<12} {o:>7} {g:>9}{flag}")
-print(f"  {'total':<12} {len(oracle):>7} {len(mine):>9}")
+echo "  kind          oracle   grammar"
+for k in $KINDS; do
+    o=$(awk -F'\t' -v k="$k" '$3 == k { n++ } END { print n + 0 }' "$T/oracle")
+    g=$(awk -F'\t' -v k="$k" '$3 == k { n++ } END { print n + 0 }' "$T/mine")
+    flag=''
+    [ "$o" -eq "$g" ] || flag='   <-- DISAGREES'
+    printf '  %-12s %7d %9d%s\n' "$k" "$o" "$g" "$flag"
+done
+printf '  %-12s %7d %9d\n' total "$nor" "$nmi"
 
 # Every declared rule must fire. A rule that never matches is a rule that is
 # not doing what it says, and the parse stays clean while it happens.
-declared = set(re.findall(r'^    (\w+): \$ =>',
-                          pathlib.Path(grammar_dir + '/grammar.js').read_text(), re.M))
 # A leading underscore means HIDDEN: tree-sitter inlines those rules and they
 # can never appear as a node, so demanding they fire would fail forever and the
 # real assertion below would be discarded to silence it.
-declared = {d for d in declared if not d.startswith('_')} - {'source_file'}
-never = sorted(d for d in declared if rules_seen[d] == 0)
-if never:
-    print(f"\n  FAIL  declared but never matched anywhere in {len(sources)} files: {never}")
-    print("        a rule that cannot fire is not a rule; the corpus still parses clean")
+sort -u "$T/rules" > "$T/rules.u"
+awk '/^    [A-Za-z0-9_]+: \$ =>/ { s = $1; sub(/:$/, "", s); print s }' "$GRAMMAR/grammar.js" \
+    | grep -v '^_' | grep -vx 'source_file' | sort -u > "$T/declared" || true
+comm -23 "$T/declared" "$T/rules.u" > "$T/never"
+nnever=$(cnt "$T/never")
+if [ "$nnever" -gt 0 ]; then
+    list=$(awk 'BEGIN { printf "[" } { printf "%s'"'"'%s'"'"'", (NR > 1 ? ", " : ""), $0 } END { printf "]" }' "$T/never")
+    printf '\n  FAIL  declared but never matched anywhere in %s files: %s\n' "$nsources" "$list"
+    echo "        a rule that cannot fire is not a rule; the corpus still parses clean"
+fi
 
-for e in errors[:10]:
-    print(f"  FAIL  {e}")
-for r in sorted(missing)[:10]:
-    print(f"  FAIL  sadhana parsed {r[2]} `{r[3]}` at {r[0]}:{r[1]}; the grammar did not")
-for r in sorted(extra)[:10]:
-    print(f"  FAIL  the grammar invented {r[2]} `{r[3]}` at {r[0]}:{r[1]}")
+head -10 "$T/errors" | while IFS= read -r e; do echo "  FAIL  $e"; done
+head -10 "$T/missing" | awk -F'\t' '{ printf "  FAIL  sadhana parsed %s `%s` at %s:%s; the grammar did not\n", $3, $4, $1, $2 }'
+head -10 "$T/extra" | awk -F'\t' '{ printf "  FAIL  the grammar invented %s `%s` at %s:%s\n", $3, $4, $1, $2 }'
 
-if missing or extra or errors or never:
-    n = len(missing) + len(extra) + len(errors) + len(never)
-    print(f"\n{n} disagreement(s) with sadhana. The grammar is not the language.")
-    sys.exit(1)
+nmis=$(cnt "$T/missing"); nex=$(cnt "$T/extra"); nerr=$(cnt "$T/errors")
+if [ "$nmis" -gt 0 ] || [ "$nex" -gt 0 ] || [ "$nerr" -gt 0 ] || [ "$nnever" -gt 0 ]; then
+    n=$((nmis + nex + nerr + nnever))
+    printf '\n%s disagreement(s) with sadhana. The grammar is not the language.\n' "$n"
+    exit 1
+fi
 
-print(f"\ngrammar agrees with sadhana on all {len(oracle)} statements in {len(sources)} files.")
-PY
+printf '\ngrammar agrees with sadhana on all %s statements in %s files.\n' "$nor" "$nsources"

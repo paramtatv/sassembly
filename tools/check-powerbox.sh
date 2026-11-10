@@ -113,7 +113,7 @@ same() {
 # assemble, and a check that lets the assembler fall into `set -e` says nothing
 # about which line was wrong.
 assemble() {
-    if ! cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    if ! "$root/tools/sadhana-native.sh" \
             --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1; then
         echo "RED: powerbox.sas did not assemble at $1 —"
         sed 's/^/    /' "$tmp/asm.log"
@@ -349,7 +349,7 @@ grant() {  # $1 = elf, $2 = label, $3 = which file the user picks
     # directory, and the one granted file. This is counted at the virtqueue,
     # not asserted by the program's prose.
     same "$tag: the device was asked for exactly three sectors" \
-         "$(grep -aA1 '^POWERBOX-READS$' "$out" | tail -1)" 0000000000000003
+         "$(grep -a -aA1 '^POWERBOX-READS$' "$out" | tail -1)" 0000000000000003
 
     # WITNESS 2: the other files' contents never appear. They are on the disk
     # (asserted above) and they are random, so their absence here is the app

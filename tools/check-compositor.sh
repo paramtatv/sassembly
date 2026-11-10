@@ -79,145 +79,140 @@ prog=$root/spec/compositor.sas
 # there would assemble with an assembler that is not the one in the tree — and
 # still print `ok`. Waiting for a lock is cheaper than measuring the wrong
 # build and believing it.
-# (assemble() below calls `cargo run -p sadhana` directly.)
+# (assemble() below calls tools/sadhana-native.sh.)
 
 command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "SKIPPED: qemu-system-riscv64 is not installed"
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
 
-# Unlike C-009, python3 is not optional here: the entire measurement is a
-# screendump read pixel by pixel, and there is nothing left to check without it.
-command -v python3 >/dev/null 2>&1 || {
-  echo "SKIPPED: python3 is not installed, and the only QMP client available to a"
-  echo "         POSIX shell is a python one. Nothing here can look at the host's"
-  echo "         framebuffer without it. Exiting 77 rather than 0."
-  exit 77; }
-
-# ---- QMP: connect, negotiate, screendump, leave -----------------------------
-cat > "$tmp/shot.py" <<'PY'
-import json, socket, sys, time
-sock_path, out = sys.argv[1], sys.argv[2]
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-for _ in range(100):                       # QEMU may not have bound it yet
-    try:
-        s.connect(sock_path)
-        break
-    except OSError:
-        time.sleep(0.1)
-else:
-    sys.exit("could not connect to the QMP socket")
-f = s.makefile('rw', encoding='utf-8', newline='\n')
-f.readline()                               # the greeting
-def cmd(c):
-    f.write(json.dumps(c) + '\n')
-    f.flush()
-    while True:
-        line = f.readline()
-        if not line:
-            sys.exit("QMP closed mid-command")
-        m = json.loads(line)
-        if 'error' in m:
-            sys.exit("QMP error: %s" % m['error'])
-        if 'return' in m:
-            return m['return']
-cmd({'execute': 'qmp_capabilities'})
-cmd({'execute': 'screendump', 'arguments': {'filename': out}})
-PY
+. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the python heredoc)
 
 # ---- the PPM reader ---------------------------------------------------------
 #
-# argv: <mode> <file> <label>.  mode `clean` demands one composite; mode `torn`
-# demands the control's deliberate mix. Channels are read as flat byte slices,
-# not as tuples: 2073600 pixels three times over per sample is only cheap if the
-# counting stays inside libc.
-cat > "$tmp/pixels.py" <<'PY'
-import sys
-
-W, H = 1920, 1080
-LAYERS = [(0x11, 0x22, 1173600, "background"),
-          (0xc4, 0x7b,  300000, "layer 1 900x500 at (100,100)"),
-          (0x2a, 0xd0,  600000, "layer 2 1000x600 at (500,300)")]
-
-mode, path, label = sys.argv[1], sys.argv[2], sys.argv[3]
-data = open(path, 'rb').read()
-
-fields, i = [], 0
-while len(fields) < 4:                      # P6, width, height, maxval
-    while i < len(data) and data[i:i+1].isspace():
-        i += 1
-    j = i
-    while j < len(data) and not data[j:j+1].isspace():
-        j += 1
-    if j == i:
-        print("  FAIL  %s: the screendump is not a readable PPM" % label)
-        sys.exit(1)
-    fields.append(data[i:j]); i = j
-i += 1
-px = data[i:]
-
-bad = 0
-def fail(msg):
-    global bad
-    print("  FAIL  %s: %s" % (label, msg)); bad = 1
-def note(msg):
-    print("        " + msg)
-
-if fields[0] != b'P6':
-    fail("the screendump is %r, not the P6 a screendump returns" % fields[0])
-    sys.exit(1)
-w, h = int(fields[1]), int(fields[2])
-if (w, h) != (W, H):
-    fail("the screen is %dx%d; SET_SCANOUT asked for %dx%d" % (w, h, W, H))
-    sys.exit(1)
-if len(px) < w * h * 3:
-    fail("the screendump holds %d bytes of pixels, %d expected" % (len(px), w*h*3))
-    sys.exit(1)
-px = px[:w * h * 3]
-
-red, green, blue = px[0::3], px[1::3], px[2::3]
-blues = sorted(set(blue))
-
-if mode == 'torn':
-    # The CONTROL. Two blue values is the whole point of this sample.
-    print("  control       %dx%d, blue values on screen: %s"
-          % (w, h, ", ".join("%02x x%d" % (b, blue.count(b)) for b in blues)))
-    if len(blues) < 2:
-        fail("the deliberately torn frame shows %d blue value(s), not 2." % len(blues))
-        note("The guest repainted half of the buffer it was scanning out and")
-        note("said so on the serial line, and this screendump did not see it.")
-        note("The detector is blind, so its verdict on the loop means nothing.")
-    sys.exit(bad)
-
-# mode == 'clean'
-counts = [(r, g, want, name, red.count(r), green.count(g)) for r, g, want, name in LAYERS]
-print("  %-12s blue %02x   layers %s" % (label, blues[0] if len(blues) == 1 else 0,
-      "/".join(str(c[4]) for c in counts)))
-if len(blues) != 1:
-    fail("TORN — %d distinct blue values on one presented frame: %s"
-         % (len(blues), ", ".join("%02x x%d" % (b, blue.count(b)) for b in blues)))
-    note("Every pixel of composite k carries k in its blue byte, so more than")
-    note("one blue value means the host is showing parts of two composites.")
-for r, g, want, name, gotr, gotg in counts:
-    if gotr != want:
-        fail("%s: %d pixels of red %02x, %d expected" % (name, gotr, r, want))
-    if gotg != want:
-        fail("%s: %d pixels of green %02x, %d expected" % (name, gotg, g, want))
-if len(set(red)) != 3:
-    fail("the screen holds %d red values, not the 3 the three layers paint"
-         % len(set(red)))
-if not bad:
-    print("RESULT %02x" % blues[0])
-sys.exit(bad)
-PY
+# pixels <mode> <file> <label>.  mode `clean` demands one composite; mode `torn`
+# demands the control's deliberate mix. POSIX sh + od/awk, no interpreter:
+#   1. pixels-hdr.awk reads the first bytes (od -tu1) and prints
+#      "<fields> <pixel offset> <magic> <width> <height>" the way a PPM
+#      tokenises: four whitespace-separated fields, then ONE whitespace byte;
+#   2. the pixel bytes are cut with tail/head, dumped by od -An -v -tu1, joined
+#      48 bytes (= 16 whole pixels, so channel = position mod 3) per line by
+#      paste, and collapsed by sort | uniq -c, so awk only walks the DISTINCT
+#      48-byte groups — a composite is a few thousand, not 2073600 pixels;
+#   3. pixels-cnt.awk keeps per-channel histograms and prints the verdict.
+cat > "$tmp/pixels-hdr.awk" <<'AWK'
+BEGIN { for (i = 33; i < 127; i++) chr[i] = sprintf("%c", i) }
+{
+    for (k = 1; k <= NF; k++) {
+        v = $k + 0; pos++
+        ws = (v == 32 || (v >= 9 && v <= 13))
+        if (infield) {
+            if (ws) { nf++; fld[nf] = cur; cur = ""; infield = 0; if (nf == 4) { print nf, pos, fld[1], fld[2], fld[3]; done = 1; exit } }
+            else cur = cur ((v in chr) ? chr[v] : "?")
+        } else if (!ws) { infield = 1; cur = chr[v] }
+    }
+}
+END {
+    if (done) exit
+    if (infield) { nf++; fld[nf] = cur }
+    if (nf == 4) print nf, pos + 1, fld[1], fld[2], fld[3]; else print nf + 0
+}
+AWK
+cat > "$tmp/pixels-cnt.awk" <<'AWK'
+function fail(msg) { print "  FAIL  " label ": " msg; bad = 1 }
+function note(msg) { print "        " msg }
+function blist(   b, s, first, k) {       # blue values ascending, with counts
+    s = ""; first = 1
+    for (b = 0; b < 256; b++) { k = sprintf("%02x", b)
+        if (bc[k] > 0) { s = s (first ? "" : ", ") k " x" bc[k]; first = 0 } }
+    return s
+}
+BEGIN {
+    lr[1] = "11"; lg[1] = "22"; lw[1] = 1173600; ln[1] = "background"
+    lr[2] = "c4"; lg[2] = "7b"; lw[2] = 300000;  ln[2] = "layer 1 900x500 at (100,100)"
+    lr[3] = "2a"; lg[3] = "d0"; lw[3] = 600000;  ln[3] = "layer 2 1000x600 at (500,300)"
+    for (i = 0; i < 256; i++) hx[i] = sprintf("%02x", i)
+}
+{                                          # uniq -c: count, then up to 48 bytes
+    n = $1
+    for (k = 2; k <= NF; k++) {
+        ch = (k - 2) % 3; h = hx[$k + 0]
+        if (ch == 0) rc_[h] += n; else if (ch == 1) gc[h] += n; else bc[h] += n
+    }
+}
+END {
+    w = WW + 0; h = HH + 0
+    nb = 0; for (b = 0; b < 256; b++) if (bc[hx[b]] > 0) { nb++; b1 = hx[b] }
+    nr = 0; for (b = 0; b < 256; b++) if (rc_[hx[b]] > 0) nr++
+    if (mode == "torn") {
+        # The CONTROL. Two blue values is the whole point of this sample.
+        print "  control       " w "x" h ", blue values on screen: " blist()
+        if (nb < 2) {
+            fail("the deliberately torn frame shows " nb " blue value(s), not 2.")
+            note("The guest repainted half of the buffer it was scanning out and")
+            note("said so on the serial line, and this screendump did not see it.")
+            note("The detector is blind, so its verdict on the loop means nothing.")
+        }
+        exit bad
+    }
+    # mode == "clean"
+    s = ""
+    for (j = 1; j <= 3; j++) s = s (j > 1 ? "/" : "") (rc_[lr[j]] + 0)
+    printf "  %-12s blue %s   layers %s\n", label, (nb == 1 ? b1 : "00"), s
+    if (nb != 1) {
+        fail("TORN — " nb " distinct blue values on one presented frame: " blist())
+        note("Every pixel of composite k carries k in its blue byte, so more than")
+        note("one blue value means the host is showing parts of two composites.")
+    }
+    for (j = 1; j <= 3; j++) {
+        if (rc_[lr[j]] + 0 != lw[j])
+            fail(ln[j] ": " (rc_[lr[j]] + 0) " pixels of red " lr[j] ", " lw[j] " expected")
+        if (gc[lg[j]] + 0 != lw[j])
+            fail(ln[j] ": " (gc[lg[j]] + 0) " pixels of green " lg[j] ", " lw[j] " expected")
+    }
+    if (nr != 3)
+        fail("the screen holds " nr " red values, not the 3 the three layers paint")
+    if (!bad) print "RESULT " b1
+    exit bad
+}
+AWK
+pixels() {  # $1 = mode, $2 = ppm, $3 = label; rc 1 on any failure
+    px_info=$(head -c 256 "$2" | od -An -v -tu1 | awk -f "$tmp/pixels-hdr.awk")
+    # shellcheck disable=SC2086
+    set -- "$1" "$2" "$3" $px_info
+    if [ "$#" -lt 8 ]; then
+        echo "  FAIL  $3: the screendump is not a readable PPM"; return 1
+    fi
+    if [ "$6" != "P6" ]; then
+        echo "  FAIL  $3: the screendump is b'$6', not the P6 a screendump returns"; return 1
+    fi
+    case $7$8 in *[!0-9]*|'') return 1 ;; esac
+    if [ "$7" -ne 1920 ] || [ "$8" -ne 1080 ]; then
+        echo "  FAIL  $3: the screen is ${7}x$8; SET_SCANOUT asked for 1920x1080"; return 1
+    fi
+    px_have=$(( $(wc -c < "$2") - $5 ))
+    px_need=$(( $7 * $8 * 3 ))
+    if [ "$px_have" -lt "$px_need" ]; then
+        echo "  FAIL  $3: the screendump holds $px_have bytes of pixels, $px_need expected"; return 1
+    fi
+    head -c $(( $5 + 1 - 1 + $px_need )) "$2" | tail -c +$(($5 + 1)) | od -An -v -tu1 | paste - - - |
+        LC_ALL=C sort | uniq -c |
+        awk -v mode="$1" -v label="$3" -v WW="$7" -v HH="$8" -f "$tmp/pixels-cnt.awk"
+}
 
 # The assembler's diagnostics are in Sanskrit and are the whole story when it
 # refuses, so they are kept and shown — but only when it refuses. On success it
 # announces the entry point, which would otherwise sit in the middle of the
 # report where the next reader takes it for output of the check.
 assemble() {  # $1 = link address, $2 = output elf
-    if ! cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-            --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1; then
+    asm_rc=0  # set -e: capture the rc instead of dying on it
+    "$root/tools/sadhana-native.sh" \
+            --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1 || asm_rc=$?
+    if [ "$asm_rc" -eq 77 ]; then
+        echo "SKIPPED: sadhana-native.sh exited 77 (no Stage 1 / wrapper image)"
+        exit 77
+    fi
+    if [ "$asm_rc" -ne 0 ]; then
         echo "  FAIL  compositor.sas does not assemble at $1:"
         sed 's/^/          /' "$tmp/asm.log"
         exit 1
@@ -226,7 +221,7 @@ assemble() {  # $1 = link address, $2 = output elf
 
 shot() {  # $1 = destination ppm; sets shot_err
     rm -f "$1" 2>/dev/null || true
-    shot_err=$(python3 "$tmp/shot.py" "$tmp/qmp.sock" "$1" 2>&1) || true
+    shot_err=$(qmp_shot "$tmp/qmp.sock" "$tmp" "$1" 2>&1) || true
 }
 
 # Wait for a marker on the guest's serial line. QEMU ends every line with CR;
@@ -263,7 +258,7 @@ SAMPLES=12
 fail=0
 
 echo "Assembling compositor.sas at two link addresses..."
-echo "  assembler     cargo run -p sadhana"
+echo "  assembler     tools/sadhana-native.sh"
 assemble ०षोड्८०२००००० "$tmp/comp-a.elf"
 assemble ०षोड्८०४००००० "$tmp/comp-b.elf"
 echo "  ok            both link addresses assembled"
@@ -318,7 +313,7 @@ for pair in "a:0x80200000" "b:0x80400000"; do
         echo "  FAIL  run $run_no: no screendump of the control window: ${shot_err:-empty file}"
         fail=1; stop; continue
     fi
-    python3 "$tmp/pixels.py" torn "$tmp/$name-torn.ppm" "run $run_no control" || fail=1
+    pixels torn "$tmp/$name-torn.ppm" "run $run_no control" || fail=1
 
     # ---- the measurement: many unsynchronised looks at the loop -------------
     if ! await COMPOSITOR-READY 40; then
@@ -337,7 +332,7 @@ for pair in "a:0x80200000" "b:0x80400000"; do
             fail=1; continue
         fi
         taken=$((taken + 1))
-        if res=$(python3 "$tmp/pixels.py" clean "$tmp/shot.ppm" "sample $k"); then
+        if res=$(pixels clean "$tmp/shot.ppm" "sample $k"); then
             b=$(echo "$res" | sed -n 's/^RESULT //p')
             echo "$res" | grep -v '^RESULT ' || true
             blues="$blues $b"
@@ -419,25 +414,31 @@ for pair in "a:0x80200000" "b:0x80400000"; do
     # rather than asserted" is not a licence to print a number nothing measured.
     # A zero or backwards elapsed time is not a fast run, it is an unmeasured
     # one, and it fails here by name instead of being divided into.
-    if ! python3 -c "
-import sys
-f = int('$frames_hex', 16) - 3
-t = int('$ticks_hex', 16)
-if t <= 0:
-    print('  FAIL  run $run_no: the last complete frame record reports %d elapsed' % t)
-    print('        ticks of the 10 MHz time counter, so how long this run took is')
-    print('        not known. The rate is reported here and never asserted, but an')
-    print('        unmeasured rate is not 0.0 composites+presents/s and is not')
-    print('        printed as one. Inconclusive, not a pass.')
-    sys.exit(1)
-if f <= 0:
-    print('  FAIL  run $run_no: the frame ledger ends at index 0x$frames_hex, which is')
-    print('        %d frames past the two the control presented. The tear-free loop' % f)
-    print('        presented nothing that this ledger can account for.')
-    sys.exit(1)
-s = t / 1e7
-print('  presented     %d frames of 1920x1080 in %.2f s = %.1f composites+presents/s'
-      % (f, s, f / s))"; then
+    if ! awk -v fh="$frames_hex" -v th="$ticks_hex" -v run="$run_no" '
+        function hv(s,  i, v) {
+            v = 0
+            for (i = 1; i <= length(s); i++) v = v * 16 + index("0123456789abcdef", substr(s, i, 1)) - 1
+            return v
+        }
+        BEGIN {
+            f = hv(fh) - 3; t = hv(th)
+            if (t <= 0) {
+                printf "  FAIL  run %s: the last complete frame record reports %d elapsed\n", run, t
+                print "        ticks of the 10 MHz time counter, so how long this run took is"
+                print "        not known. The rate is reported here and never asserted, but an"
+                print "        unmeasured rate is not 0.0 composites+presents/s and is not"
+                print "        printed as one. Inconclusive, not a pass."
+                exit 1
+            }
+            if (f <= 0) {
+                printf "  FAIL  run %s: the frame ledger ends at index 0x%s, which is\n", run, fh
+                printf "        %d frames past the two the control presented. The tear-free loop\n", f
+                print "        presented nothing that this ledger can account for."
+                exit 1
+            }
+            s = t / 1e7
+            printf "  presented     %d frames of 1920x1080 in %.2f s = %.1f composites+presents/s\n", f, s, f / s
+        }'; then
         fail=1
     fi
     if grep -aq '^COMPOSITOR-CMD-FAIL$' "$out"; then

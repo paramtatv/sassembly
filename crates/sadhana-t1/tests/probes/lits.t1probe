@@ -1,6 +1,6 @@
 मण्डलम् बहुमूल्यपरीक्षा ॥
 
-॰ W-356 PROBE: a LITERAL-HEAVY body, matching a peer session's mapana_g250 shape
+॰ W-356 PROBE: a LITERAL-HEAVY body, matching sansos-4b's mapana_g250 shape
 ॰ (240 literals, one per statement, each carrying an index AND a value).
 ॰ tiny.t1 with no literals read 1.00x across the window; if this reads ~13x
 ॰ the regression is in the LITERAL path and W-356 is W-346's cause.

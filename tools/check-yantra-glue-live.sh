@@ -43,24 +43,15 @@ command -v cargo >/dev/null || {
     exit 77
 }
 
-wasm=crates/yantra-wasm/target/wasm32-unknown-unknown/release/yantra_wasm.wasm
-# ॥ AND WHO IS SUPPOSED TO HAVE BUILT IT ॥ The subject comes from a DIFFERENT
-# script: `build-sassembly-web.sh` puts the module at the path above, and both
-# `check-sassembly-page.sh` and `check-sassembly-identity.sh` call it. Either
-# exits 77 on a host with no `wasm32-unknown-unknown`. So on such a host this
-# check is VACUOUS through no fault of its own, and 78 is counted as skipped and
-# never as a failure: the coverage goes away SILENTLY. Naming the producer here
-# is what makes a vacuous line say WHOSE 77 caused it rather than read as an
-# instruction to the person watching.
-#
-# WHICH of the two produces it CHANGED, and the old margin here named one line
-# number for it (`gate.sh:614`) that no longer holds. Under `gate.sh` the page
-# check now runs FIRST and hands its page to the identity check, so the module is
-# the PAGE check's output and the identity check usually builds nothing at all —
-# see `tools/lib/page-handoff.sh`. The ordering that reaches this check is still
-# not luck: `s` sorts before `y`, so `deep-gate.sh`'s `tools/check-*.sh` glob
-# reaches both sassembly checks first, and in a full cycle gate.sh has already
-# run them.
+# YANTRA_WASM=<path> uses that module; unset, the native .t1 interpreter is built (tools/build-yantra-wasm.sh), no cargo.
+ywd=$(mktemp -d) || exit 1
+wasm=${YANTRA_WASM:-}
+if [ -z "$wasm" ]; then
+    wasm=$ywd/yantra.wasm
+    rc=0; sh tools/build-yantra-wasm.sh "$wasm" >"$ywd/bw.log" 2>&1 || rc=$?
+    [ "$rc" -ne 77 ] || { rm -rf "$ywd"; echo "CANNOT RUN: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
+    [ "$rc" -eq 0 ] || { tail -5 "$ywd/bw.log"; rm -rf "$ywd"; echo "FAIL native yantra wasm build rc=$rc"; exit 1; }
+fi
 [ -f "$wasm" ] || {
     echo "VACUOUS: no wasm module on this tree, so there is no subject to cross-check \
 against. The producer is tools/check-sassembly-page.sh or -identity.sh via build-sassembly-web.sh; \
@@ -93,10 +84,10 @@ storer=spec/freelist.sas
 [ -f "$storer" ] || { echo "  FAIL  $storer is missing."; exit 1; }
 
 out=$(mktemp -d) || exit 1
-trap 'rm -rf "$out"' EXIT
+trap 'rm -rf "$out" "$ywd"' EXIT
 
 # A failure HERE is the tree's, not the machine's — cargo was found above.
-if ! cargo run -q -p sadhana -- spec/namaste.sas "$out/namaste.elf" >"$out/sadhana.log" 2>&1; then
+if ! tools/sadhana-native.sh spec/namaste.sas "$out/namaste.elf" >"$out/sadhana.log" 2>&1; then
     echo "  FAIL  sadhana could not assemble spec/namaste.sas."
     sed 's/^/        /' "$out/sadhana.log"
     exit 1
@@ -104,7 +95,7 @@ fi
 [ -s "$out/namaste.elf" ] || {
     echo "  FAIL  sadhana reported success and wrote no ELF."; exit 1; }
 
-if ! cargo run -q -p sadhana -- "$storer" "$out/storer.elf" >"$out/storer.log" 2>&1; then
+if ! tools/sadhana-native.sh "$storer" "$out/storer.elf" >"$out/storer.log" 2>&1; then
     echo "  FAIL  sadhana could not assemble $storer."
     sed 's/^/        /' "$out/storer.log"
     exit 1

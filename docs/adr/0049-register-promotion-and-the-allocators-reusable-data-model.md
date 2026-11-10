@@ -1,6 +1,6 @@
 # ADR-0049: Register promotion, and the allocator's reusable data model
 
-Status: accepted for RV64 (W-regalloc); x86-64 and ARM64 are extension instances, not built.
+Status: accepted for RV64 (W-regalloc); amended by W-regalloc-2 (slot liveness, target description, clobbers; see the end).
 
 ## Decision
 The T1 compiler promotes a routine's hottest frame-slot locals to callee-saved registers and
@@ -60,3 +60,32 @@ and `crates/sadhana-t1/tests/regalloc_twin.rs` (twin byte-equality plus a mutate
 ## Evidence
 Kernel instruction counts N=6 (vs unpromoted): sieve -18.6%, matmul -13.8%, heapsort -10.6%, flac -11.3%;
 compiler corpus Stage 2: -11.9% (55.385G -> 48.80G). Fixpoint results are recorded in the landing note.
+
+## Amendment 1 (W-regalloc-2, 2026-10-10): slot liveness, the target description, clobbers
+Built in `utsarjana.t1` only (Rust is frozen; `regalloc.rs` is stale by design from here on).
+1. **Slot liveness; slots share registers.** Every eligible slot (weight >= min_weight, no float), up to 64
+   in rank order, is a CANDIDATE. Steps 3 and 4 above run over all of them. Then `प्रवर्धनजीवनम्` computes
+   per-block live-in/live-out of each candidate by the backward fixpoint over the CFG (back edges included).
+   Each candidate gets a CONVEX span of positions covering:
+   - its Loads and Stores;
+   - a register-aliasing Load up to its last read;
+   - a fused Store from its defining op;
+   - the first position of every block it is live into and the last position of every block it is live out of.
+   In rank order, each candidate takes the first register that no earlier holder's span meets. At most
+   `promote_slots` DISTINCT callee-saved registers are used, so `promote_slots` now caps registers, not
+   slots. A candidate that finds no register stays in the frame, and its step-3/step-4 marks are undone.
+   The K callee-saved registers used are the top K numbers; the scan gets the rest. Loop-local `चरः`
+   are dead at their loop's back edge, so they now share.
+2. **The target description** (globals the backend sets before `प्रवर्धितावण्टनम्`; the defaults are RV64's):
+   - `प्रवर्धनवायव्यसंख्या` m: the caller-saved band, allocator numbers n..n+m-1. It replaces the literal 8.
+   - `प्रवर्धनक्षयकोश`: per IR kind, a mask over band index k of the registers that kind's lowering writes or
+     reads as fixed operands. Set it with `प्रवर्धनक्षयारम्भः m` and `प्रवर्धनक्षयन्यासः kind mask`; read it back
+     with `प्रवर्धनक्षयः kind` (a Call answers the whole band). Empty = no table (RV64).
+3. **Clobbers.** A band register k is given to a value only if no Call, and no kind whose mask has k, lies in
+   (definition, last use]. A div's operands are therefore never in its fixed registers; its result may be.
+   With a table, a promoted slot may also take a band register when its span starts after the last Param
+   and holds no Call and no clobber of k. A band temp may not meet a band slot's span on the same k.
+   x86 (sansos-a9, agreed 2026-10-10): m = 3 (rax, rcx, rdx); Div/Rem 0b101; Shl/Shr 0b010.
+Tests: `tools/selfcheck/ra_loop_locals`, `ra_call_clobber` and `ra_div_shift` (generated once; the programs and oracle.tsv rows are the record,
+with a Python oracle). A mutant that drops the live-in/live-out widening breaks all three programs, and it
+also breaks the native fixpoint (stage C refused).

@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"  # the verdict function below uses bash arithmetic and arrays
 # Memory is actually handed out — task `C-001e2`, doc 11 §7.1.5.
 #
 # `C-001e1` checked the buddy identity in isolation. This is the first program
@@ -31,7 +32,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/freelist.sas" "$tmp/f.elf" >/dev/null
     # SIGKILL, not perl's alarm — QEMU handles SIGALRM (W-060).
     qemu-system-riscv64 -machine virt -nographic -bios default \
@@ -54,6 +55,38 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -10
 }
 
+# verdict_freelist FILE: 10 hex lines (eight blocks, an exhaustion, a reuse); diagnostics on stdout, rc 1 on failure.
+verdict_freelist() {
+    local v=() l i=0 SIZE=64 N=8 M=$((1<<63)) blocks=() exhausted reused base b nd bad=()
+    while IFS= read -r l || [ -n "$l" ]; do
+        [ -n "${l//[[:space:]]/}" ] || continue
+        v[i]=$((16#${l//[[:space:]]/})); i=$((i+1))
+    done < "$1"
+    blocks=("${v[@]:0:8}"); exhausted=${v[8]}; reused=${v[9]}
+    nd=$(printf '%s\n' "${blocks[@]}" | sort -u | wc -l | tr -d ' ')
+    if [ "$nd" -ne "$N" ]; then
+        bad+=("only $nd distinct addresses out of $N — the same block was handed out twice")
+    fi
+    base=${blocks[0]}
+    for b in "${blocks[@]}"; do [ $((b ^ M)) -lt $((base ^ M)) ] && base=$b; done
+    for b in "${blocks[@]}"; do
+        if ! [ $((b ^ M)) -lt $(((base + SIZE*N) ^ M)) ]; then
+            bad+=("$(printf '%016x is outside the region %016x..%016x' "$b" "$base" $((base+SIZE*N)))")
+        fi
+        if [ $(((b - base) & (SIZE-1))) -ne 0 ]; then
+            bad+=("$(printf '%016x is not on a %d-octet boundary from the base' "$b" $SIZE)")
+        fi
+    done
+    if [ "$exhausted" -ne 0 ]; then
+        bad+=("$(printf 'the ninth allocation returned %016x, not 0 — exhaustion was wrapped rather than reported' "$exhausted")")
+    fi
+    if [ "$reused" -ne "${blocks[7]}" ]; then
+        bad+=("$(printf 'after freeing %016x the next allocation gave %016x — the block was not returned to the list' "${blocks[7]}" "$reused")")
+    fi
+    if [ "${#bad[@]}" -gt 0 ]; then printf '%s\n' "${bad[@]}"; return 1; fi
+    printf '8 blocks %016x..%016x, exhaustion reported, %016x freed and reused\n' "$base" $((base+SIZE*(N-1))) "${blocks[7]}"
+}
+
 fail=0
 prev_first=""
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
@@ -64,34 +97,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         fail=1; continue
     fi
 
-    if ! python3 - "$tmp/lines" > "$tmp/verdict" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-blocks, exhausted, reused = v[:8], v[8], v[9]
-SIZE, N = 64, 8
-bad = []
-
-if len(set(blocks)) != N:
-    bad.append(f"only {len(set(blocks))} distinct addresses out of {N} — "
-               "the same block was handed out twice")
-base = min(blocks)
-for b in blocks:
-    if not (base <= b < base + SIZE * N):
-        bad.append(f"{b:016x} is outside the region {base:016x}..{base+SIZE*N:016x}")
-    if (b - base) % SIZE:
-        bad.append(f"{b:016x} is not on a {SIZE}-octet boundary from the base")
-if exhausted != 0:
-    bad.append(f"the ninth allocation returned {exhausted:016x}, not 0 — "
-               "exhaustion was wrapped rather than reported")
-if reused != blocks[-1]:
-    bad.append(f"after freeing {blocks[-1]:016x} the next allocation gave "
-               f"{reused:016x} — the block was not returned to the list")
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"8 blocks {base:016x}..{base+SIZE*(N-1):016x}, exhaustion reported, "
-      f"{blocks[-1]:016x} freed and reused")
-PY
+    if ! verdict_freelist "$tmp/lines" > "$tmp/verdict" 2>&1
     then
         sed 's/^/  FAIL  /' "$tmp/verdict"
         fail=1; continue

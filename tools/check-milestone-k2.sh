@@ -121,7 +121,7 @@ prog=$root/spec/milestone-k2.sas
   exit 1; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$prog" "$tmp/k2.elf" >/dev/null
     # Bounded by an explicit SIGKILL, not perl's alarm: QEMU handles SIGALRM and
     # outlives it (`W-060`). A process that never traps runs forever.
@@ -143,81 +143,106 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' || true
 }
 
+# k2_words: shared awk helpers (hex strings of 16 lowercase digits; no number above 2^53 is ever compared as a number).
+K2_AWK_LIB='
+function h2d(s,  i, v) { v = 0; for (i = 1; i <= length(s); i++) v = v * 16 + index("0123456789abcdef", substr(s, i, 1)) - 1; return v }
+function h2dec(s,  i, j, c, t, n, r) {   # exact decimal of a hex string
+    n = 1; dg[1] = 0
+    for (i = 1; i <= length(s); i++) {
+        c = index("0123456789abcdef", substr(s, i, 1)) - 1
+        for (j = 1; j <= n; j++) { t = dg[j] * 16 + c; dg[j] = t % 10; c = int(t / 10) }
+        while (c > 0) { dg[++n] = c % 10; c = int(c / 10) }
+    }
+    r = ""; for (j = n; j >= 1; j--) r = r dg[j]
+    return r
+}
+function hexinc(s,  i, d, r) {   # (s + 1) mod 2^64 on 16 hex digits
+    r = ""
+    for (i = length(s); i >= 1; i--) {
+        d = h2d(substr(s, i, 1)) + 1
+        if (d == 16) { r = "0" r; continue }
+        return substr(s, 1, i - 1) substr("0123456789abcdef", d + 1, 1) r
+    }
+    return r
+}
+function pad(s) { s = tolower(s); while (length(s) < 16) s = "0" s; return s }
+function names() {
+    NM[1] = "satp for process A"; NM[2] = "satp for process B"
+    NM[3] = "the shared VA under A"; NM[4] = "the shared VA under B"
+    NM[5] = "scause on A\047s ecall"; NM[6] = "sstatus on A\047s ecall"
+    NM[7] = "the message in B\047s inbox"; NM[8] = "scause on B\047s ecall"
+    NM[9] = "the reply in A\047s inbox"
+}
+'
+
+# k2_verdict FILE: the per-run arms of M-K2 over the nine printed words (stdout = message, rc 0/1).
+k2_verdict() {
+    LC_ALL=C awk "$K2_AWK_LIB"'
+    NF { v[++nv] = pad($1) }
+    END {
+        names(); EM = "\342\200\224"
+        if (nv != 9) {
+            s = ""
+            for (i = 1; i <= 9; i++) s = s (i > 1 ? "; " : "") i " " NM[i]
+            print "printed " (nv + 0) " hex lines, expected 9. The words that should be there, in order, are: " s
+            exit 1
+        }
+        nb = 0
+        for (i = 1; i <= 2; i++) {
+            s = v[i]
+            if (substr(s, 1, 1) != "8")
+                bad[++nb] = "word " i ", " NM[i] ": mode nibble " substr(s, 1, 1) ", not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed"
+        }
+        if (v[1] == v[2])
+            bad[++nb] = "words 1 and 2 are the same satp (" v[1] "), so both processes are in ONE address space and the milestone\047s \047two\047 is not on the record"
+        if (v[3] == v[4])
+            bad[++nb] = "words 3 and 4: the shared virtual address answers " v[3] " under both satps. Two root tables describing an identical map are two objects, not two address spaces " EM " the separation has to be observed at an address, not inferred from a pointer"
+        for (k = 1; k <= 2; k++) {
+            i = (k == 1) ? 5 : 8; c = v[i]
+            if (c != "0000000000000008") {
+                who = (i == 5) ? "A" : "B"
+                extra = (c == "0000000000000009") ? (" " EM " 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this tree has ever taken and is the one number that says the process never left supervisor mode") : ""
+                bad[++nb] = "word " i ", " NM[i] ": cause " h2dec(c) ", expected 8, ENVIRONMENT CALL FROM U-MODE. Process " who " did not trap from U-mode" extra
+            }
+        }
+        if (h2d(substr(v[6], 14, 1)) % 2 == 1)
+            bad[++nb] = "word 6, " NM[6] ": SPP is set (" v[6] "), so the trap came from supervisor mode. scause and SPP are demanded together because a kernel that sets a variable can produce either alone"
+        if (v[7] == "0000000000000000")
+            bad[++nb] = "word 7, the message in B\047s inbox: zero, which is what an inbox reads before anything arrives. Nothing distinguishes \047A sent 0\047 from \047A sent nothing\047"
+        if (v[9] != hexinc(v[7]))
+            bad[++nb] = "word 9, the reply in A\047s inbox: " v[9] ", and word 7 plus one is " hexinc(v[7]) ". The round trip is the claim: B must compute on the word that reached it, and a reply that is not derived from word 7 is a constant B already had"
+        if (nb) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+        print "satp " v[1] "/" v[2] ", one VA answering " v[3] " and " v[4] ", both ecalls cause 8 with SPP clear, " v[7] " out and " v[9] " back"
+    }' "$1"
+}
+
+# k2_moves LO HI: which words moved between the two link addresses (stdout = message, rc 0/1).
+k2_moves() {
+    LC_ALL=C awk "$K2_AWK_LIB"'
+    FILENAME == ARGV[1] { if (NF) lo[++nl] = pad($1); next }
+    NF { hi[++nh] = pad($1) }
+    END {
+        names(); nb = 0
+        split("1 2 3 4 7 9", MV, " "); split("5 8", FX, " ")
+        for (k = 1; k <= 6; k++) { i = MV[k]
+            if (lo[i] == hi[i])
+                bad[++nb] = "word " i ", " NM[i] ": " lo[i] " at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened"
+        }
+        for (k = 1; k <= 2; k++) { i = FX[k]
+            if (lo[i] != hi[i])
+                bad[++nb] = "word " i ", " NM[i] ": " lo[i] " then " hi[i] ". A cause number is architectural. One that follows the link address is not coming from scause at all"
+        }
+        if (nb) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+        print "every derived word moved between the two link addresses and both cause numbers stayed put"
+    }' "$1" "$2"
+}
+
 fail=0
 # Two link addresses, because every address in that program is computed with
 # auipc and one run cannot tell a computed address from a lucky constant.
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l.$addr"
-    if ! python3 - "$tmp/l.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp for process A", "satp for process B",
-        "the shared VA under A", "the shared VA under B",
-        "scause on A's ecall", "sstatus on A's ecall",
-        "the message in B's inbox", "scause on B's ecall",
-        "the reply in A's inbox")
-U_ECALL, SPP = 8, 1 << 8
-
-bad = []
-if len(v) != 9:
-    print(f"printed {len(v)} hex lines, expected 9. The words that should be "
-          "there, in order, are: " + "; ".join(f"{i + 1} {n}"
-                                               for i, n in enumerate(NAME)))
-    sys.exit(1)
-
-satp_a, satp_b, shared_a, shared_b, cause_a, sstatus_a, msg, cause_b, reply = v
-
-# ---- two address spaces -------------------------------------------------
-for i, s in ((1, satp_a), (2, satp_b)):
-    if s >> 60 != 8:
-        bad.append(f"word {i}, {NAME[i - 1]}: mode nibble {s >> 60:x}, not 8. "
-                   "Sv39 is the only paging mode this tree installs, and a satp "
-                   "that is not in it was never installed")
-if satp_a == satp_b:
-    bad.append(f"words 1 and 2 are the same satp ({satp_a:016x}), so both "
-               "processes are in ONE address space and the milestone's 'two' "
-               "is not on the record")
-if shared_a == shared_b:
-    bad.append(f"words 3 and 4: the shared virtual address answers {shared_a:016x} "
-               "under both satps. Two root tables describing an identical map are "
-               "two objects, not two address spaces — the separation has to be "
-               "observed at an address, not inferred from a pointer")
-
-# ---- userspace ----------------------------------------------------------
-for i, c in ((5, cause_a), (8, cause_b)):
-    if c != U_ECALL:
-        who = "A" if i == 5 else "B"
-        extra = (" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall "
-                 "this tree has ever taken and is the one number that says the "
-                 "process never left supervisor mode") if c == 9 else ""
-        bad.append(f"word {i}, {NAME[i - 1]}: cause {c}, expected 8, ENVIRONMENT "
-                   f"CALL FROM U-MODE. Process {who} did not trap from U-mode"
-                   + extra)
-if sstatus_a & SPP:
-    bad.append(f"word 6, {NAME[5]}: SPP is set ({sstatus_a:016x}), so the trap "
-               "came from supervisor mode. scause and SPP are demanded together "
-               "because a kernel that sets a variable can produce either alone")
-
-# ---- the exchange -------------------------------------------------------
-if msg == 0:
-    bad.append("word 7, the message in B's inbox: zero, which is what an inbox "
-               "reads before anything arrives. Nothing distinguishes 'A sent 0' "
-               "from 'A sent nothing'")
-if reply != (msg + 1) & 0xffffffffffffffff:
-    bad.append(f"word 9, the reply in A's inbox: {reply:016x}, and word 7 plus "
-               f"one is {(msg + 1) & 0xffffffffffffffff:016x}. The round trip is "
-               "the claim: B must compute on the word that reached it, and a "
-               "reply that is not derived from word 7 is a constant B already had")
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp_a:016x}/{satp_b:016x}, one VA answering {shared_a:016x} and "
-      f"{shared_b:016x}, both ecalls cause 8 with SPP clear, {msg:016x} out and "
-      f"{reply:016x} back")
-sys.exit(0)
-PY
+    if ! k2_verdict "$tmp/l.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -226,37 +251,7 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp for process A", "satp for process B",
-        "the shared VA under A", "the shared VA under B",
-        "scause on A's ecall", "sstatus on A's ecall",
-        "the message in B's inbox", "scause on B's ecall",
-        "the reply in A's inbox")
-MOVES, FIXED = (0, 1, 2, 3, 6, 8), (4, 7)
-
-bad = []
-for i in MOVES:
-    if lo[i] == hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link "
-                   "addresses. It is derived from where the image was loaded, so "
-                   "a value that did not move is a constant in the source and the "
-                   "derivation it stands for never happened")
-for i in FIXED:
-    if lo[i] != hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} then {hi[i]:016x}. "
-                   "A cause number is architectural. One that follows the link "
-                   "address is not coming from scause at all")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("every derived word moved between the two link addresses and both cause "
-      "numbers stayed put")
-sys.exit(0)
-PY
+    if ! k2_moves "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

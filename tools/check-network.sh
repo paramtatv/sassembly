@@ -69,7 +69,7 @@ command -v python3 >/dev/null 2>&1 || {
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
 
-# The assembler is `cargo run -p sadhana`, like every other check in this tree.
+# The assembler is tools/sadhana-native.sh (no Rust); its exit 77 (no Stage 1) is this check's 77.
 #
 # This was drafted to find the assembler via $SADHANA or a `sadhana` on PATH,
 # and to report SKIPPED when it found neither. In THIS tree it would find
@@ -92,8 +92,14 @@ same() {  # $1 = what to call it, $2 = got, $3 = wanted
 # Assembly failure is reported as itself, with the assembler's own words, rather
 # than being let fall into `set -e` where the wrong line is never named.
 assemble() {  # $1 = link address, $2 = output elf
-    if ! cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-            --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1; then
+    asm_rc=0  # set -e: capture the rc instead of dying on it
+    "$root/tools/sadhana-native.sh" \
+            --स्थान "$1" "$prog" "$2" > "$tmp/asm.log" 2>&1 || asm_rc=$?
+    if [ "$asm_rc" -eq 77 ]; then
+        echo "SKIPPED: sadhana-native.sh exited 77 (no Stage 1 / wrapper image)"
+        exit 77
+    fi
+    if [ "$asm_rc" -ne 0 ]; then
         echo "RED: network.sas did not assemble at $1 —"
         sed 's/^/    /' "$tmp/asm.log"
         exit 1

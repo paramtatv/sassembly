@@ -10,7 +10,7 @@
 
 ॰ सन्देशपरीक्षा — THE UDP AND DNS PROGRAM: a self-test, an echo server and client, a DNS
 ॰ responder and client (ADR-0048, milestone 3). Built with the eight library files beside it
-॰ (spec/net/*.t1); tools/check-net-t1.sh and crates/yantra/tests/net_t1.rs build and run it.
+॰ (spec/net/*.t1); tools/check-net-t1.sh and net_t1 build and run it.
 ॰
 ॰ ARGUMENTS, as spec/net/net-demo.t1 has them. With NONE the program runs the SELF-TEST and
 ॰ never touches a device. With one argument its first octet is the role:

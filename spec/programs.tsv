@@ -23,12 +23,12 @@
 #   address     builds a constant with उपरिभारः from a hexadecimal literal. In
 #               this tree that is always a device address or a device's magic
 #               value — the UART at 0x10000000, the finisher at 0x100000.
-#   checks      the `tools/check-*.sh` that reference the file, or — for the
-#               application, which is loaded rather than booted and so has no
-#               QEMU check to be run under — `crates/yantra/tests/application.rs`.
+#   checks      the `tools/check-*.sh` that reference the file. The Rust test that
+#               once covered the application is retired (R3FXCA); its native twin is
+#               tools/check-native-yantra-application.sh, which re-derives this column.
 #               Every program has at least one: each exists to be asserted about.
 #
-# `crates/yantra/tests/application.rs` re-derives all four columns and the
+# `tools/check-native-yantra-application.sh` re-derives all four columns and the
 # clause, and fails if this table disagrees with the source.
 #
 # THE CLAUSE COLUMN IS SOURCE-DERIVED AND A3 IS NOT IN IT. A2 and A4 are refusals
@@ -42,15 +42,15 @@
 # afterwards. That is what the word `app` costs here, and it is why a row cannot
 # simply be typed.
 #
-# WHAT THE `checks` COLUMN MEANS, EXACTLY: asserted about by a `tools/check-*.sh`,
-# or by `crates/yantra/tests/application.rs`. The scanner in that file reads those
+# WHAT THE `checks` COLUMN MEANS, EXACTLY: asserted about by a `tools/check-*.sh`.
+# The scanner in tools/check-native-yantra-application.sh reads those
 # and nothing else, so a Rust test asserting about a program does not appear here
 # — `crates/sadhana/tests/trap_vector_alignment.rs` asserts a property of fourteen
 # programs and is in no row (`B-058b2b7`). An empty-looking column is a limit of
 # the scanner, not evidence that nothing checks the program.
 program	class	clause	privileged	ecall	address	checks
-arena.sas	boot-proof	A3	no	yes	no	check-arena.sh,check-milestone-k1.sh,check-sanskriti-programs.sh
-atithi.sas	app	-	no	yes	no	check-roundtrip.sh,check-sadhana-glue-live.sh,check-sanskriti-programs.sh,crates/yantra/tests/application.rs
+arena.sas	boot-proof	A3	no	yes	no	check-arena.sh,check-milestone-k1.sh,check-sadhana-native-identity.sh,check-sanskriti-programs.sh
+atithi.sas	app	-	no	yes	no	check-native-t0-refusal-g10.sh,check-roundtrip.sh,check-sadhana-glue-live.sh,check-sanskriti-programs.sh
 bare-metal.sas	boot-proof	A4	no	no	yes	check-bare-metal.sh,check-roundtrip.sh,check-sassembly-identity.sh
 boot-sbi.sas	boot-proof	A3	no	yes	no	check-sbi-boot.sh
 bootloader.sas	boot-proof	A2	yes	yes	no	check-bootloader.sh
@@ -62,19 +62,19 @@ fdt-header.sas	boot-proof	A3	no	yes	no	check-fdt.sh
 freelist.sas	boot-proof	A3	no	yes	no	check-freelist.sh,check-yantra-glue-live.sh
 higher-half.sas	boot-proof	A2	yes	yes	no	check-higher-half.sh,check-kernel.sh,check-milestone-k1.sh
 irq.sas	boot-proof	A2	yes	yes	no	check-irq.sh,check-pager-handoff.sh
-jump-table.sas	boot-proof	A4	no	no	yes	check-jump-table.sh
-kernel.sas	boot-proof	A2	yes	yes	no	check-kernel.sh
-lib-mudraka.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-separate.sh
+jump-table.sas	boot-proof	A4	no	no	yes	check-jump-table.sh,check-w302-malformed-object.sh
+kernel.sas	boot-proof	A2	yes	yes	no	check-kernel.sh,check-sadhana-native-identity.sh
+lib-mudraka.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-sadhana-native-identity.sh,check-separate.sh
 mapping.sas	boot-proof	A3	no	yes	no	check-mapping.sh
 merge.sas	boot-proof	A3	no	yes	no	check-merge.sh
 milestone-k1.sas	boot-proof	A2	yes	yes	no	check-milestone-k1.sh
 milestone-k2.sas	boot-proof	A2	yes	yes	no	check-milestone-k2.sh
-namaste-main.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-separate.sh
-namaste.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-namaste.sh,check-roundtrip.sh,check-sadhana-glue-live.sh,check-sadhana-glue.sh,check-yantra-glue-live.sh
+namaste-main.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-link.sh,check-sadhana-native-identity.sh,check-separate.sh
+namaste.sas	boot-proof	A4	no	no	yes	check-dwarf.sh,check-namaste.sh,check-roundtrip.sh,check-sadhana-glue-live.sh,check-sadhana-glue.sh,check-w302-native.sh,check-w302-sections.sh,check-yantra-glue-live.sh
 notification.sas	boot-proof	A3	no	yes	no	check-notification.sh
 pager-handoff.sas	boot-proof	A2	yes	yes	no	check-pager-handoff.sh
 pager.sas	boot-proof	A2	yes	yes	no	check-pager.sh
-paging.sas	boot-proof	A2	yes	yes	no	check-paging.sh
+paging.sas	boot-proof	A2	yes	yes	no	check-paging.sh,check-w302-sections.sh
 root-task.sas	boot-proof	A2	yes	yes	no	check-root-task.sh
 schedule.sas	boot-proof	A2	yes	yes	no	check-ipc-fastpath.sh,check-schedule.sh,check-trap-seam.sh
 second-space.sas	boot-proof	A2	yes	yes	no	check-second-space.sh
@@ -88,7 +88,7 @@ untyped.sas	boot-proof	A3	no	yes	no	check-untyped.sh
 user-mode.sas	boot-proof	A2	yes	yes	no	check-user-mode.sh
 virtio-blk.sas	boot-proof	A4	no	no	yes	check-virtio-blk.sh
 virtio-console.sas	boot-proof	A4	no	no	yes	check-virtio-console.sh
-virtio-net.sas	boot-proof	A4	no	no	yes	check-virtio-net.sh
+virtio-net.sas	boot-proof	A4	no	no	yes	check-virtio-net.sh,check-w302-sections.sh
 pty.sas	boot-proof	A3	no	yes	no	check-pty.sh
 boot-counter.sas	boot-proof	A4	no	yes	yes	check-boot-counter.sh
 virtio-gpu.sas	boot-proof	A4	no	yes	yes	check-virtio-gpu-t1.sh,check-virtio-gpu.sh

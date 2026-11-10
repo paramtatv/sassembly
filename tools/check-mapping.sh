@@ -24,6 +24,72 @@
 # Sv39 bits: V=1 R=2 W=4 X=8 U=16 G=32 A=64 D=128, PPN shifted left by 10.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# ---- portable hex-word verifiers (replace inline python; POSIX sh) ----
+# ---- portable hex-word helpers (POSIX sh; 64-bit signed, bit-exact) -------
+# h2i HEX16 -> $I : the 64-bit pattern of a 16-digit hex word (two 32-bit
+# halves, so no shell has to parse a literal above INT64_MAX; shorter input
+# is zero-padded on the left, like int(x, 16)).
+h2i() {
+    _s=0000000000000000$1; _s=${_s#${_s%????????????????}}
+    I=$(( (0x${_s%????????} << 32) | 0x${_s#????????} ))
+}
+# loadvals PREFIX FILE -> PREFIX1..PREFIXn, PREFIX_n : one word per non-blank line.
+loadvals() {
+    _p=$1; _i=0
+    set -f
+    for _t in $(cat "$2"); do
+        _i=$((_i + 1)); h2i "$_t"; eval "$_p$_i=\$I"
+    done
+    set +f
+    eval "${_p}_n=\$_i"
+}
+# add MSG : append one line to the failure list $bad.
+add() { if [ -n "$bad" ]; then bad="$bad
+$1"; else bad=$1; fi; }
+# map_why N : the reason name for 0/1/2, '?' otherwise.
+map_why() { case $1 in 0) echo granted ;; 1) echo "refused by W^X" ;; 2) echo "refused as reserved" ;; *) echo '?' ;; esac; }
+# verify_map LINES : page + five (reason, entry) pairs; rc 0/1.
+verify_map() {
+    loadvals m "$1"
+    page=$m1
+    bad=""
+    if [ $(( page % 4096 )) -ne 0 ]; then
+        add "$(printf 'the frame %016x is not 4096-aligned' "$page")"
+    fi
+    ppn=$(( (page >> 12) & ((1 << 52) - 1) ))
+    i=0
+    for spec in "2 0" "6 0" "10 0" "14 1" "4 2"; do
+        set -- $spec; a=$1; wr=$2
+        eval "reason=\$m$((2 + 2 * i)) pte=\$m$((3 + 2 * i))"
+        if [ "$reason" -ne "$wr" ]; then
+            if [ "$wr" -eq 1 ] && [ "$reason" -eq 0 ]; then
+                add "$(printf 'request %s asked for R|W|X and was GRANTED as 0x%x. W^X is not enforced, so a page can be written and then executed — which is the whole shape of attack the rule exists to remove' "$i" "$pte")"
+            elif [ "$wr" -eq 2 ] && [ "$reason" -eq 0 ]; then
+                add "$(printf 'request %s asked for W without R and was GRANTED as 0x%x. That encoding is RESERVED in RISC-V: the fault does not arrive when the entry is written, it arrives when someone touches the page' "$i" "$pte")"
+            elif [ "$wr" -eq 0 ] && [ "$reason" -ne 0 ]; then
+                add "$(printf 'request %s asked for 0x%x, which breaks no rule, and was refused with reason %u (%s)' "$i" "$a" "$reason" "$(map_why "$reason")")"
+            else
+                add "$(printf 'request %s: reason %u (%s), expected %s (%s)' "$i" "$reason" "$(map_why "$reason")" "$wr" "$(map_why "$wr")")"
+            fi
+        elif [ "$reason" -ne 0 ]; then
+            if [ "$pte" -ne 0 ]; then
+                add "$(printf 'request %s was refused but returned entry 0x%x — a refusal must not hand back a usable mapping' "$i" "$pte")"
+            fi
+        else
+            wp=$(( (ppn << 10) | a | 1 | 64 ))
+            if [ "$pte" -ne "$wp" ]; then
+                add "$(printf 'request %s: entry 0x%x, expected 0x%x — the frame or the rights are not what was asked for' "$i" "$pte" "$wp")"
+            fi
+        fi
+        i=$((i + 1))
+    done
+    if [ "$m8" -eq "$m10" ]; then
+        add "$(printf 'the W^X refusal and the reserved-encoding refusal both report %u — the caller cannot tell a rule it broke from a rule the machine imposes, and the two need different fixes' "$m8")"
+    fi
+    if [ -n "$bad" ]; then printf '%s\n' "$bad"; return 1; fi
+    printf 'frame %016x: R, R|W and R|X mapped with correct entries; R|W|X refused by W^X (1) and W-without-R refused as reserved (2), and the two are distinguishable\n' "$page"
+}
+
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "SKIPPED: qemu-system-riscv64 is not installed"
@@ -31,7 +97,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/mapping.sas" "$tmp/m.elf" >/dev/null
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$tmp/m.elf" > "$tmp/out" 2>&1 &
@@ -55,57 +121,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         echo "        reason and an entry for each of five requests)"
         fail=1; continue
     fi
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-page, rest = v[0], v[1:]
-pairs = [(rest[i], rest[i+1]) for i in range(0, 10, 2)]
-V, R, W, X, A = 1, 2, 4, 8, 64
-asked = [R, R | W, R | X, R | W | X, W]
-want  = [0, 0, 0, 1, 2]        # 0 granted, 1 W^X, 2 reserved
-names = {0: "granted", 1: "refused by W^X", 2: "refused as reserved"}
-bad = []
-if page % 4096:
-    bad.append(f"the frame {page:016x} is not 4096-aligned")
-ppn = page >> 12
-
-for i, ((reason, pte), wr, a) in enumerate(zip(pairs, want, asked)):
-    if reason != wr:
-        if wr == 1 and reason == 0:
-            bad.append(f"request {i} asked for R|W|X and was GRANTED as {pte:#x}. W^X is "
-                       "not enforced, so a page can be written and then executed — which "
-                       "is the whole shape of attack the rule exists to remove")
-        elif wr == 2 and reason == 0:
-            bad.append(f"request {i} asked for W without R and was GRANTED as {pte:#x}. "
-                       "That encoding is RESERVED in RISC-V: the fault does not arrive "
-                       "when the entry is written, it arrives when someone touches the page")
-        elif wr == 0 and reason != 0:
-            bad.append(f"request {i} asked for {a:#x}, which breaks no rule, and was "
-                       f"refused with reason {reason} ({names.get(reason,'?')})")
-        else:
-            bad.append(f"request {i}: reason {reason} ({names.get(reason,'?')}), "
-                       f"expected {wr} ({names[wr]})")
-        continue
-    if reason != 0:
-        if pte != 0:
-            bad.append(f"request {i} was refused but returned entry {pte:#x} — a refusal "
-                       "must not hand back a usable mapping")
-        continue
-    want_pte = (ppn << 10) | a | V | A
-    if pte != want_pte:
-        bad.append(f"request {i}: entry {pte:#x}, expected {want_pte:#x} — the frame or "
-                   "the rights are not what was asked for")
-
-# The two refusals must be tellable apart, which is the point of the reason.
-if pairs[3][0] == pairs[4][0]:
-    bad.append(f"the W^X refusal and the reserved-encoding refusal both report "
-               f"{pairs[3][0]} — the caller cannot tell a rule it broke from a rule the "
-               "machine imposes, and the two need different fixes")
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-print(f"frame {page:016x}: R, R|W and R|X mapped with correct entries; R|W|X refused by "
-      f"W^X (1) and W-without-R refused as reserved (2), and the two are distinguishable")
-PY
+    if ! verify_map "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
     b=$(sed -n 1p "$tmp/l")

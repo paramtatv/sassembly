@@ -52,11 +52,12 @@
 सार्वजनिक चरः स्थानम्प्रकारभेद ॱॱ न६४ भवति १०३ । ॰ Type::Pointer(Box<Type>)
 सार्वजनिक चरः सम्भाव्यप्रकारभेद ॱॱ न६४ भवति १०४ । ॰ Type::Optional(Box<Type>)
 सार्वजनिक चरः दोषयुक्तप्रकारभेद ॱॱ न६४ भवति १०५ । ॰ Type::ErrorUnion(Box<Type>)
+सार्वजनिक चरः सारणिप्रकारभेद ॱॱ न६४ भवति १०६ । ॰ Type::Array{capacity,elem}: element in वाम, capacity in दक्षिण
 
 सार्वजनिक संरचना प्रकार आरभ्य
-    भेद ॱॱ न६४ ऽ                            ॰ which of the five kinds above
+    भेद ॱॱ न६४ ऽ                            ॰ which of the six kinds above
     नामसूचकाङ्क ॱॱ न६४ ऽ                    ॰ Primitive's String, held as a symbol index
-    अन्तःप्रकारसूचकाङ्क ॱॱ न६४              ॰ the Box<Type> of the other four, held as an index
+    अन्तःप्रकारसूचकाङ्क ॱॱ न६४              ॰ the Box<Type> of the other five, held as an index
 समाप्तम् ।
 
 सार्वजनिक चरः योगद्विकर्मभेद ॱॱ न६४ भवति १ । ॰ ADR-0026's thirteen. `ast.rs` HAS NO OPERATOR TYPE:

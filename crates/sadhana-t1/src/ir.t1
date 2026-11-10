@@ -116,7 +116,7 @@
 सार्वजनिक चरः निधानाज्ञाभेद ॱॱ न६४ भवति १६ ।     ॰ Instruction::Store(usize, ValueId)
 ॰ `W-254` — Instruction::ConstStr(Vec<u8>). A string literal's octets, and the
 ॰ value is their ADDRESS: `artha.t1:679` types a literal as a slice of unsigned
-॰ octets and ADR-0026 makes a slice ONE address-sized word, so this defines a
+॰ octets and ADR-0026 [D-002k] makes a slice ONE address-sized word, so this defines a
 ॰ single मूल्याङ्क like every other kind. The octets themselves are a run in
 ॰ पाठाक्षरकोश below, because they are not a contiguous span of the source
 ॰ whenever ADR-0011's doubling occurs — see पाठाज्ञायोजनम्.
@@ -591,6 +591,10 @@
 ॰ a sibling block takes the slot it already has. ir.rs's twin is the
 ॰ `locals: HashMap<String, usize>` its `Function` would hold.
 सार्वजनिक चरः स्थानीयचिह्नककोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+॰ RGN-K1: the name RUN per slot, built once at declaration. Lookups compare runs by content
+॰ and allocate nothing; they used to rebuild the run octet by octet (चिह्नकपाठः, a growing run
+॰ whose abandoned blocks nothing reclaims) for every slot of every lookup.
+सार्वजनिक चरः स्थानीयपाठकोश ॱॱ अङ्कः अन्तः अङ्कः अन्तः अ८ भवति ० ।
 सार्वजनिक चरः स्थानीयसंख्यान ॱॱ न६४ भवति ० ।
 
 ॰ ॥ A SLOT IS LIVE ONLY WHILE ITS BLOCK IS OPEN ॥ `W-364`, 2026-10-03. Keyed by
@@ -725,7 +729,7 @@
 ॰ five sites" — and answered it by NAMING THE SITE beside the unchanged cause.
 ॰ Splitting २७ into fifteen causes would move `अपूर्णहेतुसीमा` — which `1cc531bd`
 ॰ has just re-founded as EXCLUSIVE — renumber a space
-॰ that `tools/sassembly-model.py`'s `STUB_CAUSES` and `corpus-shapes.py` both pin,
+॰ that `tools/sassembly-model.sh`'s `STUB_CAUSES` and `tools/corpus-shapes.sh` both pin,
 ॰ and still not say which site fired for the other thirty raises. A site channel does.
 ॰
 ॰ AND CAUSE ३२'S SPLIT ON 2026-09-27 DID MOVE THE BOUND, WHICH IS NOT THIS RULING
@@ -903,6 +907,10 @@
 ॰ module loaded would initialise it for both. Caught by
 ॰ `the_loader_gives_the_same_program_under_every_order_of_the_fifteen_sources`,
 ॰ which counts these collisions and refused a ninth.
+॰ A STRING-LITERAL INITIALISER (`भवति उक्तम् … इति`) is not a value the global can hold: its octets go to the emitter's string pool and the data word is the address of that entry. Per global: the flag, and the octets' start and count in the literal arena.
+सार्वजनिक चरः वैश्विकपाठध्वजकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः वैश्विकपाठारम्भकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
+सार्वजनिक चरः वैश्विकपाठमानकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
 सार्वजनिक चरः वैश्विकसञ्चयसूचकाङ्क ॱॱ न६४ भवति ० ।
 
 सार्वजनिक चरः रचितगणनाकोश ॱॱ अङ्कः अन्तः न६४ भवति ० ।
@@ -1524,7 +1532,7 @@
     ॰ `W-381` stage 3: the four checked members, as sub-kinds १०१..१०४, one list.
     ॰ ARENAS (memory freeing, stage 1): the six `वाट` members follow in the same list, sub-kinds
     ॰ १०५..११० (`वाटान्तर्निहितरचना`).
-    चरः सुरक्षितक्रमः ॱॱ न६४ भवति अर्थॱसूचीपदक्रमः आरभ्य उक्तम् सुरक्षितयोगः सुरक्षितवियोगः सुरक्षितगुणनम् सुरक्षितवामसरणम् वाटनिर्माणम् वाटवितरणम् वाटपठनम् वाटलेखनम् वाटप्रत्यावर्तनम् वाटविसर्जनम् इति ऽ सदस्यपाठ समाप्तम् ।
+    चरः सुरक्षितक्रमः ॱॱ न६४ भवति अर्थॱसूचीपदक्रमः आरभ्य उक्तम् सुरक्षितयोगः सुरक्षितवियोगः सुरक्षितगुणनम् सुरक्षितवामसरणम् वाटनिर्माणम् वाटवितरणम् वाटपठनम् वाटलेखनम् वाटप्रत्यावर्तनम् वाटविसर्जनम् संधानम् इति ऽ सदस्यपाठ समाप्तम् ।
     यदि सुरक्षितक्रमः अधिकम् ० आदि
         प्रत्यागमनम् सुरक्षितक्रमः योगः १०० ।
     इति
@@ -1684,7 +1692,7 @@
     यदि तर्कप्रकारः समम् शून्यम् आदि
         प्रत्यागमनम् असत्यम् ।
     इति
-    यदि तर्कप्रकारः ॱ भेद असमम् अर्थॱखण्डार्थभेद आदि
+    यदि खण्डसदृशभेदः तर्कप्रकारः ॱ भेद समम् असत्यम् आदि
         प्रत्यागमनम् असत्यम् ।
     इति
     चरः तर्कान्तःसूचकः ॱॱ न६४ भवति तर्कप्रकारः ॱ अन्तःसूचकाङ्क ।
@@ -1985,6 +1993,8 @@
 ॰ lexes other text after this program, so a token index read later can name
 ॰ another source's line.
 सार्वजनिक चरः वर्गविरोधपङ्क्तिः ॱॱ न६४ भवति ० ।
+॰ the NAME at the refusal, a fresh run of the token's octets (`0x382`): same reason as the line.
+सार्वजनिक चरः वर्गविरोधनाम ॱॱ अङ्कः अन्तः अ८ भवति ० ।
 सार्वजनिक चरः स्थानीयवर्गविरोधभेद ॱॱ न६४ भवति १ ।
 सार्वजनिक चरः तर्कवर्गविरोधभेद ॱॱ न६४ भवति २ ।
 सार्वजनिक चरः प्रत्यागमनवर्गविरोधभेद ॱॱ न६४ भवति ३ ।
@@ -2019,10 +2029,12 @@
         वर्गविरोधभेद भवति भेद ।
         वर्गविरोधचिह्नकाङ्क भवति चिह्नकाङ्क ।
         वर्गविरोधपङ्क्तिः भवति ० ।
+        वर्गविरोधनाम भवति उक्तम् इति ।
         यदि चिह्नकाङ्क अधिकम् ० आदि
             यदि चिह्नकाङ्क न्यूनम् पदविभागॱचिह्नककोश ॱ दैर्घ्य आदि
                 चरः विरोधचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः चिह्नकाङ्क अन्तः ।
                 वर्गविरोधपङ्क्तिः भवति विरोधचिह्नकम् ॱ पङ्क्ति ।
+                वर्गविरोधनाम भवति पदविभागॱचिह्नकपाठः विरोधचिह्नकम् ।
             इति
         इति
     इति
@@ -2173,47 +2185,6 @@
         प्रत्यागमनम् १ ।
     इति
     प्रत्यागमनम् ० ।
-इति
-
-॰ ॥ A FLOAT BUILT-IN IS ONE INSTRUCTION, NOT A CALL ॥ The call arm's
-॰ interception, out of line: the arguments are already evaluated onto
-॰ `आदानसञ्चयकोश` from `सञ्चयाधारः` + १, and the cursor is popped here as the
-॰ call's argument loop would pop it, so no operand reaches a call that is never
-॰ emitted. Intercepted only at the op's own arity; any other count answers the
-॰ absent value ० and the arm goes on to the call. A CONVERSION OR A BIT MOVE
-॰ TAKES ITS DIRECTION FROM ITS ARGUMENT: an argument in the float file makes
-॰ `fcvt.l.d`/`fmv.x.d` (the family + १), any other `fcvt.d.l`/`fmv.d.x` — the
-॰ interpreter's own rule.
-सार्वजनिक वृत्तिः प्लवान्तर्निहितरचना आदाय प्लवोपभेदः ॱॱ न६४ ऽ सञ्चयाधारः ॱॱ न६४ ऽ आदानगणना ॱॱ न६४ ददाति मूल्याङ्क आदि
-    यदि प्लवोपभेदः अधिकम् १०४ आदि
-        प्रत्यागमनम् वाटान्तर्निहितरचना आरभ्य प्लवोपभेदः ऽ सञ्चयाधारः ऽ आदानगणना समाप्तम् ।
-    इति
-    यदि प्लवोपभेदः अधिकम् १०० आदि
-        प्रत्यागमनम् सुरक्षितान्तर्निहितरचना आरभ्य प्लवोपभेदः ऽ सञ्चयाधारः ऽ आदानगणना समाप्तम् ।
-    इति
-    चरः प्लवतर्काः ॱॱ न६४ भवति प्लवतर्कसंख्या प्लवोपभेदः ।
-    यदि आदानगणना असमम् प्लवतर्काः आदि
-        प्रत्यागमनम् मूल्याङ्कनम् ० ।
-    इति
-    चरः प्लववाम ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः १ समाप्तम् अन्तः ।
-    चरः प्लवदक्षिण ॱॱ मूल्याङ्क भवति मूल्याङ्कनम् ० ।
-    चरः प्लवतृतीय ॱॱ मूल्याङ्क भवति मूल्याङ्कनम् ० ।
-    यदि आदानगणना अधिकम् १ आदि
-        प्लवदक्षिण भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः २ समाप्तम् अन्तः ।
-    इति
-    यदि आदानगणना अधिकम् २ आदि
-        प्लवतृतीय भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः ३ समाप्तम् अन्तः ।
-    इति
-    चरः प्लवक्रिया ॱॱ न६४ भवति प्लवोपभेदः ।
-    यदि प्लवक्रिया बृहत्समम् प्लवरूपान्तरागमोपभेद आदि
-        यदि मूल्यप्लवकोश अङ्कः प्लववाम ॱ क्रमाङ्क अन्तः समम् १ आदि
-            प्लवक्रिया भवति प्लवक्रिया योगः १ ।
-        इति
-    इति
-    आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
-    चरः प्लवफलाङ्क ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
-    चरः अवगणनप्लव ॱॱ न६४ भवति प्लवाज्ञायोजनम् आरभ्य प्लवफलाङ्क ऽ प्लवक्रिया ऽ प्लववाम ऽ प्लवदक्षिण ऽ प्लवतृतीय समाप्तम् ।
-    प्रत्यागमनम् प्लवफलाङ्क ।
 इति
 
 ॰ EACH ARGUMENT IN ITS PARAMETER'S FILE, out of line from the call arm, or
@@ -2397,8 +2368,7 @@
         चरः जीवः ॱॱ न६४ भवति स्थानीयजीवकोश अङ्कः क्रमः अन्तः ।
         यदि चिह्नकाङ्कः अधिकम् ० आदि   ॰ an anonymous slot (अनामस्थानम्) has no token
             यदि जीवः अधिकम् श्रेष्ठजीवः आदि
-                चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः चिह्नकाङ्कः अन्तः ।
-                चरः स्थानीयपाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः चिह्नकम् ।
+                चरः स्थानीयपाठ ॱॱ अङ्कः अन्तः अ८ भवति स्थानीयपाठकोश अङ्कः क्रमः अन्तः ।
                 यदि स्थानीयपाठ समम् नामपाठ आदि
                     श्रेष्ठम् भवति क्रमः ।
                     श्रेष्ठजीवः भवति जीवः ।
@@ -2431,8 +2401,7 @@
     यावत् क्रमः न्यूनम् आरभ्य स्थानीयसंख्यान योगः १ समाप्तम् आदि
         चरः पूर्वचिह्नकाङ्क ॱॱ न६४ भवति स्थानीयचिह्नककोश अङ्कः क्रमः अन्तः ।
         यदि पूर्वचिह्नकाङ्क अधिकम् ० आदि
-            चरः पूर्वचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः पूर्वचिह्नकाङ्क अन्तः ।
-            चरः पूर्वपाठ ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः पूर्वचिह्नकम् ।
+            चरः पूर्वपाठ ॱॱ अङ्कः अन्तः अ८ भवति स्थानीयपाठकोश अङ्कः क्रमः अन्तः ।
             यदि पूर्वपाठ समम् नामपाठ आदि
                 चरः जीवः ॱॱ न६४ भवति स्थानीयजीवकोश अङ्कः क्रमः अन्तः ।
                 यदि जीवः समम् अत्र आदि
@@ -2453,6 +2422,7 @@
     यदि स्थलम् समम् ० आदि
         स्थानीयसंख्यान भवति स्थानीयसंख्यान योगः १ ।
         स्थानीयचिह्नककोश अङ्कः स्थानीयसंख्यान अन्तः भवति चिह्नकाङ्क ।
+        स्थानीयपाठकोश अङ्कः स्थानीयसंख्यान अन्तः भवति नामपाठ ।
         स्थलम् भवति स्थानीयसंख्यान ।
     इति
     स्थानीयजीवकोश अङ्कः स्थलम् अन्तः भवति अत्र ।
@@ -2641,16 +2611,6 @@
     चरः अवगणना ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य वैश्विकस्थानाज्ञाभेद ऽ फलम् ऽ ० ऽ रचनाक्षेत्रसंज्ञा ऽ मूल्याङ्कनम् ० ऽ मूल्याङ्कनम् ० ऽ ० समाप्तम् ।
     प्रत्यागमनम् फलम् ।
 इति
-॰ Cut अष्टककाः from the record region: answers the block's address; the cursor
-॰ (an offset) advances by that many octets.
-वृत्तिः क्षेत्रखण्डरचना आदाय अष्टककाः ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
-    चरः सूचकस्थानम् ॱॱ मूल्याङ्क भवति सूचकस्थानरचना ।
-    चरः पुराणान्तरम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना सूचकस्थानम् ।
-    चरः अग्रिमान्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पुराणान्तरम् ऽ अष्टककाः समाप्तम् ।
-    चरः अवगणनसूचकनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य सूचकस्थानम् ऽ अग्रिमान्तरम् समाप्तम् ।
-    चरः क्षेत्रम् ॱॱ मूल्याङ्क भवति क्षेत्रस्थानरचना ।
-    प्रत्यागमनम् द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ क्षेत्रम् ऽ पुराणान्तरम् समाप्तम् ।
-इति
 ॰ `W-381` stage 4: MOVED HERE from "the block in hand" (below), above its first
 ॰ caller — order-free, and no longer a forward reference from the run routines.
 ॰ from here on, appended instructions belong to अङ्कन.
@@ -2661,6 +2621,64 @@
     प्रत्यागमनम् ० ।
 इति
 
+
+॰ ॥ A RUN BASE RESOLVES THROUGH ITS FORWARD MARKS ॥ (ADR-0062 A, R3P3i)
+॰ `क भवति ख` shares one arena between two names (the oracle's shared run). A
+॰ growth that copies a non-octet run writes the negated new base into the old
+॰ capacity word; a capacity below ० therefore means "moved". This emits the walk
+॰ from a held base to the live one: nil stays nil, a non-negative capacity
+॰ stops, a negative one is followed. Slot ७ of the pool carries the base across
+॰ the loop; every reader below takes the resolved base before the header.
+॰
+॰ OCTET RUNS ARE NEVER WALKED (IFXC, 2026-11-02). The writer marks only a
+॰ non-octet run (`खण्डवृद्धिरचना` steps past the mark when the width is १), so
+॰ the reader must skip by the same test: a host-born octet run (the input and
+॰ its name, written by the runtime) carries a length word and NO capacity word,
+॰ and the octets below it — Devanagari text, negative as a signed word — read
+॰ as a forward mark sent the walk outside memory. `विस्तार` is the element
+॰ width in octets when the caller knows it while compiling: १ emits nothing and
+॰ answers the base; ० means it is known only when the program runs, held in
+॰ `विस्तारमूल्यम्`, and the emitted code takes the same test before the walk.
+सार्वजनिक वृत्तिः खण्डनिराकरणरचना आदाय मूलाधारः ॱॱ मूल्याङ्क ऽ विस्तार ॱॱ न६४ ऽ विस्तारमूल्यम् ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
+    यदि विस्तार समम् १ आदि प्रत्यागमनम् मूलाधारः । इति
+    चरः निराकरणस्थलम् ॱॱ न६४ भवति अनामस्थानम् ७ ।
+    चरः अवगणनमूलनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य निराकरणस्थलम् ऽ मूलाधारः समाप्तम् ।
+    चरः परीक्षापर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः शीर्षपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः अग्रपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः सङ्गमपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    यदि विस्तार समम् ० आदि
+        चरः एकाष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना १ ।
+        चरः शर्तअष्टक ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ विस्तारमूल्यम् ऽ एकाष्टकम् समाप्तम् ।
+        चरः अवगणनअष्टकशाखा ॱॱ न६४ भवति शाखारचना आरभ्य शर्तअष्टक ऽ सङ्गमपर्व ऽ परीक्षापर्व समाप्तम् ।
+    इति अन्यथा आदि
+        चरः अवगणनप्रवेशलङ्घन ॱॱ न६४ भवति लङ्घनरचना परीक्षापर्व ।
+    इति
+    चरः अवगणनपरीक्षास्थापन ॱॱ न६४ भवति पर्वस्थापनम् परीक्षापर्व ।
+    चरः वर्तमानः ॱॱ मूल्याङ्क भवति स्थलाहारः निराकरणस्थलम् ।
+    चरः शून्यम्प्रथमम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः शर्तनिल ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ वर्तमानः ऽ शून्यम्प्रथमम् समाप्तम् ।
+    चरः अवगणननिलशाखा ॱॱ न६४ भवति शाखारचना आरभ्य शर्तनिल ऽ सङ्गमपर्व ऽ शीर्षपर्व समाप्तम् ।
+    चरः अवगणनशीर्षस्थापन ॱॱ न६४ भवति पर्वस्थापनम् शीर्षपर्व ।
+    चरः शीर्षवर्तमानः ॱॱ मूल्याङ्क भवति स्थलाहारः निराकरणस्थलम् ।
+    चरः षोडश ॱॱ मूल्याङ्क भवति ध्रुवरचना १६ ।
+    चरः सामर्थ्यस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ शीर्षवर्तमानः ऽ षोडश समाप्तम् ।
+    चरः सामर्थ्यम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना सामर्थ्यस्थानम् ।
+    चरः शून्यद्वितीयम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः शर्तऋण ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ सामर्थ्यम् ऽ शून्यद्वितीयम् समाप्तम् ।
+    चरः अवगणनऋणशाखा ॱॱ न६४ भवति शाखारचना आरभ्य शर्तऋण ऽ अग्रपर्व ऽ सङ्गमपर्व समाप्तम् ।
+    चरः अवगणनअग्रस्थापन ॱॱ न६४ भवति पर्वस्थापनम् अग्रपर्व ।
+    चरः अग्रवर्तमानः ॱॱ मूल्याङ्क भवति स्थलाहारः निराकरणस्थलम् ।
+    चरः अग्रषोडश ॱॱ मूल्याङ्क भवति ध्रुवरचना १६ ।
+    चरः अग्रसामर्थ्यस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ अग्रवर्तमानः ऽ अग्रषोडश समाप्तम् ।
+    चरः अग्रसामर्थ्यम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना अग्रसामर्थ्यस्थानम् ।
+    चरः शून्यतृतीयम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः अग्रिमाधारः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ शून्यतृतीयम् ऽ अग्रसामर्थ्यम् समाप्तम् ।
+    चरः अवगणनअग्रिमनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य निराकरणस्थलम् ऽ अग्रिमाधारः समाप्तम् ।
+    चरः अवगणनपुनर्लङ्घन ॱॱ न६४ भवति लङ्घनरचना परीक्षापर्व ।
+    चरः अवगणनसङ्गमस्थापन ॱॱ न६४ भवति पर्वस्थापनम् सङ्गमपर्व ।
+    प्रत्यागमनम् स्थलाहारः निराकरणस्थलम् ।
+इति
 ॰ `खण्डविस्तारः` STOOD HERE UNTIL `W-355` (2026-10-03): the element width of a run
 ॰ type, in octets, read by ONE caller — the length arm, to tell an octet run
 ॰ (exact length) from any other (`len + (len == ०)`). With that tail gone the
@@ -2674,8 +2692,10 @@
 ॰ agreed and the hole did not, because natively there was nothing at index ०
 ॰ to read. The owner ruled LENGTH ० (2026-10-03): an empty run says so by its
 ॰ length, and the compiler routines that read the hole test the length instead.
-॰ The element width no longer enters, so the routine takes the base alone.
-सार्वजनिक वृत्तिः खण्डदैर्घ्यरचना आदाय आधारः ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
+॰ The element width no longer enters the count. It returned (IFXC, 2026-11-02)
+॰ for the forward-mark walk alone: an octet run (`विस्तार` १) is never walked.
+सार्वजनिक वृत्तिः खण्डदैर्घ्यरचना आदाय मूलाधारः ॱॱ मूल्याङ्क ऽ विस्तार ॱॱ न६४ ददाति मूल्याङ्क आदि
+    चरः आधारः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य मूलाधारः ऽ विस्तार ऽ मूलाधारः समाप्तम् ।   ॰ ADR-0062 A: follow forward marks
     चरः स्थलम् ॱॱ न६४ भवति अनामस्थानम् ७ ।
     चरः शून्यमूल्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
     चरः अवगणनशून्य ॱॱ न६४ भवति स्थलनिधानम् आरभ्य स्थलम् ऽ शून्यमूल्यम् समाप्तम् ।
@@ -2705,7 +2725,7 @@
 ॰ branch answered ० from the scratch slot without loading. That stopped a
 ॰ fault at address ० — the old length read a fresh run as १, so a loop reached
 ॰ index ० of a run with no storage — and it delivered a SILENT ०, which a
-॰ comparison against `शून्यम्` could not tell from a stored zero: an application's
+॰ comparison against `शून्यम्` could not tell from a stored zero: Uru's
 ॰ `pramana.t1` drew a phantom leading element from it. A refusal stops at the
 ॰ site; a default propagates. `w355_fresh_run` pins both the refusal and that
 ॰ a mutant answering ० goes red.
@@ -2758,7 +2778,7 @@
 ॰ `OUT_OF_BOUNDS_WRITE_REFUSAL`). FAIL form, as every refusal.
 सार्वजनिक चरः सीमातीतलेखननिषेधः ॱॱ न६४ भवति ८६१ ।   ॰ 0x35d — `W-381` stage 4; stored as समापकविफलशब्दः of it, 0x035d_3333
 ॰ ══════════ FORK-JOIN (`समान्तरॱचालनम्`) — THE SIX REFUSALS, FAIL FORM EACH ══════════
-॰ Owner-approved names and codes (the approved names list, copied by
+॰ Owner-approved names and codes (agent-handovers/forkjoin-names.md, copied by
 ॰ script): 0x372 a write beyond the body's own element, 0x373 a read of another
 ॰ index's element of the output run, 0x374 an allocation or run growth inside
 ॰ the region, 0x375 a nested region, 0x376 file or network I/O inside the
@@ -2771,11 +2791,9 @@
 सार्वजनिक चरः क्षेत्रान्तर्वितरणनिषेधः ॱॱ न६४ भवति ८८४ ।
 सार्वजनिक चरः अभ्यन्तरसमान्तरनिषेधः ॱॱ न६४ भवति ८८५ ।
 सार्वजनिक चरः क्षेत्रान्तःपत्रजालनिषेधः ॱॱ न६४ भवति ८८६ ।
-सार्वजनिक चरः फलपलायननिषेधः ॱॱ न६४ भवति ८८७ ।
-॰ 0x37F (coordinator ruling 2026-10-10, review B/C): a routine named as a region body
+॰ 0x37F (coordinator ruling 2026-10-10, 8f review B/C): a routine named as a region body
 ॰ called OUTSIDE its region — directly, from any routine, the body itself included. A BUILD
 ॰ refusal, shape ८ of `वर्गविरोधलेखः`; 0x377 keeps its own meaning (the output run escaping).
-सार्वजनिक चरः क्षेत्रबाह्याह्वाननिषेधः ॱॱ न६४ भवति ८९५ ।
 ॰ The member's sub-kind (the matrix members answer ५..७), the marker routine the
 ॰ lowering calls at region begin and end (a hint, executed as an ordinary call
 ॰ by `yantra`: no MMIO address is ignored by it, every store below RAM halts),
@@ -2790,8 +2808,8 @@
 सार्वजनिक चरः क्षेत्रपलायनवर्गविरोधभेद ॱॱ न६४ भवति ७ ।
 सार्वजनिक चरः क्षेत्रबाह्याह्वानवर्गविरोधभेद ॱॱ न६४ भवति ८ ।   ॰ क्षेत्रबाह्याह्वाननिषेधः, 0x37F
 ॰ ══════════ FORK-JOIN BEFORE THREADS — REGION PURITY, 0x380 AND 0x381 ══════════
-॰ (the approved design, claimed 2026-10-10; the project's limits E and
-॰ "interprocedural", the review's pE1, pE2, R10, R11.) A region's indices may run on threads only if no
+॰ (agent-handovers/REFUSAL-RANGES.md, claimed 2026-10-10; tools/LANDING.md's limits E and
+॰ "interprocedural", 8f's pE1, pE2, R10, R11.) A region's indices may run on threads only if no
 ॰ index can see another's work and nothing but the output run's own elements changes. The body's
 ॰ own accesses are checked by the six above; these two close what reached past them.
 ॰ 0x380 फलोपनामपठननिषेधः — RUN TIME, FAIL form: an INDEXED READ in a body whose run is not the output
@@ -2805,16 +2823,20 @@
 ॰   or the body or such a routine makes a call the build cannot see into (kind २: a routine of
 ॰   another source, a vector or matrix built-in, the output channel, the wait).
 सार्वजनिक चरः फलोपनामपठननिषेधः ॱॱ न६४ भवति ८९६ ।   ॰ 0x380
-सार्वजनिक चरः क्षेत्राशुद्धाह्वाननिषेधः ॱॱ न६४ भवति ८९७ ।   ॰ 0x381
 सार्वजनिक चरः क्षेत्राशुद्धिवर्गविरोधभेद ॱॱ न६४ भवति ९ ।   ॰ क्षेत्राशुद्धाह्वाननिषेधः, 0x381
 ॰ 0x382 संश्लिष्टनामनिषेधः — a BUILD refusal, shape १० of `वर्गविरोधलेखः`: a routine this source
 ॰   declares under the name of a routine the build SYNTHESISES for it (`खण्डवृद्धिः`, `आव्यूहगुणनम्`,
-॰   `व्युत्क्रमः`, `खण्डसाम्यम्`, the region marker `समाप्तम्`, the arena routine `अन्यथा`; the project's
+॰   `व्युत्क्रमः`, `खण्डसाम्यम्`, the region marker `समाप्तम्`, the arena routine `अन्यथा`; tools/LANDING.md's
 ॰   "synthesised names"). The label is module and name in one akṣara word, the same token a
 ॰   declared name is, so no label can be made that a name cannot spell; the emitter refused
 ॰   the pair with LabelCollision. Refused only where the build synthesises that routine.
-सार्वजनिक चरः संश्लिष्टनामनिषेधः ॱॱ न६४ भवति ८९८ ।   ॰ 0x382
 सार्वजनिक चरः संश्लिष्टनामवर्गविरोधभेद ॱॱ न६४ भवति १० ।   ॰ संश्लिष्टनामनिषेधः, 0x382
+सार्वजनिक चरः आरम्भमूल्यनिषेधभेद ॱॱ न६४ भवति १२ ।   ॰ gap11: a global initialiser calls or reads a routine
+सार्वजनिक चरः आह्वानसंख्यानिषेधभेद ॱॱ न६४ भवति १३ ।   ॰ gap11b: a call site's argument count is not its routine's parameter count (alt आह्वानार्थसंख्याविरोधभेद)
+॰ 0x400 रचनाक्षेत्रपूर्णतानिषेधः — a RUN refusal: a bump of the record region (a record, a
+॰   growth, a slice) would end past the region's end. Before it, the cursor ran on silently over
+॰   whatever lay after the region (L26). Name pending the owner (alt क्षेत्रातिक्रमनिषेधः).
+सार्वजनिक चरः रचनाक्षेत्रपूर्णतानिषेधः ॱॱ न६४ भवति १०२४ ।   ॰ 0x400 (compiler resource limits, 0x400–0x40F)
 ॰ The facts, per declaration of this source: the token of the routine's first kind-१ and first
 ॰ kind-२ effect (० none), the calls between its routines (caller, callee, from १), the routine
 ॰ being lowered (० outside a routine), and the routines the check has reached (from १).
@@ -3102,7 +3124,7 @@
     प्रत्यागमनम् फलम् ।
 इति
 ॰ ══════════ ARENAS (memory freeing, stage 1) — `अष्टकॱवाटनिर्माणम्` AND ITS FIVE SIBLINGS ══════════
-॰ Owner-approved design and names (the approved design and names, the vāṭa
+॰ Owner-approved design and names (agent-handovers/memfree-design.md, memfree-names.md, the vāṭa
 ॰ primaries, copied by script; codes 0x378..0x37E). Six call-form members of `अष्टक` (ADR-0043:
 ॰ no keyword, no grammar change), answered by `प्लवान्तर्निहितम्` as sub-kinds १०५..११० after the
 ॰ four checked ones. Each call lowers to ONE call of the module's synthesised arena routine (built
@@ -3191,6 +3213,21 @@
 वृत्तिः वाटध्रुवतुलना आदाय उपभेद ॱॱ न६४ ऽ वाम ॱॱ मूल्याङ्क ऽ मानम् ॱॱ अ६४ ददाति मूल्याङ्क आदि
     चरः दक्षिण ॱॱ मूल्याङ्क भवति ध्रुवरचना मानम् ।
     प्रत्यागमनम् तुलनारचना आरभ्य उपभेद ऽ वाम ऽ दक्षिण समाप्तम् ।
+इति
+॰ Cut अष्टककाः from the record region: answers the block's address; the cursor
+॰ (an offset) advances by that many octets. EVERY bump of the region comes here (records,
+॰ growths, slices), so this is the one place its end is checked: a block may END at the
+॰ region's end, never past it (unsigned, as the arena's create) — past it is
+॰ रचनाक्षेत्रपूर्णतानिषेधः, the cursor unmoved. Below the arena helpers it uses.
+वृत्तिः क्षेत्रखण्डरचना आदाय अष्टककाः ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
+    चरः सूचकस्थानम् ॱॱ मूल्याङ्क भवति सूचकस्थानरचना ।
+    चरः पुराणान्तरम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना सूचकस्थानम् ।
+    चरः अग्रिमान्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पुराणान्तरम् ऽ अष्टककाः समाप्तम् ।
+    चरः क्षेत्रपूर्णम् ॱॱ मूल्याङ्क भवति वाटध्रुवतुलना आरभ्य अचिह्नान्यूनतुलनाभेद ऽ अग्रिमान्तरम् ऽ वाटक्षेत्रसीमा समाप्तम् ।
+    चरः अवगणनक्षेत्रपूर्ण ॱॱ न६४ भवति निषेधशाखारचना क्षेत्रपूर्णम् रचनाक्षेत्रपूर्णतानिषेधः ।
+    चरः अवगणनसूचकनिधान ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य सूचकस्थानम् ऽ अग्रिमान्तरम् समाप्तम् ।
+    चरः क्षेत्रम् ॱॱ मूल्याङ्क भवति क्षेत्रस्थानरचना ।
+    प्रत्यागमनम् द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ क्षेत्रम् ऽ पुराणान्तरम् समाप्तम् ।
 इति
 
 ॰ The descriptor of slot `स्थानम्` (its low eight bits): the table's own label + slot × ३२.
@@ -3678,8 +3715,9 @@
         चरः अवगणनशाखा ॱॱ न६४ भवति शाखारचना आरभ्य शर्तः ऽ निषेधपर्व ऽ दैर्घ्यपर्व समाप्तम् ।
     इति
     चरः अवगणनदैर्घ्यस्थापन ॱॱ न६४ भवति पर्वस्थापनम् दैर्घ्यपर्व ।
+    चरः निराकृताधारः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य आधारः ऽ विस्तार ऽ आधारः समाप्तम् ।   ॰ ADR-0062 A: follow forward marks
     चरः अष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ८ ।
-    चरः शीर्षम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ आधारः ऽ अष्टकम् समाप्तम् ।
+    चरः शीर्षम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ निराकृताधारः ऽ अष्टकम् समाप्तम् ।
     चरः दैर्घ्यम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना शीर्षम् ।
     चरः सीमाशर्तः ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य अचिह्नान्यूनतुलनाभेद ऽ सूचकः ऽ दैर्घ्यम् समाप्तम् ।
     चरः अवगणनसीमाशाखा ॱॱ न६४ भवति शाखारचना आरभ्य सीमाशर्तः ऽ निषेधपर्व ऽ लेखपर्व समाप्तम् ।
@@ -3687,12 +3725,14 @@
     चरः विस्तारमूल्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना विस्तार ।
     चरः अन्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ सूचकः ऽ विस्तारमूल्यम् समाप्तम् ।
     चरः फलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
-    चरः अवगणनस्थान ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य सूचीस्थानाज्ञाभेद ऽ फलम् ऽ ० ऽ ० ऽ आधारः ऽ अन्तरम् ऽ ० समाप्तम् ।
+    चरः अवगणनस्थान ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य सूचीस्थानाज्ञाभेद ऽ फलम् ऽ ० ऽ ० ऽ निराकृताधारः ऽ अन्तरम् ऽ ० समाप्तम् ।
     प्रत्यागमनम् फलम् ।
 इति
 ॰ Content equality of two runs whose elements are विस्तार octets wide: equal
 ॰ lengths, then every octet. Answers १ or ०.
-सार्वजनिक वृत्तिः खण्डसाम्यरचना आदाय वामः ॱॱ मूल्याङ्क ऽ दक्षिणः ॱॱ मूल्याङ्क ऽ विस्तार ॱॱ न६४ ददाति मूल्याङ्क आदि
+सार्वजनिक वृत्तिः खण्डसाम्यरचना आदाय मूलवामः ॱॱ मूल्याङ्क ऽ मूलदक्षिणः ॱॱ मूल्याङ्क ऽ विस्तार ॱॱ न६४ ददाति मूल्याङ्क आदि
+    चरः वामः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य मूलवामः ऽ विस्तार ऽ मूलवामः समाप्तम् ।   ॰ ADR-0062 A: follow forward marks
+    चरः दक्षिणः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य मूलदक्षिणः ऽ विस्तार ऽ मूलदक्षिणः समाप्तम् ।
     ॰ LOOP-CARRIED VALUES LIVE IN SLOTS: the allocator's intervals follow line
     ॰ order, and a value read after a backward jump is not covered by them
     ॰ (the corpus's loops carry only variables). Every value a loop block reads
@@ -3707,8 +3747,8 @@
     चरः अवगणनफलशून्य ॱॱ न६४ भवति स्थलनिधानम् आरभ्य फलस्थलम् ऽ शून्यमूल्यम् समाप्तम् ।
     चरः अवगणनवामनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य वामस्थलम् ऽ वामः समाप्तम् ।
     चरः अवगणनदक्षिणनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य दक्षिणस्थलम् ऽ दक्षिणः समाप्तम् ।
-    चरः वामदैर्घ्यम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना वामः ।
-    चरः दक्षिणदैर्घ्यम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना दक्षिणः ।
+    चरः वामदैर्घ्यम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना आरभ्य वामः ऽ विस्तार समाप्तम् ।
+    चरः दक्षिणदैर्घ्यम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना आरभ्य दक्षिणः ऽ विस्तार समाप्तम् ।
     चरः लूपपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः कायपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः अग्रिमपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
@@ -3751,14 +3791,16 @@
 ॰ copied by words, and the new base left in वृद्धिनवाधाराङ्कः with the current
 ॰ block being the write-back block — the caller stores the new base into the
 ॰ run's own location, then calls खण्डवृद्धिसमाप्तिः, which raises the length to
-॰ index + १ when the index is at or past it. The old block is not reclaimed.
+॰ index + १ when the index is at or past it. The old block is not reclaimed — a block that is the
+॰ region's last is instead grown in place, below.
 सार्वजनिक चरः वृद्धिनवाधाराङ्कः ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः वृद्ध्यावश्यकाङ्कः ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः वृद्धिआधारस्थलम् ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः वृद्धिदैर्घ्यपर्वाङ्कः ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः वृद्धिवर्धनपर्वाङ्कः ॱॱ न६४ भवति ० ।
 सार्वजनिक चरः वृद्धिनिधानपर्वाङ्कः ॱॱ न६४ भवति ० ।
-सार्वजनिक वृत्तिः खण्डवृद्धिरचना आदाय आधारः ॱॱ मूल्याङ्क ऽ सूचकः ॱॱ मूल्याङ्क ऽ विस्तारमूल्यम् ॱॱ मूल्याङ्क ददाति न६४ आदि
+सार्वजनिक वृत्तिः खण्डवृद्धिरचना आदाय मूलाधारः ॱॱ मूल्याङ्क ऽ सूचकः ॱॱ मूल्याङ्क ऽ विस्तारमूल्यम् ॱॱ मूल्याङ्क ददाति न६४ आदि
+    चरः आधारः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य मूलाधारः ऽ ० ऽ विस्तारमूल्यम् समाप्तम् ।   ॰ ADR-0062 A: follow forward marks; the width is a runtime value
     चरः आधारस्थलम् ॱॱ न६४ भवति अनामस्थानम् ० ।
     चरः सामर्थ्यस्थलम् ॱॱ न६४ भवति अनामस्थानम् १ ।
     चरः दैर्घ्यस्थलम् ॱॱ न६४ भवति अनामस्थानम् २ ।
@@ -3802,12 +3844,17 @@
     ॰ one that jumps to it sees its registers reused (the constants ८ and १६ were).
     चरः सामर्थ्यपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः वृद्धिपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः ऊर्ध्वपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः प्रतिलिपिपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः लूपपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः कायपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः लेखनपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः दैर्घ्यपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः वर्धनपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः निधानपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः अग्रेषणपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः अग्रेषणद्वितीयपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः अग्रेषणलेखपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
     चरः शर्तशून्यम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ आधारः ऽ शून्यमूल्यम् समाप्तम् ।
     चरः अवगणनशाखाशून्य ॱॱ न६४ भवति शाखारचना आरभ्य शर्तशून्यम् ऽ वृद्धिपर्व ऽ सामर्थ्यपर्व समाप्तम् ।
     चरः अवगणनसामर्थ्यस्थापन ॱॱ न६४ भवति पर्वस्थापनम् सामर्थ्यपर्व ।
@@ -3821,26 +3868,62 @@
     चरः अवगणनशाखान्यून ॱॱ न६४ भवति शाखारचना आरभ्य शर्तन्यूनम् ऽ वृद्धिपर्व ऽ दैर्घ्यपर्व समाप्तम् ।
     चरः अवगणनवृद्धिस्थापन ॱॱ न६४ भवति पर्वस्थापनम् वृद्धिपर्व ।
     चरः पूर्वसामर्थ्यम् ॱॱ मूल्याङ्क भवति स्थलाहारः सामर्थ्यस्थलम् ।
-    ॰ THE FIRST BLOCK IS `खण्डसामर्थ्यम्` ELEMENTS (2026-09-14), taken here from a
-    ॰ zero capacity — the nil word a fresh run now is, or a literal's header
-    ॰ with capacity ० — exactly as the interpreter's bump model books it
-    ॰ (`bump_model`: first = १२८ × width at the first store; then need + २×cap
-    ॰ when need exceeds it). Branch-free: the effective old capacity is
-    ॰ पूर्व + (पूर्व == ०) × १२८ × width, and the new capacity is that when the
-    ॰ need fits it, else need + २ × that. A non-zero पूर्व reaches this block
-    ॰ only when need exceeds it, so its answer is need + २ × पूर्व as before.
-    चरः प्रथमसामर्थ्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना खण्डसामर्थ्यम् ।
-    चरः प्रथमाष्टकाः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ प्रथमसामर्थ्यम् ऽ विस्तारमूल्यम् समाप्तम् ।
-    चरः पूर्वशून्यम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ पूर्वसामर्थ्यम् ऽ शून्यमूल्यम् समाप्तम् ।
-    चरः प्रथमांशः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ पूर्वशून्यम् ऽ प्रथमाष्टकाः समाप्तम् ।
-    चरः प्रभावीसामर्थ्यम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पूर्वसामर्थ्यम् ऽ प्रथमांशः समाप्तम् ।
-    चरः न्यूनप्रभावी ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ प्रभावीसामर्थ्यम् ऽ आवश्यकाष्टकाः समाप्तम् ।
-    चरः योगप्रभावी ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ आवश्यकाष्टकाः ऽ प्रभावीसामर्थ्यम् समाप्तम् ।
-    चरः वृद्ध्यंशः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ न्यूनप्रभावी ऽ योगप्रभावी समाप्तम् ।
-    चरः नवसामर्थ्यम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ प्रभावीसामर्थ्यम् ऽ वृद्ध्यंशः समाप्तम् ।
+    ॰ THE FIRST BLOCK IS THE NEED (L26, 2026-10-12): need + २ × old capacity from
+    ॰ a zero capacity too. A first block of `खण्डसामर्थ्यम्` (१२८) ELEMENTS, the rule
+    ॰ before, was MEASURED as the bulk of the record region: the self-compile cut
+    ॰ 1,686,045 growths for 697,903,664 octets, of which the abandoned old
+    ॰ capacities were only 31,834,176 — the rest was first blocks sized for 128
+    ॰ elements and filled with a few. The need is never below the old length
+    ॰ (a literal's header carries capacity ० over a live length, and the copy
+    ॰ below moves that many elements): need is raised to length × width first,
+    ॰ branch-free — need + (need < held) × (held − need).
+    चरः पूर्वदैर्घ्यम् ॱॱ मूल्याङ्क भवति स्थलाहारः दैर्घ्यस्थलम् ।
+    चरः धृताष्टकाः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ पूर्वदैर्घ्यम् ऽ विस्तारमूल्यम् समाप्तम् ।
+    चरः न्यूनधृतम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ आवश्यकाष्टकाः ऽ धृताष्टकाः समाप्तम् ।
+    चरः धृतान्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ धृताष्टकाः ऽ आवश्यकाष्टकाः समाप्तम् ।
+    चरः धृतांशः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ न्यूनधृतम् ऽ धृतान्तरम् समाप्तम् ।
+    चरः प्रभावीआवश्यकम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ आवश्यकाष्टकाः ऽ धृतांशः समाप्तम् ।
+    चरः द्विपूर्वम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पूर्वसामर्थ्यम् ऽ पूर्वसामर्थ्यम् समाप्तम् ।
+    चरः नवसामर्थ्यम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ प्रभावीआवश्यकम् ऽ द्विपूर्वम् समाप्तम् ।
     चरः योगसप्त ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ नवसामर्थ्यम् ऽ सप्त समाप्तम् ।
     चरः संरेखितम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ योगसप्त ऽ ऋणाष्टकम् समाप्तम् ।
     चरः अष्टककाः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ संरेखितम् ऽ षोडश समाप्तम् ।
+    ॰ loop-carried values in slots (see खण्डसाम्यरचना): count, word count, new base.
+    चरः पदसंख्यास्थलम् ॱॱ न६४ भवति अनामस्थानम् ४ ।
+    चरः नवाधारस्थलम् ॱॱ न६४ भवति अनामस्थानम् ५ ।
+    ॰ IN-PLACE GROWTH (RGN-FIX99, 2026-10-12): a block whose end is the region's
+    ॰ cursor — base + capacity == region + cursor, the last block cut — is grown
+    ॰ where it stands: the cursor bumps by (new − old capacity), the capacity word
+    ॰ is rewritten, the base and the length stay. The address is kept, so every
+    ॰ alias of the run stays valid (a freed-and-reused old block was unsound:
+    ॰ RGN-FIX99-alias1). Otherwise the block is copied, below, as before.
+    चरः ऊर्ध्वाधारः ॱॱ मूल्याङ्क भवति स्थलाहारः आधारस्थलम् ।
+    चरः ऊर्ध्वान्तः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ ऊर्ध्वाधारः ऽ पूर्वसामर्थ्यम् समाप्तम् ।
+    चरः शिखरसूचकः ॱॱ मूल्याङ्क भवति सूचकस्थानरचना ।
+    चरः शिखरान्तरम् ॱॱ मूल्याङ्क भवति स्थानाहाररचना शिखरसूचकः ।
+    चरः शिखरक्षेत्रम् ॱॱ मूल्याङ्क भवति क्षेत्रस्थानरचना ।
+    चरः क्षेत्रशिखरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ शिखरक्षेत्रम् ऽ शिखरान्तरम् समाप्तम् ।
+    चरः शर्तशिखरम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ ऊर्ध्वान्तः ऽ क्षेत्रशिखरम् समाप्तम् ।
+    चरः अवगणनशाखाशिखर ॱॱ न६४ भवति शाखारचना आरभ्य शर्तशिखरम् ऽ ऊर्ध्वपर्व ऽ प्रतिलिपिपर्व समाप्तम् ।
+    चरः अवगणनऊर्ध्वस्थापन ॱॱ न६४ भवति पर्वस्थापनम् ऊर्ध्वपर्व ।
+    ॰ The slack of an in-place growth is bounded: the block is not copied, so
+    ॰ the 3x overshoot that amortises a copy buys nothing; it is the lesser of
+    ॰ 2 x old capacity and 1 MiB (an unbounded 143 MB run asked 430 MB).
+    चरः ऊर्ध्वछेदमानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना १०४८५७६ ।
+    चरः ऊर्ध्वन्यूनम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ ऊर्ध्वछेदमानम् ऽ द्विपूर्वम् समाप्तम् ।
+    चरः ऊर्ध्वछेदान्तरम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ ऊर्ध्वछेदमानम् ऽ द्विपूर्वम् समाप्तम् ।
+    चरः ऊर्ध्वछेदभागः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ ऊर्ध्वन्यूनम् ऽ ऊर्ध्वछेदान्तरम् समाप्तम् ।
+    चरः ऊर्ध्वस्थूलम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ द्विपूर्वम् ऽ ऊर्ध्वछेदभागः समाप्तम् ।
+    चरः ऊर्ध्वनवम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ प्रभावीआवश्यकम् ऽ ऊर्ध्वस्थूलम् समाप्तम् ।
+    चरः ऊर्ध्वयोगसप्त ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ ऊर्ध्वनवम् ऽ सप्त समाप्तम् ।
+    चरः ऊर्ध्वसंरेखितम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ ऊर्ध्वयोगसप्त ऽ ऋणाष्टकम् समाप्तम् ।
+    चरः ऊर्ध्वभारः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ ऊर्ध्वसंरेखितम् ऽ पूर्वसामर्थ्यम् समाप्तम् ।
+    चरः ऊर्ध्वखण्डः ॱॱ मूल्याङ्क भवति क्षेत्रखण्डरचना ऊर्ध्वभारः ।
+    चरः ऊर्ध्वसामर्थ्यस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ ऊर्ध्वाधारः ऽ षोडश समाप्तम् ।
+    चरः अवगणनऊर्ध्वसामर्थ्यलेखन ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य ऊर्ध्वसामर्थ्यस्थानम् ऽ ऊर्ध्वसंरेखितम् समाप्तम् ।
+    चरः अवगणनऊर्ध्वनवाधारनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य नवाधारस्थलम् ऽ ऊर्ध्वाधारः समाप्तम् ।
+    चरः अवगणनऊर्ध्वलङ्घन ॱॱ न६४ भवति लङ्घनरचना लेखनपर्व ।
+    चरः अवगणनप्रतिलिपिस्थापन ॱॱ न६४ भवति पर्वस्थापनम् प्रतिलिपिपर्व ।
     चरः पुराणः ॱॱ मूल्याङ्क भवति क्षेत्रखण्डरचना अष्टककाः ।
     चरः अवगणनसामर्थ्यलेखन ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य पुराणः ऽ संरेखितम् समाप्तम् ।
     चरः दैर्घ्यपुराणम् ॱॱ मूल्याङ्क भवति स्थलाहारः दैर्घ्यस्थलम् ।
@@ -3850,9 +3933,6 @@
     चरः अष्टकदैर्घ्यम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य गुणनाज्ञाभेद ऽ दैर्घ्यपुराणम् ऽ विस्तारमूल्यम् समाप्तम् ।
     चरः योगसप्तद्वि ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ अष्टकदैर्घ्यम् ऽ सप्त समाप्तम् ।
     चरः पदसंख्या ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य दक्षिणसरणाज्ञाभेद ऽ योगसप्तद्वि ऽ त्रीणि समाप्तम् ।
-    ॰ loop-carried values in slots (see खण्डसाम्यरचना): count, word count, new base.
-    चरः पदसंख्यास्थलम् ॱॱ न६४ भवति अनामस्थानम् ४ ।
-    चरः नवाधारस्थलम् ॱॱ न६४ भवति अनामस्थानम् ५ ।
     चरः अवगणनपदसंख्यानिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य पदसंख्यास्थलम् ऽ पदसंख्या समाप्तम् ।
     चरः अवगणननवाधारनिधानादि ॱॱ न६४ भवति स्थलनिधानम् आरभ्य नवाधारस्थलम् ऽ नवाधारः समाप्तम् ।
     चरः अवगणनगणकशून्य ॱॱ न६४ भवति स्थलनिधानम् आरभ्य गणकस्थलम् ऽ शून्यमूल्यम् समाप्तम् ।
@@ -3861,7 +3941,7 @@
     चरः गणकः ॱॱ मूल्याङ्क भवति स्थलाहारः गणकस्थलम् ।
     चरः लूपपदसंख्या ॱॱ मूल्याङ्क भवति स्थलाहारः पदसंख्यास्थलम् ।
     चरः शर्तलूपम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ गणकः ऽ लूपपदसंख्या समाप्तम् ।
-    चरः अवगणनशाखालूप ॱॱ न६४ भवति शाखारचना आरभ्य शर्तलूपम् ऽ कायपर्व ऽ लेखनपर्व समाप्तम् ।
+    चरः अवगणनशाखालूप ॱॱ न६४ भवति शाखारचना आरभ्य शर्तलूपम् ऽ कायपर्व ऽ अग्रेषणपर्व समाप्तम् ।
     चरः अवगणनकायस्थापन ॱॱ न६४ भवति पर्वस्थापनम् कायपर्व ।
     चरः कायगणकः ॱॱ मूल्याङ्क भवति स्थलाहारः गणकस्थलम् ।
     चरः कायत्रीणि ॱॱ मूल्याङ्क भवति ध्रुवरचना ३ ।
@@ -3876,6 +3956,28 @@
     चरः गणकाग्रिमः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ कायगणकः ऽ कायैकम् समाप्तम् ।
     चरः अवगणनगणकनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य गणकस्थलम् ऽ गणकाग्रिमः समाप्तम् ।
     चरः अवगणनलङ्घनलूपद्वि ॱॱ न६४ भवति लङ्घनरचना लूपपर्व ।
+    ॰ ADR-0062 A (R3P3i): FORWARD MARK. The copy left the old run behind; a
+    ॰ second name may still hold its base. For a non-octet run with a real
+    ॰ capacity (not nil, not a literal) the old capacity word becomes the
+    ॰ negated new base, so every later use resolves to the one live arena.
+    चरः अवगणनअग्रेषणस्थापन ॱॱ न६४ भवति पर्वस्थापनम् अग्रेषणपर्व ।
+    चरः अग्रेषणशून्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः अग्रेषणसामर्थ्यम् ॱॱ मूल्याङ्क भवति स्थलाहारः सामर्थ्यस्थलम् ।
+    चरः अग्रेषणशर्तनिल ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ अग्रेषणसामर्थ्यम् ऽ अग्रेषणशून्यम् समाप्तम् ।
+    चरः अवगणनअग्रेषणशाखानिल ॱॱ न६४ भवति शाखारचना आरभ्य अग्रेषणशर्तनिल ऽ लेखनपर्व ऽ अग्रेषणद्वितीयपर्व समाप्तम् ।
+    चरः अवगणनअग्रेषणद्वितीयस्थापन ॱॱ न६४ भवति पर्वस्थापनम् अग्रेषणद्वितीयपर्व ।
+    चरः अग्रेषणएकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना १ ।
+    चरः अग्रेषणशर्तअष्टक ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ विस्तारमूल्यम् ऽ अग्रेषणएकम् समाप्तम् ।
+    चरः अवगणनअग्रेषणशाखाअष्टक ॱॱ न६४ भवति शाखारचना आरभ्य अग्रेषणशर्तअष्टक ऽ लेखनपर्व ऽ अग्रेषणलेखपर्व समाप्तम् ।
+    चरः अवगणनअग्रेषणलेखस्थापन ॱॱ न६४ भवति पर्वस्थापनम् अग्रेषणलेखपर्व ।
+    चरः अग्रेषणमूलम् ॱॱ मूल्याङ्क भवति स्थलाहारः आधारस्थलम् ।
+    चरः अग्रेषणषोडश ॱॱ मूल्याङ्क भवति ध्रुवरचना १६ ।
+    चरः अग्रेषणशीर्षम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ अग्रेषणमूलम् ऽ अग्रेषणषोडश समाप्तम् ।
+    चरः अग्रेषणनवम् ॱॱ मूल्याङ्क भवति स्थलाहारः नवाधारस्थलम् ।
+    चरः अग्रेषणऋणशून्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः अग्रेषणऋणम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य वियोगाज्ञाभेद ऽ अग्रेषणऋणशून्यम् ऽ अग्रेषणनवम् समाप्तम् ।
+    चरः अवगणनअग्रेषणलेखन ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य अग्रेषणशीर्षम् ऽ अग्रेषणऋणम् समाप्तम् ।
+    चरः अवगणनअग्रेषणलङ्घन ॱॱ न६४ भवति लङ्घनरचना लेखनपर्व ।
     चरः अवगणनलेखनस्थापन ॱॱ न६४ भवति पर्वस्थापनम् लेखनपर्व ।
     चरः लेखननवाधारः ॱॱ मूल्याङ्क भवति स्थलाहारः नवाधारस्थलम् ।
     चरः अवगणननवाधारनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य आधारस्थलम् ऽ लेखननवाधारः समाप्तम् ।
@@ -3890,12 +3992,15 @@
 ॰ A SLICE IS A FRESH BLOCK (2026-09-13): [आरम्भः, सीमा) of an octet run copied
 ॰ into a block cut from the record region — the interpreter's slice is a value
 ॰ of its own. Inline, so a module that slices needs no other module.
-सार्वजनिक वृत्तिः खण्डखण्डरचना आदाय आधारः ॱॱ मूल्याङ्क ऽ आरम्भः ॱॱ मूल्याङ्क ऽ सीमा ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
+सार्वजनिक वृत्तिः खण्डखण्डरचना आदाय मूलखण्डाधारः ॱॱ मूल्याङ्क ऽ आरम्भः ॱॱ मूल्याङ्क ऽ सीमा ॱॱ मूल्याङ्क ददाति मूल्याङ्क आदि
     क्षेत्रदोषः आरभ्य १ ऽ ० समाप्तम् ।   ॰ REGION PURITY, kind १: a slice
     ॰ FORK-JOIN: a slice is a fresh block; inside a region body it is refused (क्षेत्रान्तर्वितरणनिषेधः).
     यदि क्षेत्रकायः समम् सत्यम् आदि
         चरः अवगणनक्षेत्रखण्ड ॱॱ न६४ भवति क्षेत्रनिषेधः क्षेत्रान्तर्वितरणनिषेधः ।
     इति
+    ॰ ADR-0062 A (R3P3i): slice the run where it lives now, not where it was —
+    ॰ an octet run, which no growth marks, so the walk is the width-१ no-op.
+    चरः आधारः ॱॱ मूल्याङ्क भवति खण्डनिराकरणरचना आरभ्य मूलखण्डाधारः ऽ १ ऽ मूलखण्डाधारः समाप्तम् ।
     चरः आधारस्थलम् ॱॱ न६४ भवति अनामस्थानम् ० ।
     चरः आरम्भस्थलम् ॱॱ न६४ भवति अनामस्थानम् १ ।
     चरः मानस्थलम् ॱॱ न६४ भवति अनामस्थानम् २ ।
@@ -4258,7 +4363,7 @@
 ॰ THE MARGIN THE OLD READER CARRIED, kept so the next reader does not
 ॰ re-derive it. It read: "`चिह्नकम् ॱ पाठ` is the WHOLE SOURCE — corrected
 ॰ 2026-09-01, with the margin in `artha.t1` that cited this line as its
-॰ precedent. ADR-0030, D-002h, MERGED 2026-09-03: `सम्भाव्य न६४` AND NOT
+॰ precedent. ADR-0030 [D-002h], D-002h, MERGED 2026-09-03: `सम्भाव्य न६४` AND NOT
 ॰ `सम्भाव्य अ६४`. The rail's remediation read this site behind its `सम्भाव्य`
 ॰ wrapper — the census counts the token after `ॱॱ` and the wrapper occupies
 ॰ it — and moved it to agree with its producer: अक्षरकोशॱसङ्ख्या answers
@@ -4367,6 +4472,280 @@
 ॰ `अ योगः आ` in all eleven had lowered to a constant zero. Fidelity to a
 ॰ port is worth a gap; it is not worth wrong code that runs.
 
+॰ `उक्तपाठसंग्रहः` — THE OCTETS OF A STRING LITERAL, FOR ANY CALLER (the global initialiser needs them with no block to emit into).
+॰ Returns १ with `उक्तपाठआरम्भ`/`उक्तपाठसंख्या` set, ० when the literal never closed. Moved out of `अभिव्यञ्जकरचना` unchanged.
+सार्वजनिक चरः उक्तपाठआरम्भ ॱॱ न६४ भवति ० ।
+सार्वजनिक चरः उक्तपाठसंख्या ॱॱ न६४ भवति ० ।
+सार्वजनिक वृत्तिः उक्तपाठसंग्रहः आदाय अभि ॱॱ वास्तुॱअभिव्यञ्जक ददाति न६४ आदि
+    चरः अन्तिमः ॱॱ न६४ भवति अभि ॱ दक्षिणसूचकाङ्क ।
+    चरः क्रमः ॱॱ न६४ भवति अभि ॱ मूल्यसूचकाङ्क ।
+    ॰ `व्याकर` writes both, and ० from either means it never closed the
+    ॰ literal — the stub stays, with its cause, rather than a wrong value.
+    यदि अन्तिमः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि क्रमः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि क्रमः अधिकम् पदविभागॱचिह्नकसूचकाङ्क आदि प्रत्यागमनम् ० । इति
+
+    ॰ A LAYOUT WORD (ADR-0018, 2026-09-13): a single token of kind शब्दभेद is the
+    ॰ one octet it names — `विवरम्` ३२, `यतिः` १० — not its own source slice.
+    यदि अन्तिमः समम् क्रमः योगः १ आदि
+        चरः एकचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+        ॰ GATED ON THE WORD, NOT ON THE KIND (2026-09-17). This tested
+        ॰ `भेद समम् शब्दभेद` and then defaulted `एकाक्षरम्` to ३२, testing
+        ॰ only `यतिः`. `विवरम्` was never tested at all — it was CORRECT BY
+        ॰ FALLING THROUGH to the default, which is the same thing as not
+        ॰ being checked.
+        ॰
+        ॰ ADR-0018's universe is two layout words and the arm was complete
+        ॰ for exactly that universe. ADR-0019 then added a THIRD producer of
+        ॰ a single `शब्दभेद` token — an embed — and nothing here had to
+        ॰ change for it to become wrong. `anita.rs:63` says so in its own
+        ॰ words: "An embed's content is a `Kind::Str` for the third time."
+        ॰ So a 4,122-octet table arrived here, matched the kind test, missed
+        ॰ the one name that is tested, and lowered to ONE SPACE.
+        ॰
+        ॰ MEASURED, `t1_embed`'s emitted pool: `॥ अष्टाष्टकाः १ ॥` then
+        ॰ `॥ अष्टकाः ३२ ॥` — length one, one octet of value ३२. Not a
+        ॰ truncation and not an empty lookup: a value this arm CONSTRUCTED.
+        ॰
+        ॰ BOTH WORDS ARE NOW NAMED AND NEITHER IS A DEFAULT, and anything
+        ॰ that is neither FALLS THROUGH to the slice path below instead of
+        ॰ being answered. A default is what made a growing population fail
+        ॰ silently; with both stated, a fourth producer reaches the slice
+        ॰ path — which may be wrong for it, but wrong LOUDLY rather than as
+        ॰ a plausible space.
+        यदि एकचिह्नकम् ॱ भेद समम् पदविभागॱशब्दभेद आदि
+            चरः एकपाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः एकचिह्नकम् ।
+            चरः विन्यासपदम् ॱॱ बूल भवति असत्यम् ।
+            चरः एकाक्षरम् ॱॱ अ८ भवति ० ।
+            यदि एकपाठम् समम् उक्तम् विवरम् इति आदि
+                विन्यासपदम् भवति सत्यम् ।
+                एकाक्षरम् भवति ३२ ।
+            इति
+            यदि एकपाठम् समम् उक्तम् यतिः इति आदि
+                विन्यासपदम् भवति सत्यम् ।
+                एकाक्षरम् भवति १० ।
+            इति
+            यदि विन्यासपदम् समम् सत्यम् आदि
+                चरः एकारम्भाङ्कः ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
+                चरः अवगणनैक ॱॱ न६४ भवति पाठाक्षरयोजनम् एकाक्षरम् ।
+            उक्तपाठआरम्भ भवति एकारम्भाङ्कः ।
+            उक्तपाठसंख्या भवति १ ।
+            प्रत्यागमनम् १ ।
+            इति
+        इति
+    इति
+    चरः प्रथमम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+    चरः आरम्भः ॱॱ न६४ भवति प्रथमम् ॱ अष्टक ।
+    चरः अन्त्यः ॱॱ न६४ भवति आरम्भः ।
+    चरः आरम्भाङ्क ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
+
+    यावत् क्रमः न्यूनम् अन्तिमः आदि
+        चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
+        चरः पाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः चिह्नकम् ।
+        चरः द्विगुणम् ॱॱ बूल भवति असत्यम् ।
+        चरः द्वितीयान्तः ॱॱ न६४ भवति ० ।
+        यदि पाठम् समम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
+            यदि आरभ्य क्रमः योगः १ समाप्तम् न्यूनम् अन्तिमः आदि
+                चरः परम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य क्रमः योगः १ समाप्तम् अन्तः ।
+                चरः परपाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः परम् ।
+                यदि परपाठम् समम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
+                    द्विगुणम् भवति सत्यम् ।
+                    द्वितीयान्तः भवति परम् ॱ पाठसीमा ।
+                इति
+            इति
+        इति
+
+        यदि द्विगुणम् आदि
+            ॰ through the first `इति`, then resume past the second.
+            चरः अवगणना ॱॱ न६४ भवति पाठाक्षरांशयोजनम् आरभ्य प्रथमम् ॱ पाठ ऽ आरम्भः ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
+            आरम्भः भवति द्वितीयान्तः ।
+            अन्त्यः भवति आरम्भः ।
+            क्रमः भवति क्रमः योगः २ ।
+        इति अन्यथा आदि
+            ॰ `अन्त्यः` follows the last TEXT word, so whitespace before the
+            ॰ close is not in the value.
+            अन्त्यः भवति चिह्नकम् ॱ पाठसीमा ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+    इति
+
+    चरः अवगणनद्वि ॱॱ न६४ भवति पाठाक्षरांशयोजनम् आरभ्य प्रथमम् ॱ पाठ ऽ आरम्भः ऽ अन्त्यः समाप्तम् ।
+    ॰ ADR-0044 D2: A `वर्णाष्टकम्` LITERAL IS ITS LETTERS, ONE OCTET EACH. `व्याकर`
+    ॰ marks it with द्विकर्म १ and has refused every letter outside
+    ॰ U+0900–U+097F, so the run just appended is whole triples २२४ १६४|१६५ x,
+    ॰ and each packs IN PLACE to `x` (१६४) or `x योगः ६४` (१६५) — D1's
+    ॰ `0x80 + (second − 0xA4)×64 + (third − 0x80)`. The cursor then falls to
+    ॰ the last packed octet, and the count below is the LETTER count. Every
+    ॰ other literal skips this and is the octets it always was (D6).
+    यदि अभि ॱ द्विकर्म समम् १ आदि
+        चरः लेखस्थानम् ॱॱ न६४ भवति आरम्भाङ्क ।
+        चरः पठितस्थानम् ॱॱ न६४ भवति आरम्भाङ्क ।
+        चरः पठनसीमा ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
+        यावत् पठितस्थानम् न्यूनम् पठनसीमा आदि
+            चरः मध्यस्थानम् ॱॱ न६४ भवति पठितस्थानम् योगः १ ।
+            चरः अन्त्यस्थानम् ॱॱ न६४ भवति पठितस्थानम् योगः २ ।
+            चरः मध्याष्टकम् ॱॱ न६४ भवति पाठाक्षरकोश अङ्कः मध्यस्थानम् अन्तः ।
+            चरः वर्णैकाष्टकम् ॱॱ न६४ भवति पाठाक्षरकोश अङ्कः अन्त्यस्थानम् अन्तः ।
+            यदि मध्याष्टकम् समम् १६५ आदि
+                वर्णैकाष्टकम् भवति वर्णैकाष्टकम् योगः ६४ ।
+            इति
+            पाठाक्षरकोश अङ्कः लेखस्थानम् अन्तः भवति वर्णैकाष्टकम् ।
+            लेखस्थानम् भवति लेखस्थानम् योगः १ ।
+            पठितस्थानम् भवति पठितस्थानम् योगः ३ ।
+        इति
+        पाठाक्षरसूचकाङ्क भवति लेखस्थानम् वियोगः १ ।
+    इति
+    चरः संख्यानम् ॱॱ न६४ भवति आरभ्य आरभ्य पाठाक्षरसूचकाङ्क वियोगः आरम्भाङ्क समाप्तम् योगः १ समाप्तम् ।
+    ॰ An empty literal writes no octets, so the cursor never moved and the
+    ॰ count above is ०; the run is empty and its address is still its own.
+    यदि पाठाक्षरसूचकाङ्क न्यूनम् आरम्भाङ्क आदि
+        संख्यानम् भवति ० ।
+        ॰ ॥ AND ITS START MUST NOT BE PAST THE STORE ॥ An empty literal
+        ॰ appended nothing, so `आरम्भाङ्क` is still `सूचकाङ्क योगः १` — ONE
+        ॰ PAST the end. Every reader slices `पाठाक्षरकोश` by `start..start+count`,
+        ॰ and `get(n+1 .. n+1)` on a store of length `n` is NOT an empty slice,
+        ॰ it is `None`: the range is empty but its START is out of bounds.
+        ॰
+        ॰ MEASURED: `shrinkhala.t1` has FIVE empty literals and refused in a
+        ॰ FRESH interpreter — "instruction 309 of block 74 names octets 1..1 and
+        ॰ पाठाक्षरकोश holds 0". It passed only after other programs in the same
+        ॰ interpreter had left the ARENA longer than this program's CURSOR, which
+        ॰ is order dependence and not correctness. A parallel census found it;
+        ॰ 24 empty literals across 8 sources were all riding on it.
+        ॰
+        ॰ THE START BECOMES THE CURSOR. `start == सूचकाङ्क` is in bounds for
+        ॰ every store length including ०, and a zero-length run needs no octet
+        ॰ to point at. Non-empty literals are untouched: a positive count means
+        ॰ the append advanced the cursor, so their start is already within it.
+        ॰
+        ॰ THE THREE READERS STAY AS THEY ARE and become correct by this —
+        ॰ `paradigm_encode.rs:1288`, `t1_exec_riscv.rs:700` and
+        ॰ `pradarshana/src/pathana.rs:565`, one of them product. Fixing it here is
+        ॰ one line in one place instead of three hand-written twins.
+        आरम्भाङ्क भवति पाठाक्षरसूचकाङ्क ।
+    इति
+    उक्तपाठआरम्भ भवति आरम्भाङ्क ।
+    उक्तपाठसंख्या भवति संख्यानम् ।
+    प्रत्यागमनम् १ ।
+    प्रत्यागमनम् ० ।
+इति
+
+वृत्तिः खण्डसदृशभेदः आदाय प्रकारभेद ॱॱ न६४ ददाति बूल आदि
+    यदि प्रकारभेद समम् अर्थॱखण्डार्थभेद आदि प्रत्यागमनम् सत्यम् । इति
+    यदि प्रकारभेद समम् अर्थॱसारण्यर्थभेद आदि प्रत्यागमनम् सत्यम् । इति
+    प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ ADR-0026 [D-002k] (C23, row 52): the arena index of a LOCAL's declared type, when `अभि`
+॰ is a plain name that resolves to a local; ० for every other shape.
+वृत्तिः स्थानीयप्रकारसूचकः आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    यदि अभिसूचकाङ्क समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य न्यूनम् अभिसूचकाङ्क योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः अभि ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अभिसूचकाङ्क अन्तः ।
+    यदि अभि ॱ भेद असमम् वास्तुॱनामाभिव्यञ्जकभेद आदि प्रत्यागमनम् ० । इति
+    यदि अभि ॱ दक्षिणसूचकाङ्क असमम् ० आदि प्रत्यागमनम् ० । इति
+    चरः संज्ञा ॱॱ न६४ भवति अभि ॱ संज्ञासूचकाङ्क ।
+    यदि अर्थॱसंज्ञाप्रकारकोश ॱ दैर्घ्य न्यूनम् संज्ञा योगः १ आदि प्रत्यागमनम् ० । इति
+    प्रत्यागमनम् अर्थॱसंज्ञाप्रकारकोश अङ्कः संज्ञा अन्तः ।
+इति
+
+॰ The arena index of the run type that the index expression `अभिसूचकाङ्क` denotes
+॰ when its base is a local run (or array) whose element is itself a run; else ०.
+वृत्तिः भीतरखण्डप्रकारसूचकः आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    यदि वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य न्यूनम् अभिसूचकाङ्क योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः अभि ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अभिसूचकाङ्क अन्तः ।
+    यदि अभि ॱ भेद असमम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि प्रत्यागमनम् ० । इति
+    चरः आधारप्रकारसूचकः ॱॱ न६४ भवति स्थानीयप्रकारसूचकः अभि ॱ वामसूचकाङ्क ।
+    यदि आधारप्रकारसूचकः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् आधारप्रकारसूचकः योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः आधारप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः आधारप्रकारसूचकः अन्तः ।
+    यदि खण्डसदृशभेदः आधारप्रकारः ॱ भेद समम् असत्यम् आदि प्रत्यागमनम् ० । इति
+    चरः तत्त्वसूचकः ॱॱ न६४ भवति आधारप्रकारः ॱ अन्तःसूचकाङ्क ।
+    यदि तत्त्वसूचकः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् तत्त्वसूचकः योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः तत्त्वप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः तत्त्वसूचकः अन्तः ।
+    यदि खण्डसदृशभेदः तत्त्वप्रकारः ॱ भेद समम् असत्यम् आदि प्रत्यागमनम् ० । इति
+    प्रत्यागमनम् तत्त्वसूचकः ।
+इति
+
+॰ IFXC: the element width in octets of a run type, for the forward-mark walk —
+॰ १ for an octet run, which no growth marks; ८ for any shape it cannot read.
+वृत्तिः खण्डतत्त्वाष्टकाः आदाय खण्डप्रकारः ॱॱ अर्थॱअर्थप्रकार ददाति न६४ आदि
+    चरः तत्त्वसूचकः ॱॱ न६४ भवति खण्डप्रकारः ॱ अन्तःसूचकाङ्क ।
+    यदि तत्त्वसूचकः समम् ० आदि प्रत्यागमनम् ८ । इति
+    यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् तत्त्वसूचकः योगः १ आदि प्रत्यागमनम् ८ । इति
+    चरः तत्त्वप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः तत्त्वसूचकः अन्तः ।
+    यदि तत्त्वप्रकारः ॱ भेद असमम् अर्थॱपूर्णाङ्कार्थभेद आदि प्रत्यागमनम् ८ । इति
+    यदि तत्त्वप्रकारः ॱ विस्तार समम् ८ आदि प्रत्यागमनम् १ । इति
+    यदि तत्त्वप्रकारः ॱ विस्तार समम् १६ आदि प्रत्यागमनम् २ । इति
+    यदि तत्त्वप्रकारः ॱ विस्तार समम् ३२ आदि प्रत्यागमनम् ४ । इति
+    प्रत्यागमनम् ८ ।
+इति
+
+॰ ADR-0062 A (R3P3i): BIRTH ON ALIAS. `क भवति ख` where `ख` is a local run of a
+॰ non-octet element and still nil (०) would copy the nil word, and the first
+॰ growth of either name would then give the two names two arenas — the
+॰ w250 split. So the right-hand local is born first: an empty block of capacity
+॰ ८ octets, length ०, stored back into `ख`. Both names then hold one base, and
+॰ every later move of that base leaves a forward mark (`खण्डवृद्धिरचना`) that
+॰ `खण्डनिराकरणरचना` follows. Octet runs (`अ८`) are not shared by the oracle and
+॰ are never born. Any other right-hand shape emits nothing and answers ०.
+वृत्तिः खण्डजन्मरचना आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति न६४ आदि
+    चरः जन्मप्रकारसूचकः ॱॱ न६४ भवति स्थानीयप्रकारसूचकः अभिसूचकाङ्क ।
+    यदि जन्मप्रकारसूचकः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् जन्मप्रकारसूचकः योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः जन्मप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः जन्मप्रकारसूचकः अन्तः ।
+    यदि जन्मप्रकारः ॱ भेद असमम् अर्थॱखण्डार्थभेद आदि प्रत्यागमनम् ० । इति
+    चरः जन्मतत्त्वसूचकः ॱॱ न६४ भवति जन्मप्रकारः ॱ अन्तःसूचकाङ्क ।
+    यदि जन्मतत्त्वसूचकः समम् ० आदि प्रत्यागमनम् ० । इति
+    यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् जन्मतत्त्वसूचकः योगः १ आदि प्रत्यागमनम् ० । इति
+    चरः जन्मतत्त्वम् ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः जन्मतत्त्वसूचकः अन्तः ।
+    यदि जन्मतत्त्वम् ॱ भेद समम् अर्थॱपूर्णाङ्कार्थभेद आदि
+        यदि जन्मतत्त्वम् ॱ विस्तार समम् ८ आदि प्रत्यागमनम् ० । इति
+    इति
+    चरः जन्माभि ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अभिसूचकाङ्क अन्तः ।
+    यदि जन्माभि ॱ भेद असमम् वास्तुॱनामाभिव्यञ्जकभेद आदि प्रत्यागमनम् ० । इति
+    चरः जन्मचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः जन्माभि ॱ मूल्यसूचकाङ्क अन्तः ।
+    चरः जन्मस्थलम् ॱॱ न६४ भवति स्थानीयस्थानम् आरभ्य पदविभागॱचिह्नकपाठः जन्मचिह्नकम् समाप्तम् ।
+    यदि जन्मस्थलम् समम् ० आदि प्रत्यागमनम् ० । इति
+    चरः जन्मक्रमः ॱॱ न६४ भवति जन्मस्थलम् वियोगः १ ।
+    चरः वर्तमानमूलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
+    चरः अवगणनजन्माहार ॱॱ न६४ भवति आहाराज्ञायोजनम् आरभ्य वर्तमानमूलम् ऽ जन्मक्रमः समाप्तम् ।
+    चरः जन्मशून्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः जन्मशर्तः ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य समतुलनाभेद ऽ वर्तमानमूलम् ऽ जन्मशून्यम् समाप्तम् ।
+    चरः जन्मपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः जन्मसङ्गमपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+    चरः अवगणनजन्मशाखा ॱॱ न६४ भवति शाखारचना आरभ्य जन्मशर्तः ऽ जन्मपर्व ऽ जन्मसङ्गमपर्व समाप्तम् ।
+    चरः अवगणनजन्मस्थापन ॱॱ न६४ भवति पर्वस्थापनम् जन्मपर्व ।
+    चरः जन्मपरिमाणम् ॱॱ मूल्याङ्क भवति ध्रुवरचना २४ ।
+    चरः जन्मखण्डः ॱॱ मूल्याङ्क भवति क्षेत्रखण्डरचना जन्मपरिमाणम् ।
+    चरः जन्मसामर्थ्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ८ ।
+    चरः अवगणनजन्मसामर्थ्य ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य जन्मखण्डः ऽ जन्मसामर्थ्यम् समाप्तम् ।
+    चरः जन्माष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ८ ।
+    चरः जन्मदैर्घ्यस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ जन्मखण्डः ऽ जन्माष्टकम् समाप्तम् ।
+    चरः जन्मदैर्घ्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः अवगणनजन्मदैर्घ्य ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य जन्मदैर्घ्यस्थानम् ऽ जन्मदैर्घ्यम् समाप्तम् ।
+    चरः जन्मषोडश ॱॱ मूल्याङ्क भवति ध्रुवरचना १६ ।
+    चरः जन्ममूलम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ जन्मखण्डः ऽ जन्मषोडश समाप्तम् ।
+    चरः जन्मनिधानम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
+    चरः अवगणनजन्मनिधान ॱॱ न६४ भवति निधानाज्ञायोजनम् आरभ्य जन्मनिधानम् ऽ जन्मक्रमः ऽ जन्ममूलम् समाप्तम् ।
+    चरः अवगणनजन्मलङ्घन ॱॱ न६४ भवति लङ्घनरचना जन्मसङ्गमपर्व ।
+    चरः अवगणनजन्मसङ्गम ॱॱ न६४ भवति पर्वस्थापनम् जन्मसङ्गमपर्व ।
+    प्रत्यागमनम् ० ।
+इति
+
+॰ a6 11-09 per owner 10-15 a6-decides (`अष्टकॱप्रक्षेपणम्`, ADR-0050 CAP-SPAWN). ONE store of the spawn
+॰ request: the pointer of the run at `सञ्चयाधारः + क्रमः` goes to the window word
+॰ at the absolute address `स्थानम्`. A routine of its own because the caller
+॰ already carries a frame-size ceiling (see the region-purity note below); four
+॰ calls here cost it no locals. Answers ० as the print arm does.
+वृत्तिः प्रक्षेपणसंग्रहः आदाय स्थानम् ॱॱ न६४ ऽ आधारः ॱॱ न६४ ऽ क्रमः ॱॱ न६४ ददाति न६४ आदि
+    चरः द्वारस्थानम् ॱॱ मूल्याङ्क भवति ध्रुवरचना स्थानम् ।
+    चरः धावकमूल्यम् ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य आधारः योगः क्रमः समाप्तम् अन्तः ।
+    चरः अवगणनप्रक्षेपसंग्रह ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य द्वारस्थानम् ऽ धावकमूल्यम् समाप्तम् ।
+    प्रत्यागमनम् ० ।
+इति
+
 सार्वजनिक वृत्तिः अभिव्यञ्जकरचना आदाय अभिसूचकाङ्क ॱॱ न६४ ददाति मूल्याङ्क आदि
     ॰ `W-284` — CAPTURED AND CLEARED BEFORE ANYTHING ELSE, including the early
     ॰ return below. A recursive call for a base must not inherit it.
@@ -4408,155 +4787,9 @@
     ॰ with both members of a pair still inside the range, so the collapse is
     ॰ re-run here rather than remembered.
     यदि अभि ॱ भेद समम् वास्तुॱउक्ताभिव्यञ्जकभेद आदि
-        चरः अन्तिमः ॱॱ न६४ भवति अभि ॱ दक्षिणसूचकाङ्क ।
-        चरः क्रमः ॱॱ न६४ भवति अभि ॱ मूल्यसूचकाङ्क ।
-        ॰ `व्याकर` writes both, and ० from either means it never closed the
-        ॰ literal — the stub stays, with its cause, rather than a wrong value.
-        यदि अन्तिमः समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवम् ८ । इति
-        यदि क्रमः समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवम् ८ । इति
-        यदि क्रमः अधिकम् पदविभागॱचिह्नकसूचकाङ्क आदि प्रत्यागमनम् अपूर्णध्रुवम् ८ । इति
-
-        ॰ A LAYOUT WORD (ADR-0018, 2026-09-13): a single token of kind शब्दभेद is the
-        ॰ one octet it names — `विवरम्` ३२, `यतिः` १० — not its own source slice.
-        यदि अन्तिमः समम् क्रमः योगः १ आदि
-            चरः एकचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
-            ॰ GATED ON THE WORD, NOT ON THE KIND (2026-09-17). This tested
-            ॰ `भेद समम् शब्दभेद` and then defaulted `एकाक्षरम्` to ३२, testing
-            ॰ only `यतिः`. `विवरम्` was never tested at all — it was CORRECT BY
-            ॰ FALLING THROUGH to the default, which is the same thing as not
-            ॰ being checked.
-            ॰
-            ॰ ADR-0018's universe is two layout words and the arm was complete
-            ॰ for exactly that universe. ADR-0019 then added a THIRD producer of
-            ॰ a single `शब्दभेद` token — an embed — and nothing here had to
-            ॰ change for it to become wrong. `anita.rs:63` says so in its own
-            ॰ words: "An embed's content is a `Kind::Str` for the third time."
-            ॰ So a 4,122-octet table arrived here, matched the kind test, missed
-            ॰ the one name that is tested, and lowered to ONE SPACE.
-            ॰
-            ॰ MEASURED, `t1_embed`'s emitted pool: `॥ अष्टाष्टकाः १ ॥` then
-            ॰ `॥ अष्टकाः ३२ ॥` — length one, one octet of value ३२. Not a
-            ॰ truncation and not an empty lookup: a value this arm CONSTRUCTED.
-            ॰
-            ॰ BOTH WORDS ARE NOW NAMED AND NEITHER IS A DEFAULT, and anything
-            ॰ that is neither FALLS THROUGH to the slice path below instead of
-            ॰ being answered. A default is what made a growing population fail
-            ॰ silently; with both stated, a fourth producer reaches the slice
-            ॰ path — which may be wrong for it, but wrong LOUDLY rather than as
-            ॰ a plausible space.
-            यदि एकचिह्नकम् ॱ भेद समम् पदविभागॱशब्दभेद आदि
-                चरः एकपाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः एकचिह्नकम् ।
-                चरः विन्यासपदम् ॱॱ बूल भवति असत्यम् ।
-                चरः एकाक्षरम् ॱॱ अ८ भवति ० ।
-                यदि एकपाठम् समम् उक्तम् विवरम् इति आदि
-                    विन्यासपदम् भवति सत्यम् ।
-                    एकाक्षरम् भवति ३२ ।
-                इति
-                यदि एकपाठम् समम् उक्तम् यतिः इति आदि
-                    विन्यासपदम् भवति सत्यम् ।
-                    एकाक्षरम् भवति १० ।
-                इति
-                यदि विन्यासपदम् समम् सत्यम् आदि
-                    चरः एकारम्भाङ्कः ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
-                    चरः अवगणनैक ॱॱ न६४ भवति पाठाक्षरयोजनम् एकाक्षरम् ।
-                    चरः एकफलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
-                    चरः अवगणनैकद्वि ॱॱ न६४ भवति पाठाज्ञायोजनम् आरभ्य एकफलम् ऽ एकारम्भाङ्कः ऽ १ समाप्तम् ।
-                    प्रत्यागमनम् एकफलम् ।
-                इति
-            इति
-        इति
-        चरः प्रथमम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
-        चरः आरम्भः ॱॱ न६४ भवति प्रथमम् ॱ अष्टक ।
-        चरः अन्त्यः ॱॱ न६४ भवति आरम्भः ।
-        चरः आरम्भाङ्क ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
-
-        यावत् क्रमः न्यूनम् अन्तिमः आदि
-            चरः चिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः क्रमः अन्तः ।
-            चरः पाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः चिह्नकम् ।
-            चरः द्विगुणम् ॱॱ बूल भवति असत्यम् ।
-            चरः द्वितीयान्तः ॱॱ न६४ भवति ० ।
-            यदि पाठम् समम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
-                यदि आरभ्य क्रमः योगः १ समाप्तम् न्यूनम् अन्तिमः आदि
-                    चरः परम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य क्रमः योगः १ समाप्तम् अन्तः ।
-                    चरः परपाठम् ॱॱ अङ्कः अन्तः अ८ भवति पदविभागॱचिह्नकपाठः परम् ।
-                    यदि परपाठम् समम् आरभ्य उक्तम् इति इति इति समाप्तम् आदि
-                        द्विगुणम् भवति सत्यम् ।
-                        द्वितीयान्तः भवति परम् ॱ पाठसीमा ।
-                    इति
-                इति
-            इति
-
-            यदि द्विगुणम् आदि
-                ॰ through the first `इति`, then resume past the second.
-                चरः अवगणना ॱॱ न६४ भवति पाठाक्षरांशयोजनम् आरभ्य प्रथमम् ॱ पाठ ऽ आरम्भः ऽ चिह्नकम् ॱ पाठसीमा समाप्तम् ।
-                आरम्भः भवति द्वितीयान्तः ।
-                अन्त्यः भवति आरम्भः ।
-                क्रमः भवति क्रमः योगः २ ।
-            इति अन्यथा आदि
-                ॰ `अन्त्यः` follows the last TEXT word, so whitespace before the
-                ॰ close is not in the value.
-                अन्त्यः भवति चिह्नकम् ॱ पाठसीमा ।
-                क्रमः भवति क्रमः योगः १ ।
-            इति
-        इति
-
-        चरः अवगणनद्वि ॱॱ न६४ भवति पाठाक्षरांशयोजनम् आरभ्य प्रथमम् ॱ पाठ ऽ आरम्भः ऽ अन्त्यः समाप्तम् ।
-        ॰ ADR-0044 D2: A `वर्णाष्टकम्` LITERAL IS ITS LETTERS, ONE OCTET EACH. `व्याकर`
-        ॰ marks it with द्विकर्म १ and has refused every letter outside
-        ॰ U+0900–U+097F, so the run just appended is whole triples २२४ १६४|१६५ x,
-        ॰ and each packs IN PLACE to `x` (१६४) or `x योगः ६४` (१६५) — D1's
-        ॰ `0x80 + (second − 0xA4)×64 + (third − 0x80)`. The cursor then falls to
-        ॰ the last packed octet, and the count below is the LETTER count. Every
-        ॰ other literal skips this and is the octets it always was (D6).
-        यदि अभि ॱ द्विकर्म समम् १ आदि
-            चरः लेखस्थानम् ॱॱ न६४ भवति आरम्भाङ्क ।
-            चरः पठितस्थानम् ॱॱ न६४ भवति आरम्भाङ्क ।
-            चरः पठनसीमा ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
-            यावत् पठितस्थानम् न्यूनम् पठनसीमा आदि
-                चरः मध्यस्थानम् ॱॱ न६४ भवति पठितस्थानम् योगः १ ।
-                चरः अन्त्यस्थानम् ॱॱ न६४ भवति पठितस्थानम् योगः २ ।
-                चरः मध्याष्टकम् ॱॱ न६४ भवति पाठाक्षरकोश अङ्कः मध्यस्थानम् अन्तः ।
-                चरः वर्णैकाष्टकम् ॱॱ न६४ भवति पाठाक्षरकोश अङ्कः अन्त्यस्थानम् अन्तः ।
-                यदि मध्याष्टकम् समम् १६५ आदि
-                    वर्णैकाष्टकम् भवति वर्णैकाष्टकम् योगः ६४ ।
-                इति
-                पाठाक्षरकोश अङ्कः लेखस्थानम् अन्तः भवति वर्णैकाष्टकम् ।
-                लेखस्थानम् भवति लेखस्थानम् योगः १ ।
-                पठितस्थानम् भवति पठितस्थानम् योगः ३ ।
-            इति
-            पाठाक्षरसूचकाङ्क भवति लेखस्थानम् वियोगः १ ।
-        इति
-        चरः संख्यानम् ॱॱ न६४ भवति आरभ्य आरभ्य पाठाक्षरसूचकाङ्क वियोगः आरम्भाङ्क समाप्तम् योगः १ समाप्तम् ।
-        ॰ An empty literal writes no octets, so the cursor never moved and the
-        ॰ count above is ०; the run is empty and its address is still its own.
-        यदि पाठाक्षरसूचकाङ्क न्यूनम् आरम्भाङ्क आदि
-            संख्यानम् भवति ० ।
-            ॰ ॥ AND ITS START MUST NOT BE PAST THE STORE ॥ An empty literal
-            ॰ appended nothing, so `आरम्भाङ्क` is still `सूचकाङ्क योगः १` — ONE
-            ॰ PAST the end. Every reader slices `पाठाक्षरकोश` by `start..start+count`,
-            ॰ and `get(n+1 .. n+1)` on a store of length `n` is NOT an empty slice,
-            ॰ it is `None`: the range is empty but its START is out of bounds.
-            ॰
-            ॰ MEASURED: `shrinkhala.t1` has FIVE empty literals and refused in a
-            ॰ FRESH interpreter — "instruction 309 of block 74 names octets 1..1 and
-            ॰ पाठाक्षरकोश holds 0". It passed only after other programs in the same
-            ॰ interpreter had left the ARENA longer than this program's CURSOR, which
-            ॰ is order dependence and not correctness. A parallel census found it;
-            ॰ 24 empty literals across 8 sources were all riding on it.
-            ॰
-            ॰ THE START BECOMES THE CURSOR. `start == सूचकाङ्क` is in bounds for
-            ॰ every store length including ०, and a zero-length run needs no octet
-            ॰ to point at. Non-empty literals are untouched: a positive count means
-            ॰ the append advanced the cursor, so their start is already within it.
-            ॰
-            ॰ THE THREE READERS STAY AS THEY ARE and become correct by this —
-            ॰ `paradigm_encode.rs:1288`, `t1_exec_riscv.rs:700` and
-            ॰ `frontend/src/pathana.rs:565`, one of them product. Fixing it here is
-            ॰ one line in one place instead of three hand-written twins.
-            आरम्भाङ्क भवति पाठाक्षरसूचकाङ्क ।
-        इति
+        यदि उक्तपाठसंग्रहः अभि समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवम् ८ । इति
         चरः फलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
-        चरः अवगणनत्रि ॱॱ न६४ भवति पाठाज्ञायोजनम् आरभ्य फलम् ऽ आरम्भाङ्क ऽ संख्यानम् समाप्तम् ।
+        चरः अवगणनत्रि ॱॱ न६४ भवति पाठाज्ञायोजनम् आरभ्य फलम् ऽ उक्तपाठआरम्भ ऽ उक्तपाठसंख्या समाप्तम् ।
         प्रत्यागमनम् फलम् ।
     इति
 
@@ -4654,8 +4887,8 @@
             चरः उभयखण्डौ ॱॱ बूल भवति असत्यम् ।
             यदि वामप्रकारः असमम् शून्यम् आदि
                 यदि दक्षिणप्रकारः असमम् शून्यम् आदि
-                    यदि वामप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
-                        यदि दक्षिणप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+                    यदि खण्डसदृशभेदः वामप्रकारः ॱ भेद समम् सत्यम् आदि
+                        यदि खण्डसदृशभेदः दक्षिणप्रकारः ॱ भेद समम् सत्यम् आदि
                             उभयखण्डौ भवति सत्यम् ।
                         इति
                     इति
@@ -4829,6 +5062,10 @@
         ॰ than inside a shared arm that has to re-decide.
         चरः उपकरणाहारमिदम् ॱॱ बूल भवति असत्यम् ।
         चरः उपकरणनिधानमिदम् ॱॱ बूल भवति असत्यम् ।
+        ॰ a6 11-09 per owner 10-15 a6-decides spawn intrinsic (ADR-0050): a flag like the ones above.
+        चरः प्रक्षेपणमिदम् ॱॱ बूल भवति असत्यम् ।
+        ॰ go-only variant `अष्टकॱप्रक्षेपारम्भः` (n/r oracle modes): also sets प्रक्षेपणमिदम्, so region purity is shared.
+        चरः प्रक्षेपारम्भमिदम् ॱॱ बूल भवति असत्यम् ।
         ॰ `V-005` — WHICH FLOAT BUILT-IN, by the callee's exact qualified text
         ॰ (`प्लवान्तर्निहितम्`); ० for a callee that is none of them. A number and
         ॰ not a flag because the eleven differ in WHICH op the arm builds.
@@ -4889,7 +5126,7 @@
                 आह्वेयमस्ति भवति सत्यम् ।
                 आह्वेयसंज्ञा भवति आह्वेयः ॱ संज्ञासूचकाङ्क ।
                 आह्वेयचिह्नकाङ्क भवति आह्वेयः ॱ मूल्यसूचकाङ्क ।
-                ॰ FORK-JOIN (review B, C): a routine named as a region body is lowered in
+                ॰ FORK-JOIN (8f review B, C): a routine named as a region body is lowered in
                 ॰ REGION MODE ONLY, so only the member may call it. A direct call — from any
                 ॰ routine, the body itself included — is the build's named cause
                 ॰ क्षेत्रबाह्याह्वाननिषेधः (0x37F): the body would run outside its region (with a
@@ -4928,6 +5165,14 @@
                         ॰ the sentinel reachable and therefore testable.
                         यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱउपकरणचतुरष्टकाहारः इति आदि
                             उपकरणाहारमिदम् भवति सत्यम् ।
+                        इति
+                        ॰ a6 11-09 per owner 10-15 a6-decides: the spawn window, matched on the QUALIFIED name.
+                        यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱप्रक्षेपणम् इति आदि
+                            प्रक्षेपणमिदम् भवति सत्यम् ।
+                        इति
+                        यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱप्रक्षेपारम्भः इति आदि
+                            प्रक्षेपणमिदम् भवति सत्यम् ।
+                            प्रक्षेपारम्भमिदम् भवति सत्यम् ।
                         इति
                         यदि पदविभागॱचिह्नकपाठः आह्वेयचिह्नकम् समम् उक्तम् अष्टकॱउपकरणचतुरष्टकनिधानम् इति आदि
                             उपकरणनिधानमिदम् भवति सत्यम् ।
@@ -5114,12 +5359,12 @@
         ॰ layout argument is read as text and never lowered.
         ॰ FORK-JOIN: file or network I/O inside a region body is refused (क्षेत्रान्तःपत्रजालनिषेधः).
         यदि क्षेत्रकायः समम् सत्यम् आदि
-            क्षेत्रबाह्यपरीक्षा आरभ्य पत्रमिदम् ऽ पत्रलेखनमिदम् ऽ उपकरणाहारमिदम् ऽ उपकरणनिधानमिदम् समाप्तम् ।
+            क्षेत्रबाह्यपरीक्षा आरभ्य पत्रमिदम् ऽ पत्रलेखनमिदम् ऽ उपकरणाहारमिदम् ऽ उपकरणनिधानमिदम् ऽ प्रक्षेपणमिदम् समाप्तम् ।
         इति
         ॰ REGION PURITY: a built-in a region routine may not call (`क्षेत्रअन्तर्निहितदोषः`, `क्षेत्रबाह्यदोषः`).
         यदि क्षेत्रकायसंख्या अधिकम् ० आदि
             क्षेत्रअन्तर्निहितदोषः आरभ्य व्यूहोपभेदः ऽ मुद्रणमिदम् ऽ प्रतीक्षणमिदम् ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
-            क्षेत्रबाह्यदोषः आरभ्य पत्रमिदम् ऽ पत्रलेखनमिदम् ऽ उपकरणाहारमिदम् ऽ उपकरणनिधानमिदम् ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
+            क्षेत्रबाह्यदोषः आरभ्य पत्रमिदम् ऽ पत्रलेखनमिदम् ऽ उपकरणाहारमिदम् ऽ उपकरणनिधानमिदम् ऽ प्रक्षेपणमिदम् ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
         इति
         यदि व्यूहोपभेदः अधिकम् प्लवभागोपभेद आदि
             प्रत्यागमनम् आव्यूहान्तर्निहितरचना आरभ्य व्यूहोपभेदः ऽ अभिसूचकाङ्क ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
@@ -5218,6 +5463,22 @@
             आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
             प्रत्यागमनम् ध्रुवरचना ० ।
         इति
+        ॰ a6 11-09 per owner 10-15 a6-decides spawn (ADR-0050): PATH 0x00, BUFFER 0x08, PARAM 0x20, then
+        ॰ the go at 0x78 carrying the STATUS run pointer. Four stores, each in the
+        ॰ helper routine (frame-size ceiling).
+        यदि प्रक्षेपणमिदम् समम् सत्यम् आदि
+            यदि प्रक्षेपारम्भमिदम् समम् सत्यम् आदि
+                चरः प्रक्षेपारम्भस्थितिः ॱॱ न६४ भवति प्रक्षेपणसंग्रहः आरभ्य २६८४४३७६८ ऽ सञ्चयाधारः ऽ १ समाप्तम् ।
+                आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+                प्रत्यागमनम् ध्रुवरचना ० ।
+            इति
+            चरः प्रक्षेपमार्गः ॱॱ न६४ भवति प्रक्षेपणसंग्रहः आरभ्य २६८४४३६४८ ऽ सञ्चयाधारः ऽ १ समाप्तम् ।
+            चरः प्रक्षेपपात्रम् ॱॱ न६४ भवति प्रक्षेपणसंग्रहः आरभ्य २६८४४३६५६ ऽ सञ्चयाधारः ऽ २ समाप्तम् ।
+            चरः प्रक्षेपप्राचलः ॱॱ न६४ भवति प्रक्षेपणसंग्रहः आरभ्य २६८४४३६८० ऽ सञ्चयाधारः ऽ ३ समाप्तम् ।
+            चरः प्रक्षेपस्थितिः ॱॱ न६४ भवति प्रक्षेपणसंग्रहः आरभ्य २६८४४३७६८ ऽ सञ्चयाधारः ऽ ४ समाप्तम् ।
+            आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+            प्रत्यागमनम् ध्रुवरचना ० ।
+        इति
         ॰ ॥ `W-350` — THE DEVICE REGISTER READ, AND IT IS THE FIRST INTRINSIC
         ॰ THAT ANSWERS SOMETHING ॥ The three arms above all end in a store and
         ॰ return `ध्रुवरचना ०`; this one returns the value it loaded.
@@ -5276,6 +5537,38 @@
         ॰ REGION PURITY: the call's edge, or a kind-२ fact (`क्षेत्राह्वानलेखः`).
         यदि क्षेत्रकायसंख्या अधिकम् ० आदि
             क्षेत्राह्वानलेखः आरभ्य आह्वेयसंज्ञा ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
+        इति
+        ॰ gap11b — A CALL SITE'S ARGUMENT COUNT IS ITS ROUTINE'S PARAMETER COUNT.
+        ॰ A routine THIS source declares is found through its symbol
+        ॰ (`अर्थॱसंज्ञाघोषणाकोश`, ० for a cross-module member), and its declared
+        ॰ run `प्राचलादि..प्राचलान्त` (inclusive) is the parameter count; a slice or a word
+        ॰ list is ONE argument, as it is one parameter. A mismatch is refused by
+        ॰ name (shape १३), not lowered with registers read at the wrong place.
+        ॰ The built-ins were intercepted above and never reach here.
+        यदि आह्वेयमस्ति समम् सत्यम् आदि
+            यदि आह्वेयसंज्ञा अधिकम् ० आदि
+                यदि आह्वेयसंज्ञा न्यूनम् अर्थॱसंज्ञाघोषणाकोश ॱ दैर्घ्य आदि
+                    चरः आह्वेयघोषितम् ॱॱ न६४ भवति अर्थॱसंज्ञाघोषणाकोश अङ्कः आह्वेयसंज्ञा अन्तः ।
+                    यदि आह्वेयघोषितम् असमम् ० आदि
+                        यदि आह्वेयघोषितम् असमम् शून्यम् आदि
+                            यदि आह्वेयघोषितम् न्यूनम् व्याकरॱघोषणाकोश ॱ दैर्घ्य आदि
+                                चरः आह्वेयघोषणा ॱॱ व्याकरॱघोषणा भवति व्याकरॱघोषणाकोश अङ्कः आह्वेयघोषितम् अन्तः ।
+                                यदि आह्वेयघोषणा ॱ भेद समम् व्याकरॱवृत्तिघोषणाभेद आदि
+                                    चरः आह्वेयप्राचलसंख्या ॱॱ न६४ भवति ० ।   ॰ `प्राचलादि..प्राचलान्त` is INCLUSIVE and ० ० means none
+                                    यदि आह्वेयघोषणा ॱ प्राचलादि अधिकम् ० आदि
+                                        चरः आह्वेयप्राचलविस्तारः ॱॱ न६४ भवति आह्वेयघोषणा ॱ प्राचलान्त वियोगः आह्वेयघोषणा ॱ प्राचलादि ।
+                                        आह्वेयप्राचलसंख्या भवति आह्वेयप्राचलविस्तारः योगः १ ।
+                                    इति
+                                    यदि आदानगणना असमम् आह्वेयप्राचलसंख्या आदि
+                                        चरः अवगणनसंख्याविरोध ॱॱ बूल भवति वर्गविरोधलेखः आरभ्य आह्वानसंख्यानिषेधभेद ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
+                                        प्रत्यागमनम् मूल्याङ्कनम् ० ।
+                                    इति
+                                इति
+                            इति
+                        इति
+                    इति
+                इति
+            इति
         इति
         चरः आह्वेयहस्तः ॱॱ न६४ भवति आह्वेयप्लवहस्तः आह्वेयाङ्क ।
         चरः अवगणनानुरूप ॱॱ न६४ भवति आदानवर्गपरीक्षा आरभ्य आह्वेयहस्तः ऽ सञ्चयाधारः ऽ आदानगणना ऽ आह्वेयचिह्नकाङ्क समाप्तम् ।
@@ -5542,7 +5835,7 @@
                                 यदि वैश्विकप्रकारः ॱ भेद समम् अर्थॱपूर्णाङ्कार्थभेद आदि
                                     वैश्विकपाठ्यम् भवति सत्यम् ।
                                 इति
-                                यदि वैश्विकप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+                                यदि खण्डसदृशभेदः वैश्विकप्रकारः ॱ भेद समम् सत्यम् आदि
                                     वैश्विकपाठ्यम् भवति सत्यम् ।
                                 इति
                                 ॰ A record-typed global is one word too (2026-09-13): the driver's
@@ -5792,6 +6085,11 @@
             आधारप्रकारः भवति अर्थॱअर्थप्रकारकोश अङ्कः आधारप्रकारसूचकः अन्तः ।
         इति अन्यथा आदि
             आधारप्रकारः भवति अर्थॱअभिव्यञ्जकप्रकारः वास्तुॱअभिव्यञ्जककोश आधारसूचकाङ्क ।
+            ॰ ADR-0026 [D-002k] (C23, row 52): the general checker types a local as i32, so an index on
+            ॰ an array-of-runs local is mistyped; read the element run from the declared type.
+            यदि भीतरखण्डप्रकारसूचकः आधारसूचकाङ्क अधिकम् ० आदि
+                आधारप्रकारः भवति अर्थॱअर्थप्रकारकोश अङ्कः भीतरखण्डप्रकारसूचकः आधारसूचकाङ्क अन्तः ।
+            इति
         इति
         यदि आधारप्रकारः समम् शून्यम् आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ ९ समाप्तम् । इति
 
@@ -5800,7 +6098,7 @@
         ॰ type can be read from without asking `अर्थ` to type the expression,
         ॰ which it would refuse anyway: `artha.t1:1144` answers `दोषार्थः` for an
         ॰ index and types nothing under it.
-        यदि आधारप्रकारः ॱ भेद असमम् अर्थॱखण्डार्थभेद आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ १० समाप्तम् । इति
+        यदि खण्डसदृशभेदः आधारप्रकारः ॱ भेद समम् असत्यम् आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ १० समाप्तम् । इति
         चरः अन्तःसूचकः ॱॱ न६४ भवति आधारप्रकारः ॱ अन्तःसूचकाङ्क ।
         यदि अन्तःसूचकः समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ ११ समाप्तम् । इति
         यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य न्यूनम् अन्तःसूचकः योगः १ आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ १२ समाप्तम् । इति
@@ -5850,7 +6148,7 @@
             यदि अन्तःप्रकारः ॱ विस्तार समम् ६४ आदि अष्टकविस्तार भवति ८ । इति
             यदि अष्टकविस्तार समम् ० आदि प्रत्यागमनम् अपूर्णध्रुवस्थाने आरभ्य २७ ऽ १४ समाप्तम् । इति
         इति अन्यथा आदि
-            ॰ A pointer and a struct are one word each by ADR-0026; every other
+            ॰ A pointer and a struct are one word each by ADR-0026 [D-002k]; every other
             ॰ kind either has no width here or is not a thing a run holds, and
             ॰ both are refused rather than sorted.
             ॰ A RUN ELEMENT IS ONE WORD TOO (2026-09-13): a run of runs (the lowering's
@@ -5873,6 +6171,12 @@
         ॰ and `W-278` arms give the reason: dead instructions on a refused path
         ॰ inflate the shape counts and make a stub look like work.
         चरः आधारफलम् ॱॱ मूल्याङ्क भवति अभिव्यञ्जकरचना आधारसूचकाङ्क ।
+        ॰ ADR-0062 A (R3P3i): a shared non-octet run may have moved; follow it.
+        यदि आधारप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+            यदि अष्टकविस्तार असमम् १ आदि
+                आधारफलम् भवति खण्डनिराकरणरचना आरभ्य आधारफलम् ऽ अष्टकविस्तार ऽ आधारफलम् समाप्तम् ।
+            इति
+        इति
         चरः सूचीफलम् ॱॱ मूल्याङ्क भवति अभिव्यञ्जकरचना अभि ॱ दक्षिणसूचकाङ्क ।
         ॰ FORK-JOIN: the access checks of a region body (`क्षेत्रसूचीपरीक्षा`). An address
         ॰ formed for a WRITE comes through here too, but the store arm has run its own.
@@ -6127,7 +6431,7 @@
         ॰ `W-narrow` made that field the element WIDTH for the index kind, but a
         ॰ COUNT is a word whatever the elements are — the one place where not
         ॰ inheriting the stride is correct.
-        यदि वस्तुप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+        यदि खण्डसदृशभेदः वस्तुप्रकारः ॱ भेद समम् सत्यम् आदि
             यदि अभि ॱ मूल्यसूचकाङ्क अधिकम् ० आदि
                 यदि पदविभागॱचिह्नककोश ॱ दैर्घ्य बृहत्समम् अभि ॱ मूल्यसूचकाङ्क आदि
                     चरः दैर्घ्यचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः आरभ्य अभि ॱ मूल्यसूचकाङ्क वियोगः १ समाप्तम् अन्तः ।
@@ -6135,7 +6439,8 @@
                     यदि दैर्घ्यक्षेत्रपाठ समम् आरभ्य उक्तम् दैर्घ्य इति समाप्तम् आदि
                         चरः धारकफलम् ॱॱ मूल्याङ्क भवति अभिव्यञ्जकरचना वस्तुसूचकाङ्क ।
                         ॰ ० for a nil run (2026-09-13): a record's run field before its first store.
-                        चरः दैर्घ्यफलम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना धारकफलम् ।
+                        चरः दैर्घ्यतत्त्वविस्तार ॱॱ न६४ भवति खण्डतत्त्वाष्टकाः वस्तुप्रकारः ।
+                        चरः दैर्घ्यफलम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना आरभ्य धारकफलम् ऽ दैर्घ्यतत्त्वविस्तार समाप्तम् ।
                         रचितगणनम् ३४ ।
                         प्रत्यागमनम् दैर्घ्यफलम् ।
                     इति
@@ -6624,7 +6929,7 @@
     ॰
     ॰ `न६४` AND NOT `अ६४`, though this walk is copied from `अर्थ`, which writes
     ॰ `अ६४`. `वाक्यरचना` TAKES `न६४`, so these indices match their consumer —
-    ॰ and ADR-0030's whole direction is `अ६४` toward `न६४`, so copying the older
+    ॰ and ADR-0030 [D-002h]'s whole direction is `अ६४` toward `न६४`, so copying the older
     ॰ spelling would have added five sites to the very ledger that tracks the
     ॰ debt. A shape worth reusing is not a spelling worth inheriting.
     ॰
@@ -6946,26 +7251,29 @@
         यदि रचनाघोषणा अधिकम् ० आदि
             चरः रचनाघोष ॱॱ व्याकरॱघोषणा भवति व्याकरॱघोषणाकोश अङ्कः रचनाघोषणा अन्तः ।
             चरः क्षेत्रसंख्या ॱॱ न६४ भवति आरभ्य रचनाघोष ॱ प्राचलान्त वियोगः रचनाघोष ॱ प्राचलादि समाप्तम् योगः १ ।
-            चरमूल्यम् भवति नवमूल्यम् ० ।
             क्षेत्रदोषः आरभ्य १ ऽ वाक्यम् ॱ स्थानसूचकाङ्क समाप्तम् ।   ॰ REGION PURITY, kind १: a record allocated
             ॰ FORK-JOIN: a record allocation inside a region body is refused (क्षेत्रान्तर्वितरणनिषेधः).
             यदि क्षेत्रकायः समम् सत्यम् आदि
                 क्षेत्रनिषेधः क्षेत्रान्तर्वितरणनिषेधः ।
             इति
-            चरः अवगणनरचना ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य रचनाज्ञाभेद ऽ चरमूल्यम् ऽ आरभ्य क्षेत्रसंख्या गुणनम् ८ समाप्तम् ऽ ० ऽ मूल्याङ्कनम् ० ऽ मूल्याङ्कनम् ० ऽ ० समाप्तम् ।
+            चरः रचनाष्टककाः ॱॱ न६४ भवति क्षेत्रसंख्या गुणनम् ८ ।
+            चरः रचनापरिमाणम् ॱॱ मूल्याङ्क भवति ध्रुवरचना रचनाष्टककाः ।
+            चरमूल्यम् भवति क्षेत्रखण्डरचना रचनापरिमाणम् ।   ॰ L26: the one checked bump
             रचितगणनम् ३० ।
         इति अन्यथा आदि
         यदि दूररचनासंख्या अधिकम् ० आदि
-            चरमूल्यम् भवति नवमूल्यम् ० ।
             क्षेत्रदोषः आरभ्य १ ऽ वाक्यम् ॱ स्थानसूचकाङ्क समाप्तम् ।   ॰ REGION PURITY, kind १: a record of another module allocated
             ॰ FORK-JOIN: a record allocation inside a region body is refused (क्षेत्रान्तर्वितरणनिषेधः).
             यदि क्षेत्रकायः समम् सत्यम् आदि
                 क्षेत्रनिषेधः क्षेत्रान्तर्वितरणनिषेधः ।
             इति
-            चरः अवगणनदूररचना ॱॱ न६४ भवति आज्ञायोजनम् आरभ्य रचनाज्ञाभेद ऽ चरमूल्यम् ऽ आरभ्य दूररचनासंख्या गुणनम् ८ समाप्तम् ऽ ० ऽ मूल्याङ्कनम् ० ऽ मूल्याङ्कनम् ० ऽ ० समाप्तम् ।
+            चरः दूररचनाष्टककाः ॱॱ न६४ भवति दूररचनासंख्या गुणनम् ८ ।
+            चरः दूररचनापरिमाणम् ॱॱ मूल्याङ्क भवति ध्रुवरचना दूररचनाष्टककाः ।
+            चरमूल्यम् भवति क्षेत्रखण्डरचना दूररचनापरिमाणम् ।   ॰ L26: the one checked bump
             रचितगणनम् ३० ।
         इति अन्यथा आदि
         यदि वाक्यम् ॱ दक्षिणसूचकाङ्क अधिकम् ० आदि
+            चरः अवगणनघोषजन्म ॱॱ न६४ भवति खण्डजन्मरचना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
             चरमूल्यम् भवति अभिव्यञ्जकरचना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
         इति अन्यथा आदि
             चरमूल्यम् भवति नवमूल्यम् ० ।
@@ -7021,6 +7329,9 @@
                 लक्ष्यसंज्ञा भवति लक्ष्यम् ॱ संज्ञासूचकाङ्क ।
             इति
         इति
+        ॰ ADR-0062 A (R3P3i): a nil non-octet run named on the right is born first,
+        ॰ so both names hold ONE base from here on (`खण्डजन्मरचना`).
+        चरः अवगणनसमजन्म ॱॱ न६४ भवति खण्डजन्मरचना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
         चरः सममूल्यम् ॱॱ मूल्याङ्क भवति अभिव्यञ्जकरचना वाक्यम् ॱ दक्षिणसूचकाङ्क ।
         यदि समस्थलम् अधिकम् ० आदि
             ॰ FORK-JOIN: assigning the output parameter lets the run escape.
@@ -7193,7 +7504,7 @@
                                     यदि लक्ष्यप्रकारः ॱ भेद समम् अर्थॱपूर्णाङ्कार्थभेद आदि
                                         लक्ष्यलेख्यम् भवति सत्यम् ।
                                     इति
-                                    यदि लक्ष्यप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+                                    यदि खण्डसदृशभेदः लक्ष्यप्रकारः ॱ भेद समम् सत्यम् आदि
                                         लक्ष्यलेख्यम् भवति सत्यम् ।
                                     इति
                                     यदि लक्ष्यप्रकारः ॱ भेद समम् अर्थॱसंरचनार्थभेद आदि
@@ -7347,7 +7658,7 @@
                             इति
                         इति
                         यदि वृद्धिप्रकारः असमम् शून्यम् आदि
-                            यदि वृद्धिप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+                            यदि खण्डसदृशभेदः वृद्धिप्रकारः ॱ भेद समम् सत्यम् आदि
                                 यदि वृद्धिप्रकारः ॱ अन्तःसूचकाङ्क अधिकम् ० आदि
                                     यदि अर्थॱअर्थप्रकारकोश ॱ दैर्घ्य अधिकम् वृद्धिप्रकारः ॱ अन्तःसूचकाङ्क आदि
                                         चरः वृद्ध्यन्तःप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱअर्थप्रकारकोश अङ्कः वृद्धिप्रकारः ॱ अन्तःसूचकाङ्क अन्तः ।
@@ -7829,11 +8140,12 @@
 इति
 
 ॰ The refusal of file or network I/O (क्षेत्रान्तःपत्रजालनिषेधः): the four intrinsics' flags.
-वृत्तिः क्षेत्रबाह्यपरीक्षा आदाय पत्रध्वजः ॱॱ बूल ऽ लेखनध्वजः ॱॱ बूल ऽ आहारध्वजः ॱॱ बूल ऽ निधानध्वजः ॱॱ बूल ददाति न६४ आदि
+वृत्तिः क्षेत्रबाह्यपरीक्षा आदाय पत्रध्वजः ॱॱ बूल ऽ लेखनध्वजः ॱॱ बूल ऽ आहारध्वजः ॱॱ बूल ऽ निधानध्वजः ॱॱ बूल ऽ प्रक्षेपणध्वजः ॱॱ बूल ददाति न६४ आदि
     चरः बाह्यध्वजः ॱॱ बूल भवति पत्रध्वजः ।
     यदि लेखनध्वजः समम् सत्यम् आदि बाह्यध्वजः भवति सत्यम् । इति
     यदि आहारध्वजः समम् सत्यम् आदि बाह्यध्वजः भवति सत्यम् । इति
     यदि निधानध्वजः समम् सत्यम् आदि बाह्यध्वजः भवति सत्यम् । इति
+    यदि प्रक्षेपणध्वजः समम् सत्यम् आदि बाह्यध्वजः भवति सत्यम् । इति
     यदि बाह्यध्वजः समम् सत्यम् आदि
         चरः अवगणनबाह्यनिषेध ॱॱ न६४ भवति क्षेत्रनिषेधः क्षेत्रान्तःपत्रजालनिषेधः ।
     इति
@@ -7863,6 +8175,42 @@
         इति
     इति
     प्रत्यागमनम् असत्यम् ।
+इति
+
+॰ `gap11`: does an initialiser expression CALL something or READ a name? Rust
+॰ `not_a_load_time_value` refuses both ("its initialiser calls/reads `x`, which the
+॰ loader does not evaluate at load"). Literals, and literals combined, indexed or
+॰ sliced, pass. Answers १ for the first offending node, ० otherwise.
+वृत्तिः आरम्भमूल्यनिषेधः आदाय अभिव्यञ्जकाङ्क ॱॱ न६४ ऽ गहनता ॱॱ न६४ ददाति न६४ आदि
+    यदि गहनता अधिकम् ६४ आदि प्रत्यागमनम् ० । इति
+    यदि अभिव्यञ्जकाङ्क न्यूनम् १ आदि प्रत्यागमनम् ० । इति
+    यदि अभिव्यञ्जकाङ्क बृहत्समम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि प्रत्यागमनम् ० । इति
+    चरः निषेधाभि ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः अभिव्यञ्जकाङ्क अन्तः ।
+    यदि निषेधाभि समम् शून्यम् आदि प्रत्यागमनम् ० । इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱआह्वानाभिव्यञ्जकभेद आदि प्रत्यागमनम् १ । इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱनामाभिव्यञ्जकभेद आदि प्रत्यागमनम् १ । इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱसमूहाभिव्यञ्जकभेद आदि
+        प्रत्यागमनम् आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ वामसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+    इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱऋणाभिव्यञ्जकभेद आदि
+        प्रत्यागमनम् आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ वामसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+    इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि
+        चरः वामनिषेधक ॱॱ न६४ भवति आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ वामसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+        यदि वामनिषेधक अधिकम् ० आदि प्रत्यागमनम् १ । इति
+        प्रत्यागमनम् आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ दक्षिणसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+    इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱखण्डाभिव्यञ्जकभेद आदि
+        चरः वामनिषेधख ॱॱ न६४ भवति आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ वामसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+        यदि वामनिषेधख अधिकम् ० आदि प्रत्यागमनम् १ । इति
+        प्रत्यागमनम् आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ दक्षिणसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+    इति
+    यदि निषेधाभि ॱ भेद समम् वास्तुॱद्विकर्माभिव्यञ्जकभेद आदि
+        चरः वामनिषेधग ॱॱ न६४ भवति आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ वामसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+        यदि वामनिषेधग अधिकम् ० आदि प्रत्यागमनम् १ । इति
+        प्रत्यागमनम् आरम्भमूल्यनिषेधः आरभ्य निषेधाभि ॱ दक्षिणसूचकाङ्क ऽ गहनता योगः १ समाप्तम् ।
+    इति
+    प्रत्यागमनम् ० ।
 इति
 
 ॰ The DECLARATION index (into `व्याकरॱघोषणाकोश`) of the routine a name node
@@ -7952,7 +8300,7 @@
     प्रत्यागमनम् क्षेत्रकायसंख्या ।
 इति
 
-॰ A DIRECT CALL of a routine named as a region body (review B, C): the build's
+॰ A DIRECT CALL of a routine named as a region body (8f review B, C): the build's
 ॰ named cause क्षेत्रबाह्याह्वाननिषेधः (0x37F). `नोडाङ्क` is the callee's name node.
 वृत्तिः क्षेत्रप्रत्यक्षाह्वानपरीक्षा आदाय नोडाङ्क ॱॱ न६४ ऽ चिह्नकाङ्क ॱॱ न६४ ददाति न६४ आदि
     चरः प्रत्यक्षकायघोषणा ॱॱ न६४ भवति क्षेत्रकायघोषणा नोडाङ्क ।
@@ -7991,6 +8339,177 @@
     प्रत्यागमनम् ० ।
 इति
 
+॰ संधानम् (ADR-0052): the join of text values, with nothing between (drishya's `text_expr`,
+॰ ADR-0018). The index of the instruction that defines `मूल्यम्` when that is a ConstStr, else ० — a
+॰ literal's octets are in `पाठाक्षरकोश` from `पाठारम्भ` for `पाठसंख्यान`.
+वृत्तिः संधानपाठक्रमः आदाय मूल्यम् ॱॱ मूल्याङ्क ददाति न६४ आदि
+    चरः क्रमः ॱॱ न६४ भवति आज्ञासूचकाङ्क ।
+    यावत् क्रमः अधिकम् ० आदि
+        चरः आदेशः ॱॱ आज्ञा भवति आज्ञाकोश अङ्कः क्रमः अन्तः ।
+        यदि आदेशः ॱ फलम् ॱ क्रमाङ्क समम् मूल्यम् ॱ क्रमाङ्क आदि
+            यदि आदेशः ॱ भेद समम् पाठाज्ञाभेद आदि
+                प्रत्यागमनम् क्रमः ।
+            इति
+            प्रत्यागमनम् ० ।
+        इति
+        क्रमः भवति क्रमः वियोगः १ ।
+    इति
+    प्रत्यागमनम् ० ।
+इति
+॰ THE JOIN. Every argument a literal: one ConstStr whose octets are theirs, in order (zero heap). Else a fresh
+॰ block cut from the record region — capacity at base − १६, length at base − ८, data at base, as a slice
+॰ (खण्डखण्डरचना) — and each argument's octets copied in order. The arguments are on `आदानसञ्चयकोश` from
+॰ `सञ्चयाधारः` + १, and the cursor is popped here, as the call's argument loop would pop it.
+सार्वजनिक वृत्तिः संधानरचना आदाय सञ्चयाधारः ॱॱ न६४ ऽ आदानगणना ॱॱ न६४ ददाति मूल्याङ्क आदि
+    चरः सर्वपाठम् ॱॱ बूल भवति सत्यम् ।
+    चरः क्रमः ॱॱ न६४ भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य आदानगणना योगः १ समाप्तम् आदि
+        चरः तर्कः ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः सञ्चयाधारः योगः क्रमः अन्तः ।
+        यदि संधानपाठक्रमः तर्कः समम् ० आदि
+            सर्वपाठम् भवति असत्यम् ।
+        इति
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    यदि सर्वपाठम् समम् सत्यम् आदि
+        चरः आरम्भाङ्कः ॱॱ न६४ भवति पाठाक्षरसूचकाङ्क योगः १ ।
+        चरः संधानगणना ॱॱ न६४ भवति ० ।
+        क्रमः भवति १ ।
+        यावत् क्रमः न्यूनम् आरभ्य आदानगणना योगः १ समाप्तम् आदि
+            चरः तर्कः ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः सञ्चयाधारः योगः क्रमः अन्तः ।
+            चरः आदेशः ॱॱ आज्ञा भवति आज्ञाकोश अङ्कः संधानपाठक्रमः तर्कः अन्तः ।
+            चरः मूलारम्भः ॱॱ न६४ भवति आदेशः ॱ पाठारम्भ ।
+            चरः मूलसंख्या ॱॱ न६४ भवति आदेशः ॱ पाठसंख्यान ।
+            चरः खः ॱॱ न६४ भवति ० ।
+            यावत् खः न्यूनम् मूलसंख्या आदि
+                चरः स्थानम् ॱॱ न६४ भवति मूलारम्भः योगः खः ।
+                चरः अक्षरम् ॱॱ अ८ भवति पाठाक्षरकोश अङ्कः स्थानम् अन्तः ।
+                चरः अवगणनाक्षर ॱॱ न६४ भवति पाठाक्षरयोजनम् अक्षरम् ।
+                खः भवति खः योगः १ ।
+            इति
+            संधानगणना भवति संधानगणना योगः मूलसंख्या ।
+            क्रमः भवति क्रमः योगः १ ।
+        इति
+        यदि संधानगणना समम् ० आदि
+            आरम्भाङ्कः भवति पाठाक्षरसूचकाङ्क ।
+        इति
+        आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+        चरः फलम् ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
+        चरः अवगणनसंधानपाठ ॱॱ न६४ भवति पाठाज्ञायोजनम् आरभ्य फलम् ऽ आरम्भाङ्कः ऽ संधानगणना समाप्तम् ।
+        प्रत्यागमनम् फलम् ।
+    इति
+    क्षेत्रदोषः आरभ्य १ ऽ ० समाप्तम् ।   ॰ REGION PURITY, kind १: a join is a fresh block
+    यदि क्षेत्रकायः समम् सत्यम् आदि
+        चरः अवगणनक्षेत्रसंधान ॱॱ न६४ भवति क्षेत्रनिषेधः क्षेत्रान्तर्वितरणनिषेधः ।
+    इति
+    चरः स्रोतस्थलम् ॱॱ न६४ भवति अनामस्थानम् ० ।
+    चरः लेखस्थलम् ॱॱ न६४ भवति अनामस्थानम् १ ।
+    चरः मानस्थलम् ॱॱ न६४ भवति अनामस्थानम् २ ।
+    चरः नवाधारस्थलम् ॱॱ न६४ भवति अनामस्थानम् ३ ।
+    चरः गणकस्थलम् ॱॱ न६४ भवति अनामस्थानम् ४ ।
+    चरः शून्यमूल्यम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ० ।
+    चरः सप्त ॱॱ मूल्याङ्क भवति ध्रुवरचना ७ ।
+    चरः अष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना ८ ।
+    चरः षोडश ॱॱ मूल्याङ्क भवति ध्रुवरचना १६ ।
+    चरः ऋणाष्टकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना आरभ्य ० वियोगः ८ समाप्तम् ।
+    चरः योगः ॱॱ मूल्याङ्क भवति शून्यमूल्यम् ।
+    क्रमः भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य आदानगणना योगः १ समाप्तम् आदि
+        चरः तर्कः ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः सञ्चयाधारः योगः क्रमः अन्तः ।
+        चरः तर्कदैर्घ्यम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना आरभ्य तर्कः ऽ १ समाप्तम् ।   ॰ text: octets
+        योगः भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ योगः ऽ तर्कदैर्घ्यम् समाप्तम् ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः योगसप्त ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ योगः ऽ सप्त समाप्तम् ।
+    चरः संरेखितम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य युक्ताज्ञाभेद ऽ योगसप्त ऽ ऋणाष्टकम् समाप्तम् ।
+    चरः अष्टककाः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ संरेखितम् ऽ षोडश समाप्तम् ।
+    चरः पुराणः ॱॱ मूल्याङ्क भवति क्षेत्रखण्डरचना अष्टककाः ।
+    चरः अवगणनसामर्थ्यलेखन ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य पुराणः ऽ संरेखितम् समाप्तम् ।
+    चरः दैर्घ्यस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पुराणः ऽ अष्टकम् समाप्तम् ।
+    चरः अवगणनदैर्घ्यलेखन ॱॱ न६४ भवति स्थाननिधानरचना आरभ्य दैर्घ्यस्थानम् ऽ योगः समाप्तम् ।
+    चरः नवाधारः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ पुराणः ऽ षोडश समाप्तम् ।
+    चरः अवगणननवाधारनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य नवाधारस्थलम् ऽ नवाधारः समाप्तम् ।
+    चरः अवगणनलेखनशून्य ॱॱ न६४ भवति स्थलनिधानम् आरभ्य लेखस्थलम् ऽ शून्यमूल्यम् समाप्तम् ।
+    क्रमः भवति १ ।
+    यावत् क्रमः न्यूनम् आरभ्य आदानगणना योगः १ समाप्तम् आदि
+        चरः अर्गः ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः सञ्चयाधारः योगः क्रमः अन्तः ।
+        चरः अवगणनस्रोतनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य स्रोतस्थलम् ऽ अर्गः समाप्तम् ।
+        चरः अर्गमानम् ॱॱ मूल्याङ्क भवति खण्डदैर्घ्यरचना आरभ्य अर्गः ऽ १ समाप्तम् ।
+        चरः अवगणनमाननिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य मानस्थलम् ऽ अर्गमानम् समाप्तम् ।
+        चरः अवगणनगणकशून्य ॱॱ न६४ भवति स्थलनिधानम् आरभ्य गणकस्थलम् ऽ शून्यमूल्यम् समाप्तम् ।
+        चरः लूपपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+        चरः कायपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+        चरः सङ्गमपर्व ॱॱ पर्वाङ्क भवति नवपर्व ० ।
+        चरः अवगणनलङ्घनलूप ॱॱ न६४ भवति लङ्घनरचना लूपपर्व ।
+        चरः अवगणनलूपस्थापन ॱॱ न६४ भवति पर्वस्थापनम् लूपपर्व ।
+        चरः गणकः ॱॱ मूल्याङ्क भवति स्थलाहारः गणकस्थलम् ।
+        चरः लूपमानम् ॱॱ मूल्याङ्क भवति स्थलाहारः मानस्थलम् ।
+        चरः शर्तलूपम् ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य न्यूनतुलनाभेद ऽ गणकः ऽ लूपमानम् समाप्तम् ।
+        चरः अवगणनशाखालूप ॱॱ न६४ भवति शाखारचना आरभ्य शर्तलूपम् ऽ कायपर्व ऽ सङ्गमपर्व समाप्तम् ।
+        चरः अवगणनकायस्थापन ॱॱ न६४ भवति पर्वस्थापनम् कायपर्व ।
+        चरः कायगणकः ॱॱ मूल्याङ्क भवति स्थलाहारः गणकस्थलम् ।
+        चरः कायस्रोतः ॱॱ मूल्याङ्क भवति स्थलाहारः स्रोतस्थलम् ।
+        चरः कायलेखः ॱॱ मूल्याङ्क भवति स्थलाहारः लेखस्थलम् ।
+        चरः कायनवाधारः ॱॱ मूल्याङ्क भवति स्थलाहारः नवाधारस्थलम् ।
+        चरः कायैकम् ॱॱ मूल्याङ्क भवति ध्रुवरचना १ ।
+        चरः अष्टकम्पठितम् ॱॱ मूल्याङ्क भवति अष्टकाहाररचना आरभ्य कायस्रोतः ऽ कायगणकः समाप्तम् ।
+        चरः लेखनस्थानम् ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ कायनवाधारः ऽ कायलेखः समाप्तम् ।
+        चरः अवगणनाष्टकलेखन ॱॱ न६४ भवति अष्टकनिधानरचना आरभ्य लेखनस्थानम् ऽ अष्टकम्पठितम् समाप्तम् ।
+        चरः लेखाग्रिमः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ कायलेखः ऽ कायैकम् समाप्तम् ।
+        चरः अवगणनलेखनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य लेखस्थलम् ऽ लेखाग्रिमः समाप्तम् ।
+        चरः गणकाग्रिमः ॱॱ मूल्याङ्क भवति द्विकर्मरचना आरभ्य योगाज्ञाभेद ऽ कायगणकः ऽ कायैकम् समाप्तम् ।
+        चरः अवगणनगणकनिधान ॱॱ न६४ भवति स्थलनिधानम् आरभ्य गणकस्थलम् ऽ गणकाग्रिमः समाप्तम् ।
+        चरः अवगणनलङ्घनलूपद्वि ॱॱ न६४ भवति लङ्घनरचना लूपपर्व ।
+        चरः अवगणनसङ्गमस्थापन ॱॱ न६४ भवति पर्वस्थापनम् सङ्गमपर्व ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+    प्रत्यागमनम् स्थलाहारः नवाधारस्थलम् ।
+इति
+॰ ॥ A FLOAT BUILT-IN IS ONE INSTRUCTION, NOT A CALL ॥ The call arm's
+॰ interception, out of line: the arguments are already evaluated onto
+॰ `आदानसञ्चयकोश` from `सञ्चयाधारः` + १, and the cursor is popped here as the
+॰ call's argument loop would pop it, so no operand reaches a call that is never
+॰ emitted. Intercepted only at the op's own arity; any other count answers the
+॰ absent value ० and the arm goes on to the call. A CONVERSION OR A BIT MOVE
+॰ TAKES ITS DIRECTION FROM ITS ARGUMENT: an argument in the float file makes
+॰ `fcvt.l.d`/`fmv.x.d` (the family + १), any other `fcvt.d.l`/`fmv.d.x` — the
+॰ interpreter's own rule.
+सार्वजनिक वृत्तिः प्लवान्तर्निहितरचना आदाय प्लवोपभेदः ॱॱ न६४ ऽ सञ्चयाधारः ॱॱ न६४ ऽ आदानगणना ॱॱ न६४ ददाति मूल्याङ्क आदि
+    यदि प्लवोपभेदः समम् १११ आदि
+        प्रत्यागमनम् संधानरचना आरभ्य सञ्चयाधारः ऽ आदानगणना समाप्तम् ।
+    इति
+    यदि प्लवोपभेदः अधिकम् १०४ आदि
+        प्रत्यागमनम् वाटान्तर्निहितरचना आरभ्य प्लवोपभेदः ऽ सञ्चयाधारः ऽ आदानगणना समाप्तम् ।
+    इति
+    यदि प्लवोपभेदः अधिकम् १०० आदि
+        प्रत्यागमनम् सुरक्षितान्तर्निहितरचना आरभ्य प्लवोपभेदः ऽ सञ्चयाधारः ऽ आदानगणना समाप्तम् ।
+    इति
+    चरः प्लवतर्काः ॱॱ न६४ भवति प्लवतर्कसंख्या प्लवोपभेदः ।
+    यदि आदानगणना असमम् प्लवतर्काः आदि
+        प्रत्यागमनम् मूल्याङ्कनम् ० ।
+    इति
+    चरः प्लववाम ॱॱ मूल्याङ्क भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः १ समाप्तम् अन्तः ।
+    चरः प्लवदक्षिण ॱॱ मूल्याङ्क भवति मूल्याङ्कनम् ० ।
+    चरः प्लवतृतीय ॱॱ मूल्याङ्क भवति मूल्याङ्कनम् ० ।
+    यदि आदानगणना अधिकम् १ आदि
+        प्लवदक्षिण भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः २ समाप्तम् अन्तः ।
+    इति
+    यदि आदानगणना अधिकम् २ आदि
+        प्लवतृतीय भवति आदानसञ्चयकोश अङ्कः आरभ्य सञ्चयाधारः योगः ३ समाप्तम् अन्तः ।
+    इति
+    चरः प्लवक्रिया ॱॱ न६४ भवति प्लवोपभेदः ।
+    यदि प्लवक्रिया बृहत्समम् प्लवरूपान्तरागमोपभेद आदि
+        यदि मूल्यप्लवकोश अङ्कः प्लववाम ॱ क्रमाङ्क अन्तः समम् १ आदि
+            प्लवक्रिया भवति प्लवक्रिया योगः १ ।
+        इति
+    इति
+    आदानसञ्चयसूचकाङ्क भवति सञ्चयाधारः ।
+    चरः प्लवफलाङ्क ॱॱ मूल्याङ्क भवति नवमूल्यम् ० ।
+    चरः अवगणनप्लव ॱॱ न६४ भवति प्लवाज्ञायोजनम् आरभ्य प्लवफलाङ्क ऽ प्लवक्रिया ऽ प्लववाम ऽ प्लवदक्षिण ऽ प्लवतृतीय समाप्तम् ।
+    प्रत्यागमनम् प्लवफलाङ्क ।
+इति
+
+
 ॰ A CALL (or a bare routine name, which is a call): to a routine this source declares, an edge;
 ॰ to anything else — another source's routine, a member taken on trust — a kind-२ fact.
 वृत्तिः क्षेत्राह्वानलेखः आदाय संज्ञा ॱॱ न६४ ऽ चिह्नकाङ्क ॱॱ न६४ ददाति न६४ आदि
@@ -8027,11 +8546,12 @@
     यदि प्रतीक्षणध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य २ ऽ चिह्नकाङ्क समाप्तम् । इति
     प्रत्यागमनम् ० ।
 इति
-वृत्तिः क्षेत्रबाह्यदोषः आदाय पत्रध्वजः ॱॱ बूल ऽ लेखनध्वजः ॱॱ बूल ऽ आहारध्वजः ॱॱ बूल ऽ निधानध्वजः ॱॱ बूल ऽ चिह्नकाङ्क ॱॱ न६४ ददाति न६४ आदि
+वृत्तिः क्षेत्रबाह्यदोषः आदाय पत्रध्वजः ॱॱ बूल ऽ लेखनध्वजः ॱॱ बूल ऽ आहारध्वजः ॱॱ बूल ऽ निधानध्वजः ॱॱ बूल ऽ प्रक्षेपणध्वजः ॱॱ बूल ऽ चिह्नकाङ्क ॱॱ न६४ ददाति न६४ आदि
     यदि पत्रध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य १ ऽ चिह्नकाङ्क समाप्तम् । इति
     यदि लेखनध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य १ ऽ चिह्नकाङ्क समाप्तम् । इति
     यदि आहारध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य १ ऽ चिह्नकाङ्क समाप्तम् । इति
     यदि निधानध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य १ ऽ चिह्नकाङ्क समाप्तम् । इति
+    यदि प्रक्षेपणध्वजः समम् सत्यम् आदि प्रत्यागमनम् क्षेत्रदोषः आरभ्य १ ऽ चिह्नकाङ्क समाप्तम् । इति
     प्रत्यागमनम् ० ।
 इति
 
@@ -8248,7 +8768,7 @@
     चरः अवगणनशिरःस्थापन ॱॱ न६४ भवति पर्वस्थापनम् शिरःपर्व ।
     चरः शिरोगणकः ॱॱ मूल्याङ्क भवति स्थलाहारः गणकस्थलम् ।
     चरः शिरःसीमा ॱॱ मूल्याङ्क भवति स्थलाहारः सीमास्थलम् ।
-    ॰ UNSIGNED (review A): आरम्भः and अन्तः are न६४, so the head is CmpOp::Ltu —
+    ॰ UNSIGNED (8f review A): आरम्भः and अन्तः are न६४, so the head is CmpOp::Ltu —
     ॰ a signed compare ran nothing for अन्तः = २^६३ and ran [२^६३, ३) as a non-empty range.
     चरः शिरःशर्तः ॱॱ मूल्याङ्क भवति तुलनारचना आरभ्य अचिह्नन्यूनतुलनाभेद ऽ शिरोगणकः ऽ शिरःसीमा समाप्तम् ।
     चरः अवगणनशिरःशाखा ॱॱ न६४ भवति शाखारचना आरभ्य शिरःशर्तः ऽ कायपर्व ऽ अन्तपर्व समाप्तम् ।
@@ -8333,6 +8853,9 @@
             इति
             यदि घोषणा ॱ नामसूचकाङ्क अधिकम् ० आदि
                 चरः वैश्विकमूल्यम् ॱॱ अ६४ भवति ० ।
+                चरः वैश्विकपाठध्वजः ॱॱ न६४ भवति ० ।
+                चरः वैश्विकपाठारम्भः ॱॱ न६४ भवति ० ।
+                चरः वैश्विकपाठमानम् ॱॱ न६४ भवति ० ।
                 यदि घोषणा ॱ शरीरसूचकाङ्क अधिकम् ० आदि
                     यदि घोषणा ॱ शरीरसूचकाङ्क न्यूनम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि
                         चरः आदिअभि ॱॱ वास्तुॱअभिव्यञ्जक भवति वास्तुॱअभिव्यञ्जककोश अङ्कः घोषणा ॱ शरीरसूचकाङ्क अन्तः ।
@@ -8347,6 +8870,11 @@
                             ॰ this line.
                             ॰ `<literal> अङ्कः <numeral> अन्तः` folds to that octet (2026-09-13): the
                             ॰ corpus's three `… भवति विवरम् अङ्कः ० अन्तः` globals were emitted as ०.
+                            ॰ gap11: an initialiser that calls or reads a name is not a load-time value.
+                            चरः आरम्भनिषेधफलम् ॱॱ न६४ भवति आरम्भमूल्यनिषेधः आरभ्य घोषणा ॱ शरीरसूचकाङ्क ऽ ० समाप्तम् ।
+                            यदि आरम्भनिषेधफलम् अधिकम् ० आदि
+                                चरः अवगणनारम्भनिषेध ॱॱ बूल भवति वर्गविरोधलेखः आरभ्य आरम्भमूल्यनिषेधभेद ऽ घोषणा ॱ नामसूचकाङ्क समाप्तम् ।
+                            इति
                             यदि आदिअभि ॱ भेद समम् वास्तुॱसूचकाङ्काभिव्यञ्जकभेद आदि
                                 यदि आदिअभि ॱ वामसूचकाङ्क अधिकम् ० आदि
                                     यदि आदिअभि ॱ दक्षिणसूचकाङ्क अधिकम् ० आदि
@@ -8410,6 +8938,14 @@
                                     इति
                                 इति
                             इति
+                            यदि आदिअभि ॱ भेद समम् वास्तुॱउक्ताभिव्यञ्जकभेद आदि
+                                चरः उक्तपाठसंग्रहफलम् ॱॱ न६४ भवति उक्तपाठसंग्रहः आदिअभि ।
+                                यदि उक्तपाठसंग्रहफलम् असमम् ० आदि
+                                    वैश्विकपाठध्वजः भवति १ ।
+                                    वैश्विकपाठारम्भः भवति उक्तपाठआरम्भ ।
+                                    वैश्विकपाठमानम् भवति उक्तपाठसंख्या ।
+                                इति
+                            इति
                         इति
                     इति
                 इति
@@ -8444,7 +8980,7 @@
                     यदि घोषणा ॱ प्रकारसूचकाङ्क न्यूनम् वास्तुॱअभिव्यञ्जककोश ॱ दैर्घ्य आदि
                         चरः वैश्विकप्रकारः ॱॱ अर्थॱअर्थप्रकार भवति अर्थॱप्रकारार्थः वास्तुॱअभिव्यञ्जककोश घोषणा ॱ प्रकारसूचकाङ्क ।
                         यदि वैश्विकप्रकारः असमम् शून्यम् आदि
-                            यदि वैश्विकप्रकारः ॱ भेद समम् अर्थॱखण्डार्थभेद आदि
+                            यदि खण्डसदृशभेदः वैश्विकप्रकारः ॱ भेद समम् सत्यम् आदि
                                 वैश्विकसामर्थ्यम् भवति खण्डसामर्थ्यम् गुणनम् ८ ।
                             इति
                             ॰ A RECORD GLOBAL NEEDS ITS FIELDS (2026-09-14). Only the
@@ -8482,11 +9018,18 @@
                         इति
                     इति
                 इति
+                ॰ a pooled literal is ONE data word (the entry's address), however long the text
+                यदि वैश्विकपाठध्वजः असमम् ० आदि
+                    वैश्विकसामर्थ्यम् भवति ८ ।
+                इति
                 वैश्विकसञ्चयसूचकाङ्क भवति वैश्विकसञ्चयसूचकाङ्क योगः १ ।
                 वैश्विकमण्डलकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकमण्डल ।
                 वैश्विकनामकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकनाम ।
                 वैश्विकमूल्यकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकमूल्यम् ।
                 वैश्विकसामर्थ्यकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकसामर्थ्यम् ।
+                वैश्विकपाठमानकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकपाठमानम् ।
+                वैश्विकपाठारम्भकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकपाठारम्भः ।
+                वैश्विकपाठध्वजकोश अङ्कः वैश्विकसञ्चयसूचकाङ्क अन्तः भवति वैश्विकपाठध्वजः ।
             इति
         इति
 

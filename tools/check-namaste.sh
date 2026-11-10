@@ -24,7 +24,7 @@ if ! command -v qemu-system-riscv64 >/dev/null; then
   exit 77
 fi
 
-cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+"$root/tools/sadhana-native.sh" \
   "$root/spec/namaste.sas" "$tmp/namaste.elf"
 
 qemu-system-riscv64 -machine virt -nographic -bios none -kernel "$tmp/namaste.elf" \
@@ -56,7 +56,7 @@ fi
 # label moves when an instruction shrinks, and a wrong address produces a
 # program that runs and does the wrong thing rather than one that fails to
 # build. Running it is the only check that covers that.
-cargo run --quiet -p sadhana -- --संक्षिप्त \
+sh tools/sadhana-native.sh --संक्षिप्त \
   "$root/spec/namaste.sas" "$tmp/small.elf" >/dev/null
 
 qemu-system-riscv64 -machine virt -nographic -bios none -kernel "$tmp/small.elf" \

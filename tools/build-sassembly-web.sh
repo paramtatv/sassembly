@@ -64,41 +64,39 @@ if ! rustc --print target-list 2>/dev/null | grep -qx wasm32-unknown-unknown; th
 fi
 # Stderr is KEPT. Whatever rustc says is the only thing that can tell a reader
 # which of the two they have.
-if ! cargo build -p yantra-wasm --manifest-path crates/yantra-wasm/Cargo.toml \
-     --target wasm32-unknown-unknown --release; then
-  echo "  FAIL  yantra-wasm does not compile for wasm32-unknown-unknown."
-  echo "        The target IS installed — the error above is the tree's, not this"
-  echo "        machine's, and exiting 1 rather than 77 is what says so."
-  exit 1
+# YANTRA_WASM=<path>: use that yantra wasm module instead; unset, the native .t1 interpreter is built (tools/build-yantra-wasm.sh, no cargo).
+if [ -z "${YANTRA_WASM:-}" ]; then
+  _yw=target/yantra.wasm; mkdir -p target
+  _rc=0; sh tools/build-yantra-wasm.sh "$_yw" >"$_yw.log" 2>&1 || _rc=$?
+  [ "$_rc" -ne 77 ] || { rm -f "$_yw.log"; echo "SKIPPED: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
+  [ "$_rc" -eq 0 ] || { tail -5 "$_yw.log"; rm -f "$_yw.log"; echo "  FAIL  native yantra wasm build rc=$_rc"; exit 1; }
+  rm -f "$_yw.log"; YANTRA_WASM=$_yw
 fi
 
-wasm=crates/yantra-wasm/target/wasm32-unknown-unknown/release/yantra_wasm.wasm
+wasm=$YANTRA_WASM
 [ -f "$wasm" ] || { echo "  FAIL  the wasm build reported success and produced no module"; exit 1; }
 
 # ── THE SECOND MODULE: THE ASSEMBLER, which this script did not build ───────
 #
-# `tools/check-sadhana-glue-live.sh:24` said "`tools/build-sassembly-web.sh` already
-# builds `sadhana-wasm` for wasm32" and that WAS FALSE WHEN WRITTEN — measured
-# 2026-10-05, the only `cargo build` above is `yantra-wasm`'s, and `web/sadhana.mjs`
-# was spliced into nothing. So the live check's whole premise (use a module that is
-# ALREADY THERE) rested on a builder that did not exist, and it exited 78 VACUOUS on
-# every tree nobody had built one by hand. This is the builder it names.
-#
-# SAME TWO VERDICTS as above, for the same reason: the target being absent was
-# already handled once and cannot recur here, so a failure at THIS point is the
-# TREE's (1) and never the machine's (77). `sadhana-wasm` is in the workspace root's
-# `exclude` list, so `--manifest-path` is required — `-p sadhana-wasm` from the root
-# answers "did not match any packages" (its own `Cargo.toml` records that).
-if ! cargo build -p sadhana-wasm --manifest-path crates/sadhana-wasm/Cargo.toml \
-     --target wasm32-unknown-unknown --release; then
-  echo "  FAIL  sadhana-wasm does not compile for wasm32-unknown-unknown."
-  echo "        The target IS installed — the error above is the tree's, not this"
-  echo "        machine's, and exiting 1 rather than 77 is what says so."
-  exit 1
+# CO-sw (2026-10-19): the module is the NATIVE one, tools/t1-interp/wasm/build-sadhana.sh
+# (spec/entry/assemble.t1 -> anuvada --target wasm32 -> zero-import seal, ABI sadhana-abi.wat);
+# crates/sadhana-wasm was retired to archive/rust/sadhana-wasm. SADHANA_WASM=<path> uses that module instead.
+# build-sadhana.sh defaults its own ANUVADA_RUN/ZEROIMP_RUN; exit 77 = a needed binary is truly absent
+# (t1_image, yantra-run, node; it names which): SKIPPED, never a PASS.
+# The module's sadhana_rev is `tools/src-rev.sh --t1-assembler` (assemble.t1 + crates/sadhana-t1/src/*.t1), and the page ELFs
+# below are assembled by the SAME T1 assembler (the as.elf beside the wasm) under yantra-run, so both stamps name one source.
+# If only a bare SADHANA_WASM is given (no .elf beside it) the ELFs come from `cargo run -p sadhana`, stamped with
+# crates/sadhana/src: the page then reads PROVENANCE: REV/MISMATCH (honest: the module was not built from that source).
+if [ -z "${SADHANA_WASM:-}" ]; then
+  _sw=target/native-wasm/sadhana_wasm.wasm; mkdir -p target/native-wasm
+  _rc=0; sh tools/t1-interp/wasm/build-sadhana.sh "$_sw" >"$_sw.log" 2>&1 || _rc=$?
+  [ "$_rc" -ne 77 ] || { rm -f "$_sw.log"; echo "SKIPPED: native sadhana wasm cannot build (ANUVADA_RUN/ZEROIMP_RUN/t1_image)"; exit 77; }
+  [ "$_rc" -eq 0 ] || { tail -5 "$_sw.log"; rm -f "$_sw.log"; echo "  FAIL  native sadhana wasm build rc=$_rc"; exit 1; }
+  rm -f "$_sw.log"; SADHANA_WASM=$_sw
 fi
-sadhana_wasm=crates/sadhana-wasm/target/wasm32-unknown-unknown/release/sadhana_wasm.wasm
+sadhana_wasm=$SADHANA_WASM
 [ -f "$sadhana_wasm" ] || {
-  echo "  FAIL  the sadhana-wasm build reported success and produced no module"; exit 1; }
+  echo "  FAIL  the native sadhana wasm build reported success and produced no module"; exit 1; }
 
 # ── WHICH ASSEMBLER ASSEMBLED THE ELFs — the figure the page did not have ───
 #
@@ -115,7 +113,17 @@ sadhana_wasm=crates/sadhana-wasm/target/wasm32-unknown-unknown/release/sadhana_w
 # `.wasm` can arrive from anywhere. 77 (no sha256 tool) becomes `unknown` rather than a
 # stamp that happens to match — the page renders that as a third state and not as
 # agreement.
-native_rev=$(tools/src-rev.sh crates/sadhana/src 2>/dev/null) || native_rev=
+# The page ELFs are assembled by the T1 assembler (spec/entry/assemble.t1 image, `${SADHANA_WASM%.wasm}.elf`) when that image
+# sits beside the wasm; its stamp is the T1-source one the wasm carries. Otherwise cargo's `sadhana` and its own crate stamp.
+T1ASM=${SADHANA_WASM%.wasm}.elf
+YR=target/release/yantra-run
+if [ -s "$T1ASM" ] && { [ -x "$YR" ]; }; then
+  asm=t1; native_rev=$(tools/src-rev.sh --t1-assembler 2>/dev/null) || native_rev=
+  native_src="spec/entry/assemble.t1 + crates/sadhana-t1/src, T1 assembler"
+else
+  asm=cargo; native_rev=$(tools/src-rev.sh crates/sadhana/src 2>/dev/null) || native_rev=
+  native_src="crates/sadhana/src, native side"
+fi
 [ -n "$native_rev" ] || native_rev=unknown
 
 # ── WHICH INTERPRETER MEASURED THE SIZING FIGURES — the weaker position ─────
@@ -158,9 +166,10 @@ APPLICATIONS="atithi"
 # handing an application the supervisor's pages. Written in the language, which is how
 # `--स्थान` reads a number. `crates/yantra/tests/host.rs` links it here too.
 APP_LOAD=$(awk '$1 == "0x2000_0000" {print $2}' spec/application-load.tsv)
+APP_LOAD_HEX=$(awk '$1 == "0x2000_0000" {gsub(/_/,"",$1); print $1}' spec/application-load.tsv)
 
 out=$(mktemp -d)
-trap 'rm -f "$out"/*.elf "$out"/*.b64 "$out"/programs.js "$out"/one.blob "$out"/t1.log 2>/dev/null || true' EXIT
+trap 'rm -rf "$out" 2>/dev/null || true' EXIT; trap 'exit 143' INT TERM
 
 progs=""
 for p in $PROOFS $APPLICATIONS; do
@@ -174,9 +183,18 @@ for p in $PROOFS $APPLICATIONS; do
     *)        kind=proof; at= ;;
   esac
   [ -f "spec/$p.sas" ] || { echo "  FAIL  spec/$p.sas does not exist"; exit 1; }
+  if [ "$asm" = t1 ]; then
+    # assemble.t1 image: source on the input channel, ARGUMENT 1 = load address in ASCII decimal (absent = 0x8000_0000), ELF on stdout
+    case $kind in app) ld=$((APP_LOAD_HEX)) ;; *) ld= ;; esac
+    # shellcheck disable=SC2086
+    env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="spec/$p.sas" YANTRA_INPUT_NAME="$p" YANTRA_RAM=1073741824 \
+      "$YR" "$T1ASM" $ld >"$out/$p.elf" 2>"$out/$p.log" && [ -s "$out/$p.elf" ] || {
+      echo "  FAIL  the T1 assembler could not assemble spec/$p.sas"; sed 's/^/        /' "$out/$p.log" 2>/dev/null; exit 1; }
+  else
   # shellcheck disable=SC2086
-  cargo run -q -p sadhana -- $at "spec/$p.sas" "$out/$p.elf" >/dev/null 2>&1 || {
+  "$root/tools/sadhana-native.sh" $at "spec/$p.sas" "$out/$p.elf" >/dev/null 2>&1 || {
     echo "  FAIL  sadhana could not assemble spec/$p.sas"; exit 1; }
+  fi
   b64=$(base64 < "$out/$p.elf" | tr -d '\n')
   # ॥ THE SOURCE TRAVELS WITH THE ELF, AND IT TRAVELS AS BASE64 ॥ The ELF was on the
   # page and the source was not, so nothing in the tab could be assembled — the glue
@@ -226,7 +244,7 @@ if [ -n "${T1_IMAGE:-}" ]; then
 
   # ONE SOURCE, and the smallest in the corpus — `check-t1-image-wasm-budget.sh`'s own
   # choice, so the page and the check quote figures about the same work. PACKED BY
-  # `tools/pack-corpus.py` and never by a local copy of its `name NUL text NUL` framing.
+  # `tools/pack-corpus.sh` and never by a local copy of its `name NUL text NUL` framing.
   T1_SOURCE=crates/sadhana-t1/src/lib.t1
   # `T1_MODULE` IS REQUIRED AND UNREAD, AND THAT IS MEASURED, not assumed. `yantra-run`
   # refuses `YANTRA_INPUT` without `YANTRA_INPUT_NAME`, so one must be passed; but Stage 1's
@@ -239,26 +257,55 @@ if [ -n "${T1_IMAGE:-}" ]; then
   # what asserts where the name actually comes from.
   T1_MODULE=शृङ्खला
   [ -f "$T1_SOURCE" ] || { echo "  FAIL  $T1_SOURCE does not exist"; exit 1; }
-  python3 tools/pack-corpus.py "$out/one.blob" "$T1_SOURCE" >/dev/null 2>&1 || {
-    echo "  FAIL  pack-corpus.py could not pack $T1_SOURCE"; exit 1; }
+  sh tools/pack-corpus.sh "$out/one.blob" "$T1_SOURCE" >/dev/null 2>&1 || {
+    echo "  FAIL  pack-corpus.sh could not pack $T1_SOURCE"; exit 1; }
 
   # Arm C of the budget check is what licenses the page to quote a native figure at all:
   # the two engines retire the SAME count on this image and this corpus. So the native
   # runner is not optional here — it is where `ram` and `touches` come from.
   native=target/release/yantra-run
-  [ -x "$native" ] || cargo build -q --release -p yantra --bin yantra-run || {
+  [ -x "$native" ] || {
     echo "  FAIL  yantra-run does not build, so the image's extent cannot be read"; exit 1; }
 
-  # Deliberately tiny RAM: the loader keeps `Span::Declared` and NAMES the shortfall, so
-  # its refusal is the question "how much does this image demand?" asked of the only
-  # thing that knows. Stdout is discarded; the refusal is on stderr.
-  t1_ram=$(YANTRA_INPUT="$out/one.blob" YANTRA_INPUT_NAME="$T1_MODULE" YANTRA_RAM=4096 \
-    "$native" "$T1_IMAGE" 2>&1 >/dev/null \
-    | sed -n 's/.*needs \([0-9][0-9]*\) bytes.*/\1/p' | head -1)
+  # The declared extent: base-to-end over EVERY PT_LOAD at max(filesz, memsz), which is what
+  # `Span::Declared` insists RAM cover. It used to be scraped from the FIRST "needs N bytes"
+  # of a tiny-RAM refusal; since W-363 the image is two segments (text R+X, data+bss R+W) so
+  # that first refusal names the TEXT segment (filesz 640724) and the ~512 MiB bss demand is
+  # never reached. The native loader stays the judge: the extent is PROVEN exact against it
+  # (RAM=extent loads, RAM=extent-1 is refused), so a wrong formula fails instead of passing.
+  # elf_extent FILE: base-to-end over every PT_LOAD at max(filesz, memsz) (ELF64 little-endian; od reads host order and every host
+  # here is little-endian). Prints nothing when the headers cannot be read or there is no PT_LOAD.
+  elf_extent() {
+    _f=$1; _sz=$(wc -c < "$_f" | tr -d ' ')
+    [ "$_sz" -ge 58 ] || return 1
+    _po=$(od -An -t u8 -j 32 -N 8 "$_f" | tr -d ' ')
+    set -- $(od -An -t u2 -j 54 -N 4 "$_f"); _pe=$1; _pn=$2
+    case "$_po$_pe$_pn" in ''|*[!0-9]*) return 1 ;; esac
+    _i=0; _lo=; _hi=
+    while [ "$_i" -lt "$_pn" ]; do
+      _b=$((_po + _i * _pe)); _i=$((_i + 1))
+      [ $((_b + 56)) -le "$_sz" ] || return 1
+      _t=$(od -An -t u4 -j "$_b" -N 4 "$_f" | tr -d ' ')
+      [ "$_t" = 1 ] || continue
+      set -- $(od -An -t u8 -j $((_b + 16)) -N 8 "$_f"); _va=$1
+      set -- $(od -An -t u8 -j $((_b + 32)) -N 16 "$_f"); _fz=$1; _mz=$2
+      [ "$_fz" -ge "$_mz" ] && _n=$_fz || _n=$_mz
+      [ -n "$_lo" ] && [ "$_lo" -le "$_va" ] || _lo=$_va
+      [ -n "$_hi" ] && [ "$_hi" -ge $((_va + _n)) ] || _hi=$((_va + _n))
+    done
+    [ -z "$_lo" ] || echo $((_hi - _lo))
+  }
+  t1_ram=$(elf_extent "$T1_IMAGE")
   case "$t1_ram" in
-    ''|*[!0-9]*) echo "  FAIL  could not read $T1_IMAGE's declared extent from its own load refusal"
-                 echo "        (expected 'segment at ... needs N bytes and RAM is ...')"; exit 1 ;;
+    ''|*[!0-9]*) echo "  FAIL  could not read $T1_IMAGE's declared extent from its program headers"; exit 1 ;;
   esac
+  ext_probe() {  # $1 = RAM; prints the native loader's refusal line, if any
+    YANTRA_INPUT="$out/one.blob" YANTRA_INPUT_NAME="$T1_MODULE" YANTRA_RAM="$1" YANTRA_STEPS=1 \
+      "$native" "$T1_IMAGE" 2>&1 >/dev/null | grep -a 'raise it' | head -1 || :
+  }
+  [ -z "$(ext_probe "$t1_ram")" ] || { echo "  FAIL  the native loader refuses $T1_IMAGE at its computed extent $t1_ram:"
+    ext_probe "$t1_ram" | sed 's/^/        /'; exit 1; }
+  [ -n "$(ext_probe "$((t1_ram - 1))")" ] || { echo "  FAIL  the native loader accepts $T1_IMAGE at extent-1, so $t1_ram is not the exact extent"; exit 1; }
 
   # `|| :` because this run does NOT exit 0 — `lib.t1` declares nothing and the compiler
   # says so with a status, which is the image SPEAKING and not a failure of this build.
@@ -345,14 +392,14 @@ done < web/sassembly.template.html
 # underscore, so the old class matched NEITHER of the two placeholders added today and
 # this guard — the one whose whole job is "a page with a placeholder still in it is not a
 # page" — would have passed a page carrying both of them unsubstituted.
-if grep -q '@@[A-Z_]*@@' "$dest"; then
+if grep -aq '@@[A-Z_]*@@' "$dest"; then
   echo "  FAIL  $dest still carries a placeholder — a substitution did not happen:"
-  grep -o '@@[A-Z_]*@@' "$dest" | sort -u | sed 's/^/        /'
+  grep -ao '@@[A-Z_]*@@' "$dest" | sort -u | sed 's/^/        /'
   exit 1
 fi
 
 printf '  %-12s %s bytes\n' "wasm" "$(wc -c < "$wasm" | tr -d ' ')"
 printf '  %-12s %s bytes\n' "sadhana-wasm" "$(wc -c < "$sadhana_wasm" | tr -d ' ')"
-printf '  %-12s %s\n' "sadhana rev" "$native_rev (crates/sadhana/src, native side)"
+printf '  %-12s %s\n' "sadhana rev" "$native_rev ($native_src)"
 printf '  %-12s %s\n' "yantra rev" "$native_yantra_rev (crates/yantra/src, native side)"
 echo "wrote $dest ($(wc -c < "$dest" | tr -d ' ') bytes) — open it directly, no server needed"

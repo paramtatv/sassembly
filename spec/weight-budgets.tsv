@@ -27,3 +27,9 @@ toolchain_self_host_build	60000	ms	03	rustc bootstrap ~1 h	future
 dead_code_bytes_shipped	0	B	18	-	future
 duplicate_function_bodies	0	count	18	rust monomorphization: many	future
 rust_port_path_source	72000	LOC	03	ADR-0022; W-137 is the real fix	active
+frag_object_header_bytes	96	B	18	L28-FRAG F1; fixed header, 12 words	active
+frag_object_trailer_bytes	8	B	18	L28-FRAG F1; checksum word	active
+frag_object_export_entry_bytes	56	B	18	L28-FRAG F1	active
+frag_object_import_entry_bytes	32	B	18	L28-FRAG F1	active
+frag_object_hole_entry_bytes	48	B	18	L28-FRAG F1	active
+frag_object_codec_code_bytes	12288	B	18	L28-FRAG F1; tools/frag/vastu_frag.t1 standalone image, limit set before measuring	active

@@ -30,7 +30,7 @@
 # ## WHY NOT `SASSEMBLY_BUILD_COMMIT`, WHICH ALREADY EXISTS
 #
 # `crates/sadhana/build.rs` already stamps a commit into this crate's binaries
-# (`tools/build-stamp.rs`, `W-347`) — so there is an existing instrument and this is
+# (`build-stamp.rs` (retired to archive/rust/build-stamp/), `W-347`) — so there is an existing instrument and this is
 # deliberately not it, for two measured reasons. It is not REACHABLE: the stamp is a
 # `rustc-env` of the `sadhana` crate's own compilation, read by `t1_image.rs:156` and
 # exported from the library nowhere, so `sadhana-wasm` cannot see it without an
@@ -57,7 +57,7 @@
 set -eu
 
 [ $# -eq 1 ] || {
-  echo "usage: $0 <dir>   (the crate src directory to stamp, e.g. crates/yantra/src)" >&2
+  echo "usage: $0 <dir> | --t1-assembler   (the crate src directory to stamp, e.g. crates/yantra/src)" >&2
   exit 2; }
 dir=$1
 
@@ -78,7 +78,7 @@ fi
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
-[ -d "$dir" ] || {
+[ "$dir" = --t1-assembler ] || [ -d "$dir" ] || {
   echo "  FAIL  $dir does not exist, so there is nothing to stamp" >&2
   exit 1; }
 
@@ -104,7 +104,13 @@ cd "$root"
 t=$(mktemp "${TMPDIR:-/tmp}/src-rev.XXXXXX") || exit 1
 trap 'rm -f "$t" "$t.s" "$t.h"' EXIT
 fail() { echo "  FAIL  $1, so no stamp is printed" >&2; exit 1; }
-find "$dir" -type f -print0 >"$t" || fail "find over $dir failed"
+if [ "$dir" = --t1-assembler ]; then
+  # MODE --t1-assembler: the source of the native T1 assembler that tools/t1-interp/wasm/build-sadhana.sh
+  # compiles to sadhana.wasm and the page ELFs: spec/entry/assemble.t1 + crates/sadhana-t1/src/*.t1.
+  { find crates/sadhana-t1/src -type f -name "*.t1" -print0; printf "%s\0" spec/entry/assemble.t1; } >"$t" || fail "find over the T1 assembler sources failed"
+else
+  find "$dir" -type f -print0 >"$t" || fail "find over $dir failed"
+fi
 LC_ALL=C sort -z "$t" >"$t.s" || fail "sort failed"
 [ -s "$t.s" ] || fail "$dir holds no files"
 xargs -0 $H <"$t.s" >"$t.h" || fail "hashing a file under $dir failed"

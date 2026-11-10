@@ -91,7 +91,7 @@ prog=$root/spec/second-space.sas
 
 fail=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$addr" "$prog" "$tmp/ss.elf" >/dev/null
 
     # The section is found by NAME: `kosha` emits only the sections a program
@@ -121,92 +121,85 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
     # one-sided by construction and blind to a surplus (`W-081`).
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' > "$tmp/l.$addr" || true
 
-    if ! python3 - "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-v = [int(line, 16) for line in open(sys.argv[1]) if line.strip()]
-NAME = ("satp for A", "the shared VA under A", "scause on A's ecall",
-        "satp for B", "the shared VA under B", "scause on B's ecall")
-U_ECALL, PPN = 8, (1 << 44) - 1
-FRAMES, DATA_A, DATA_B = 10, 8 * 4096, 9 * 4096
-
-bad = []
-if len(v) != 6:
-    print(f"printed {len(v)} hex lines, expected 6: " +
-          "; ".join(f"{i + 1} {n}" for i, n in enumerate(NAME)) +
-          ". Fewer than six means the machine stopped where the line stops — a "
-          "root table that does not map the kernel kills the fetch after its own "
-          "satp write, and a window table reached through the wrong megapage "
-          "entry kills the load that follows")
-    sys.exit(1)
-
-satp_a, shared_a, cause_a, satp_b, shared_b, cause_b = v
-bss = open(sys.argv[2]).read().split()
-bss_addr, bss_size = int(bss[0], 16), int(bss[1], 16)
-base = (satp_a & PPN) << 12
-
-# ---- two root tables ----------------------------------------------------
-for i, s in ((1, satp_a), (4, satp_b)):
-    if s >> 60 != 8:
-        bad.append(f"word {i}, {NAME[i - 1]}: mode nibble {s >> 60:x}, not 8. "
-                   "Sv39 is the only paging mode this tree installs, and a satp "
-                   "that is not in it was never installed")
-if satp_a == satp_b:
-    bad.append(f"words 1 and 4 are the same satp ({satp_a:016x}), so both "
-               "processes ran in ONE address space and there is no second root "
-               "table to have observed anything about")
-elif (satp_b & PPN) != (satp_a & PPN) + 1:
-    bad.append(f"word 4, {NAME[3]}: page number {satp_b & PPN:x}, and the "
-               f"declared layout puts B's root in the frame after A's, "
-               f"{(satp_a & PPN) + 1:x}. The satp that was installed is not the "
-               "table the source says was built")
-if base % 4096:
-    bad.append(f"word 1: A's root table is at {base:016x}, which is not page "
-               "aligned — satp keeps a page NUMBER and the low bits are lost")
-if not (bss_addr <= base and base + FRAMES * 4096 <= bss_addr + bss_size):
-    bad.append(f"word 1: the frames start at {base:016x}, and the ten of them do "
-               f"not fit inside the .bss the ELF reserves ({bss_addr:016x} + "
-               f"{bss_size:x})")
-
-# ---- one address, two answers -------------------------------------------
-if shared_a == shared_b:
-    bad.append(f"words 2 and 5: the shared virtual address answers "
-               f"{shared_a:016x} under BOTH satps. Two root tables describing an "
-               "identical map are two objects, not two address spaces — the "
-               "separation has to be observed at an address, not inferred from a "
-               "pointer. Check that each megapage table sends megapage 500 to its "
-               "OWN window table")
-for i, (word, want, who) in ((2, (shared_a, base + DATA_A, "A")),
-                             (5, (shared_b, base + DATA_B, "B"))):
-    if word == 0:
-        bad.append(f"word {i}, {NAME[i - 1]}: zero, which is what an unwritten "
-                   "frame reads. Nothing distinguishes 'the window resolved' from "
-                   "'the window resolved to nothing'")
-    elif word != want:
-        bad.append(f"word {i}, {NAME[i - 1]}: {word:016x}, and {who}'s data frame "
-                   f"is {want:016x} by the declared layout. Each process stores "
-                   "its own frame's address in that frame and reads it back "
-                   "through a window at a virtual address that is not the frame's "
-                   "own, so a word that is not that address did not come through "
-                   f"{who}'s window")
-
-# ---- both of them in U-mode ---------------------------------------------
-for i, c, who in ((3, cause_a, "A"), (6, cause_b, "B")):
-    extra = (" — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this "
-             "tree took before C-002k and is the one number that says the "
-             "process never left supervisor mode") if c == 9 else ""
-    if c != U_ECALL:
-        bad.append(f"word {i}, {NAME[i - 1]}: cause {c}, expected 8, ENVIRONMENT "
-                   f"CALL FROM U-MODE. Process {who} did not trap from U-mode"
-                   + extra)
-
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print(f"satp {satp_a:016x}/{satp_b:016x}, tables at {base:016x}, one VA reading "
-      f"{shared_a:016x} then {shared_b:016x}, both ecalls cause 8")
-sys.exit(0)
-PY
+    if ! LC_ALL=C awk '
+function lz(s) { sub(/^0+/, "", s); return (s == "") ? "0" : s }
+function pad(s) { while (length(s) < 16) s = "0" s; return s }
+function hv(c) { return index("0123456789abcdef", c) - 1 }
+function hadd(a, b,  i, la, lb, n, da, db, s, c, r) {
+    la = length(a); lb = length(b); n = (la > lb) ? la : lb; c = 0; r = ""
+    for (i = 0; i < n; i++) {
+        da = (i < la) ? hv(substr(a, la - i, 1)) : 0
+        db = (i < lb) ? hv(substr(b, lb - i, 1)) : 0
+        s = da + db + c; c = (s >= 16) ? 1 : 0; if (s >= 16) s -= 16
+        r = substr("0123456789abcdef", s + 1, 1) r
+    }
+    if (c) r = "1" r
+    return r
+}
+function hcmp(a, b) { a = lz(a); b = lz(b); if (length(a) != length(b)) return (length(a) < length(b)) ? -1 : 1; return (a < b) ? -1 : (a > b) ? 1 : 0 }
+function norm(s) { s = tolower(s); sub(/^0x/, "", s); return s }
+function bad_(m) { bad[++nb] = m }
+FILENAME == ARGV[1] { if ($0 ~ /[^ \t]/) v[++nv] = $0; next }
+{ for (i = 1; i <= NF; i++) bss[++nbss] = $i }
+END {
+    NAME[1] = "satp for A"; NAME[2] = "the shared VA under A"; NAME[3] = "scause on A\047s ecall"
+    NAME[4] = "satp for B"; NAME[5] = "the shared VA under B"; NAME[6] = "scause on B\047s ecall"
+    if (nv != 6) {
+        s = ""
+        for (i = 1; i <= 6; i++) s = s (i > 1 ? "; " : "") i " " NAME[i]
+        printf "printed %d hex lines, expected 6: %s. Fewer than six means the machine stopped where the line stops — a root table that does not map the kernel kills the fetch after its own satp write, and a window table reached through the wrong megapage entry kills the load that follows\n", nv, s
+        exit 1
+    }
+    satp_a = v[1]; shared_a = v[2]; cause_a = v[3]; satp_b = v[4]; shared_b = v[5]; cause_b = v[6]
+    if (nbss < 2) { print "bss file malformed"; exit 1 }
+    bss_addr = lz(norm(bss[1])); bss_size = lz(norm(bss[2]))
+    ppn_a = lz(substr(satp_a, 6)); ppn_b = lz(substr(satp_b, 6))
+    base = lz(substr(satp_a, 6) "000")
+    for (k = 1; k <= 2; k++) {
+        i = (k == 1) ? 1 : 4; s = (k == 1) ? satp_a : satp_b
+        if (substr(s, 1, 1) != "8")
+            bad_(sprintf("word %d, %s: mode nibble %s, not 8. Sv39 is the only paging mode this tree installs, and a satp that is not in it was never installed", i, NAME[i], substr(s, 1, 1)))
+    }
+    if (satp_a == satp_b)
+        bad_(sprintf("words 1 and 4 are the same satp (%s), so both processes ran in ONE address space and there is no second root table to have observed anything about", satp_a))
+    else if (ppn_b != hadd(ppn_a, "1"))
+        bad_(sprintf("word 4, %s: page number %s, and the declared layout puts B\047s root in the frame after A\047s, %s. The satp that was installed is not the table the source says was built", NAME[4], ppn_b, hadd(ppn_a, "1")))
+    # base is a page number shifted by 12, so its low 12 bits are zero by construction
+    if (!(hcmp(bss_addr, base) <= 0 && hcmp(hadd(base, "a000"), hadd(bss_addr, bss_size)) <= 0))
+        bad_(sprintf("word 1: the frames start at %s, and the ten of them do not fit inside the .bss the ELF reserves (%s + %s)", pad(base), pad(bss_addr), bss_size))
+    if (shared_a == shared_b)
+        bad_(sprintf("words 2 and 5: the shared virtual address answers %s under BOTH satps. Two root tables describing an identical map are two objects, not two address spaces — the separation has to be observed at an address, not inferred from a pointer. Check that each megapage table sends megapage 500 to its OWN window table", shared_a))
+    for (k = 1; k <= 2; k++) {
+        i = (k == 1) ? 2 : 5; word = (k == 1) ? shared_a : shared_b
+        want = pad(hadd(base, (k == 1) ? "8000" : "9000")); who = (k == 1) ? "A" : "B"
+        if (lz(word) == "0")
+            bad_(sprintf("word %d, %s: zero, which is what an unwritten frame reads. Nothing distinguishes \047the window resolved\047 from \047the window resolved to nothing\047", i, NAME[i]))
+        else if (word != want)
+            bad_(sprintf("word %d, %s: %s, and %s\047s data frame is %s by the declared layout. Each process stores its own frame\047s address in that frame and reads it back through a window at a virtual address that is not the frame\047s own, so a word that is not that address did not come through %s\047s window", i, NAME[i], word, who, want, who))
+    }
+    for (k = 1; k <= 2; k++) {
+        i = (k == 1) ? 3 : 6; c = (k == 1) ? cause_a : cause_b; who = (k == 1) ? "A" : "B"
+        extra = (lz(c) == "9") ? " — 9 is ENVIRONMENT CALL FROM S-MODE, which is every ecall this tree took before C-002k and is the one number that says the process never left supervisor mode" : ""
+        if (lz(c) != "8") {
+            cd = lz(c); n = 0
+            for (j = 1; j <= length(cd); j++) n = n * 16 + hv(substr(cd, j, 1))
+            bad_(sprintf("word %d, %s: cause %s, expected 8, ENVIRONMENT CALL FROM U-MODE. Process %s did not trap from U-mode%s", i, NAME[i], dec(cd), who, extra))
+        }
+    }
+    if (nb) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+    printf "satp %s/%s, tables at %s, one VA reading %s then %s, both ecalls cause 8\n", satp_a, satp_b, pad(base), shared_a, shared_b
+}
+function dec(h,  i, j, d, n, c, carry, s, t) {
+    n = 1; d[1] = 0
+    for (i = 1; i <= length(h); i++) {
+        c = hv(substr(h, i, 1)); carry = c
+        for (j = 1; j <= n; j++) { t = d[j] * 16 + carry; d[j] = t % 10; carry = int(t / 10) }
+        while (carry > 0) { d[++n] = carry % 10; carry = int(carry / 10) }
+    }
+    s = ""; for (j = n; j >= 1; j--) s = s d[j]
+    return s
+}
+' "$tmp/l.$addr" "$tmp/bss.$addr" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done
@@ -215,34 +208,23 @@ done
 # Only reached when both runs are internally well formed; otherwise the words
 # below are not the words this compares.
 if [ "$fail" -eq 0 ]; then
-    if ! python3 - "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1 <<'PY'
-import sys
-
-lo = [int(x, 16) for x in open(sys.argv[1]) if x.strip()]
-hi = [int(x, 16) for x in open(sys.argv[2]) if x.strip()]
-NAME = ("satp for A", "the shared VA under A", "scause on A's ecall",
-        "satp for B", "the shared VA under B", "scause on B's ecall")
-MOVES, FIXED = (0, 1, 3, 4), (2, 5)
-
-bad = []
-for i in MOVES:
-    if lo[i] == hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} at both link "
-                   "addresses. It is derived from where the image was loaded, so "
-                   "a value that did not move is a constant in the source and the "
-                   "derivation it stands for never happened")
-for i in FIXED:
-    if lo[i] != hi[i]:
-        bad.append(f"word {i + 1}, {NAME[i]}: {lo[i]:016x} then {hi[i]:016x}. A "
-                   "cause number is architectural. One that follows the link "
-                   "address is not coming from scause at all")
-if bad:
-    print("\n".join(bad))
-    sys.exit(1)
-print("both satps and both windowed words moved between the two link addresses "
-      "and both cause numbers stayed put")
-sys.exit(0)
-PY
+    if ! LC_ALL=C awk '
+FILENAME == ARGV[1] { if ($0 ~ /[^ \t]/) lo[++nl] = $0; next }
+{ if ($0 ~ /[^ \t]/) hi[++nh] = $0 }
+END {
+    NAME[1] = "satp for A"; NAME[2] = "the shared VA under A"; NAME[3] = "scause on A\047s ecall"
+    NAME[4] = "satp for B"; NAME[5] = "the shared VA under B"; NAME[6] = "scause on B\047s ecall"
+    MOVES[1] = 0; MOVES[2] = 1; MOVES[3] = 3; MOVES[4] = 4; FIXED[1] = 2; FIXED[2] = 5
+    for (k = 1; k <= 4; k++) { i = MOVES[k]
+        if (lo[i + 1] == hi[i + 1])
+            bad[++nb] = sprintf("word %d, %s: %s at both link addresses. It is derived from where the image was loaded, so a value that did not move is a constant in the source and the derivation it stands for never happened", i + 1, NAME[i + 1], lo[i + 1]) }
+    for (k = 1; k <= 2; k++) { i = FIXED[k]
+        if (lo[i + 1] != hi[i + 1])
+            bad[++nb] = sprintf("word %d, %s: %s then %s. A cause number is architectural. One that follows the link address is not coming from scause at all", i + 1, NAME[i + 1], lo[i + 1], hi[i + 1]) }
+    if (nb) { for (i = 1; i <= nb; i++) print bad[i]; exit 1 }
+    print "both satps and both windowed words moved between the two link addresses and both cause numbers stayed put"
+}
+' "$tmp/l.०षोड्८०२०००००" "$tmp/l.०षोड्८०४०००००" > "$tmp/m" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/m"; fail=1
     else printf "  both addresses -> %s\n" "$(cat "$tmp/m")"; fi
 fi

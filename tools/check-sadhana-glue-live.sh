@@ -51,7 +51,7 @@ command -v cargo >/dev/null || {
     exit 77
 }
 
-wasm=crates/sadhana-wasm/target/wasm32-unknown-unknown/release/sadhana_wasm.wasm
+wasm=target/native-wasm/sadhana_wasm.wasm
 [ -f "$wasm" ] || {
     echo "VACUOUS: no sadhana wasm module on this tree, so there is no subject to \
 cross-check against; build one with tools/build-sassembly-web.sh. 78 and not 77: the \
@@ -89,7 +89,7 @@ for spec in 'namaste:proof' 'bare-metal:proof' 'atithi:app'; do
     case $kind in app) at="--स्थान $APP_LOAD" ;; *) at= ;; esac
     # A failure HERE is the tree's, not the machine's — cargo was found above.
     # shellcheck disable=SC2086
-    if ! cargo run -q -p sadhana -- $at "spec/$p.sas" "$out/$p.elf" >"$out/$p.log" 2>&1; then
+    if ! tools/sadhana-native.sh $at "spec/$p.sas" "$out/$p.elf" >"$out/$p.log" 2>&1; then
         echo "  FAIL  sadhana could not assemble spec/$p.sas natively."
         sed 's/^/        /' "$out/$p.log"
         exit 1

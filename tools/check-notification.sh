@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"  # the verdict function below uses bash arithmetic and arrays
 # A signal arriving between the check and the sleep is not lost — `C-002f`,
 # doc 11 §3.1, phase 11.2.6.
 #
@@ -84,7 +85,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
 # `perl -e 'alarm'` does not bound QEMU: QEMU installs its own SIGALRM handler
 # and outlives it. An explicit `kill -9` watcher does.
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/notification.sas" "$2" >/dev/null
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$2" > "$tmp/out" 2>&1 &
@@ -106,6 +107,83 @@ run_at() {
     # PREPENDED made this check pass with its full success text on a program
     # whose output had changed. Emit every matching line; the caller counts.
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$'
+}
+
+# verdict_notification FILE: 32 hex lines (set: 5, whole word: 3, then 6 per point x4); diagnostics on stdout, rc 1 on failure.
+hx() { printf '0x%x' "$1"; }
+verdict_notification() {
+    local v=() l i=0 M=$((1<<63)) BIT=1 ALL=11 ARRIVED=4 POINTS=4 bad=() k b s extra missing seen="" nseen=0
+    local took again whole standing second point passed hand left woke slept inhand inword sleepers=0 key
+    while IFS= read -r l || [ -n "$l" ]; do
+        [ -n "${l//[[:space:]]/}" ] || continue
+        v[i]=$((16#${l//[[:space:]]/})); i=$((i+1))
+    done < "$1"
+    took=${v[3]}; again=${v[4]}
+    if [ "${v[0]}" -ne 0 ] || [ "${v[1]}" -ne $BIT ] || [ "${v[2]}" -ne $BIT ]; then
+        bad+=("signalling bit $(hx $BIT) three times into an empty word reported previous words $(hx "${v[0]}"), $(hx "${v[1]}"), $(hx "${v[2]}"), expected 0x0 then $(hx $BIT) twice — the previous word is where the caller learns 'this was already pending', and there is no queue for it to learn that from")
+    fi
+    if [ "$took" -ne $BIT ]; then
+        extra=""
+        if [ $((took ^ M)) -gt $((BIT ^ M)) ]; then extra=" — the word COUNTED the signals instead of setting a bit"; fi
+        bad+=("three signals of bit $(hx $BIT) came back from one wait as $(hx "$took"), expected $(hx $BIT)$extra. सूचना is a set: signalling twice must not queue twice")
+    fi
+    if [ "$again" -ne 0 ]; then
+        bad+=("a second wait returned $(hx "$again") after the word had been taken — something was queued behind the first signal")
+    fi
+    whole=${v[5]}; standing=${v[6]}; second=${v[7]}
+    if [ "$whole" -ne $ALL ]; then
+        missing=$((ALL & ~whole))
+        s="one wait returned $(hx "$whole") of the three signals $(hx $ALL)"
+        if [ "$missing" -ne 0 ]; then
+            s="$s, missing $(hx "$missing") — a signal was dropped between the read and the clear"
+        else
+            s="$s — it returned bits nobody sent"
+        fi
+        bad+=("$s")
+    fi
+    if [ "$standing" -ne 0 ]; then
+        bad+=("the word still holds $(hx "$standing") after a wait took it: the wait read without clearing, so the next waiter is handed the same signal again")
+    fi
+    if [ "$second" -ne 0 ]; then
+        bad+=("a second wait returned $(hx "$second") from a word that had just been emptied")
+    fi
+    for k in 0 1 2 3; do
+        b=$((8 + 6*k))
+        point=${v[b]}; passed=${v[b+1]}; hand=${v[b+2]}; left=${v[b+3]}; woke=${v[b+4]}; slept=${v[b+5]}
+        sleepers=$((sleepers + slept))
+        if [ "$point" -ne "$k" ]; then
+            bad+=("trial $k reported point $(printf %u "$point"): the trials are not the four points in order, so some point was never exercised")
+            continue
+        fi
+        if [ "$passed" -ne $POINTS ]; then
+            bad+=("trial $k: the wait passed $(printf %u "$passed") points, expected $POINTS. The point counter did not start this trial at zero, so the signal for this trial was never fired at all — nothing here is evidence about a lost signal")
+            continue
+        fi
+        key="$((hand & ARRIVED)),$((left & ARRIVED))"
+        case " $seen " in *" $key "*) ;; *) seen="$seen $key"; nseen=$((nseen+1));; esac
+        if [ "$slept" -ne 0 ] && [ "$slept" -ne 1 ]; then
+            bad+=("point $k: slept is $(hx "$slept"), which is neither 0 nor 1")
+        elif { [ "$slept" -eq 1 ] && [ "$hand" -ne 0 ]; } || { [ "$slept" -eq 0 ] && [ "$hand" -eq 0 ]; }; then
+            if [ "$slept" -eq 1 ]; then s=slept; else s="stayed awake"; fi
+            bad+=("point $k: the waiter $s with $(hx "$hand") in hand — the decision to sleep must come from what the take returned and from nothing else")
+        fi
+        inhand=0; inword=0
+        [ $((hand & ARRIVED)) -ne 0 ] && inhand=1
+        [ $((left & ARRIVED)) -ne 0 ] && inword=1
+        if [ $inhand = 1 ] && [ $inword = 1 ]; then
+            bad+=("point $k: signal $(hx $ARRIVED) is BOTH in the waiter's hand and standing in the word — one signal was delivered twice")
+        elif [ $inhand = 0 ] && [ $inword = 0 ]; then
+            bad+=("point $k: signal $(hx $ARRIVED) is in neither the waiter's hand nor the word. It was sent and it is gone — the take cleared it away without ever returning it")
+        fi
+        if [ "$slept" -ne 0 ] && [ "$left" -ne 0 ] && [ "$woke" -eq 0 ]; then
+            bad+=("point $k: the waiter went to sleep with $(hx "$left") standing in the word and no wakeup delivered. The signal arrived between the check and the sleep, found nobody announced, and woke nobody. Nothing that has already happened will wake this waiter — announce BEFORE checking, not after")
+        fi
+    done
+    if [ "$nseen" -eq 1 ]; then
+        bad+=("all four points produced the same outcome, so the injected signal never moved relative to the wait — the interleaving was not constructed and these trials assert nothing")
+    fi
+    if [ "${#bad[@]}" -gt 0 ]; then printf '%s\n' "${bad[@]}"; return 1; fi
+    printf 'a set not a counter (%s from three signals of one bit); one wait took all of %s and left %s; and at all four points the signal was delivered exactly once, with %d of 4 waiters sleeping and every one of them holding a wakeup\n' "$(hx "$took")" "$(hx "$whole")" "$(hx "$standing")" "$sleepers"
 }
 
 fail=0; i=0; count_wrong=0
@@ -156,111 +234,7 @@ fi
 i=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     i=$((i + 1))
-    if ! python3 - "$tmp/l$i" > "$tmp/v$i" 2>&1 <<'PY'
-import sys
-
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-bad = []
-
-# ---- a set, not a counter ------------------------------------------------
-# One bit signalled three times. The previous word says whether the signal was
-# new or already standing — that answer is what replaces a queue.
-BIT = 1
-before, took, again = v[0:3], v[3], v[4]
-if before != [0, BIT, BIT]:
-    bad.append("signalling bit {:#x} three times into an empty word reported previous "
-               "words {}, expected 0x0 then {:#x} twice — the previous word is where the "
-               "caller learns 'this was already pending', and there is no queue for it "
-               "to learn that from"
-               .format(BIT, ", ".join(f"{b:#x}" for b in before), BIT))
-if took != BIT:
-    extra = " — the word COUNTED the signals instead of setting a bit" if took > BIT else ""
-    bad.append(f"three signals of bit {BIT:#x} came back from one wait as {took:#x}, "
-               f"expected {BIT:#x}{extra}. सूचना is a set: signalling twice must not "
-               "queue twice")
-if again != 0:
-    bad.append(f"a second wait returned {again:#x} after the word had been taken — "
-               "something was queued behind the first signal")
-
-# ---- the wait takes the whole word ---------------------------------------
-# Three different bits from three senders. ONE wait returns all three, and the
-# word is empty afterwards. Nothing is lost between the read and the clear,
-# because the read and the clear are the same instruction.
-ALL = 1 | 2 | 8
-whole, standing, second = v[5], v[6], v[7]
-if whole != ALL:
-    missing = ALL & ~whole
-    bad.append(f"one wait returned {whole:#x} of the three signals {ALL:#x}"
-               + (f", missing {missing:#x} — a signal was dropped between the read and "
-                  "the clear" if missing else " — it returned bits nobody sent"))
-if standing != 0:
-    bad.append(f"the word still holds {standing:#x} after a wait took it: the wait read "
-               "without clearing, so the next waiter is handed the same signal again")
-if second != 0:
-    bad.append(f"a second wait returned {second:#x} from a word that had just been "
-               "emptied")
-
-# ---- a signal between the check and the sleep ----------------------------
-# Per trial: the point, how many points the wait actually passed, what the wait
-# had in hand, what stands in the word, how many wakeups were delivered, and
-# whether the waiter went to sleep.
-ARRIVED = 4
-POINTS = 4
-trials = [v[8 + 6 * k:14 + 6 * k] for k in range(4)]
-seen = set()
-for k, (point, passed, hand, left, woke, slept) in enumerate(trials):
-    if point != k:
-        bad.append(f"trial {k} reported point {point}: the trials are not the four "
-                   "points in order, so some point was never exercised")
-        continue
-    # The apparatus before the claim. A trial whose points did not start at
-    # zero fires its signal nowhere, and every assertion below would then be
-    # reading an interleaving that was never constructed.
-    if passed != POINTS:
-        bad.append(f"trial {k}: the wait passed {passed} points, expected {POINTS}. The "
-                   "point counter did not start this trial at zero, so the signal for "
-                   "this trial was never fired at all — nothing here is evidence about "
-                   "a lost signal")
-        continue
-    seen.add((hand & ARRIVED, left & ARRIVED))
-    if slept not in (0, 1):
-        bad.append(f"point {k}: slept is {slept:#x}, which is neither 0 nor 1")
-    elif slept != (hand == 0):
-        bad.append(f"point {k}: the waiter {'slept' if slept else 'stayed awake'} with "
-                   f"{hand:#x} in hand — the decision to sleep must come from what the "
-                   "take returned and from nothing else")
-    inhand, inword = bool(hand & ARRIVED), bool(left & ARRIVED)
-    if inhand and inword:
-        bad.append(f"point {k}: signal {ARRIVED:#x} is BOTH in the waiter's hand and "
-                   "standing in the word — one signal was delivered twice")
-    elif not inhand and not inword:
-        bad.append(f"point {k}: signal {ARRIVED:#x} is in neither the waiter's hand nor "
-                   "the word. It was sent and it is gone — the take cleared it away "
-                   "without ever returning it")
-    # The rule. Everything above is bookkeeping; this is the claim.
-    if slept and left != 0 and woke == 0:
-        bad.append(f"point {k}: the waiter went to sleep with {left:#x} standing in the "
-                   "word and no wakeup delivered. The signal arrived between the check "
-                   "and the sleep, found nobody announced, and woke nobody. Nothing that "
-                   "has already happened will wake this waiter — announce BEFORE checking, "
-                   "not after")
-
-# The trials only mean something if the injected signal actually landed at
-# different instants. If every point produced the same outcome, the enumeration
-# is decorative and proves nothing.
-if len(seen) == 1:
-    bad.append("all four points produced the same outcome, so the injected signal never "
-               "moved relative to the wait — the interleaving was not constructed and "
-               "these trials assert nothing")
-
-if bad:
-    print("\n".join(bad)); sys.exit(1)
-sleepers = sum(t[5] for t in trials)
-print(f"a set not a counter ({took:#x} from three signals of one bit); one wait took all "
-      f"of {whole:#x} and left {standing:#x}; and at all four points the signal was "
-      f"delivered exactly once, with {sleepers} of 4 waiters sleeping and every one of "
-      "them holding a wakeup")
-PY
+    if ! verdict_notification "$tmp/l$i" > "$tmp/v$i" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v$i"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v$i")"
 done

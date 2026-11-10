@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"  # the verdict function below uses bash arithmetic and arrays
 # Capability derivation attenuates, never amplifies — task `C-002a`, doc 11 §3.1.
 #
 # `अधिकारः` is an unforgeable reference to an object plus rights, and doc 11
@@ -33,7 +34,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   exit 77; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/capability.sas" "$tmp/c.elf" >/dev/null
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$tmp/c.elf" > "$tmp/out" 2>&1 &
@@ -48,6 +49,50 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' | tail -11
 }
 
+# bin N: unsigned binary of a 64-bit word, no leading zeros ("0" for zero).
+bin() {
+    local x=$1 i s=""
+    for ((i = 63; i >= 0; i--)); do
+        if [ -n "$s" ] || [ $(((x >> i) & 1)) -eq 1 ]; then s="$s$(((x >> i) & 1))"; fi
+    done
+    printf '%s' "${s:-0}"
+}
+# verdict_capability FILE: 11 hex lines (parent rights, then verdict+rights for five attempts); diagnostics on stdout, rc 1 on failure.
+verdict_capability() {
+    local v=() l i=0 parent gv gr wv wr a bad=() READ=1 WRITE=2 EXEC=4 GRANT=8 s
+    local want_v=(1 1 1 0 0) want_r=(3 1 0 0 0) asked
+    while IFS= read -r l || [ -n "$l" ]; do
+        [ -n "${l//[[:space:]]/}" ] || continue
+        v[i]=$((16#${l//[[:space:]]/})); i=$((i+1))
+    done < "$1"
+    asked=(3 1 0 $GRANT $((READ | WRITE | GRANT)))
+    parent=${v[0]}
+    if [ "$parent" -ne $((READ | WRITE | EXEC)) ]; then
+        bad+=("the parent holds $(bin "$parent"), expected 111 — read, write, exec and NO grant")
+    fi
+    for i in 0 1 2 3 4; do
+        gv=${v[$((1 + 2*i))]}; gr=${v[$((2 + 2*i))]}; wv=${want_v[i]}; wr=${want_r[i]}; a=${asked[i]}
+        if [ "$gv" -ne "$wv" ] || [ "$gr" -ne "$wr" ]; then
+            if [ "$wv" -eq 0 ] && [ "$gv" -eq 1 ]; then
+                bad+=("attempt $i asked for $(bin "$a"), which the parent ($(bin "$parent")) does not hold, and it was GRANTED as $(bin "$gr"). A capability exceeded its parent, so the model is a suggestion")
+            elif [ "$wv" -eq 0 ] && [ "$gr" -ne 0 ]; then
+                bad+=("attempt $i was refused but returned rights $(bin "$gr") — a refusal must carry nothing")
+            elif [ "$wv" -eq 1 ] && [ "$gv" -eq 0 ]; then
+                bad+=("attempt $i asked for $(bin "$a"), entirely within the parent, and was REFUSED — attenuation must be allowed or nothing can be delegated")
+            else
+                bad+=("attempt $i asked $(bin "$a"): got verdict $(printf %u "$gv") rights $(bin "$gr"), expected verdict $wv rights $(bin "$wr")")
+            fi
+        fi
+    done
+    local ge="($(printf %u "${v[5]}"), $(printf %u "${v[6]}"))" rf="($(printf %u "${v[7]}"), $(printf %u "${v[8]}"))"
+    if [ "${v[5]}" -eq "${v[7]}" ] && [ "${v[6]}" -eq "${v[8]}" ]; then
+        bad+=("a granted-but-empty derivation reads $ge and a REFUSAL reads $rf — identical, so the caller cannot tell being given nothing from being turned down, which is the ambiguity the two-word answer exists to remove")
+    fi
+    if [ "${#bad[@]}" -gt 0 ]; then printf '%s\n' "${bad[@]}"; return 1; fi
+    printf 'parent %s; attenuations [%s, %s, %s] all granted, amplifications both refused, and granted-empty %s differs from refused %s\n' \
+        "$(bin "$parent")" "$(printf %u "${v[2]}")" "$(printf %u "${v[4]}")" "$(printf %u "${v[6]}")" "$ge" "$rf"
+}
+
 fail=0
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l"
@@ -57,43 +102,7 @@ for addr in ०षोड्८०२००००० ०षोड्८०४०�
         echo "        then a verdict and a rights word for each of five attempts)"
         fail=1; continue
     fi
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-v = [int(l, 16) for l in open(sys.argv[1]) if l.strip()]
-parent, rest = v[0], v[1:]
-pairs = [(rest[i], rest[i+1]) for i in range(0, 10, 2)]
-READ, WRITE, EXEC, GRANT = 1, 2, 4, 8
-want = [(1, 3), (1, 1), (1, 0), (0, 0), (0, 0)]
-asked = [3, 1, 0, GRANT, READ | WRITE | GRANT]
-bad = []
-if parent != READ | WRITE | EXEC:
-    bad.append(f"the parent holds {parent:b}, expected 111 — read, write, exec and NO grant")
-for i, ((gv, gr), (wv, wr), a) in enumerate(zip(pairs, want, asked)):
-    if (gv, gr) != (wv, wr):
-        if wv == 0 and gv == 1:
-            bad.append(f"attempt {i} asked for {a:b}, which the parent ({parent:b}) does not "
-                       f"hold, and it was GRANTED as {gr:b}. A capability exceeded its parent, "
-                       "so the model is a suggestion")
-        elif wv == 0 and gr != 0:
-            bad.append(f"attempt {i} was refused but returned rights {gr:b} — a refusal must "
-                       "carry nothing")
-        elif wv == 1 and gv == 0:
-            bad.append(f"attempt {i} asked for {a:b}, entirely within the parent, and was "
-                       "REFUSED — attenuation must be allowed or nothing can be delegated")
-        else:
-            bad.append(f"attempt {i} asked {a:b}: got verdict {gv} rights {gr:b}, "
-                       f"expected verdict {wv} rights {wr:b}")
-# The property the pair exists for.
-granted_empty = pairs[2]
-refused = pairs[3]
-if granted_empty == refused:
-    bad.append(f"a granted-but-empty derivation reads {granted_empty} and a REFUSAL reads "
-               f"{refused} — identical, so the caller cannot tell being given nothing from "
-               "being turned down, which is the ambiguity the two-word answer exists to remove")
-if bad: print("\n".join(bad)); sys.exit(1)
-print(f"parent {parent:b}; attenuations {[p[1] for p in pairs[:3]]} all granted, "
-      f"amplifications both refused, and granted-empty {granted_empty} differs from refused {refused}")
-PY
+    if ! verdict_capability "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done

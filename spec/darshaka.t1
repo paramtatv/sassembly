@@ -2,8 +2,8 @@
 आयातः अष्टक ।
 
 ॰ दर्शक — THE DRIVER: CARRY A FINISHED PICTURE TO THE SCREEN. Row C-015
-॰ (VIRTIO-GPU 2D), unified on the GPU-driver project's v0.5.0 driver by the owner's ruling of
-॰ 2026-10-06; the GPU-driver project's chitra.t1 and spec/virtio-gpu-draw.t1 both call it. It is
+॰ (VIRTIO-GPU 2D), unified on Uru's v0.5.0 driver by the owner's ruling of
+॰ 2026-10-06; Uru's chitra.t1 and spec/virtio-gpu-draw.t1 both call it. It is
 ॰ graded by TWO devices that share no code: yantra's model and QEMU's real
 ॰ virtio-gpu (tools/check-virtio-gpu-t1.sh).
 ॰
@@ -33,7 +33,7 @@
 ॰ A pixel ०x००RRGGBB stored as a le32 is the octets BB GG RR ००, which
 ॰ is B8G8R8X8 with no conversion.
 ॰
-॰ THE SIX COMMANDS are the GPU-driver project reference/virtio_gpu.py's (a private repository),
+॰ THE SIX COMMANDS are uru reference/virtio_gpu.py's (git@github.com:paramtatv/uru),
 ॰ field for field, for any W x H, with the
 ॰ backing at R + ६५५३६ (that file's BACKING is the same address). Their octets'
 ॰ checksum, in that file's hash, is printed so the harness can compare it with
@@ -185,7 +185,7 @@
 
 ॰ CARRY पटः (विस्तारः x उच्चता pixels, row-major, ०x००RRGGBB) TO THE SCREEN.
 ॰ Answers the result code in the margin and prints it, then the commands'
-॰ checksum. the GPU-driver project's chitra.t1 calls it with १६० x १६०, C-009's picture with ६४ x ३२.
+॰ checksum. Uru's chitra.t1 calls it with १६० x १६०, C-009's picture with ६४ x ३२.
 सार्वजनिक वृत्तिः प्रदर्शनम् आदाय पटः ॱॱ अङ्कः अन्तः न६४ ऽ विस्तारः ॱॱ न६४ ऽ उच्चता ॱॱ न६४ ददाति न६४ आदि
     चरः उपकरणम् ॱॱ न६४ भवति ० ।
     चरः बिन्दवः ॱॱ न६४ भवति विस्तारः गुणनम् उच्चता ।

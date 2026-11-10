@@ -8,15 +8,15 @@
 # two live runs for equality except a REPLAY with its record.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-BIN=${BIN:-$root/target/release}
+BIN=${BIN:-${CARGO_TARGET_DIR:-$root/target}/release}
 ORACLE=${1:-$root/tools/native-spike/anuvada.py}
-for t in "$BIN/t1_image" "$BIN/yantra-run"; do [ -x "$t" ] || { echo "SKIPPED: $t absent"; exit 77; }; done
-tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+. "$root/tools/ensure-yantra-bins.sh"; ensure_bins "$BIN"
+tmp=$(mktemp -d) || exit 77; trap 'rm -rf "$tmp"' EXIT
 d=$root/spec/entropy
 build() { # NAME FILES...
   n=$1; shift; load=""; for f in "$@"; do load="$load --load $f"; done
   # shellcheck disable=SC2086
-  "$BIN/t1_image" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
+  SAS_BIN="$BIN" sh "$root/tools/t1-build.sh" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
     --entry यादृच्छिकपरीक्षा मुख्यम् -o "$tmp/$n.elf" "$@" > "$tmp/$n.build.log" 2>&1 || { echo "FAIL build $n"; tail -5 "$tmp/$n.build.log"; exit 1; }
 }
 build ent "$d/yadrucchika-srotah.t1" "$d/yadrucchika-pariksha.t1"
@@ -25,12 +25,7 @@ fail=0
 ok() { echo "  PASS  $1"; }
 bad() { echo "  FAIL  $1"; fail=1; }
 dist() { tail -n +2 "$1" | sort -u | wc -l; }
-halves_differ() { python3 - "$1" <<'PY'
-import sys
-v = [l for l in open(sys.argv[1]).read().split("\n") if l.strip()][1:]
-sys.exit(0 if len(v) == 64 and v[:32] != v[32:] else 1)
-PY
-}
+halves_differ() { LC_ALL=C awk '$0 !~ /^[ \t\r\f\v]*$/ { if (++k > 1) v[k - 1] = $0 } END { if (k - 1 != 64) exit 1; for (i = 1; i <= 32; i++) if (v[i] != v[i + 32]) exit 0; exit 1 }' "$1"; }
 mkdir -p "$tmp/root"; Y=$BIN/yantra-run
 
 # ---- yantra, through the launcher

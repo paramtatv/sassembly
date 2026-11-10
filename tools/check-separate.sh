@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
+[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # Separate compilation, from the command line — task `B-069d2c`, doc 03 §3.3.
 #
 # `tools/check-link.sh` builds the same two files in ONE invocation, which is
@@ -33,27 +35,27 @@ trap 'rm -rf "$tmp"' EXIT
 expected='नमस्ते संसार'
 
 # One file at a time. Neither command is told the other file exists.
-cargo run --quiet -p sadhana -- --वस्तु "$root/spec/namaste-main.sas" "$tmp/main.o" >/dev/null
-cargo run --quiet -p sadhana -- --वस्तु "$root/spec/lib-mudraka.sas" "$tmp/lib.o" >/dev/null
+"$root/tools/sadhana-native.sh" --वस्तु "$root/spec/namaste-main.sas" "$tmp/main.o" >/dev/null
+"$root/tools/sadhana-native.sh" --वस्तु "$root/spec/lib-mudraka.sas" "$tmp/lib.o" >/dev/null
 
 # An object must actually carry holes, or the "separate" part is a fiction and
 # this check would pass on a build that resolved everything too early.
 if command -v riscv64-elf-readelf >/dev/null; then
-  n=$(riscv64-elf-readelf -r "$tmp/main.o" 2>/dev/null | grep -c 'R_RISCV_' || true)
+  n=$(riscv64-elf-readelf -r "$tmp/main.o" 2>/dev/null | grep -a -c 'R_RISCV_' || true)
   if [ "$n" -lt 2 ]; then
     echo "FAIL: main.o has $n relocations; it should have the call and the address pair" >&2
     exit 1
   fi
 fi
 
-cargo run --quiet -p sadhana -- --संयोजय "$tmp/main.o" "$tmp/lib.o" "$tmp/joined.elf" >/dev/null
+"$root/tools/sadhana-native.sh" --संयोजय "$tmp/main.o" "$tmp/lib.o" "$tmp/joined.elf" >/dev/null
 
 # The names must survive the link — task `B-103`. `--संयोजय` wrote text and data
 # and dropped every symbol, so `nm` reported nothing on an image whose
 # single-file build shows `मुद्रकः`. A stranger's tools are how this project
 # checks its own object format, and that argument does not stop at the object.
 if command -v riscv64-elf-nm >/dev/null; then
-  if ! riscv64-elf-nm "$tmp/joined.elf" 2>/dev/null | grep -q 'मुद्रकः'; then
+  if ! riscv64-elf-nm "$tmp/joined.elf" 2>/dev/null | grep -a -q 'मुद्रकः'; then
     echo "FAIL: the linked image carries no symbol table" >&2
     riscv64-elf-nm "$tmp/joined.elf" >&2 2>&1 || true
     exit 1

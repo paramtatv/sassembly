@@ -1,4 +1,4 @@
-# W-355 / W-359 falsifier probes from a peer session (the GPU-driver project), measured 2026-10-02 ~00:50 EDT.
+# W-355 / W-359 falsifier probes from sansos-1e (Uru), measured 2026-10-02 ~00:50 EDT.
 # tree 096f46e9 (origin/main; --compiler/--spec-root from it), t1_image binary 2026-09-27 22:32:56,
 # yantra-run binary 2026-10-01 23:41:16 (64-bit status, W-341). Both sides: interpreted = the
 # build's predict (with --load), native = yantra-run status. grow*: callee appends N contiguously

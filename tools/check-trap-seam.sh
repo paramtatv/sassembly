@@ -98,7 +98,7 @@ cmp -s "$tmp/a" "$tmp/b" || {
   exit 1; }
 
 run_at() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
+    "$root/tools/sadhana-native.sh" \
         --स्थान "$1" "$root/spec/trap-seam.sas" "$tmp/s.elf" >/dev/null
     # Bounded by an explicit SIGKILL, not perl's alarm: QEMU handles SIGALRM and
     # survives it (W-060). A leaking sepc HANGS the machine rather than printing
@@ -121,59 +121,53 @@ run_at() {
     tr -d '\r' < "$tmp/out" | grep -aE '^[0-9a-f]{16}$' || true
 }
 
+trap_verdict() { # FILE ; prints the verdict, rc 1 when the run is not the expected one
+    LC_ALL=C awk '
+function hx(h) { return "0x" h }
+{
+    l = $0; sub(/^[ \t\r\f\v]+/, "", l); sub(/[ \t\r\f\v]+$/, "", l)
+    if (l == "") next
+    sub(/^0+/, "", l); if (l == "") l = "0"
+    v[++n] = l
+}
+END {
+    for (i = 1; i <= n; i++) {
+        h = v[i]
+        if (h != "a1" && h != "b2" && h != "c3" && (length(h) > 2 || (length(h) == 2 && h > "10"))) {
+            print "the output is not this program\047s: " hx(h) " is neither a marker (0xa1, 0xb2, 0xc3) nor a small fault count. Nothing is being claimed about the switch — read the raw log"
+            exit 1
+        }
+    }
+    if (n == 4 && v[1] == "a1" && v[2] == "b2" && v[3] == "2" && v[4] == "c3") {
+        print "a1 then b2, two faults, and c3 across both switches: each thread resumed at its own site and neither lost its registers"
+        exit 0
+    }
+    for (i = 1; i <= n; i++) { if (v[i] == "a1") has_a1 = 1; if (v[i] == "b2") nb2++; if (v[i] == "2") has_2 = 1; if (v[i] == "c3") has_c3 = 1 }
+    w = 0
+    if (!has_a1 && nb2 > 0)
+        why[++w] = "thread 1 never printed a1, and b2 appears in its place. Thread 1 blocked inside its handler; while it waited, thread 2\047s own trap overwrote sepc; thread 1 woke, read sepc, and returned to THREAD 2\047s faulting site. sepc is not saved across सञ्चारः"
+    else if (nb2 > 1)
+        why[++w] = "b2 printed " nb2 " times — one site was returned to more than once, which is the same sepc leak seen from the other end"
+    if (!has_2)
+        why[++w] = "the fault count never printed, so thread 1 did not reach its end. The machine most likely died after the second sret: sret clears sstatus.SPP, nothing restored it, and the second return therefore landed in U-mode"
+    if (has_c3 && !has_a1)
+        why[++w] = "c3 DID print, so the twelve callee-saved words are intact — what is missing is privileged state, not general state"
+    if (w == 0) {
+        g = ""
+        for (i = 1; i <= n; i++) g = g (i > 1 ? ", " : "") "\047" hx(v[i]) "\047"
+        why[++w] = "expected [\0470xa1\047, \0470xb2\047, \0470x2\047, \0470xc3\047], got [" g "]"
+    }
+    for (i = 1; i <= w; i++) print why[i]
+    exit 1
+}' "$1"
+}
+
 fail=0
 # Two link addresses, because every address here is computed with auipc and one
 # run cannot tell a computed address from a lucky constant.
 for addr in ०षोड्८०२००००० ०षोड्८०४०००००; do
     run_at "$addr" > "$tmp/l"
-    if ! python3 - "$tmp/l" > "$tmp/v" 2>&1 <<'PY'
-import sys
-
-lines = [l.strip() for l in open(sys.argv[1]) if l.strip()]
-vals = [int(l, 16) for l in lines]
-MARK = {0xa1: "a1 — thread 1 returned to its OWN faulting site",
-        0xb2: "b2 — thread 2 returned to its own faulting site",
-        0xc3: "c3 — thread 1's callee-saved value survived both switches"}
-
-# W-090: assert the impossible-value invariants of the INPUT before reading it
-# as evidence about the subject. These cannot fire on any run of this program,
-# correct or incorrect; they fire when the output is not this program's output.
-for v in vals:
-    if v not in MARK and v > 16:
-        print(f"the output is not this program's: {v:#x} is neither a marker "
-              f"({', '.join(hex(m) for m in MARK)}) nor a small fault count. "
-              "Nothing is being claimed about the switch — read the raw log")
-        sys.exit(1)
-
-want = [0xa1, 0xb2, 2, 0xc3]
-if vals == want:
-    print("a1 then b2, two faults, and c3 across both switches: each thread "
-          "resumed at its own site and neither lost its registers")
-    sys.exit(0)
-
-why = []
-if 0xa1 not in vals and 0xb2 in vals:
-    why.append("thread 1 never printed a1, and b2 appears in its place. Thread 1 "
-               "blocked inside its handler; while it waited, thread 2's own trap "
-               "overwrote sepc; thread 1 woke, read sepc, and returned to THREAD "
-               "2's faulting site. sepc is not saved across सञ्चारः")
-elif vals.count(0xb2) > 1:
-    why.append(f"b2 printed {vals.count(0xb2)} times — one site was returned to "
-               "more than once, which is the same sepc leak seen from the other end")
-if 2 not in vals:
-    why.append("the fault count never printed, so thread 1 did not reach its end. "
-               "The machine most likely died after the second sret: sret clears "
-               "sstatus.SPP, nothing restored it, and the second return therefore "
-               "landed in U-mode")
-if 0xc3 in vals and 0xa1 not in vals:
-    why.append("c3 DID print, so the twelve callee-saved words are intact — what "
-               "is missing is privileged state, not general state")
-if not why:
-    why.append(f"expected {[hex(w) for w in want]}, got {[hex(v) for v in vals]}")
-
-print("\n".join(why))
-sys.exit(1)
-PY
+    if ! trap_verdict "$tmp/l" > "$tmp/v" 2>&1
     then sed 's/^/  FAIL  /' "$tmp/v"; fail=1; continue; fi
     printf "  %s -> %s\n" "$addr" "$(cat "$tmp/v")"
 done

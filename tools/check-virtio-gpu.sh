@@ -65,121 +65,109 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
 prog=$root/spec/virtio-gpu.sas
 [ -f "$prog" ] || { echo "RED, as written: spec/virtio-gpu.sas does not exist."; exit 1; }
 
-# The screendump half needs a QMP client. There is no shell one — `nc` is not
-# universally present and cannot be relied on to speak a unix socket — so this
-# is python3, and its absence is reported as 77 at the END, after the response
-# codes have still been checked and printed. Exiting 77 up here would throw away
-# a measurement this host can perfectly well make.
-have_python=1
-command -v python3 >/dev/null 2>&1 || have_python=0
-
 # ---- the QMP client: connect, negotiate, screendump, leave ------------------
-cat > "$tmp/shot.py" <<'PY'
-import json, socket, sys, time
-sock_path, out = sys.argv[1], sys.argv[2]
-s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-for _ in range(100):                       # QEMU may not have bound it yet
-    try:
-        s.connect(sock_path)
-        break
-    except OSError:
-        time.sleep(0.1)
-else:
-    sys.exit("could not connect to the QMP socket")
-f = s.makefile('rw', encoding='utf-8', newline='\n')
-f.readline()                               # the greeting
-def cmd(c):
-    f.write(json.dumps(c) + '\n')
-    f.flush()
-    while True:
-        line = f.readline()
-        if not line:
-            sys.exit("QMP closed mid-command")
-        m = json.loads(line)
-        if 'error' in m:
-            sys.exit("QMP error: %s" % m['error'])
-        if 'return' in m:
-            return m['return']
-cmd({'execute': 'qmp_capabilities'})
-cmd({'execute': 'screendump', 'arguments': {'filename': out}})
-PY
+. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the python heredoc)
 
 # ---- the PPM reader: what is actually on the screen -------------------------
 #
 # Asserts the WHOLE histogram, not just one probe. A driver that painted the
 # right pixel and left the rest of the surface as QEMU found it would pass a
 # single-pixel probe; it cannot pass "2047 of this colour and 1 of that".
-cat > "$tmp/pixels.py" <<'PY'
-import sys
-from collections import Counter
-
-BG, FG = (0x11, 0x22, 0x33), (0xc4, 0x7b, 0x2a)
-W, H, AT = 64, 32, (1, 1)
-
-data = open(sys.argv[1], 'rb').read()
-fields, i = [], 0
-while len(fields) < 4:                      # P6, width, height, maxval
-    while i < len(data) and data[i:i+1].isspace():
-        i += 1
-    j = i
-    while j < len(data) and not data[j:j+1].isspace():
-        j += 1
-    if j == i:
-        sys.exit("  the screendump is not a readable PPM")
-    fields.append(data[i:j]); i = j
-i += 1
-px = data[i:]
-
-bad = 0
-def bad_news(msg):
-    global bad
-    print("  FAIL  " + msg); bad = 1
-
-def note(msg):                              # a continuation of the line above
-    print("        " + msg)
-
-if fields[0] != b'P6':
-    bad_news("the screendump is %r, not the P6 PPM screendump returns" % fields[0])
-w, h, mx = int(fields[1]), int(fields[2]), int(fields[3])
-if (w, h) != (W, H):
-    bad_news("the screen is %dx%d; SET_SCANOUT asked for %dx%d" % (w, h, W, H))
-if len(px) < w * h * 3:
-    bad_news("the screendump holds %d bytes of pixels, %d expected"
-             % (len(px), w * h * 3))
-if bad:
-    sys.exit(1)
-
-def at(x, y):
-    o = (y * w + x) * 3
-    return tuple(px[o:o + 3])
-
-hist = Counter(tuple(px[k:k+3]) for k in range(0, w * h * 3, 3))
-def hexc(c):
-    return "%02x%02x%02x" % c
-
-print("  screen        %dx%d, maxval %d" % (w, h, mx))
-print("  colours       " + ", ".join("%s x%d" % (hexc(c), n)
-                                     for c, n in hist.most_common(4)))
-print("  pixel (1,1)   " + hexc(at(*AT)))
-print("  pixel (0,0)   " + hexc(at(0, 0)))
-
-want = {BG: w * h - 1, FG: 1}
-if dict(hist) != want:
-    bad_news("the screen is not what the guest painted; expected %s x%d"
-             % (hexc(BG), w * h - 1))
-    note("and %s x1, and nothing else" % hexc(FG))
-if at(*AT) != FG:
-    bad_news("(1,1) is %s, not the %s the guest stored at byte offset 260 —"
-             % (hexc(at(*AT)), hexc(FG)))
-    note("the odd pixel landed somewhere else, so the pitch is wrong")
-if at(0, 0) != BG:
-    bad_news("(0,0) is %s, not the background %s" % (hexc(at(0, 0)), hexc(BG)))
-sys.exit(bad)
-PY
+#
+# Plain od + awk (no interpreter): od turns the file into decimal byte values,
+# awk parses the header and tallies the pixels. Prints to stdout, rc 1 on a bad
+# screen, as the reader it replaces did.
+pixels() {
+    od -An -v -tu1 "$1" | LC_ALL=C awk '
+    function sp(c) { return c == 32 || (c >= 9 && c <= 13) }
+    function hexc(r, g, b) { return sprintf("%02x%02x%02x", r, g, b) }
+    function brepr(s,   q, i, c, o, n) {          # python bytes repr
+        q = "\047"
+        if (index(s, "\047") && !index(s, "\042")) q = "\042"
+        o = ""
+        for (i = 1; i <= length(s); i++) {
+            c = substr(s, i, 1); n = ord[c]
+            if (c == "\\") o = o "\\\\"
+            else if (c == q) o = o "\\" c
+            else if (n == 9) o = o "\\t"
+            else if (n == 10) o = o "\\n"
+            else if (n == 13) o = o "\\r"
+            else if (n < 32 || n >= 127) o = o sprintf("\\x%02x", n)
+            else o = o c
+        }
+        return "b" q o q
+    }
+    function bad_news(msg) { print "  FAIL  " msg; bad = 1 }
+    function note(msg) { print "        " msg }
+    function at(x, y) { o = (y * w + x) * 3; return hexc(px[o], px[o + 1], px[o + 2]) }
+    BEGIN { for (i = 0; i < 256; i++) ord[sprintf("%c", i)] = i }
+    { for (i = 1; i <= NF; i++) d[n++] = $i + 0 }
+    END {
+        i = 0; nf = 0
+        while (nf < 4) {
+            while (i < n && sp(d[i])) i++
+            j = i
+            while (j < n && !sp(d[j])) j++
+            if (j == i) { print "  the screendump is not a readable PPM" > "/dev/stderr"; exit 1 }
+            s = ""
+            for (k = i; k < j; k++) s = s sprintf("%c", d[k])
+            f[nf++] = s; i = j
+        }
+        i++
+        npx = n - i; if (npx < 0) npx = 0
+        for (k = 0; k < npx; k++) px[k] = d[i + k]
+        W = 64; H = 32
+        if (f[0] != "P6")
+            bad_news("the screendump is " brepr(f[0]) ", not the P6 PPM screendump returns")
+        if (f[1] !~ /^[0-9]+$/ || f[2] !~ /^[0-9]+$/ || f[3] !~ /^[0-9]+$/) {
+            print "  the screendump header is not numeric" > "/dev/stderr"; exit 1 }
+        w = f[1] + 0; h = f[2] + 0; mx = f[3] + 0
+        if (w != W || h != H)
+            bad_news(sprintf("the screen is %dx%d; SET_SCANOUT asked for %dx%d", w, h, W, H))
+        if (npx < w * h * 3)
+            bad_news(sprintf("the screendump holds %d bytes of pixels, %d expected", npx, w * h * 3))
+        if (bad) exit 1
+        nc = 0
+        for (k = 0; k < w * h * 3; k += 3) {
+            c = hexc(px[k], px[k + 1], px[k + 2])
+            if (!(c in cnt)) { cnt[c] = 0; ord_c[nc++] = c }
+            cnt[c]++
+        }
+        printf "  screen        %dx%d, maxval %d\n", w, h, mx
+        line = "  colours       "
+        for (t = 0; t < 4; t++) {
+            best = ""; bn = 0
+            for (k = 0; k < nc; k++) {
+                c = ord_c[k]
+                if (!(c in used) && cnt[c] > bn) { best = c; bn = cnt[c] }
+            }
+            if (best == "") break
+            used[best] = 1
+            line = line (t ? ", " : "") best " x" bn
+        }
+        print line
+        print "  pixel (1,1)   " at(1, 1)
+        print "  pixel (0,0)   " at(0, 0)
+        BG = "112233"; FG = "c47b2a"
+        if (!(nc == 2 && cnt[BG] == w * h - 1 && cnt[FG] == 1)) {
+            bad_news(sprintf("the screen is not what the guest painted; expected %s x%d", BG, w * h - 1))
+            note(sprintf("and %s x1, and nothing else", FG))
+        }
+        if (at(1, 1) != FG) {
+            bad_news(sprintf("(1,1) is %s, not the %s the guest stored at byte offset 260 —", at(1, 1), FG))
+            note("the odd pixel landed somewhere else, so the pitch is wrong")
+        }
+        if (at(0, 0) != BG)
+            bad_news(sprintf("(0,0) is %s, not the background %s", at(0, 0), BG))
+        exit bad
+    }'
+}
 
 assemble() {
-    cargo run --quiet --manifest-path "$root/Cargo.toml" -p sadhana -- \
-        --स्थान "$1" "$prog" "$2" >/dev/null
+    rc=0
+    "$root/tools/sadhana-native.sh" --स्थान "$1" "$prog" "$2" >/dev/null || rc=$?
+    [ "$rc" -eq 77 ] && { echo "  SKIP  no native assembler image (exit 77)"; exit 77; }
+    [ "$rc" -eq 0 ] || exit "$rc"
 }
 
 # One run: boot, wait for the driver to say it is finished, photograph the
@@ -213,14 +201,14 @@ run() {  # $1 = elf, $2 = cleaned output, $3 = where to leave the screendump
         # like a program that never got there. LC_ALL=C because macOS `tr`
         # aborts on invalid UTF-8 and TRUNCATES what it has copied so far.
         LC_ALL=C tr -d '\r' < "$tmp/raw" > "$2" 2>/dev/null || true
-        if grep -q '^VIRTIO-GPU-DONE$' "$2"; then break; fi
+        if grep -aq '^VIRTIO-GPU-DONE$' "$2"; then break; fi
         n=$((n + 1))
         sleep 1
     done
 
     shot_err=""
-    if [ "$want_shot" -eq 1 ] && grep -q '^VIRTIO-GPU-DONE$' "$2"; then
-        shot_err=$(python3 "$tmp/shot.py" "$tmp/qmp.sock" "$3" 2>&1) || true
+    if [ "$want_shot" -eq 1 ] && grep -aq '^VIRTIO-GPU-DONE$' "$2"; then
+        shot_err=$(qmp_shot "$tmp/qmp.sock" "$tmp" "$3" 2>&1) || true
     fi
 
     kill -9 "$qpid" 2>/dev/null || true
@@ -243,7 +231,7 @@ answer() {  # $1 = output file, $2 = marker
 
 complain() {  # $1 = output file, $2 = which run
     for tag in NO-DEVICE NO-QUEUE; do
-        if grep -q "^VIRTIO-GPU-$tag$" "$1"; then
+        if grep -aq "^VIRTIO-GPU-$tag$" "$1"; then
             echo "  FAIL  run $2 -> the driver reported $tag"
             return 0
         fi
@@ -269,10 +257,10 @@ for pair in "a:0x80200000" "b:0x80400000"; do
     i=$((i + 1))
     echo
     echo "Run $i of 2 — linked at $addr..."
-    want_shot=$have_python
+    want_shot=1
     run "$tmp/gpu-$name.elf" "$tmp/$name.out" "$tmp/$name.ppm"
 
-    if ! grep -q '^VIRTIO-GPU-DONE$' "$tmp/$name.out"; then
+    if ! grep -a -q '^VIRTIO-GPU-DONE$' "$tmp/$name.out"; then
         complain "$tmp/$name.out" "$i"; fail=1; continue
     fi
 
@@ -291,27 +279,17 @@ for pair in "a:0x80200000" "b:0x80400000"; do
         fi
     done
 
-    [ "$have_python" -eq 1 ] || continue
     if [ -n "$shot_err" ]; then
         echo "  FAIL  run $i: the screendump could not be taken: $shot_err"; fail=1; continue
     fi
     if [ ! -s "$tmp/$name.ppm" ]; then
         echo "  FAIL  run $i: QMP reported success but left no screendump."; fail=1; continue
     fi
-    python3 "$tmp/pixels.py" "$tmp/$name.ppm" || fail=1
+    pixels "$tmp/$name.ppm" || fail=1
 done
 
 echo
 [ "$fail" -eq 0 ] || { echo "the first pixel is not on the screen."; exit 1; }
-
-if [ "$have_python" -eq 0 ]; then
-    echo "SKIPPED: python3 is not installed, so no QMP client could ask QEMU for a"
-    echo "         screendump. The five control-queue commands were checked and the"
-    echo "         device answered OK_NODATA to each, at both link addresses — but"
-    echo "         nothing here has looked at the HOST's framebuffer, and that is"
-    echo "         the row. Exiting 77 rather than 0."
-    exit 77
-fi
 
 echo "ok  C-009: a pixel the guest wrote is on the host's screen."
 echo
