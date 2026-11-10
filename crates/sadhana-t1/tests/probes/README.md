@@ -32,7 +32,7 @@ files directly in `tests/`, so no `.rs` here becomes a target — checked with
 
 ## Why this directory exists
 
-Rows W-356, W-357 and W-359 cited `/Users/pkpro/w359/`, `/Users/pkpro/w356-probe/`
+Rows W-356, W-357 and W-359 cited `$WORK/w359/`, `$WORK/w356-probe/`
 and a worktree that was removed the same evening. A row whose falsifier cannot be
 run is a row nobody can refute.
 
@@ -313,6 +313,6 @@ point. Kept so the mistake stays visible.
 
 `w355_len.t1probe`, `w355_read.t1probe`, `w359_two_levels.t1probe`, `w359_grow127/128/129.t1`, with
 both-engine results in `w355_w359_results.tsv`. W-355's previous citation
-(`/Users/pkpro/sansos/uru/.claude/worktrees/uru-bound/.scratch/probe0/`) no longer
+(`$WORK/uru/.scratch/probe0/`) no longer
 exists; the worktree was removed. These are those probes recreated from their exact
 sources and RE-MEASURED on 096f46e9, not copied results.

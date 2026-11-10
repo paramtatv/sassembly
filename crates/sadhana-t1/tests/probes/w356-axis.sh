@@ -1,11 +1,11 @@
 #!/bin/bash
 set -u
-H=/Users/pkpro/sansos/wt-raminject/target/release/t1_image
-P=/Users/pkpro/w356-probe
-R=/Users/pkpro/sansos/wt-raminject
+H=$WT/target/release/t1_image
+P=$WORK/w356-probe
+R=$WT
 : > "$P/axis.tsv"
 leg() {
-  C=$1; T=/Users/pkpro/w356-ax-$C
+  C=$1; T=$WORK/w356-ax-$C
   [ -d "$T" ] || git -C "$R" worktree add --detach "$T" "$C" >/dev/null 2>&1
   G=$(git -C "$T" rev-parse --short HEAD 2>/dev/null)
   [ "$G" = "$C" ] || { echo "$C GUARD tree=$G" >> "$P/axis.tsv"; return; }

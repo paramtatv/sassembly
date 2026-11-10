@@ -174,9 +174,9 @@ An **integer subset**, probed against yantra-run over `examples/limits` (SAS-LIM
 ## Per-host notes
 | host | how probed | notes |
 |---|---|---|
-| ubuntu-local (x86_64-linux) | `ssh ubuntu-local`, `~/sansos-work/a9-limits`, nice | has stage1/native cache elsewhere; probe uses a fresh cache and anuvada.py |
-| jetson (aarch64-linux) | `ssh jetson`, `~/sansos-work/a9-limits`, nice | anuvada.py `--target aarch64-linux` via t1-native-lib |
-| macmini2 (aarch64-macos) | `ssh macmini2`, `~/sansos-work/a9-limits`, nice | anuvada.py, Mach-O output |
+| ubuntu-local (x86_64-linux) | `ssh ubuntu-local`, `~/work/limits`, nice | has stage1/native cache elsewhere; probe uses a fresh cache and anuvada.py |
+| jetson (aarch64-linux) | `ssh jetson`, `~/work/limits`, nice | anuvada.py `--target aarch64-linux` via t1-native-lib |
+| macmini2 (aarch64-macos) | `ssh macmini2`, `~/work/limits`, nice | anuvada.py, Mach-O output |
 | Intel Mac (x86_64-macos) | local, scratchpad run, light | no yantra-run, no cargo; fallbacks refuse |
 | windows | not probed | pending (sansos-27) |
 

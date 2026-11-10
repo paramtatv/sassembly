@@ -1,7 +1,7 @@
 #!/bin/bash
 set -u
-H=/Users/pkpro/sansos/wt-raminject/target/release/t1_image
-P=/Users/pkpro/w356-probe
+H=$WT/target/release/t1_image
+P=$WORK/w356-probe
 # gen N [out]: write the N-line probe to out (default $P/fit$N.t1).
 gen() {
   awk -v N="$1" 'BEGIN {
@@ -57,7 +57,7 @@ echo "  tree's own exponent so it can be compared with W-346's post-regression"
 echo "  n^1.63 without deriving one from the other."
 echo "PREDICTION: if the delta is real the base tree fits near n^1.31."
 echo
-for T in /Users/pkpro/w356-base /Users/pkpro/w347-before; do
+for T in $WORK/w356-base $WORK/w347-before; do
   C=$(git -C "$T" rev-parse --short HEAD)
   echo "---------- tree $C ----------"
   for N in 240 600 1200; do
