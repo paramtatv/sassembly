@@ -1,0 +1,30 @@
+# Highlight-query constants — AUTHORED copy of values that live in Rust source, so the
+# generator (tools/gen/highlights.t1) reads a spec file and not Rust. Columns: key, value.
+# Keys: s sigil (doc 02 s2.2 D-02-C), p numeral radix prefix, n negative marker,
+# h hex digit letters 10-15 (file order), w type width, c type class letter.
+# Sources: s = Karaka::sigil() in crates/sadhana/src/lex.rs (tools/check-highlights.sh asserts it);
+# p/n/h = crates/sanskrit-text/src/numeral.rs; w/c = Width::from_digits / strip_type_class in
+# crates/sadhana/src/parse.rs. Values taken verbatim 2026-10-15.
+key	value
+s	म्
+s	न
+s	त्
+s	य्
+s	ए
+p	०द्वि
+p	०अष्ट
+p	०षोड्
+n	ऋण
+h	अ
+h	आ
+h	इ
+h	ई
+h	उ
+h	ऊ
+w	८
+w	१६
+w	३२
+w	६४
+c	अ
+c	न
+c	प

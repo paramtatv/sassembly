@@ -48,7 +48,7 @@
 ॰ `t1_population.rs`'s COUNTED_BY_NOTHING, as `spec/rung/` and `spec/demo/` are.
 ॰
 ॰ THE ARGUMENT GLOBALS are declared here, each right after its tag word, as
-॰ `tools/check-arguments-d3.sh` (fixtures tools/d3/) declares them: `SASARGV\0` and
+॰ `an internal tool` (fixtures tools/d3/) declares them: `SASARGV\0` and
 ॰ `SASARGC\0`, read by `yantra::input` by value. The corpus declares neither,
 ॰ so each tag occurs once in the image.
 ॰
@@ -1446,7 +1446,7 @@
 
 ॰ ══ THE DIAGNOSTIC TEXT (W7-C1) ══ on a refusal the browser build reports
 ॰ "line L, byte B: msg\n" per diagnostic, as `sadhana-wasm` does
-॰ (crates/sadhana-wasm/src/lib.rs). The text goes to the output channel and
+॰ (the retired Rust source). The text goes to the output channel and
 ॰ the status is ६०००; the host (sadhana-abi.wat) hands the channel back as
 ॰ the error text.
 

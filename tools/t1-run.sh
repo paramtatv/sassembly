@@ -129,7 +129,7 @@ yantra() {
     exit "$rc"
 }
 # ॥ THE EVENT LOG OF A REPLAY (`--events LOG`; SL5, K3) — read here as yantra-run reads it ॥
-# (crates/yantra/src/input.rs: parse_event_log, parse_thread_log, refuse_torn_final_record).
+# (the retired Rust source: parse_event_log, parse_thread_log, refuse_torn_final_record).
 # events_read LOG fills ev_n (the records), ev_at (the `@N` records among them) and ev_fmt (each record
 # as 16 octets, little-endian: the kind, 0 a value or `t=` record and 1 an `@N`, then the value, as
 # printf escapes), or answers 1 with ev_why. It takes a log WHOLE or not at all: what it does not take

@@ -17,7 +17,7 @@
 # compiler key (t1-native-lib.sh compiler_key), so a different compiler or spec is a different Stage 1,
 # built from them; the t1_image route and the cold Stage 1 build pass them on. A missing or unusable
 # directory is REFUSED (exit 1) before anything runs — never a silent fall back to the default
-# (tools/check-t1-build-flags.sh holds both negative controls). A Stage 1 for a non-default spec root
+# (an internal tool holds both negative controls). A Stage 1 for a non-default spec root
 # is never made from the seed chain (the seed's tables are baked in): cache or T1_BUILD_COLD only.
 #
 # THE ROUTE, first that can run (printed on stderr):
@@ -66,7 +66,7 @@ die() { echo "t1-build: REFUSED — $*" >&2; exit 1; }
 # octets, ending the sink (its last octet may be the halt's). D1601c: the sink is relayed only up to the
 # start of the validated 234 record (max 2000 octets), so the raw record never reaches the console;
 # C14: a bounded-valid marker-235 site record (u32le length <= 2000 + octets) is stripped likewise;
-# its text is relayed as one decoded `t1-build: SITE <text>` line (tools/t1tests/refuse.sh); marker 233 sits before it, and
+# its text is relayed as one decoded `t1-build: SITE <text>` line (an internal tool); marker 233 sits before it, and
 # tools/selfcheck/build-refuse.sh reads it from the relay. No valid 234
 # record: the old 2000-octet relay. Args: sink status. Writes the relay and the REFUSED line to stdout.
 relay_refusal() {

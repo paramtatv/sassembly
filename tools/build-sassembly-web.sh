@@ -13,7 +13,7 @@
 # template, the glue and this script — the things a person wrote.
 #
 # **And it is written outside the working tree, which is not tidiness.** The first version
-# wrote `web/sassembly.html` and gitignored it. The gate then went red: `cargo run -p
+# wrote `the generated sassembly page` and gitignored it. The gate then went red: `cargo run -p
 # secrets` reads untracked files too, and a 37 KB base64 module contains `ASIA…` by chance,
 # which is the shape of an AWS session token. Two findings, one red tree, from an artefact
 # that is not source.
@@ -28,7 +28,7 @@
 # This needs the `wasm32-unknown-unknown` target, which is not part of a default toolchain.
 # On a machine without it the honest answer is "did not run", not "passed" — `W-087` found
 # 29 skip paths across 27 scripts that said the latter. 77 is GNU Automake's SKIP code and
-# `tools/gate.sh` renders it as neither pass nor fail.
+# `the internal gate tooling` renders it as neither pass nor fail.
 #
 # Usage: tools/build-sassembly-web.sh [output.html]   (from the repository root)
 set -eu
@@ -105,7 +105,7 @@ sadhana_wasm=$SADHANA_WASM
 # NOTHING about a page served tomorrow from a stale `sadhana-wasm`: two copies of the
 # same wrong assembler agree with each other perfectly. So the page carries the stamp
 # of the NATIVE assembler that assembled its ELFs, and the module carries its own
-# (sealed in by `crates/sadhana-wasm/build.rs`), and the page says whether they match.
+# (sealed in by `the Rust build script (removed in v1.2)`), and the page says whether they match.
 #
 # TAKEN FROM THE TREE AND NOT FROM THE BINARY, and the asymmetry is deliberate: the
 # `cargo run -q -p sadhana` below compiles from this same `crates/sadhana/src`, so the
@@ -164,7 +164,7 @@ APPLICATIONS="atithi"
 # QEMU `virt` reset vector — right for a boot proof and wrong for a guest — and it is the
 # supervisor's own gigabyte, which `yantra::host` refuses by name rather than quietly
 # handing an application the supervisor's pages. Written in the language, which is how
-# `--स्थान` reads a number. `crates/yantra/tests/host.rs` links it here too.
+# `--स्थान` reads a number. `the Rust host source (removed in v1.2)` links it here too.
 APP_LOAD=$(awk '$1 == "0x2000_0000" {print $2}' spec/application-load.tsv)
 APP_LOAD_HEX=$(awk '$1 == "0x2000_0000" {gsub(/_/,"",$1); print $1}' spec/application-load.tsv)
 
@@ -215,7 +215,7 @@ done
 # before its first byte is a page build nobody runs, and the figures this button rests on
 # — the declared extent and the high water — are properties of the ABI and of how much
 # work one source is, neither of which moves between builds. So the image is an INPUT,
-# named by `T1_IMAGE`, exactly as `tools/check-t1-image-wasm-budget.sh` takes it.
+# named by `T1_IMAGE`, exactly as `the internal gate tooling` takes it.
 #
 # ABSENT `T1_IMAGE` THERE IS NO FOURTH BUTTON AND THAT IS NOT A SKIP. The page is
 # complete without it; the deep gate builds it that way. `T1_IMAGE` set and unusable is a
@@ -250,7 +250,7 @@ if [ -n "${T1_IMAGE:-}" ]; then
   # refuses `YANTRA_INPUT` without `YANTRA_INPUT_NAME`, so one must be passed; but Stage 1's
   # entry (`स्वपरीक्षास्वप्रतिबिम्बम्`) takes each module's name out of the blob's own
   # `name NUL text NUL` frame — `lib` here — and never loads the `निवेशमण्डलनाम` global the
-  # host writes. Arm E of `tools/check-t1-image-wasm-budget.sh` pins it: the same run under
+  # host writes. Arm E of `the internal gate tooling` pins it: the same run under
   # a name matching nothing retires the same count, halts on the same status and prints the
   # same octets. So the `inputName` this script puts on the page is the runner's required
   # companion to `input` and NOT a figure — the arm that ties the frame to `t.source` is

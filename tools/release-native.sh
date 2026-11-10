@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # release-native.sh — package a release's NATIVE build for one target (owner ruling: releases after
-# v1.0.2 ship the native Stage 1 + tools/t1-build.sh/t1-run.sh in place of the Rust yantra-run).
+# v1.0.2 ship the native Stage 1 + tools/t1-build.sh and tools/t1-run.sh in place of the Rust yantra-run).
 #
 #   tools/release-native.sh <tag> <target> [OUTDIR]
 #

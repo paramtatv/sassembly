@@ -34,7 +34,7 @@ UART, FINISHER = 0x1000_0000, 0x0010_0000
 WAIT = 0x1000_0100
 EVENT_TAG = 0x544E_4556_4553_4153
 THREADS_TAG = 0x5344_5248_5453_4153       # yantra's SASTHRDS: a threaded image's waits are not clock waits
-# yantra's RECORDED_LOG_HEADER (crates/yantra/src/input.rs), octet for octet, newline-ended
+# yantra's RECORDED_LOG_HEADER (the Rust host source (removed in v1.2)), octet for octet, newline-ended
 REC_HEADER = (b"# yantra-run --record-events (W-375): one clock record per wait, "
               b"t=<host time in ns since the Unix epoch, UTC>; replay with --events\n")
 REC_HEADER_LEN = len(REC_HEADER)
@@ -86,7 +86,7 @@ SOCK_DARWIN_X86 = {0: 3, 1: 4, 2: 5, 3: 6, 7: 230, 9: 197, 8: 199, 41: 97, 44: 1
 SOCK_DARWIN_A64 = {63: 3, 64: 4, 56: 5, 57: 6, 73: 230, 222: 197, 62: 199, 198: 97, 206: 133, 202: 30,
                    200: 104, 201: 106, 204: 32, 208: 105, 46: 201}
 M64 = (1 << 64) - 1
-# THE HALTS YANTRA MAKES, NATIVELY (NATIVE-GAPS A1/A2). yantra (crates/yantra/src/lib.rs, step_inner)
+# THE HALTS YANTRA MAKES, NATIVELY (NATIVE-GAPS A1/A2). yantra (the retired Rust source, step_inner)
 # executes the major opcodes below and halts `Unimplemented { pc, word, opcode }` on every other word,
 # compressed encodings included (IALIGN 32: a word whose low two bits are not 11 is one of them).
 # Bit i of YANTRA_OPS is the opcode (i << 2) | 3. A native run is always in S-mode with stvec = 0 and
@@ -97,7 +97,7 @@ M64 = (1 << 64) - 1
 # yantra does; one inside it that the translator does not lower is refused (t1-run falls back).
 YANTRA_CSRS = (0x100, 0x104, 0x144, 0x105, 0x140, 0x141, 0x142, 0x143, 0x180, 0xC01, 0x009, 0x00A, 0x00F, 0x008,
                0xC20, 0xC21, 0xC22, 0x001, 0x002, 0x003)
-# sstatus as yantra keeps it (crates/yantra/src/lib.rs): stored masked to SSTATUS_MASK (SIE SPIE SPP SUM MXR FS VS);
+# sstatus as yantra keeps it (the retired Rust source): stored masked to SSTATUS_MASK (SIE SPIE SPP SUM MXR FS VS);
 # a read adds UXL (2 << 32) and SD (bit 63) when FS or VS reads 3. FS lives in fsen and VS in vsen when the image
 # carries them (they gate the float and vector words); everything else in `sst`. sscratch is plain storage (H8).
 SSTATUS_MASK, SSTATUS_UXL, SSTATUS_FS, SSTATUS_VS = 0xC6722, 2 << 32, 3 << 13, 3 << 9
@@ -10807,7 +10807,7 @@ for _n in range(16):                       # the fflags permutation of MXCSR's P
 
 
 # ---------------------------------------------------------------- the V extension (V-007's executed subset, e64)
-# yantra's vector unit (crates/yantra/src/vector.rs): VLEN 128, 32 registers of 2 x 64-bit lanes, element i of the
+# yantra's vector unit (the retired Rust source): VLEN 128, 32 registers of 2 x 64-bit lanes, element i of the
 # group at reg is the u64 at vregs + 16 reg + 8 i. vt holds vtype ^ VILL, so the zeroed data is vill (yantra's reset);
 # vsen is sstatus.VS (0 off; 3 once dirtied, as yantra marks it). Every vector word lowers to ONE call of rt_vec,
 # which decodes the word (fault_word) at run time: what yantra makes an illegal instruction halts as yantra does
@@ -13954,7 +13954,7 @@ def _translate_a64(img, arg0, mac=False, wm=False, vd=False, scanp=None):
 
 
 # ---------------------------------------------------------------- SASTHRDS threads (A64), SL6 / K3
-# yantra's W-376 threads (crates/yantra/src/threads.rs, yantra-run.rs) on ONE host thread: N guest
+# yantra's W-376 threads (the retired Rust source, yantra-run.rs) on ONE host thread: N guest
 # contexts in a host area at the end of the RAM mapping, switched only at a WAIT store or a thread's
 # finisher. Thread 0 starts at entry; thread k >= 1 at entry + 8 with sp = base + stacks_at + k*64K and
 # every other register 0. stacks_at = align16(ram), stores stop at stacks_at + (n-1)*64K (made before

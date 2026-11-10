@@ -32,7 +32,7 @@ nothing changes, so the instruction count is a function of `(program, log)`.
   connects; frames cross as a 2-octet big-endian length and the frame. Linux and macOS. Windows would be a
   named pipe; std has no server side for one, so this build refuses by name there.
 - `--net-tap=IFNAME`: opt-in, platform-native. Linux: `/dev/net/tun` (`IFF_TAP|IFF_NO_PI`).
-  AMENDED 2026-10-15: the tap moved to the host helper `tools/tap-bridge.py` (bridging to `--net-peer`); `--net-tap` is now a refusal and the crate has no `unsafe`. Creating an interface needs `CAP_NET_ADMIN`; attaching to one made
+  AMENDED 2026-10-15: the tap moved to the host helper `an internal tool` (bridging to `--net-peer`); `--net-tap` is now a refusal and the crate has no `unsafe`. Creating an interface needs `CAP_NET_ADMIN`; attaching to one made
   beforehand for the user does not. macOS (vmnet: entitlement or root) and Windows (Wintun driver and
   administrator rights) are refusal paths only.
 

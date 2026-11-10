@@ -14,7 +14,7 @@
 ॰
 ॰ Twin: `nirvahana.rs`'s loader tables (`Interpreter::declarations`, W-224's
 ॰ order-independent load), pinned in `t1_sources.rs` as `STORE_SYMBOLS`; the
-॰ census `measure_corpus_qualified_uses` (tools/golden/sadhana-t1/src/measure_corpus_qualified_uses.awk) asserts the two
+॰ census `measure_corpus_qualified_uses` (an internal tool) asserts the two
 ॰ twins hold the same modules, names, kinds and types.
 ॰
 ॰ Kinds are `व्याकर`'s own: १ routine, २ type (संरचना), ३ machine, ४ global,

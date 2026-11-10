@@ -25,10 +25,10 @@
 #               value — the UART at 0x10000000, the finisher at 0x100000.
 #   checks      the `tools/check-*.sh` that reference the file. The Rust test that
 #               once covered the application is retired (R3FXCA); its native twin is
-#               tools/check-native-yantra-application.sh, which re-derives this column.
+#               an internal tool, which re-derives this column.
 #               Every program has at least one: each exists to be asserted about.
 #
-# `tools/check-native-yantra-application.sh` re-derives all four columns and the
+# an internal tool re-derives all four columns and the
 # clause, and fails if this table disagrees with the source.
 #
 # THE CLAUSE COLUMN IS SOURCE-DERIVED AND A3 IS NOT IN IT. A2 and A4 are refusals
@@ -43,7 +43,7 @@
 # simply be typed.
 #
 # WHAT THE `checks` COLUMN MEANS, EXACTLY: asserted about by a `tools/check-*.sh`.
-# The scanner in tools/check-native-yantra-application.sh reads those
+# The scanner in an internal tool reads those
 # and nothing else, so a Rust test asserting about a program does not appear here
 # — `crates/sadhana/tests/trap_vector_alignment.rs` asserts a property of fourteen
 # programs and is in no row (`B-058b2b7`). An empty-looking column is a limit of

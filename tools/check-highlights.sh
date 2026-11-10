@@ -86,7 +86,7 @@ queries = 'queries/highlights.scm'
 # The five ratified sigils must be the ones sadhana implements. The generator
 # has to restate them — a .scm file cannot import an enum — so the copy is
 # checked against its source here rather than trusted.
-# Frozen from the retired Rust Karaka::sigil() (git show 688e3e63a^:crates/sadhana/src/lex.rs, lines 61-69).
+# Frozen from the retired Rust Karaka::sigil() (git show 688e3e63a^:the retired Rust source, lines 61-69).
 from_rust = ["म्", "न", "त्", "य्", "ए"]
 from_gen = [l.split('\t')[1] for l in (root / 'spec/highlight-constants.tsv').read_text(encoding='utf-8').splitlines()
             if l.startswith('s\t')]
@@ -178,7 +178,7 @@ if uncaptured:
 # (3) Every operand called a label reference must name a real label.
 SIGILS = from_rust
 # Address modifiers, from sadhana's own splitter rather than from the examples.
-# Frozen from the retired Rust encode split (git show 688e3e63a^:crates/sadhana/src/encode.rs, lines 443-446).
+# Frozen from the retired Rust encode split (git show 688e3e63a^:the retired Rust source, lines 443-446).
 MODIFIERS = ['', 'ॱउपरि', 'ॱअधः']
 bad = []
 for (src, row, col), (cap, text) in sorted(final.items()):

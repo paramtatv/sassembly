@@ -26,7 +26,7 @@
 # ## Absence is loud
 #
 # Exits **77** when `qemu-system-riscv64`, `node`, `cargo` or the `wasm32-unknown-unknown`
-# target is missing — `W-087`'s convention, and `tools/gate.sh` renders 77 as neither pass
+# target is missing — `W-087`'s convention, and `the internal gate tooling` renders 77 as neither pass
 # nor fail. A check that cannot run has not passed.
 #
 # QEMU is bounded by an explicit `kill -9` watcher and never by `perl -e alarm`: QEMU

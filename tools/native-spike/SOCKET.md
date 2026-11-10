@@ -1,8 +1,8 @@
 # The socket device in the native runtime (W-377; NATIVE-GAPS C3, LIMITS rows 3, 39, 40)
 
-The reference is yantra's, read only: `crates/yantra/src/socket.rs` (the device),
-`crates/yantra/src/bin/yantra-run.rs` (`--listen`, `serve_live`, `accept_within`, the report line),
-`docs/adr/0040-addendum-w377-sockets.md` and `crates/yantra/tests/w377_sockets.rs`. The native runtime
+The reference is yantra's, read only: `the retired Rust source` (the device),
+`the retired Rust source` (`--listen`, `serve_live`, `accept_within`, the report line),
+`a file not in this tree` and `the retired Rust source`. The native runtime
 must print what yantra-run prints, octet for octet, wherever it runs the device. This note says
 what it does, and where it does not.
 

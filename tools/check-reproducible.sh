@@ -34,7 +34,7 @@
 #                release builds: cheap enough for every landing and the nightly. Exit 77 only when
 #                NO generator runner exists (no tools/lexgen/run.sh); the caller must
 #                treat that as UNMEASURED, never as a pass. Added after b7f9b6f5 (2026-10-12)
-#                landed with a stale spec/lexicon.tsv: this check ran only inside tools/gate.sh,
+#                landed with a stale spec/lexicon.tsv: this check ran only inside the internal gate,
 #                which neither land.sh/land-remote.sh nor nightly.sh run.
 #
 # Re-exec under bash if invoked as `sh tools/check-reproducible.sh` — task

@@ -9,7 +9,7 @@ outside world is the host's choice, made with one flag after `--record-events <l
 | Path | Flag | Privilege | What it reaches |
 |---|---|---|---|
 | Program to program | `--net-peer=PATH` | none | another `yantra-run` started with the same PATH |
-| TAP | `--net-peer=PATH` + `tools/tap-bridge.py IFNAME PATH` (`--net-tap` is refused) | an interface made beforehand (root once), or `CAP_NET_ADMIN` | the host's network, through bridging or routing the operator sets up |
+| TAP | `--net-peer=PATH` + `an internal tool IFNAME PATH` (`--net-tap` is refused) | an interface made beforehand (root once), or `CAP_NET_ADMIN` | the host's network, through bridging or routing the operator sets up |
 | QEMU user-mode | (QEMU's `-netdev user`) | none | the demo gateway 10.0.2.2 and DNS 10.0.2.3; `tools/check-net-t1.sh` |
 
 Every live run writes a frame log, and `yantra-run --events <log> prog.elf` replays it with no backend
@@ -17,7 +17,7 @@ and no flag. The replay matches the live run in output, instruction count and th
 
 ## Platform status
 
-| Platform | `--net-peer` | TAP (via `tools/tap-bridge.py`) | Tested |
+| Platform | `--net-peer` | TAP (via `an internal tool`) | Tested |
 |---|---|---|---|
 | Linux x86_64, aarch64, riscv64 | yes | yes (`/dev/net/tun`) | x86_64 Linux host, 2026-10-07: full suite, TAP probe once |
 | macOS aarch64 | yes | refused by name: vmnet needs the `com.apple.vm.networking` entitlement or root | ARM64 macOS host, 2026-10-09, at ec30af31 plus the `net_t1.rs` socket-path fix: `net_frames` 21/21 (all but the Linux TAP probe), `net_names` 4/4, `net_t1` 16/16 with `--include-ignored`, UDP and DNS pairs included |
@@ -31,13 +31,13 @@ Nothing runs.
 ## Linux TAP, once per machine
 
 `yantra-run` opens no TAP itself (the crate has no `unsafe`); `--net-tap` is refused and names the
-bridge. `tools/tap-bridge.py` (Python 3 std-lib) attaches the TAP and relays frames to `--net-peer`:
+bridge. `an internal tool` (Python 3 std-lib) attaches the TAP and relays frames to `--net-peer`:
 
 ```sh
 sudo ip tuntap add dev sastap0 mode tap user "$(id -u)"
 sudo sysctl -w net.ipv6.conf.sastap0.disable_ipv6=1   # else the kernel's router solicitation is the first frame
 sudo ip link set sastap0 up
-python3 tools/tap-bridge.py sastap0 /tmp/sas-tap.sock &
+python3 an internal tool sastap0 /tmp/sas-tap.sock &
 yantra-run --record-events run.log --net-peer=/tmp/sas-tap.sock prog.elf
 ```
 

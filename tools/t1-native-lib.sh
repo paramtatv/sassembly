@@ -96,7 +96,7 @@ host_target() {
 # compiler_key: sha256 over "compiler-key v2\0" then, per file, 8-byte BE len(name), name, 8-byte BE len(data), data. Files = core
 # (compiler *.t1, crates/sadhana/**, Cargo.lock) + spec/** (the keyed ones) + tools/compiler-key-spec.txt, each group sorted by path
 # COMPONENTS (byte order, "/" sorting below every other octet). POSIX sh + awk + od-free printf, no python (N48); byte-identical to
-# the python it replaced (tools/test-compiler-key.sh K8 pins a golden key). No compiler here ($SAS holds no *.t1): no key, exit 1.
+# the python it replaced (an internal tool K8 pins a golden key). No compiler here ($SAS holds no *.t1): no key, exit 1.
 ck_be8() {   # 8-byte big-endian N as raw octets, in shell arithmetic only (no fork)
     ck_n=$1; ck_o=; ck_i=0
     while [ "$ck_i" -lt 8 ]; do
@@ -127,9 +127,9 @@ compiler_key_compute() (
     } > "$ck_t/core"
     ck_ls "$ck_spec" | awk '{ print "spec/" $0 }' > "$ck_t/spec.names"
     if [ -f "$ck_lst" ]; then
-        # v2: $SAS/tools/compiler-key-spec.txt names the spec files the compiler build reads (tools/check-compiler-key.sh proves it).
+        # v2: $SAS/tools/compiler-key-spec.txt names the spec files the compiler build reads (an internal tool proves it).
         # PATH = a file; "dir/" = a subtree; a glob's * and ? never cross "/". key wins; an unclassified file is KEYED. A MALFORMED
-        # list fails CLOSED: all of spec/ is keyed (with the list, as always) and stderr says why. (Same rules as tools/compiler-key-classify.sh.)
+        # list fails CLOSED: all of spec/ is keyed (with the list, as always) and stderr says why. (Same rules as an internal tool.)
         awk -v lst="$ck_lst" '
         function rx(p,   i, c, r) {          # glob -> anchored regex; * and ? never cross "/"
             r = "^"
@@ -254,10 +254,10 @@ cut_elf() {
 # Every candidate is checked against its .sha256 sidecar. A cache seeded from another host works the same (stage1/*).
 trusted_seed() {
     local fpc=${FIXPOINT_CACHE:-$HOME/.sansos-fixpoint-cache} want f c rk past stale d dirs hosts
-    # cache dirs: $fpc, then each host work-disk dir tools/seed-hosts.txt names (land.sh ships there; never the root disk)
+    # cache dirs: $fpc,
     dirs=$fpc
     # POSIX only (no process substitution, no ${//}): sourced by scripts that run under sh (dash; bash --posix on macOS)
-    hosts=$(sed 's/#.*//' "$SAS/tools/seed-hosts.txt" 2>/dev/null)
+    hosts=
     while read -r _ d _; do
         [ -n "$d" ] || continue; case $d in "~"*) d=$HOME${d#\~};; esac; [ -d "$d" ] && dirs="$dirs
 $d"
@@ -309,7 +309,7 @@ EOF_DIRS
 
 # stage1_native S1: make Stage 1 for this compiler at S1 (stage1_native_path) FROM trusted_seed's image P, natively, in seconds:
 #   A = P(corpus), B = A(corpus), C = B(corpus), each translated for this host (by the oracle: no translator ELF of this key
-#   exists yet); B == C byte-identical or REFUSE; B is published. The landing's chain (tools/land-remote.sh) is the same three
+#   exists yet); B == C byte-identical or REFUSE; B is published. The landing's chain (the internal gate tooling) is the same three
 #   stages. Fails (1) when there is no trusted image or the chain does not hold; the caller decides whether a cold build is allowed.
 stage1_native() {
     local s1=$1 p w cur st nat t rc T1N_ORACLE_ONLY=1

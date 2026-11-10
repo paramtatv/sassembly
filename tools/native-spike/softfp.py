@@ -4,7 +4,7 @@
 # machine code from it; the Interp backend below RUNS it, so the algorithm can be checked against an exact
 # rational reference (python -c "import softfp; softfp.selftest()") before it is ever assembled.
 #
-# THE ALGORITHM IS yantra's (crates/yantra/src/fp.rs, section "EXACT IEEE 754 ROUNDING"): unpack, form the exact
+# THE ALGORITHM IS yantra's (the Rust host source (removed in v1.2), section "EXACT IEEE 754 ROUNDING"): unpack, form the exact
 # result as +-mant x 2^exp (mant up to 128 bits, with a sticky bit jammed in the lowest bit when the exact value is
 # longer), round it ONCE with round_pack under the mode, raise NX / OF / UF with tininess detected AFTER rounding.
 # It handles all five modes, but only RMM is routed to it (the others are the host FPU's).

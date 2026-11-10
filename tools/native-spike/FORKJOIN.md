@@ -217,7 +217,7 @@ exact; stress 200 runs each at N = 20 and unset of m1, the alias_* programs, low
 ## What remains
 
 - **macOS** threads (bsdthread_create + __ulock), then the default there too.
-- **The static-check gaps** (tools/LANDING.md) were closed by 5f's fj-purity (f90b2859): 0x380 is checked
+- **The static-check gaps** (an internal tool) were closed by 5f's fj-purity (f90b2859): 0x380 is checked
   in the body at run time, 0x381 (an impure call graph) and 0x382 (a name collision) refuse the build. The
   switch is still opt-in (`SASSEMBLY_NATIVE_THREADS`); serial stays the default.
 - **aarch64-macos and x86_64-macos.** These need `bsdthread_create` (or a pthread-free

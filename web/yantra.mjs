@@ -15,7 +15,7 @@ export class Yantra {
 
   // ॥ WHICH INTERPRETER THIS MODULE IS, AND `null` WHEN IT WILL NOT SAY ॥
   //
-  // `yantra_rev_*` hands back the 16-hex stamp `crates/yantra-wasm/build.rs` sealed in
+  // `yantra_rev_*` hands back the 16-hex stamp `the Rust build script (removed in v1.2)` sealed in
   // over `crates/yantra/src`. The page compares it against the stamp the build recorded
   // for the NATIVE `yantra` whose `ram` and `touches` the sizing line quotes.
   //
@@ -67,7 +67,7 @@ export class Yantra {
   //
   // The codes are a different space from run()'s: 0 exited 0, 1 exited non-zero, 2
   // faulted out of U-mode, 3 the machine stopped, 4 out of budget, 6 would not load.
-  // 4 MiB and 200 steps are the defaults `crates/yantra/tests/host.rs` uses.
+  // 4 MiB and 200 steps are the defaults `the Rust host source (removed in v1.2)` uses.
   //
   // THERE IS NO `input` HERE AND PASSING ONE IS AN ERROR, not an ignored option.
   // `yantra_host` reads neither input buffer — it calls `host::host` and never

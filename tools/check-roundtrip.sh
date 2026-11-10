@@ -18,8 +18,8 @@
 #     tools/t1-run.sh <tmp>/namaste.elf
 #
 # Both are in-workspace. `yantra` models the UART at `0x1000_0000`
-# (crates/yantra/src/lib.rs:173), so the bytes the program stores reach the
-# host without an emulator. `tools/sanskriti-demo.sh` remains the QEMU arm and
+# (the Rust host source (removed in v1.2)), so the bytes the program stores reach the
+# host without an emulator. `the internal gate tooling` remains the QEMU arm and
 # `check-sassembly-identity.sh` remains the browser arm; neither can run on a
 # machine without `qemu-system-riscv64` or the wasm32 target, and BOTH of those
 # already exit 77 here. This one needs nothing but `cargo`, which is why it can
@@ -53,7 +53,7 @@ set -u
 
 cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)" || exit 1
 
-# `CANNOT RUN:` must be the FIRST line and spelled EXACTLY that. gate.sh's run()
+# `CANNOT RUN:` must be the FIRST line and spelled EXACTLY that. the internal gate's run()
 # matches `^(SKIPPED|CANNOT RUN):` and prints only the first match; a decorated
 # prefix loses the reason, and the whole point of a skip is that it names itself.
 command -v cargo >/dev/null || { echo "CANNOT RUN: cargo absent"; exit 77; }
@@ -80,7 +80,7 @@ EXPECT_HALT=21845          # 0x5555 — the finisher's exit-0 code
 APPLICATION=spec/atithi.sas
 EXPECT_APP="अतिथिः"
 # Outside the supervisor's gigabyte at 0x8000_0000, which `host` refuses to load
-# into. Same value as `LINKED_AT[0]` in crates/yantra/tests/application.rs, so the
+# into. Same value as `LINKED_AT[0]` in the Rust host source (removed in v1.2), so the
 # demo and the test place the application identically. Written in the language,
 # as `--स्थान` requires: `०षोड्` is the hexadecimal prefix.
 # `spec/` spelled literally, as every other path in this file is (PROGRAM,
@@ -95,7 +95,7 @@ EXPECT_APP="अतिथिः"
 # linked at 0 and the round trip would have failed somewhere much further away.
 APP_LOAD=$(awk '$1 == "0x2000_0000" {print $2}' spec/application-load.tsv)
 
-# Outside the tree. gate.sh fingerprints every modified and untracked file, so a
+# Outside the tree. the internal gate fingerprints every modified and untracked file, so a
 # harness writing an ELF into the working tree changes what it is measured by —
 # and a generated artefact inside the repository inherits every check the tree
 # gets, including the secret scanner that reads untracked files.
@@ -226,7 +226,7 @@ fi
 # ---- the application arm, and the dispatch itself --------------------------
 #
 # `spec/programs.tsv` already records which kind each program is, and
-# crates/yantra/tests/application.rs re-derives its `checks` column rather than
+# the Rust host source (removed in v1.2) re-derives its `checks` column rather than
 # trusting it, so the registry is maintained. The editor reads the `class` column
 # to choose a path; this reads the same column, so the check and the extension
 # cannot disagree about what a program IS.

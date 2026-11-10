@@ -1,6 +1,6 @@
 // The in-memory file root, driven through the REAL wasm module and the real glue.
 // usage: node check-yantra-memfs.mjs <yantra_wasm.wasm> <elf-dir>
-// The ELFs are compiled by the .t1 compiler (crates/yantra/tests/memfs_parity.rs leaves
+// The ELFs are compiled by the .t1 compiler (the Rust host source (removed in v1.2) leaves
 // them in MEMFS_ELF_DIR); the native-vs-memory status/steps parity is asserted there.
 import { readFileSync } from 'node:fs';
 import { load } from '../web/yantra.mjs';

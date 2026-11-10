@@ -27,7 +27,7 @@ export async function loadSadhana(wasmBytes) {
 export class Sadhana {
   // ॥ WHERE A BARE-METAL PROOF IS LINKED, AND IT IS `kosha::LOAD_ADDRESS` ॥
   // This read `0x80200000` and called itself "the QEMU `virt` reset vector",
-  // which is wrong twice. `crates/sadhana/src/kosha.rs:17` says the `virt`
+  // which is wrong twice. `the Rust host source (removed in v1.2)` says the `virt`
   // machine's reset vector under `-bios none` jumps to `0x8000_0000`, and
   // `kosha.rs:46` makes that `LOAD_ADDRESS` — `sadhana`'s default, which
   // `tools/build-sassembly-web.sh` takes for a proof by passing no `--स्थान`
@@ -58,7 +58,7 @@ export class Sadhana {
 
   // ॥ WHICH ASSEMBLER THIS MODULE IS, AND `null` WHEN IT WILL NOT SAY ॥
   //
-  // `sadhana_rev_*` hands back the 16-hex stamp `crates/sadhana-wasm/build.rs`
+  // `sadhana_rev_*` hands back the 16-hex stamp `the Rust build script (removed in v1.2)`
   // sealed in over `crates/sadhana/src`. The page compares it against the stamp
   // the build recorded for the NATIVE `sadhana` that assembled the ELFs it ships:
   // three programs re-assembling octet-for-octet is AGREEMENT, and agreement

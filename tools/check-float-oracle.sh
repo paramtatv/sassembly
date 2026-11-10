@@ -3,7 +3,7 @@
 #
 # ## What this proves that the other two float checks cannot
 #
-# `crates/yantra/tests/fp_oracle.rs` has two halves and says plainly what neither
+# `the Rust host source (removed in v1.2)` has two halves and says plainly what neither
 # reaches: *"no independent authority has checked what these instructions COMPUTE
 # — only what they decode to and that they run"*. Its decode half asks GNU
 # binutils about encodings; its coverage half asks the machine not to halt
@@ -66,7 +66,7 @@
 # integer, and the answer is saturation to 0x7FFFFFFF rather than a wrap.
 #
 # THE `fflags` HALF IS STILL OPEN AND IS NOT FAKED. `yantra`'s `csr_read`
-# (`crates/yantra/src/lib.rs:1738`) implements 0x100, 0x104, 0x105, 0x140-0x144,
+# (`the Rust host source (removed in v1.2)`) implements 0x100, 0x104, 0x105, 0x140-0x144,
 # 0x180, 0xc01 and four vector numbers and refuses the rest with `None` — an
 # illegal instruction. 0x001 (`fflags`), 0x002 (`frm`) and 0x003 (`fcsr`) are not
 # among them, so a `csrrs` of `fflags` traps before it answers and `csrrwi` of
@@ -89,7 +89,7 @@
 # ## Why it lives in `oracle/` and not `spec/`
 #
 # Owner ruling Q6, 2026-09-29: `spec/` is bound to `spec/programs.tsv` and to
-# `crates/yantra/tests/application.rs`, which re-derives every column of that
+# `the Rust host source (removed in v1.2)`, which re-derives every column of that
 # table from each program's source under ADR-0015 — 47 OS proofs and one
 # application. A differential oracle is neither, and a row for it would either be
 # false or would dilute the measurement that table exists to make. Measured
@@ -105,7 +105,7 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 tmp=$(mktemp -d)
-# CLEAN UP ON EVERY EXIT, not only the success path: `tools/paradigm-census.sh`
+# CLEAN UP ON EVERY EXIT, not only the success path: `the internal gate tooling`
 # leaked 204 directories into $TMPDIR over seven days doing it the other way.
 trap 'rm -rf "$tmp"' EXIT INT TERM
 

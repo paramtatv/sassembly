@@ -75,7 +75,7 @@ malformed-packet name (0x363) and the two frame-count caps to 0x361; the owner m
 
 ## What was tested
 
-Linux only (x86_64 host), release builds. `crates/yantra/tests/net_names.rs` (every gate): the nine
+Linux only (x86_64 host), release builds. `the retired Rust source` (every gate): the nine
 names and codes agree in the lexicon, this ADR, the device's messages and the `.t1` sources, and the
 library is not in the compiler's corpus. `crates/yantra/tests/net_t1.rs` (ignored; `--include-ignored`
 after building `t1_image` and `yantra-run`):

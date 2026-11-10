@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # A .t1 image's ARGUMENTS ON QEMU (row C-015). QEMU has no argv for a bare-metal
-# image, so this applies yantra's own argument rule — crates/yantra/src/input.rs
+# image, so this applies yantra's own argument rule — the Rust host source (removed in v1.2)
 # inject_arguments and append_run — to a COPY of an ELF, writing the run as a
 # blob QEMU loads with `-device loader`. It computes nothing about the program.
 # Brought from Uru (reference/qemu_args.py, checked there against yantra-run's

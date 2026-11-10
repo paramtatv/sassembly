@@ -32,4 +32,4 @@ frag_object_trailer_bytes	8	B	18	L28-FRAG F1; checksum word	active
 frag_object_export_entry_bytes	56	B	18	L28-FRAG F1	active
 frag_object_import_entry_bytes	32	B	18	L28-FRAG F1	active
 frag_object_hole_entry_bytes	48	B	18	L28-FRAG F1	active
-frag_object_codec_code_bytes	12288	B	18	L28-FRAG F1; tools/frag/vastu_frag.t1 standalone image, limit set before measuring	active
+frag_object_codec_code_bytes	12288	B	18	L28-FRAG F1; standalone image, limit set before measuring	active

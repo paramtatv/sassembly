@@ -101,7 +101,6 @@ echo "check-adr-discriminator: $grep_total ambiguous citation(s) in scope to rea
 # across 57 files. The `TOTAL` line is asserted against the sum below so the
 # table cannot be edited into disagreement with itself.
 BASELINE=$(cat <<'TABLE'
-archive/rust/metrics/tests/paradigm_history.rs	1
 crates/sadhana-t1/src/artha.t1	5
 crates/sadhana-t1/src/ast.t1	2
 crates/sadhana-t1/src/encode.t1	26
@@ -114,9 +113,7 @@ crates/sadhana-t1/src/sanskrit_text.t1	3
 crates/sadhana-t1/src/utsarjana.t1	12
 crates/sadhana-t1/src/vakyavibhaga.t1	1
 crates/sadhana-t1/src/vishlesana.t1	3
-archive/rust/sanskrit-text-tests/grammar_t1.rs	129
 crates/tree-sitter-t1/grammar.js	8
-docs/storage-modelling-method.md	1
 notebooks/03-paramtatva-base-model.ipynb	2
 notebooks/11-operators.ipynb	2
 notebooks/17-paramtatva-ops-execution-storage.ipynb	2
@@ -130,8 +127,7 @@ spec/lexicon.src.tsv	13
 spec/lexicon.tsv	14
 spec/registers-amd64.tsv	4
 tests/corpus/CATALOG.tsv	1
-tools/gen-grapheme-break.sh	1
-TOTAL	288
+TOTAL	156
 TABLE
 )
 

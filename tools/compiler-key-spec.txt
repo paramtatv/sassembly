@@ -78,7 +78,5 @@ skip spec/vectors/   # vendored UCD conformance inputs (Unicode-3.0): test oracl
 skip spec/rung/
 skip spec/truth/
 skip spec/shaper/   # native shaper T1 sources: built by their own check, never read by the compiler build
-skip spec/README-frozen-generators.md
 skip spec/highlight-constants.tsv
-skip spec/laghava-accepted.tsv   # laghava reviewed-accept table (ADR-0055): read by tools/check-laghava.sh, never by the compiler build
 skip spec/golden-n2/

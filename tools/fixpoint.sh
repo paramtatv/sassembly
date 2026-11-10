@@ -97,7 +97,7 @@ done
 # anuvada.py, compiles THIS corpus -> A (this is Stage 1); A, translated, compiles it again -> B
 # (Stage 2); A == B byte-identical is the everyday fixpoint. If FIXPOINT_PREV_IMAGE is missing or
 # its sha256 sidecar (<elf>.sha256) disagrees, it FALLS BACK to the interpreter Stage 1, saying so
-# by name. tools/nightly.sh always runs the interpreter Stage 1.
+# by name. an internal tool always runs the interpreter Stage 1.
 S1="$OUT/stage1.elf"
 STAGE1_ENGINE=interpreter
 PREV="${FIXPOINT_PREV_IMAGE:-}"
@@ -154,9 +154,9 @@ echo "fixpoint: Stage 1 $(wc -c < "$S1" | tr -d ' ') octets"
 # ~5 s; the run ~22 s against yantra's ~15 min for the same 55.4 G instructions). The
 # comparison below is UNCHANGED: Stage 2's output ELF must be byte-identical to Stage 1.
 # Stage 1 stays on the interpreter. Authority stays with yantra: a native Stage 2 is a
-# fast pre-check, so tools/land.sh runs the full yantra Stage 2 whenever crates/yantra/src
+# fast pre-check, so an internal tool runs the full yantra Stage 2 whenever crates/yantra/src
 # or tools/native-spike/ changed, on every 10th landing, and a nightly run is proposed
-# (see tools/land.sh). The engine is RECORDED: $OUT/stage2.engine and, on a pass, a line in
+# (see an internal tool). The engine is RECORDED: $OUT/stage2.engine and, on a pass, a line in
 # $(git dir)/fixpoint-engine (a sidecar, so the fixpoint-pass line's shape is untouched).
 # Native refuses what yantra-only ratchets watch for (threads, sockets, CSR/counter reads)
 # at run time, so such a run reaches no finisher and fails the check below.
@@ -183,7 +183,7 @@ fi
 # schedule. `yantra-run` prints `threads: N` whenever the tag is found, before it
 # refuses a threaded image given no event log, so this check comes FIRST: the
 # finisher check below would see that refusal only as "no finisher". Pinned by
-# crates/yantra/tests/w372_fixpoint_ratchet.rs.
+# the Rust host source (removed in v1.2).
 if grep -aq "^threads:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 is a THREADED image — $(grep -a -m1 '^threads:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 addendum / W-376: no fixpoint image may declare SASTHRDS; find it in the corpus)" >&2
@@ -194,7 +194,7 @@ fi
 # 0x1000_0110 halts `Device` and never reaches the finisher, which the check below
 # would report only as "no finisher". `yantra-run` says `socket: …` whenever the
 # device is configured or touched, so this check names the cause FIRST. Pinned by
-# crates/yantra/tests/w372_fixpoint_ratchet.rs.
+# the Rust host source (removed in v1.2).
 if grep -aq "^socket:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 touched the SOCKET device — $(grep -a -m1 '^socket:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 addendum / W-377: no fixpoint image may reach the socket window; find it in the corpus)" >&2
@@ -210,7 +210,7 @@ fi
 # counter read (W-374) does not halt, so `yantra-run` reports it on its own line
 # and it is refused here. A compiler that read its own retired count could make
 # Stage 2 differ from Stage 1 by self-reference. Pinned by
-# crates/yantra/tests/w372_fixpoint_ratchet.rs.
+# the Rust host source (removed in v1.2).
 if grep -aq "^counter:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 read the retired-instruction counter — $(grep -a '^counter:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 / W-372: no fixpoint image may read it; find the read in the corpus)" >&2
@@ -274,12 +274,10 @@ else
 fi
 # THE PASS IS RECORDED, so the tick's pre-push check can read it (W-354 family):
 # one line under the git dir naming the seven inputs as measured, and the two
-# images' and two binaries' sha256 as evidence. See tools/fixpoint-record.sh.
+# images' and two binaries' sha256 as evidence.
 if [ "$verdict" -eq 0 ]; then
     printf '%s stage1_engine='"$STAGE1_ENGINE"' stage2_engine=%s stage2_sha256=%s at=%s\n' "$(git -C "$ROOT" rev-parse HEAD)" "$ENGINE" \
         "$(sha256_of "$OUT/stage2.elf")" \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$(git -C "$ROOT" rev-parse --absolute-git-dir)/fixpoint-engine"
-    bash "$ROOT/tools/fixpoint-record.sh" "$OUT" "$BIN" ||
-        echo "fixpoint: HOLDS, but the pass could not be recorded — a tick will not be able to push this tree" >&2
 fi
 exit "$verdict"

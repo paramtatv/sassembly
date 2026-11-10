@@ -49,122 +49,59 @@ itself.
 
 ## Install
 
-### Native packages (v1.1.0): no Rust, no emulator
+Sassembly v1.2 is pure Sassembly: there is no Rust in the tree and none is needed to build or run a program.
 
-Each package compiles and runs `.t1` programs natively. It holds the v1.1.0 Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for the target, plus `bin/sassembly-build`, `bin/sassembly-run`, an example and a `SHA256SUMS` for every file. It needs only POSIX `sh`, `awk`, `od`, `grep` and `sha256sum` or `shasum`. The packages are attached to the [v1.1.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.1.0).
+### Native packages (v1.2): no Rust, no emulator
+
+Each package compiles and runs `.t1` programs natively. It holds the v1.2 Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for the target, plus `bin/sassembly-build`, `bin/sassembly-run`, an example and a `SHA256SUMS` for every file. It needs only POSIX `sh`, `awk`, `od`, `grep` and `sha256sum` or `shasum`. The packages are attached to the [v1.2.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.0).
 
 | OS | archive | sha256 |
 |---|---|---|
-| Linux x86-64 | [`sassembly-native-v1.1.0-x86_64-linux.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-x86_64-linux.tar.gz) | `521c2786a37bb4f17bb466ffb48abb6486c4fabedb92a970c02b28061c00762d` |
-| Linux aarch64 | [`sassembly-native-v1.1.0-aarch64-linux.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-aarch64-linux.tar.gz) | `b63dd04b34a48a33f080c8f126f59c0dbfec6839c824fb93f25ffa40cab73f6b` |
-| macOS arm64 (Apple silicon) | [`sassembly-native-v1.1.0-aarch64-macos.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-aarch64-macos.tar.gz) | `84c6093bff5e6b2e5bbd2db92a3cc15db28ae093ff51d70fac4fac1272b1f2f1` |
-| macOS x86-64 (Intel) | [`sassembly-native-v1.1.0-x86_64-macos.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.1.0/sassembly-native-v1.1.0-x86_64-macos.tar.gz) | `8e9caeec68624b00a6b1a532437246b2ceadea3b563df36f14be48f1abdb885e` |
+| Linux x86-64 | `sassembly-native-v1.2.0-x86_64-linux.tar.gz` | TBD (measured at tag) |
+| Linux aarch64 | `sassembly-native-v1.2.0-aarch64-linux.tar.gz` | TBD (measured at tag) |
+| macOS arm64 (Apple silicon) | `sassembly-native-v1.2.0-aarch64-macos.tar.gz` | TBD (measured at tag) |
+| macOS x86-64 (Intel) | `sassembly-native-v1.2.0-x86_64-macos.tar.gz` | TBD (measured at tag) |
 
-There is **no Windows native package** yet: the translator does not emit a Windows target. On Windows, use the v1.0.2 Rust archives below. The sha256s are those in the release's `SHA256SUMS-v1.1.0`, which also covers `sassembly-v1.1.0-stage1.elf` (the v1.1.0 compiler image, 951,146 octets, sha256 `e0adbb0f…89cd46c6`). Each package was smoke-tested on its own target, from the unpacked tarball, in an empty environment. Replace `TARGET` below with `x86_64-linux`, `aarch64-linux`, `aarch64-macos` or `x86_64-macos`.
+The sha256s are those in the release's `SHA256SUMS-v1.2.0`. There is no Windows build.
 
 ```sh
-V=v1.1.0; P=sassembly-native-$V-TARGET; T=$P.tar.gz
+V=v1.2.0; T=sassembly-native-$V-TARGET.tar.gz       # TARGET: x86_64-linux, aarch64-linux, aarch64-macos, x86_64-macos
 gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V
-grep " $T\$" SHA256SUMS-$V | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
-tar xzf $T && cd $P && sha256sum -c SHA256SUMS     # macOS: shasum -a 256 -c SHA256SUMS
-bin/sassembly-build -o n.elf example/namaste.t1 && bin/sassembly-run n.elf      # prints: namaste
-bin/sassembly-build --entry MODULE ROUTINE -o p.elf FILE.t1...                  # any entry
+grep " $T\$" SHA256SUMS-$V | sha256sum -c -          # macOS: ... | shasum -a 256 -c -
+tar xzf $T && cd sassembly-native-$V-TARGET
+bin/sassembly-build -o n.elf example/namaste.t1 && bin/sassembly-run n.elf
+# macOS only, if Gatekeeper blocks the files (downloaded via a browser):
+xattr -dr com.apple.quarantine .
 ```
 
-`sassembly-run` translates an image once for the host and caches it in `~/.cache/sassembly-native` (or `$SASSEMBLY_NATIVE_CACHE`). It exits 0 when the program's status is 0, and 1 otherwise.
-
-- **Runs natively:**
-  - scalar floats;
-  - file read and write (`YANTRA_FILES=DIR` grants a root);
-  - a recorded clock;
-  - the `spec/entropy` library.
-- **Refused by name, exit 1:**
-  - vector instructions;
-  - CSR calls and MMIO loads;
-  - **threaded images** (threads run under `yantra-run` only);
-  - `YANTRA_STEPS` and the other yantra-only `YANTRA_*` run variables;
-  - every `yantra-run` flag (`--events`, ...).
-
-  `tools/t1-run.sh` in a checkout reruns such a program under `yantra-run` when it has one. It also accepts `--files DIR` natively.
-
-[LIMITS.md](LIMITS.md) has the verified table. For the emulator-only features, and to assemble `.sas`, use the Rust archives below. `README-BIN.txt` in each package says the same. Changes are listed in [CHANGELOG.md](CHANGELOG.md).
-
-### Rust packages (v1.0.2): `sadhana` and `yantra-run`
-
-Prebuilt binaries, **no Rust needed**. Each tarball holds `sadhana` (the assembler) and `yantra-run` (the RV64 machine). They are attached to the
-[v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2).
-
-| OS | archive | sha256 |
-|---|---|---|
-| Linux x86-64 | [`sassembly-v1.0.2-linux-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-x86_64.tar.gz) | `00730e0894e82dff9b249c5cc8c14f365375da3cf11061cbcfa7a88eb1bc2251` |
-| Linux aarch64 | [`sassembly-v1.0.2-linux-aarch64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-linux-aarch64.tar.gz) | `746e8a35bbdde7e3bd450c2fe8ce90118addc9acb4a12f899e81ccdd0342a8c9` |
-| macOS arm64 (Apple silicon) | [`sassembly-v1.0.2-macos-arm64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-arm64.tar.gz) | `7cba1635d53a9424b595954b41c0ad913dc3b18f0dca039e52858c968df533c2` |
-| macOS x86-64 (Intel) | [`sassembly-v1.0.2-macos-x86_64.tar.gz`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-macos-x86_64.tar.gz) | `0adb68435e52897fe78bd221fa74ca529dbac3292938ec80c0bcd543adc92476` |
-| Windows arm64 | [`sassembly-v1.0.2-windows-arm64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-arm64.zip) | `a286984305059e8f3e0eb5de4917c1a270a86d5e6a94e1c1f19963063d3875d4` |
-| Windows x86-64 | [`sassembly-v1.0.2-windows-x86_64.zip`](https://github.com/paramtatv/sassembly/releases/download/v1.0.2/sassembly-v1.0.2-windows-x86_64.zip) | `d974cd3b6212b3017146cda4876e55cef3d5c2af6780c29d3a09c1f77a8ee5ac` |
-
-The sha256s are those in the release's `SHA256SUMS-v1.0.2`, which also covers `sassembly-v1.0.2-stage1.elf` (the v1.0.2 compiler image, sha256 `4e7a9a24…070ca`). The `linux-aarch64` build was built and smoke-tested on aarch64 hardware. Replace `OS_ARCH` below with `linux-x86_64`, `linux-aarch64`, `macos-arm64` or `macos-x86_64`.
+### From a checkout
 
 ```sh
-V=v1.0.2; T=sassembly-$V-OS_ARCH.tar.gz
-gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V -p sassembly-$V-stage1.elf
-# verify (Linux: sha256sum; macOS: shasum -a 256)
-grep " $T\$" SHA256SUMS-$V | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
-grep stage1 SHA256SUMS-$V | sha256sum -c -
-tar xzf $T && mkdir -p ~/.local/bin && cp sassembly-$V-OS_ARCH/{sadhana,yantra-run} ~/.local/bin/
-export PATH="$HOME/.local/bin:$PATH"      # add to ~/.profile or ~/.zshrc
-# macOS only, if Gatekeeper blocks the binaries (downloaded via a browser):
-xattr -d com.apple.quarantine ~/.local/bin/sadhana ~/.local/bin/yantra-run
+git clone https://github.com/paramtatv/sassembly && cd sassembly
+tools/t1-build.sh --entry MODULE ROUTINE -o out.elf prog.t1
+tools/t1-run.sh out.elf
 ```
 
-**Windows (PowerShell).** Use `arm64` or `x86_64` (the x86-64 build also runs on Windows on ARM under x64 emulation).
+`bin/sassembly-run` and `tools/t1-run.sh` run an image through the native translation. Features that need the reference interpreter (threads, event replay, SMP, vectors) are listed in [LIMITS.md](LIMITS.md), with the five known exit-code-only differences; the native route needs Python 3.
 
-```powershell
-$V='v1.0.2'; $A='x86_64'          # or arm64
-$T="sassembly-$V-windows-$A.zip"; $R="https://github.com/paramtatv/sassembly/releases/download/$V"
-curl.exe -sSLO "$R/$T"; curl.exe -sSLO "$R/SHA256SUMS-v1.0.2"
-(Get-FileHash $T).Hash.ToLower()  # compare with the line for $T in SHA256SUMS-v1.0.2
-Expand-Archive $T .; $B="$PWD\sassembly-$V-windows-$A"; $env:Path="$B;$env:Path"
-chcp 65001                        # UTF-8 console, for Devanagari output
-sadhana.exe namaste.sas n.elf; yantra-run.exe n.elf
-```
-
-In PowerShell, redirect binary output with `cmd /c "... > file"`: PowerShell's own `>` re-encodes and corrupts it.
-To build from source on Windows, clone with `git clone -c core.autocrlf=false`; CRLF line endings break the `.sas` sources.
-
-Then run a `.sas` program with `sadhana prog.sas prog.elf && yantra-run prog.elf`. A `.t1` program is compiled by `sassembly-v1.0.2-stage1.elf`: the next section shows both, step by step.
-
-`yantra-run` exits non-zero whenever the program's halt status is non-zero; that is a report, not a failure of the tool.
-
-**Files (v1.0.1).** `yantra-run --files DIR prog.elf [args...]` grants the program a file root: its file window reads and writes inside `DIR` and nowhere else (`..`, absolute paths and symlinks leaving `DIR` are refused). `--files` must be the first argument. Without it every file request is refused by name. `DIR` must not be writable by an untrusted party while the program runs. See [ANNOUNCEMENT-v1.0.1.md](ANNOUNCEMENT-v1.0.1.md) and [LIMITS.md](LIMITS.md).
-
-**New in v1.0.2.** (1) The prebuilt compiler takes its entry from the input: `YANTRA_INPUT_ENTRY="<module> <routine>"` replaces `YANTRA_INPUT_NAME`, so any module and routine builds. (2) `yantra-wasm` can serve a program's file window from an in-memory root (`memfsEnable`, `memfsPut`, `memfsFiles` in `web/yantra.mjs`). (3) The licence is AGPL-3.0-only, with a commercial licence available ([COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md)); v0.2 to v1.0.1 stay MIT. See [ANNOUNCEMENT-v1.0.2.md](ANNOUNCEMENT-v1.0.2.md).
+Assembling T0 `.sas` text uses the v1.0.2 `sadhana` binary from the [v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2); it is not rebuilt in this tree.
 
 ---
 
+
 ## Write your first program in Sanskrit
 
-Sassembly has two layers. **`.sas`** is the assembler form (T0): one instruction per line, operands marked by kāraka sigils. **`.t1`** is the systems language (T1): routines, loops, arrays, modules. Everything below was run on **v1.0.0**; the outputs are real.
+Sassembly has two layers. **`.sas`** is the assembler form (T0): one instruction per line, operands marked by kāraka sigils. **`.t1`** is the systems language (T1): routines, loops, arrays, modules. The outputs shown are real.
 
 Two facts first.
 
-* **The prebuilt `sadhana` assembles `.sas` only.** A `.t1` is compiled by `sassembly-v1.0.2-stage1.elf`, the self-hosted compiler, run on `yantra-run`. That image takes its entry from the input (v1.0.2): give `YANTRA_INPUT_ENTRY="<module> <routine>"` and any module and routine name builds; without it the compiler keeps its own entry, module `शृङ्खला` with routine `स्वपरीक्षास्वप्रतिबिम्बम्`, so every example below still works unchanged.
-* **`yantra-run` exits 1 whenever the program's halt status is not 0.** That is a report, not a tool failure: compiling with `stage1.elf` ends with status `1200` (BUILT), so it always exits 1; your own program returns the status you give it.
+* **A `.t1` is compiled by the self-hosted Stage 1 compiler**, run natively by `tools/t1-build.sh` (or `bin/sassembly-build` in a native package). The compiler takes its entry from the command line: `--entry MODULE ROUTINE`. The examples below name it explicitly.
+* **Exit codes.** `tools/t1-run.sh` and `bin/sassembly-run` exit 0 when the program's halt status is 0 and 1 otherwise. That is a report, not a tool failure.
 
 ### 0. Get the tools
 
-**Release assets (no Rust).** From <https://github.com/paramtatv/sassembly/releases/tag/v1.0.2> download `sassembly-v1.0.2-stage1.elf`, `SHA256SUMS-v1.0.2`, and the tarball for your machine (`sassembly-v1.0.2-linux-x86_64.tar.gz`, `-linux-aarch64`, or `-macos-arm64`). Check and unpack:
+Either download a native package for your machine (see [Install](#install)), or clone the repository and use `tools/t1-build.sh` and `tools/t1-run.sh`. Both need only POSIX `sh`, `awk`, `od`, `grep`, `sha256sum` or `shasum`, and Python 3 (the RV64-to-native translator is run through it). No Rust is needed.
 
-```console
-$ grep -F sassembly-v1.0.2-stage1.elf SHA256SUMS-v1.0.2 | sha256sum -c -
-sassembly-v1.0.2-stage1.elf: OK
-$ grep -F sassembly-v1.0.2-linux-x86_64.tar.gz SHA256SUMS-v1.0.2 | sha256sum -c -
-sassembly-v1.0.2-linux-x86_64.tar.gz: OK
-```
-
-(macOS: `shasum -a 256 -c -` in place of `sha256sum -c -`.) The tarball holds `sadhana` and `yantra-run`.
-
-**With a native package (v1.1.0).** `bin/sassembly-build` and `bin/sassembly-run` compile and run every `.t1` example below. They need no Rust, no `yantra-run` and no stage1 command line. The commands below use the v1.0.2 Rust tools, which are still needed for `.sas`. **From source (Rust, not maintained from v1.1.0).** `git clone https://github.com/paramtatv/sassembly && cd sassembly && git checkout v1.0.2 && cargo build --release -p sadhana -p yantra`. The binaries are `target/release/sadhana`, `target/release/yantra-run` and `target/release/t1_image`.
 
 ### 1. The smallest program, in `.t1`
 
@@ -187,21 +124,15 @@ Save as `शृङ्खला.t1`. It prints a message one octet at a time and 
 इति
 ```
 
-Compile and run with the release assets (from the unpacked tarball directory, with `sassembly-v1.0.2-stage1.elf` copied beside the binaries):
+Compile and run natively from a checkout (or with the native package: `bin/sassembly-build` and `bin/sassembly-run`):
 
 ```console
-$ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.2-stage1.elf > sink
-[exit status 1]
-halt: Finisher { status: Some(1200) }
-$ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
-$ ./yantra-run prog.elf
-halt: Finisher { status: Some(0) }
+$ tools/t1-build.sh --entry शृङ्खला स्वपरीक्षास्वप्रतिबिम्बम् -o prog.elf शृङ्खला.t1
+$ tools/t1-run.sh prog.elf
 नमस्ते संसार
 [exit status 0]
 ```
 
-`1200` means built. The ELF is the `sink` file minus one octet at each end; that is what the `dd` line cuts out.
 
 ### 2. A loop and an array, in `.t1`
 
@@ -250,20 +181,15 @@ Save as `शृङ्खला.t1` (a new directory). It puts the squares of 1 t
 ```
 
 ```console
-$ { printf "शृङ्खला\0"; cat शृङ्खला.t1; printf "\0"; } > p.blob
-$ YANTRA_INPUT=p.blob YANTRA_INPUT_NAME=x YANTRA_RAM=2684354560 YANTRA_STEPS=4000000000000 ./yantra-run sassembly-v1.0.2-stage1.elf > sink
-[exit status 1]
-halt: Finisher { status: Some(1200) }
-$ n=$(wc -c < sink); tail -c +2 sink | dd bs=1 count=$((n-2)) of=prog.elf
-$ ./yantra-run prog.elf
-halt: Finisher { status: Some(0) }
+$ tools/t1-build.sh --entry शृङ्खला स्वपरीक्षास्वप्रतिबिम्बम् -o prog.elf शृङ्खला.t1
+$ tools/t1-run.sh prog.elf
 1 4 9 16 25 36 49 64 = 204
 [exit status 0]
 ```
 
 ### 3. The same idea in `.sas`
 
-`.sas` is assembled by `sadhana`, no compiler image needed. Save as `namaste.sas` (it is `spec/namaste.sas` in the repository). It loops over a string of octets and writes each to the console.
+`.sas` is assembled by the v1.0.2 `sadhana` binary (the assembler is not rebuilt in this pure-Sassembly tree), no compiler image needed. Save as `namaste.sas` (it is `spec/namaste.sas` in the repository). It loops over a string of octets and writes each to the console.
 
 ```
 ॰ नमस्ते — पहला देवनागरी कार्यक्रम जो धातु पर बोलता है
@@ -310,15 +236,16 @@ halt: Finisher { value: 21845, status: Some(0) }
 steps: 184 executed instructions
 ```
 
-### 4. From source
+### 4. Name your own entry
 
-With the cargo-built binaries the commands above work unchanged (`target/release/yantra-run` in place of `./yantra-run`). `t1_image` is the faster route when you build from source, because the entry is yours to name. Save this as `नमस्कारः.t1`:
+`tools/t1-build.sh` compiles `.t1` sources natively and lets you name the entry. Save this as `नमस्कारः.t1`:
+
 
 ```
 मण्डलम् नमस्कारः ॥
 आयातः अष्टक ।
 
-॰ Prints a message one octet at a time, then returns 0.  Here the entry is the one you name to t1_image.
+॰ Prints a message one octet at a time, then returns 0.  Here the entry is the one you name with --entry.
 सार्वजनिक वृत्तिः मुख्यम् ददाति न६४ आदि
     चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
     चरः क्रमः ॱॱ न६४ भवति ० ।
@@ -329,28 +256,14 @@ With the cargo-built binaries the commands above work unchanged (`target/release
     चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
     प्रत्यागमनम् ० ।
 इति
-```
 
 ```console
-$ target/release/sadhana spec/namaste.sas namaste.elf
-namaste.elf: 1 file(s) assembled, entry 0x80000000
-$ target/release/yantra-run namaste.elf
+$ tools/t1-build.sh --entry नमस्कारः मुख्यम् -o prog.elf नमस्कारः.t1
+$ tools/t1-run.sh prog.elf
 नमस्ते संसार
-halt: Finisher { value: 21845, status: Some(0) }
-steps: 184 executed instructions
-$ target/release/t1_image --compiler crates/sadhana-t1/src --load नमस्कारः.t1 --entry नमस्कारः मुख्यम् -o prog.elf नमस्कारः.t1
-[exit status 0]
-build:    0 source(s) failed to compile, 2 object(s) linked (startup included)
-steps:    36157967
-predict:  finished, status 0; 35 octet(s) printed
-write:    634 octets of ELF -> prog.elf
-$ target/release/yantra-run prog.elf
-halt: Finisher { status: Some(0) }
-नमस्ते संसार
-[exit status 0]
 ```
 
-The build also interprets your program and compares it with the native run (`predict: finished, status 0`), and refuses the image if they disagree.
+The build also interprets your program and compares it with the native run, and refuses the image if they disagree. Output shown is the program's own text; build progress goes to stderr and is not reproduced here.
 
 ### Where next
 
@@ -362,12 +275,12 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical, `951,146` octets (v1.1.0) |
+| **Stage 2 == Stage 1** | byte-identical; v1.2 image size TBD (measured at tag); v1.1.0: `951,146` octets |
 | **the compiler** | 21 `.t1` sources, 48,996 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.2.0 (release notes below; the figures and install sections of this page are as measured for v1.1.0) — v1.1.0 the language and its compiler are complete; v1.1.0 adds native packages (no Rust, no emulator) for four targets, register promotion, fork-join and arenas (see [CHANGELOG.md](CHANGELOG.md)) |
+| **status** | v1.2.0 (release notes below; figures marked TBD are measured at the tag, other figures are as measured for v1.1.0) — the language and its compiler are complete; v1.2 is pure Sassembly, with native packages for four targets (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 
@@ -426,7 +339,6 @@ cmp s2.elf sassembly-v1.1.0-stage1.elf && echo FIXPOINT HOLDS
 | image size | **951,146 octets** in v1.1.0 (v1.0.2: 923,042; v0.4.0: 1,399,434) |
 | sources | **21** `.t1` files, 48,996 lines (v1.1.0) |
 
-**The Rust route is not maintained from v1.1.0.** The Rust is frozen and archived. `tools/fixpoint.sh` and the Rust `t1_image` driver stay in the repository as they were in v1.1.0-alpha, but they are not re-run or measured for v1.1.0. They may not reproduce the v1.1.0 image, because the compiler's Rust twin was not updated.
 
 ### A separate result: the whole corpus as one running image
 
@@ -535,6 +447,9 @@ Two footnotes that will otherwise cost you an afternoon:
 ---
 
 ## It runs in a browser
+
+
+> The playground and the `.sas` assembler are the v1.0.2 builds; their wasm crates are not part of this tree.
 
 New in v0.3.0, and the shortest way to see the thing work:
 
@@ -745,12 +660,7 @@ The Rust test suite (`cargo test --workspace --release --no-fail-fast`) was last
 
 ```
 crates/sadhana-t1/src/   the 21 .t1 sources — this is the compiler
-crates/sadhana/          the toolchain: t1_image and the drivers
-crates/yantra/           the RISC-V emulator, and the guard tests
-crates/sanskrit-text/    the text kernel: segmentation, normalisation, identifiers
-spec/                    the tables the host fills — encodings, grammar, lexicon
-crates/sadhana-wasm/     the assembler as wasm, for the browser
-crates/yantra-wasm/      the machine as wasm
+tools/                   the build, run, fixpoint and self-check scripts
 web/                     the hand-written glue: no wasm-bindgen, no generated bindings
 tools/                   t1-build.sh, t1-run.sh, release-native.sh, selfcheck/, native-spike/ (the translator), pack-corpus.py
 ```
@@ -793,9 +703,7 @@ here.
 
 <br>
 
-`sadhana` is the toolchain, `yantra` the RISC-V emulator, `sanskrit-text` the
-text kernel (segmentation, normalisation, identifiers), and `sadhana-t1` holds
-the 21 Sassembly sources that are the compiler.
+`sadhana-t1` holds the 21 Sassembly sources that are the compiler.
 
 </details>
 

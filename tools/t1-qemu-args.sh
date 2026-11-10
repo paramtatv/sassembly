@@ -1,7 +1,7 @@
 #!/bin/sh
 # A .t1 image's ARGUMENTS ON QEMU (row C-015). POSIX sh+od+dd+awk port of t1-qemu-args.py (PY3 car C1):
 # same stdout, rc, patched ELF and ARGS blob. It applies yantra's own argument rule —
-# crates/yantra/src/input.rs inject_arguments and append_run — to a COPY of an ELF, writing the run as a
+# the retired Rust source inject_arguments and append_run — to a COPY of an ELF, writing the run as a
 # blob QEMU loads with `-device loader`. It computes nothing about the program.
 #
 #   the SASARGV and SASARGC tags must each appear exactly once in the WRITABLE PT_LOAD bytes of the image, or it refuses (rc 1);
