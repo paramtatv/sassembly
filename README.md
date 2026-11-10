@@ -385,7 +385,7 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 11. [Status and stability](#status-and-stability)
 12. [The study group](#the-study-group)
 13. [Licence](#licence)
-14. [Build from source (Rust)](#build-from-source-rust) · [Networking](#networking)
+14. [Build from source](#build-from-source) · [Networking](#networking)
 
 ---
 
@@ -552,7 +552,7 @@ Both are instantiated with an **empty import object**. That is the claim rather
 than an omission: the page grants them no syscalls, no clock and no network,
 because there is nothing for them to ask for.
 
-Build the standalone page yourself, as one self-contained file with no server: see [Build from source](#build-from-source-rust).
+Build the standalone page yourself, as one self-contained file with no server: see [Build from source](#build-from-source).
 
 **Measured 2026-10-07 with `tools/build-sassembly-web.sh` on a Linux x86-64
 host, from this repository's tree:**
@@ -737,7 +737,7 @@ tools/selfcheck/build-refuse.sh                        # build refusals
 
 **Measured 2026-10-10, natively, on a Linux x86-64 host:** 80 programs equal to `tools/selfcheck/expected.tsv`, and 23 build refusals equal to `tools/selfcheck/refuse/expected.tsv`, in 3.8 to 9.4 s wall on a loaded host (three runs). By `run.sh`'s default, three of the programs (`float_ieee`, `file_read` and `file_roundtrip`) run under the pinned `yantra-run`; the other 77 run natively. `tools/selfcheck/BUDGET.md` sets the budget.
 
-The Rust test suite (`cargo test --workspace --release --no-fail-fast`) was last measured for v1.0.2: 2,475 passed, 0 failed, 127 ignored. It is not maintained from v1.1.0 (see [Build from source](#build-from-source-rust)).
+The Rust test suite (`cargo test --workspace --release --no-fail-fast`) was last measured for v1.0.2: 2,475 passed, 0 failed, 127 ignored. The Rust suite is removed from this tree in v1.2.
 
 ---
 
@@ -834,21 +834,9 @@ one.
 
 ---
 
-## Build from source (Rust)
+## Build from source
 
-**Not maintained from v1.1.0.** The Rust is frozen and archived. The native packages and `tools/t1-build.sh` / `tools/t1-run.sh` replace it for `.t1`. These commands are those of v1.0.2. They were not re-run for v1.1.0:
-
-```sh
-cargo build --release -p sadhana -p yantra   # builds sadhana, t1_image and yantra-run
-tools/fixpoint.sh                            # Stage 1, Stage 2, and the byte comparison (v1.0.2)
-```
-
-For the browser build of the assembler and the machine:
-
-```sh
-rustup target add wasm32-unknown-unknown
-tools/build-sassembly-web.sh            # writes to a temp dir; pass a path to choose
-```
+v1.2 is pure Sassembly: the Rust crates are removed from this tree. `tools/t1-build.sh` and `tools/t1-run.sh` build and run `.t1` natively; `tools/fixpoint.sh` runs Stage 1, Stage 2 and the byte comparison; `tools/selfcheck/build.sh && tools/selfcheck/run.sh` is the self-check suite. The v1.0.2 Rust archives (above) remain the route for `.sas` and the browser build.
 
 ---
 
