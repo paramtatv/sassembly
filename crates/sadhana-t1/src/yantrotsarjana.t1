@@ -3230,7 +3230,7 @@
 ॰ only as a Rust const and as loose text on the port side is scaffolding". An
 ॰ inline literal honoured by both engines, behind one name, keeps both: a bare
 ॰ name of a zero-argument routine is a call, so every use is unchanged.
-॰ `an internal tool` refuses a new global of the old shape.
+॰ `tools/check-src-ratchets.sh` refuses a new global of the old shape.
 सार्वजनिक वृत्तिः यन्त्ररचनाक्षेत्रनाम ददाति अङ्कः अन्तः अ८ आदि
     प्रत्यागमनम् उक्तम् रचनाक्षेत्रम् इति ।
 इति
@@ -4078,7 +4078,7 @@
         ॰ a NAME and a name is the ADDRESS of what it names, so this emits a
         ॰ relocated pointer. **That is why a LIBRARY module works.** The three
         ॰ placements that put an allocation in a routine's entry block are recorded
-        ॰ dead in `an internal tool --placements`, and the third — the first
+        ॰ dead in `tools/sassembly-model.sh --placements`, and the third — the first
         ॰ zero-parameter routine — would have PASSED a single-module fixture and
         ॰ left every library module's globals null, against 265 qualified
         ॰ cross-module reads. The linker does not know which module is the entry,

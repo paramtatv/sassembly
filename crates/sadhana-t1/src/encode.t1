@@ -7188,7 +7188,7 @@
         ॰
         ॰ THE NUMBER SAYS NO. Both engines print १ on round ० and ३ on round १:
         ॰
-        ॰     an internal tool diff <predict sink> <native .out>
+        ॰     tools/marker.sh diff <predict sink> <native .out>
         ॰     7100 at records 3 and 71; the length two records later
         ॰     round ०: interpreted १, native १
         ॰     round १: interpreted ३, native ३

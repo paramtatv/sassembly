@@ -42,7 +42,7 @@
 ॰ checker that reads imports rather than runs code can see the difference.
 आयातः वास्तु ।       ॰ the object record the back half builds and links
 आयातः अष्टक ।        ॰ the OUTPUT CHANNEL — `मुद्रणम्`, and nothing else here uses it
-आयातः समावेशसारणी ।   ॰ the generated spec-table store (an internal tool)
+आयातः समावेशसारणी ।   ॰ the generated spec-table store (tools/t1tests/mkspectables.sh)
 आयातः शोधनसूत्रम् ।     ॰ R3FXDW3: the -g line-table collector (inert unless the entry enables it)
 
 आयातः अक्षरकोश ।     ॰ R-15-1's repertoire — W-304: `पठनम्` lexes through `परिधिपदविभाग`
@@ -895,7 +895,7 @@
     ॰ THE STORE FIRST (2026-09-14). `संज्ञाकुलपठनम्` and its siblings read their table
     ॰ from `पदविभागॱसमावेशपाठः`, which answers from the store; interpreted the host fills
     ॰ it at load, natively nothing did, so this fills it from `सारणी` — a module generated
-    ॰ from `spec/` by an internal tool. Guarded inside, so a second call is a no-op.
+    ॰ from `spec/` by tools/t1tests/mkspectables.sh. Guarded inside, so a second call is a no-op.
     चरः सारण्यः ॱॱ न६४ भवति समावेशसारणीॱसारणीपूरणम् ।
     चरः कुलानि ॱॱ न६४ भवति वाक्यविभागॱसंज्ञाकुलपठनम् ।
     चरः निर्देशाः ॱॱ न६४ भवति वाक्यविभागॱनिर्देशकोशपठनम् ।
@@ -2860,12 +2860,12 @@
 ॰
 ॰ WHY THIS SHAPE IS AVAILABLE ONLY NOW, STATED AS THE RECORD RATHER THAN AS
 ॰ CONVENIENCE. Until 2026-09-21 `tools/demo.sh` could not report this source's
-॰ counts at all: `the retired Rust source` passed `globals: Vec::new()`
+॰ counts at all: `crates/pradarshana/src/pathana.rs` passed `globals: Vec::new()`
 ॰ and entered no global's SYMBOL into `Names`, so the demo's stage 6 REFUSED
 ॰ ``symbol SymbolId(2) has no name`` and threw stages 7 and 8 away — *every*
 ॰ source in the language that reads one of its own module's globals stopped at
 ॰ stage six. `W-278`'s port opened it and
-॰ `the retired Rust source` is its witness. A rung cannot be
+॰ `crates/pradarshana/tests/module_globals.rs` is its witness. A rung cannot be
 ॰ PREDICTED from a stage that does not run, which is why this row is written now
 ॰ and not beside rung 102.
 ॰
@@ -2989,7 +2989,7 @@
 ॰ `W-279`'s previous cycle that counter read `0` for every input in the tree —
 ॰ `kosha.t1`'s forty cross-module calls included — so the five rows above were
 ॰ each written from an instrument with ONE reachable state.
-॰ `the retired Rust source` holds the four properties
+॰ `crates/pradarshana/tests/cross_module_calls.rs` holds the four properties
 ॰ that made it two, and this literal is the shape its first property asserts.
 ॰
 ॰ AND THE ASSEMBLE COUNTS WERE UNOBTAINABLE UNTIL THIS CYCLE, WHICH IS WHY THIS
