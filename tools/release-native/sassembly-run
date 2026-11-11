@@ -29,7 +29,7 @@ nat=$dir/image.native
 if ! { [ -s "$nat" ] && [ "$(sha < "$nat")" = "$(cat "$nat.sha256" 2>/dev/null)" ]; }; then
     mkdir -p "$dir" || { say "REFUSED - cannot make $dir"; exit 1; }
     env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$img" YANTRA_INPUT_NAME="$img" YANTRA_INPUT_TRACE="$code" \
-        YANTRA_RAM=1073741824 "$LIB/translator.native" > "$nat.tmp" 2> "$dir/translate.log"
+        YANTRA_RAM=1073741824 YANTRA_STEPS=10000000000000 "$LIB/translator.native" > "$nat.tmp" 2> "$dir/translate.log"
     if grep -q "status: Some(0)" "$dir/translate.log" && [ -s "$nat.tmp" ]; then
         chmod +x "$nat.tmp"; mv "$nat.tmp" "$nat"; sha < "$nat" > "$nat.sha256"
     else

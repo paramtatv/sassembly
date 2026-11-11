@@ -40,7 +40,7 @@ done
 IFS=$OLDIFS
 say "entry $mod $rtn"
 env -u YANTRA_INPUT_NAME YANTRA_INPUT="$work/input.blob" YANTRA_INPUT_ENTRY="$mod $rtn" \
-    YANTRA_RAM=${YANTRA_RAM:-2684354560} "$LIB/stage1.native" > "$work/sink" 2> "$work/log"
+    YANTRA_RAM=${YANTRA_RAM:-2684354560} YANTRA_STEPS=${YANTRA_STEPS:-10000000000000} "$LIB/stage1.native" > "$work/sink" 2> "$work/log"
 status=$(sed -n 's/.*status: Some(\([0-9][0-9]*\)).*/\1/p' "$work/log" | tail -1)
 if [ "${status:-}" != 1200 ]; then
     tail -20 "$work/log" >&2; head -c 2000 "$work/sink" >&2
