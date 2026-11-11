@@ -57,12 +57,12 @@ Each package compiles and runs `.t1` programs natively. It holds the v1.2 Stage 
 
 | OS | archive | sha256 |
 |---|---|---|
-| Linux x86-64 | `sassembly-native-v1.2.0-x86_64-linux.tar.gz` | TBD (measured at tag) |
-| Linux aarch64 | `sassembly-native-v1.2.0-aarch64-linux.tar.gz` | TBD (measured at tag) |
-| macOS arm64 (Apple silicon) | `sassembly-native-v1.2.0-aarch64-macos.tar.gz` | TBD (measured at tag) |
-| macOS x86-64 (Intel) | `sassembly-native-v1.2.0-x86_64-macos.tar.gz` | TBD (measured at tag) |
+| Linux x86-64 | `sassembly-native-v1.2.0-x86_64-linux.tar.gz` | `0598c3c81512756e74db0e6f93f08bcb1aea5481be07be988ccbc73861f6985e` |
+| Linux aarch64 | `sassembly-native-v1.2.0-aarch64-linux.tar.gz` | not shipped in v1.2.0 |
+| macOS arm64 (Apple silicon) | `sassembly-native-v1.2.0-aarch64-macos.tar.gz` | `ed3557729bc088921b57a41bb0f0e8cced64ae3a38db6beb0ba9fad7b786e0cb` |
+| macOS x86-64 (Intel) | `sassembly-native-v1.2.0-x86_64-macos.tar.gz` | `d134f55c1655a6bf1bab3565f0e6a1d60ab471766bd419e66e5cc652246a7346` |
 
-The sha256s are those in the release's `SHA256SUMS-v1.2.0`. There is no Windows build.
+The sha256s are those in the release's `SHA256SUMS-v1.2.0`. There is no Windows build. There is no Linux aarch64 package in v1.2.0.
 
 ```sh
 V=v1.2.0; T=sassembly-native-$V-TARGET.tar.gz       # TARGET: x86_64-linux, aarch64-linux, aarch64-macos, x86_64-macos
@@ -275,12 +275,12 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 
 | | |
 |---|---|
-| **Stage 2 == Stage 1** | byte-identical; v1.2 image size TBD (measured at tag); v1.1.0: `951,146` octets |
+| **Stage 2 == Stage 1** | byte-identical; v1.2 image size `1,146,370` octets; v1.1.0: `951,146` octets |
 | **the compiler** | 21 `.t1` sources, 48,996 lines, written in Sassembly |
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.2.0 (release notes below; figures marked TBD are measured at the tag, other figures are as measured for v1.1.0) — the language and its compiler are complete; v1.2 is pure Sassembly, with native packages for four targets (see [CHANGELOG.md](CHANGELOG.md)) |
+| **status** | v1.2.0 (release notes below; figures other than the Stage 2 size and package hashes are as measured for v1.1.0) — the language and its compiler are complete; known gaps: HOLE-PY (8 Python files remain in the release tree; the fixpoint oracle is still Python) and HOLE-WEB (the web build and page checks cannot run without the retired wasm toolchain); v1.2 has native packages for three targets (Linux aarch64 is not shipped in v1.2.0) (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 
