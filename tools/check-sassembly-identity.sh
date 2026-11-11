@@ -212,12 +212,9 @@ case "$qemu_out" in
 esac
 
 # ------------------------------------------------- 3. the SAME bytes, in the VM
-wasm=${YANTRA_WASM:-}  # YANTRA_WASM: native module; unset, build it (tools/build-yantra-wasm.sh, no cargo)
+wasm=${YANTRA_WASM:-}  # YANTRA_WASM: prebuilt module; the in-tree builder is retired
 if [ -z "$wasm" ]; then
-  wasm=$work/yantra.wasm
-  rc=0; sh tools/build-yantra-wasm.sh "$wasm" >"$work/bw.log" 2>&1 || rc=$?
-  [ "$rc" -ne 77 ] || { echo "SKIPPED: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
-  [ "$rc" -eq 0 ] || { tail -5 "$work/bw.log"; echo "  FAIL  native yantra wasm build rc=$rc"; exit 1; }
+  echo "SKIPPED: YANTRA_WASM unset (no in-tree yantra wasm builder)"; exit 77
 fi
 wasm_out=$(node -e '
   const fs = require("fs");

@@ -64,13 +64,10 @@ if ! rustc --print target-list 2>/dev/null | grep -qx wasm32-unknown-unknown; th
 fi
 # Stderr is KEPT. Whatever rustc says is the only thing that can tell a reader
 # which of the two they have.
-# YANTRA_WASM=<path>: use that yantra wasm module instead; unset, the native .t1 interpreter is built (tools/build-yantra-wasm.sh, no cargo).
+# YANTRA_WASM=<path>: the yantra wasm module to use. The module builder (yantra/Rust) is retired;
+# unset, there is no subject to build: SKIPPED (77), never a PASS.
 if [ -z "${YANTRA_WASM:-}" ]; then
-  _yw=target/yantra.wasm; mkdir -p target
-  _rc=0; sh tools/build-yantra-wasm.sh "$_yw" >"$_yw.log" 2>&1 || _rc=$?
-  [ "$_rc" -ne 77 ] || { rm -f "$_yw.log"; echo "SKIPPED: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
-  [ "$_rc" -eq 0 ] || { tail -5 "$_yw.log"; rm -f "$_yw.log"; echo "  FAIL  native yantra wasm build rc=$_rc"; exit 1; }
-  rm -f "$_yw.log"; YANTRA_WASM=$_yw
+  echo "SKIPPED: YANTRA_WASM unset (no in-tree yantra wasm builder)"; exit 77
 fi
 
 wasm=$YANTRA_WASM
