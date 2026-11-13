@@ -148,6 +148,7 @@
         <div class="fig"><span class="fig__n">3</span><span class="fig__l">native packages in v1.2.0; Linux aarch64 is not shipped</span></div>
         <div class="fig"><span class="fig__n">152</span><span class="fig__l">files ported from the monorepo in v1.2.0 (crates/sadhana-t1, tools, tools/selfcheck, spec/net, docs/adr)</span></div>
         <div class="fig"><span class="fig__n">44 / 49</span><span class="fig__l">probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only</span></div>
+        <div class="fig"><span class="fig__n">34&ndash;46&times;</span><span class="fig__l">faster builds of small programs with the v1.2.0 native compiler than with the retired Rust-built compiler: 0.06 to 0.11 s against 2.7 to 3.7 s (hello, namaste, file_write, vec_add; median of 5 runs on one aarch64 Mac). The native times are at the 0.01 s timer floor, so the ratios are &plusmn;10% or worse. Output size is not smaller: native ELFs are equal or up to 12% larger. Large programs not yet measured.</span></div>
       </div>
     </div>
   </section>
