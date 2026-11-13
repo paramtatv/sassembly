@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sassembly — an instruction set with a grammar</title>
-<meta name="description" content="Sassembly v1.1.0: a royalty-free instruction set architecture whose syntax is Sanskrit, with a self-hosting compiler and native packages for Linux and macOS.">
+<meta name="description" content="Sassembly v1.2.0: a royalty-free instruction set architecture whose syntax is Sanskrit, with a self-hosting compiler and native packages for Linux x86-64 and macOS.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -46,15 +46,15 @@
   <section class="wrap" style="padding-top: 28px;">
     <div class="colophon" style="align-items: center; gap: 28px;">
       <div class="colophon__lead" style="flex: 2 1 420px;">
-        <p class="eyebrow">v1.1.0 · 2026-10-10</p>
-        <h2>Sassembly v1.1.0 — native packages</h2>
-        <p>Four native packages compile and run .t1 programs with no Rust and no emulator: x86_64-linux, aarch64-linux, aarch64-macos and x86_64-macos. Each holds the release’s Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for that target. The new Stage 1 is 951,146 octets (sha256 e0adbb0f…); compiled natively by itself from the repository’s sources, it reproduces itself byte for byte. There is no Windows package: the translator does not emit a Windows target yet.</p>
+        <p class="eyebrow">v1.2.0 · 2026-11-10</p>
+        <h2>Sassembly v1.2.0 — native packages</h2>
+        <p>Three native packages compile and run .t1 programs with no Rust and no emulator: x86_64-linux, aarch64-macos and x86_64-macos. Each holds the release’s Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for that target. The v1.2 Stage 1 image is 1,146,370 octets, and Stage 2 equals Stage 1, byte-identical. There is no Linux aarch64 package in v1.2.0 and no Windows build. The native route still needs python3.</p>
       </div>
       <div style="flex: 1 1 200px; display: flex; gap: 12px; flex-wrap: wrap;">
-        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/releases/tag/v1.1.0" rel="noopener">Read the release</a>
+        <a class="btn btn--solid" style="background: #F4EFE5; color: #1A1814; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/releases/tag/v1.2.0" rel="noopener">Read the release</a>
         <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="downloads.html">Downloads</a>
-        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.1.0/LIMITS.md" rel="noopener">Limits</a>
-        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.1.0/CHANGELOG.md" rel="noopener">Changelog</a>
+        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.2.0/LIMITS.md" rel="noopener">Limits</a>
+        <a class="btn" style="background: transparent; color: #F4EFE5; border-color: #F4EFE5;" href="https://github.com/paramtatv/sassembly/blob/v1.2.0/CHANGELOG.md" rel="noopener">Changelog</a>
       </div>
     </div>
   </section>
@@ -64,13 +64,13 @@
       <p class="eyebrow">Royalty-free instruction set architecture</p>
       <h1>An instruction set with a grammar.</h1>
       <p class="lede">Sassembly is a systems language whose syntax is Sanskrit and whose semantics are an ISA. Every architectural instruction has a name — there is no escape hatch to a raw encoding. The compiler is written in Sassembly, compiles itself, and reproduces its own binary exactly.</p>
-      <p class="lede" style="font-size: 17px;"><strong>Build and run .t1 natively</strong> — a package needs only POSIX sh, awk, od, grep and sha256sum or shasum. bin/sassembly-build compiles a .t1 program to an RV64 image, and bin/sassembly-run runs that image as a host program. Assembling T0 .sas text still needs the Rust sadhana from the v1.1.0-alpha or v1.0.2 archives.</p>
+      <p class="lede" style="font-size: 17px;"><strong>Build and run .t1 natively</strong> — a package needs only POSIX sh, awk, od, grep and sha256sum or shasum. bin/sassembly-build compiles a .t1 program to an RV64 image, and bin/sassembly-run runs that image as a host program. Assembling T0 .sas text still needs the Rust sadhana from the v1.0.2 archive.</p>
       <div style="display: flex; gap: 14px; flex-wrap: wrap; padding-top: 6px;">
         <a class="btn btn--solid" href="downloads.html">Get a native package</a>
         <a class="btn" href="learn.html">Start reading</a>
       </div>
       <p style="display: flex; gap: 32px; flex-wrap: wrap; padding-top: 10px; font-size: 14px; color: var(--ink-3);">
-        <span>RV64 images</span><span>4 native targets</span><span>951,146-octet Stage 1</span><span>No Rust needed for .t1</span>
+        <span>RV64 images</span><span>3 native targets</span><span>1,146,370-octet Stage 1</span><span>No Rust needed for .t1</span>
       </p>
     </div>
 
@@ -104,36 +104,36 @@
       </div>
       <div class="pillar">
         <h2 style="font-size: 23px; font-weight: 600;">Self-hosting, now native</h2>
-        <p>The v1.1.0 Stage 1, compiled natively by itself from the repository’s sources, reproduces itself byte for byte. The translator that turns an RV64 image into a host program is itself written in .t1.</p>
+        <p>In v1.2.0, Stage 2 equals Stage 1, byte-identical. The translator that turns an RV64 image into a host program is itself written in .t1.</p>
       </div>
       <div class="pillar">
         <h2 style="font-size: 23px; font-weight: 600;">Verifiable to the octet</h2>
-        <p>Check the release against SHA256SUMS-v1.1.0, then compile the sources with the native Stage 1: the result must be the same 951,146 octets. The steps are on the <a href="downloads.html#verify">downloads page</a>.</p>
+        <p>Check each package against SHA256SUMS-v1.2.0, then build and run the example from it. The steps are on the <a href="downloads.html#verify">downloads page</a>.</p>
       </div>
     </div>
   </section>
 
   <section class="wrap section--tight" style="padding-top: 0;">
     <div class="section__head">
-      <h2>What runs where in v1.1.0</h2>
+      <h2>What runs where in v1.2.0</h2>
       <span class="mark" aria-hidden="true">॥</span>
-      <span class="section__note">from LIMITS.md: every row checked on the four native targets and under yantra-run</span>
+      <span class="section__note">from LIMITS.md, section 1: a probe run on aarch64-macos</span>
     </div>
     <div class="grid grid--3">
       <article class="card">
-        <h3>Native on all four targets</h3>
-        <p>Scalar floats (F and D). Integer semantics and checked operators. Reading and writing named files in a granted root, with path escapes refused. Program arguments and the input file at load. A recorded clock (YANTRA_RECORD_EVENTS). Randomness through the spec/entropy library. The 512 MiB heap. Exit codes 0 and 1. Stage 1 with any entry.</p>
+        <h3>Native</h3>
+        <p>Halt, exit-code, step ceiling and infinite-loop (SpinForever) behaviour, plus SBI, rounding, argument and --version parity with the reference interpreter. VERDICT, SCANOUT and virtio deferral run natively. Of 49 probes on aarch64-macos, 44 agree with the reference interpreter in exit code and stdout; stdout is the same in all 49.</p>
       </article>
       <article class="card">
-        <h3>Under yantra-run only</h3>
-        <p>Threads: a native run refuses a threaded image by name. Also replaying an event log, a wait with no event source (exit 75), the retired-instruction counter, YANTRA_VERDICT, vectors and matrices, and the loopback --listen socket. yantra-run is the Rust RV64 emulator in the v1.0.2 and v1.1.0-alpha archives.</p>
+        <h3>Through the reference interpreter</h3>
+        <p>Threads (up to 64), event replay, SMP, floating point (F and D), atomics (A), vectors (V), most CSRs and SBI calls. YANTRA_WATERMARK and VERDICT still fall back on macOS. The native route needs python3.</p>
       </article>
       <article class="card">
-        <h3>Not yet</h3>
-        <p>Sleep. Appending to, deleting and listing files. Environment variables and stdin. Spawning a process. TCP, HTTP/1.1, IPv6 and DHCP. TLS and X.509. The network frames device was not verified for v1.1.0. There is no Windows package.</p>
+        <h3>Not available, or not verified</h3>
+        <p>An entropy source and an outbound TCP client are not available. There is no Windows build, and wasm32 is the integer subset only. Five probes differ in exit code only (csr_satp_write, csr_sie_read, csr_stvec_write, csr_time, store_into_code). Not verified for v1.2: the whole-tree release gate, and a re-probe on x86_64-macos. The per-capability table is the v1.1.0 one, not re-run for v1.2.</p>
       </article>
     </div>
-    <p style="padding-top: 18px; font-size: 15px; color: var(--ink-3);">Each row, with the command that repeats it, is in <a href="https://github.com/paramtatv/sassembly/blob/v1.1.0/LIMITS.md" rel="noopener">LIMITS.md</a>.</p>
+    <p style="padding-top: 18px; font-size: 15px; color: var(--ink-3);">Each row is in <a href="https://github.com/paramtatv/sassembly/blob/v1.2.0/LIMITS.md" rel="noopener">LIMITS.md</a>.</p>
   </section>
 
   <section class="wrap">
@@ -144,10 +144,10 @@
         <p>A manuscript ends by recording who copied it and from what. So does this one.</p>
       </div>
       <div class="colophon__figs">
-        <div class="fig"><span class="fig__n">951,146</span><span class="fig__l">octets in the v1.1.0 Stage 1, which compiles its own sources to itself, byte-identical</span></div>
-        <div class="fig"><span class="fig__n">4 / 4</span><span class="fig__l">native packages, each smoke-tested on its own target from the unpacked tarball, with no checkout</span></div>
-        <div class="fig"><span class="fig__n">80 + 23</span><span class="fig__l">programs and build refusals in tools/selfcheck, the native .t1 self-check suite</span></div>
-        <div class="fig"><span class="fig__n">0</span><span class="fig__l">disagreements between the four native targets on the rows of LIMITS.md; only a random draw differs, by design</span></div>
+        <div class="fig"><span class="fig__n">1,146,370</span><span class="fig__l">octets in the v1.2 Stage 1; Stage 2 equals Stage 1, byte-identical</span></div>
+        <div class="fig"><span class="fig__n">3</span><span class="fig__l">native packages in v1.2.0; Linux aarch64 is not shipped</span></div>
+        <div class="fig"><span class="fig__n">152</span><span class="fig__l">files ported from the monorepo in v1.2.0 (crates/sadhana-t1, tools, tools/selfcheck, spec/net, docs/adr)</span></div>
+        <div class="fig"><span class="fig__n">44 / 49</span><span class="fig__l">probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only</span></div>
       </div>
     </div>
   </section>
