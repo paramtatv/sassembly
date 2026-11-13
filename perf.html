@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sassembly — performance</title>
+<meta name="description" content="Sassembly v1.2.0 native runtime measured against C, Rust, Go and Python: wall time, memory, binary size, compile time and startup on one Apple M1 host.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="assets/theme.js"></script>
+<script src="assets/i18n.js"></script>
+<style>
+.perf-langs h3{margin-top:28px}
+.perf-wrap{overflow-x:auto}
+table.perf{border-collapse:collapse;font-family:"IBM Plex Mono",monospace;font-size:14px;margin:10px 0 6px;min-width:560px}
+table.perf th,table.perf td{border-bottom:1px solid var(--rule);padding:6px 10px;text-align:right;white-space:nowrap}
+table.perf th:first-child,table.perf td:first-child{text-align:left}
+table.perf th{color:var(--ink-2);border-bottom-color:var(--rule-2)}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap masthead__in">
+    <a class="brand" href="index.html">
+      <span class="brand__deva">संस्कृतयन्त्रम्</span>
+      <span class="brand__latin">Sassembly</span>
+    </a>
+    <span class="mark" aria-hidden="true">॥</span>
+    <nav class="nav" aria-label="मुख्यम्">
+      <a href="learn.html" data-i18n="nav.learn">अध्ययनम्</a>
+      <a href="reference.html" data-i18n="nav.reference">सन्दर्भः</a>
+      <a href="playground.html" data-i18n="nav.playground">प्रयोगक्षेत्रम्</a>
+      <a href="press.html" data-i18n="nav.press">वार्ताविभागः</a>
+      <a href="downloads.html" data-i18n="nav.downloads">अवतरणम्</a>
+    </nav>
+    <label class="sr-only" for="lang" data-i18n="lang.label">भाषा</label>
+    <select class="langpick" id="lang">
+      <option value="sa">संस्कृतम्</option>
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+    </select>
+    <button class="themetoggle" type="button" aria-pressed="false" aria-label="Switch to dark theme">
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <a class="btn btn--sm" href="downloads.html" data-i18n="nav.cta">साधनशृङ्खलां प्राप्नुहि</a>
+  </div>
+</header>
+
+<main>
+  <section class="wrap section">
+    <div class="section__head">
+      <h2>Native against C, Rust, Go and Python</h2>
+      <span class="mark" aria-hidden="true">॥</span>
+      <span class="section__note">measured 2026-11-13, one Apple M1 host</span>
+    </div>
+<section class="perf-langs">
+<p>Measured on one host (Apple M1 Mac mini, shared, noisy load), macOS arm64. Native = public Sassembly v1.2.0 package. Median (min-max) of n=5 runs; compile median of 3. All outputs matched by checksum across the five languages. Compilers: Apple clang 17.0.0, rustc 1.92.0, go1.23.4, Python 3.13.2.</p>
+<h3>Wall seconds, median (min-max), n=5, run 1 included</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>sieve</td><td>0.055 (0.052-0.198)</td><td>0.052 (0.046-0.238)</td><td>0.065 (0.062-0.262)</td><td>3.804 (3.697-3.933)</td><td>1.081 (1.079-1.083)</td></tr>
+<tr><td>matmul</td><td>0.018 (0.012-0.148)</td><td>0.017 (0.013-0.156)</td><td>0.022 (0.021-0.175)</td><td>4.710 (4.459-4.903)</td><td>0.901 (0.900-0.902)</td></tr>
+<tr><td>heapsort</td><td>0.159 (0.150-0.319)</td><td>0.171 (0.168-0.379)</td><td>0.209 (0.206-0.419)</td><td>8.518 (8.381-8.574)</td><td>3.470 (3.464-3.481)</td></tr>
+<tr><td>flac</td><td>0.023 (0.021-0.166)</td><td>0.021 (0.021-0.180)</td><td>0.033 (0.032-0.204)</td><td>5.762 (5.600-6.199)</td><td>0.570 (0.570-0.571)</td></tr>
+</table></div>
+<h3>User seconds, median (min-max), n=5</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>sieve</td><td>0.052 (0.048-0.076)</td><td>0.049 (0.043-0.063)</td><td>0.062 (0.059-0.079)</td><td>3.796 (3.689-3.925)</td><td>1.077 (1.076-1.080)</td></tr>
+<tr><td>matmul</td><td>0.016 (0.010-0.028)</td><td>0.015 (0.012-0.022)</td><td>0.020 (0.019-0.035)</td><td>4.703 (4.453-4.896)</td><td>0.899 (0.898-0.900)</td></tr>
+<tr><td>heapsort</td><td>0.156 (0.148-0.191)</td><td>0.168 (0.165-0.206)</td><td>0.206 (0.203-0.240)</td><td>8.506 (8.369-8.561)</td><td>3.467 (3.460-3.478)</td></tr>
+<tr><td>flac</td><td>0.018 (0.016-0.044)</td><td>0.017 (0.016-0.031)</td><td>0.028 (0.028-0.049)</td><td>5.723 (5.559-6.160)</td><td>0.566 (0.565-0.566)</td></tr>
+</table></div>
+<h3>Max RSS MiB, median (min-max), n=5</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>sieve</td><td>20.2 (20.2-20.2)</td><td>20.4 (20.4-20.4)</td><td>23.0 (23.0-23.2)</td><td>30.5 (30.3-30.5)</td><td>20.4 (20.4-20.4)</td></tr>
+<tr><td>matmul</td><td>3.2 (3.2-3.2)</td><td>3.4 (3.4-3.4)</td><td>5.4 (5.4-5.4)</td><td>16.2 (16.0-16.4)</td><td>6.5 (6.5-6.5)</td></tr>
+<tr><td>heapsort</td><td>16.4 (16.4-16.4)</td><td>16.6 (16.6-16.7)</td><td>19.2 (19.1-19.3)</td><td>87.8 (87.8-88.1)</td><td>16.6 (16.6-16.6)</td></tr>
+<tr><td>flac</td><td>39.3 (39.3-39.3)</td><td>39.5 (39.5-39.5)</td><td>42.1 (42.1-42.2)</td><td>389.9 (389.9-390.1)</td><td>39.4 (39.4-39.4)</td></tr>
+</table></div>
+<h3>Wall ratio vs native (language wall / native wall; <1 = faster than native)</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>sieve</td><td>0.051</td><td>0.048</td><td>0.060</td><td>3.519</td><td>1.000</td></tr>
+<tr><td>matmul</td><td>0.021</td><td>0.019</td><td>0.024</td><td>5.229</td><td>1.000</td></tr>
+<tr><td>heapsort</td><td>0.046</td><td>0.049</td><td>0.060</td><td>2.455</td><td>1.000</td></tr>
+<tr><td>flac</td><td>0.040</td><td>0.037</td><td>0.057</td><td>10.102</td><td>1.000</td></tr>
+</table></div>
+<h3>Wall ratio vs C (language wall / C wall)</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>sieve</td><td>1.00</td><td>0.94</td><td>1.18</td><td>68.66</td><td>19.51</td></tr>
+<tr><td>matmul</td><td>1.00</td><td>0.91</td><td>1.17</td><td>254.59</td><td>48.69</td></tr>
+<tr><td>heapsort</td><td>1.00</td><td>1.08</td><td>1.32</td><td>53.71</td><td>21.88</td></tr>
+<tr><td>flac</td><td>1.00</td><td>0.93</td><td>1.43</td><td>252.74</td><td>25.02</td></tr>
+</table></div>
+<h3>Compile seconds, median (min-max), n=3 (first build includes cold cache)</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>native-build</th><th>native-translate</th></tr>
+<tr><td>sieve</td><td>0.052 (0.052-0.067)</td><td>0.142 (0.142-0.256)</td><td>0.046 (0.045-2.558)</td><td>0.139 (0.138-0.610)</td><td>0.252 (0.247-0.687)</td></tr>
+<tr><td>matmul</td><td>0.055 (0.054-0.055)</td><td>0.158 (0.158-0.162)</td><td>0.045 (0.044-0.130)</td><td>0.164 (0.163-0.164)</td><td>0.265 (0.259-0.286)</td></tr>
+<tr><td>heapsort</td><td>0.054 (0.053-0.054)</td><td>0.152 (0.152-0.160)</td><td>0.045 (0.045-0.128)</td><td>0.187 (0.186-0.188)</td><td>0.296 (0.275-0.334)</td></tr>
+<tr><td>flac</td><td>0.052 (0.051-0.052)</td><td>0.146 (0.146-0.146)</td><td>0.044 (0.042-0.126)</td><td>0.145 (0.144-0.145)</td><td>0.251 (0.249-0.271)</td></tr>
+</table></div>
+<h3>Binary size bytes (unstripped / stripped)</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>workload</th><th>c</th><th>rust</th><th>go</th><th>native ELF</th><th>native image</th><th>python source</th></tr>
+<tr><td>sieve</td><td>33560/33576</td><td>461224/354072</td><td>2243282/1519090</td><td>3224</td><td>132224</td><td>174</td></tr>
+<tr><td>matmul</td><td>33560/33576</td><td>461176/354024</td><td>2243282/1519090</td><td>4072</td><td>148736</td><td>328</td></tr>
+<tr><td>heapsort</td><td>33512/33536</td><td>461256/354032</td><td>2243282/1519090</td><td>5000</td><td>165248</td><td>607</td></tr>
+<tr><td>flac</td><td>33512/33528</td><td>461640/354120</td><td>2243282/1519090</td><td>3440</td><td>132224</td><td>300</td></tr>
+</table></div>
+<h3>Startup, hello, wall ms, median (min-max), 20 runs after 1 warm-up</h3>
+<div class="perf-wrap"><table class="perf">
+<tr><th>c</th><th>rust</th><th>go</th><th>python</th><th>native</th></tr>
+<tr><td>2.92 (2.16-7.97)</td><td>2.66 (2.28-4.33)</td><td>3.33 (2.47-8.30)</td><td>19.18 (18.89-20.05)</td><td>1.73 (1.70-1.78)</td></tr>
+</table></div>
+<p>hello binary size bytes: c 33424, rust 442312, go 2242786, native image 66176, native ELF 568</p><h3>Caveats</h3>
+<ul>
+<li>Native was timed by running the translated image.native directly with a raised step limit; the packaged wrapper cannot run these workloads (1M step default limit).</li>
+<li>Native is about 20-49x slower than C on these compute workloads and about 2.5-10x faster than pure Python.</li>
+<li>Rust, Go and Python are ports of the registered C programs, not tuned per language. Python is pure loops, no numpy.</li>
+<li>Shared host with variable load; run 1 includes cold-start outliers in the max column.</li>
+<li>One host, one architecture. Uru: NOT MEASURED (no port exists).</li>
+</ul>
+</section>
+
+    <p style="padding-top: 18px; font-size: 15px; color: var(--ink-3);"><a href="index.html">Back to the home page</a>.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap foot__in">
+    <span class="foot__deva">संस्कृतयन्त्रम्</span>
+    <span class="foot__spacer" data-i18n="foot.b1">शिल्पं, व्याकरणं, सन्दर्भसाधनं च प्रकाशे प्रकटितानि।</span>
+    <a href="https://discord.gg/XvYvXR8HAh" rel="noopener" data-i18n="foot.discord">अध्ययनसङ्घः</a>
+    <a href="reference.html" data-i18n="foot.spec">नियमाः</a>
+    <a href="downloads.html" data-i18n="foot.mirrors">प्रतिबिम्बानि</a>
+    <a href="learn.html" data-i18n="foot.contrib">योगदानम्</a>
+  </div>
+</footer>
+
+</body>
+</html>
