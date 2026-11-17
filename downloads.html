@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Downloads — Sassembly</title>
-<meta name="description" content="Download Sassembly v1.2.0: native packages for Linux x86-64 and macOS, with checksums you can verify on your own machine.">
+<meta name="description" content="Download Sassembly v1.2.0, generally available: native packages for Linux x86-64 and macOS, with checksums you can verify on your own machine.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -44,10 +44,34 @@
 <main class="wrap">
 
   <section class="section--tight" style="display: flex; flex-direction: column; gap: 20px; padding-top: 48px;">
-    <p class="eyebrow">Downloads</p>
+    <p class="eyebrow">Downloads · General Availability</p>
     <h1 style="font-size: clamp(30px, 4vw, 48px);">Sassembly v1.2.0</h1>
     <p class="lede">The release is three native packages and their checksums. There is no Linux aarch64 package in v1.2.0 and no Windows build. The source and the build instructions are in the repository.</p>
     <p><a class="btn btn--solid" href="https://github.com/paramtatv/sassembly/releases/tag/v1.2.0" rel="noopener">Release page on GitHub</a></p>
+  </section>
+
+  <section class="section--tight" id="ga">
+    <div class="section__head">
+      <h2>General Availability</h2>
+      <span class="mark" aria-hidden="true">॥</span>
+    </div>
+    <p>Sassembly v1.2.0 is generally available: native packages for Linux x86-64, macOS arm64 and macOS x86-64, with a checksum file. Each compiles and runs .t1 programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.0. The native route still needs python3, and 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout (the other 5 differ in exit code only); see Limits below.</p>
+    <p>Install: choose a package below, check it against SHA256SUMS-v1.2.0 (steps in <a href="#verify">Verification</a>), unpack it and run bin/sassembly-build and bin/sassembly-run. A first program, saved as शृङ्खला.t1, prints नमस्ते संसार:</p>
+<pre class="code-mono code-mono--dark" style="border-radius: 3px;">मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  The routine's name is fixed by stage1.elf.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति</pre>
+    <p>Licence: AGPL-3.0-only, with a commercial licence available from the copyright holder. See <a href="https://github.com/paramtatv/sassembly/blob/v1.2.0/COMMERCIAL-LICENSE.md" rel="noopener">COMMERCIAL-LICENSE.md</a>.</p>
   </section>
 
   <section class="section--tight">
