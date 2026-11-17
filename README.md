@@ -47,6 +47,39 @@ itself.
 
 > **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Floating point, atomics, vectors, threads, event replay and most CSR/SBI calls still run through the reference interpreter (python3 required). Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
 
+## General Availability
+
+Sassembly v1.2.0 is generally available. The release is attached to the [v1.2.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.0) with a `SHA256SUMS-v1.2.0`.
+
+What General Availability covers:
+
+* **Native packages for three targets:** x86-64 Linux, macOS arm64 (Apple silicon) and macOS x86-64 (Intel). Each compiles and runs `.t1` programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.0.
+* **A self-hosting compiler:** the v1.2 Stage 1 image is 1,146,370 octets, and Stage 2 equals Stage 1, byte-identical.
+* **Stated limits:** 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only. The native route still needs python3. See [LIMITS.md](LIMITS.md).
+
+Install: pick a package in [Install](#install), check it against `SHA256SUMS-v1.2.0`, unpack it and run `bin/sassembly-build` and `bin/sassembly-run`. A first program (saved as `शृङ्खला.t1`; the output is as shown in [section 1](#1-the-smallest-program-in-t1) below):
+
+```
+मण्डलम् शृङ्खला ॥
+आयातः अष्टक ।
+
+॰ Prints a message one octet at a time, then returns 0.  The routine's name is fixed by stage1.elf.
+सार्वजनिक वृत्तिः स्वपरीक्षास्वप्रतिबिम्बम् ददाति न६४ आदि
+    चरः सन्देश ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् नमस्ते संसार इति ।
+    चरः क्रमः ॱॱ न६४ भवति ० ।
+    यावत् क्रमः न्यूनम् सन्देश ॱ दैर्घ्य आदि
+        चरः ग ॱॱ न६४ भवति अष्टकॱमुद्रणम् सन्देश अङ्कः क्रमः अन्तः ।
+        क्रमः भवति क्रमः योगः १ ।
+    इति
+    चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
+    प्रत्यागमनम् ० ।
+इति
+```
+
+Licence: AGPL-3.0-only ([LICENSE](LICENSE)); a commercial licence is available, see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
+
+---
+
 ## Install
 
 Sassembly v1.2 is pure Sassembly: there is no Rust in the tree and none is needed to build or run a program.
