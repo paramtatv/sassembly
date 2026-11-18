@@ -45,7 +45,7 @@ itself.
 > [What this cannot do](#what-this-cannot-do), which is deliberately placed
 > before the tutorial.
 
-> **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Floating point, atomics, vectors, threads, event replay and most CSR/SBI calls still run through the reference interpreter (python3 required). Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
+> **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Floating point, atomics, vectors, threads, event replay and most CSR/SBI calls have no native route in v1.2.1 (Python is retired; no interpreter is shipped). Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
 
 ## General Availability
 
@@ -55,7 +55,7 @@ What General Availability covers:
 
 * **Native packages for three targets:** x86-64 Linux, macOS arm64 (Apple silicon) and macOS x86-64 (Intel). Each compiles and runs `.t1` programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.0.
 * **A self-hosting compiler:** the v1.2 Stage 1 image is 1,146,370 octets, and Stage 2 equals Stage 1, byte-identical.
-* **Stated limits:** 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only. The native route still needs python3. See [LIMITS.md](LIMITS.md).
+* **Stated limits:** 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only. See [LIMITS.md](LIMITS.md).
 
 Install: pick a package in [Install](#install), check it against `SHA256SUMS-v1.2.0`, unpack it and run `bin/sassembly-build` and `bin/sassembly-run`. A first program (saved as `शृङ्खला.t1`; the output is as shown in [section 1](#1-the-smallest-program-in-t1) below):
 
@@ -115,7 +115,7 @@ tools/t1-build.sh --entry MODULE ROUTINE -o out.elf prog.t1
 tools/t1-run.sh out.elf
 ```
 
-`bin/sassembly-run` and `tools/t1-run.sh` run an image through the native translation. Features that need the reference interpreter (threads, event replay, SMP, vectors) are listed in [LIMITS.md](LIMITS.md), with the five known exit-code-only differences; the native route needs Python 3.
+`bin/sassembly-run` and `tools/t1-run.sh` run an image through the native translation. Features that need the reference interpreter (threads, event replay, SMP, vectors) are listed in [LIMITS.md](LIMITS.md), with the five known exit-code-only differences; v1.2.1 needs no Python.
 
 Assembling T0 `.sas` text uses the v1.0.2 `sadhana` binary from the [v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2); it is not rebuilt in this tree.
 
@@ -133,7 +133,7 @@ Two facts first.
 
 ### 0. Get the tools
 
-Either download a native package for your machine (see [Install](#install)), or clone the repository and use `tools/t1-build.sh` and `tools/t1-run.sh`. Both need only POSIX `sh`, `awk`, `od`, `grep`, `sha256sum` or `shasum`, and Python 3 (the RV64-to-native translator is run through it). No Rust is needed.
+Either download a native package for your machine (see [Install](#install)), or clone the repository and use `tools/t1-build.sh` and `tools/t1-run.sh`. Both need only POSIX `sh`, `awk`, `od`, `grep`, `sha256sum` or `shasum`. The RV64-to-native translator is `tools/anuvada` over a native image. No Python or Rust is needed.
 
 
 ### 1. The smallest program, in `.t1`
@@ -313,7 +313,7 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.2.0 (release notes below; figures other than the Stage 2 size and package hashes are as measured for v1.1.0) — the language and its compiler are complete; known gaps: HOLE-PY (8 Python files remain in the release tree; the fixpoint oracle is still Python) and HOLE-WEB (the web build and page checks cannot run without the retired wasm toolchain); v1.2 has native packages for three targets (Linux aarch64 is not shipped in v1.2.0) (see [CHANGELOG.md](CHANGELOG.md)) |
+| **status** | v1.2.0 (release notes below; figures other than the Stage 2 size and package hashes are as measured for v1.1.0) — the language and its compiler are complete; known gaps: HOLE-WEB (the web build and page checks cannot run without the retired wasm toolchain); v1.2 has native packages for three targets (Linux aarch64 is not shipped in v1.2.0) (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 
@@ -348,11 +348,11 @@ Stage 2   Stage 1 running natively on RISC-V, compiling those same 21 sources
 
 **v1.1.0, measured 2026-10-10 with no Rust.** The v1.1.0 Stage 1 is `sassembly-v1.1.0-stage1.elf`: 951,146 octets, sha256
 `e0adbb0ff066d6bc2c024fd647c5e3b6c888c94068c58d5921e8ce8a89cd46c6`. Translated for a Linux x86-64 host and run natively, it compiled this
-repository's 21 sources (48,996 lines, packed by `tools/pack-corpus.py`) and halted with `status: Some(1200)` (BUILT). The output was itself,
+repository's 21 sources (48,996 lines, packed by `tools/pack-corpus.sh`) and halted with `status: Some(1200)` (BUILT). The output was itself,
 byte-identical. To repeat it from a native package, with no Rust:
 
 ```sh
-python3 tools/pack-corpus.py corpus.blob crates/sadhana-t1/src/*.t1
+sh tools/pack-corpus.sh corpus.blob crates/sadhana-t1/src/*.t1
 env -u YANTRA_INPUT_ENTRY YANTRA_INPUT=corpus.blob YANTRA_INPUT_NAME=शृङ्खला YANTRA_RAM=2684354560 \
     sassembly-native-v1.1.0-TARGET/lib/stage1.native > sink 2> log     # log: halt ... status: Some(1200)
 ```
@@ -360,7 +360,8 @@ env -u YANTRA_INPUT_ENTRY YANTRA_INPUT=corpus.blob YANTRA_INPUT_NAME=शृङ�
 The image is the octets from the first `\x7fELF` in `sink` up to, but not including, its last octet (as `bin/sassembly-build` cuts it):
 
 ```sh
-python3 -c "d=open('sink','rb').read(); i=d.index(b'\x7fELF'); open('s2.elf','wb').write(d[i:-1])"
+off=$(LC_ALL=C grep -abo "$(printf '\177ELF')" sink | head -n 1 | cut -d: -f1); len=$(wc -c < sink | tr -d ' ')
+head -c $((len - 1)) sink | tail -c +$((off + 1)) > s2.elf
 cmp s2.elf sassembly-v1.1.0-stage1.elf && echo FIXPOINT HOLDS
 ```
 
@@ -698,7 +699,7 @@ The Rust test suite (`cargo test --workspace --release --no-fail-fast`) was last
 crates/sadhana-t1/src/   the 21 .t1 sources — this is the compiler
 tools/                   the build, run, fixpoint and self-check scripts
 web/                     the hand-written glue: no wasm-bindgen, no generated bindings
-tools/                   t1-build.sh, t1-run.sh, release-native.sh, selfcheck/, native-spike/ (the translator), pack-corpus.py
+tools/                   t1-build.sh, t1-run.sh, release-native.sh, selfcheck/, native-spike/ (the translator), pack-corpus.sh
 ```
 
 Two conventions are worth knowing before opening a file, because both are easy
