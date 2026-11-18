@@ -45,7 +45,7 @@ itself.
 > [What this cannot do](#what-this-cannot-do), which is deliberately placed
 > before the tutorial.
 
-> **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Floating point, atomics, vectors, threads, event replay and most CSR/SBI calls have no native route in v1.2.1 (Python is retired; no interpreter is shipped). Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
+> **v1.2.** Sassembly v1.2 runs programs natively on x86_64 and aarch64 Linux and macOS; Windows is not yet supported. Native runs match the reference interpreter on halts, exit codes, step ceiling and infinite-loop detection. Atomics, vectors, threads, event replay, SMP and most CSR/SBI calls have no native route in v1.2.1; floating point (F and D) is native. No interpreter is shipped, so `tools/t1-run.sh` refuses such a run (exit 1) instead of rerunning it. Entropy and an outbound TCP client are not available. The default guest memory is 20 MiB; the compiler works in a 512 MiB record region. The wasm32 target supports the integer subset only. See [LIMITS.md](LIMITS.md). The install and measurement sections below are as measured for v1.1.0 and were not re-measured for v1.2.
 
 ## General Availability
 
@@ -115,7 +115,7 @@ tools/t1-build.sh --entry MODULE ROUTINE -o out.elf prog.t1
 tools/t1-run.sh out.elf
 ```
 
-`bin/sassembly-run` and `tools/t1-run.sh` run an image through the native translation. Features that need the reference interpreter (threads, event replay, SMP, vectors) are listed in [LIMITS.md](LIMITS.md), with the five known exit-code-only differences; v1.2.1 needs no Python.
+`bin/sassembly-run` and `tools/t1-run.sh` run an image through the native translation. Features with no native route (atomics, threads, event replay, SMP, vectors) are refused without a `yantra-run`; they are listed in [LIMITS.md](LIMITS.md), with the five known exit-code-only differences; v1.2.1 needs no Python.
 
 Assembling T0 `.sas` text uses the v1.0.2 `sadhana` binary from the [v1.0.2 release](https://github.com/paramtatv/sassembly/releases/tag/v1.0.2); it is not rebuilt in this tree.
 
