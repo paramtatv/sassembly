@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Downloads — Sassembly</title>
-<meta name="description" content="Download Sassembly v1.2.0, generally available: native packages for Linux x86-64 and macOS, with checksums you can verify on your own machine.">
+<meta name="description" content="Download Sassembly v1.2.1, generally available: native packages for Linux x86-64 and macOS, with checksums you can verify on your own machine.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Tiro+Devanagari+Sanskrit&family=Tiro+Devanagari+Hindi&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -45,9 +45,9 @@
 
   <section class="section--tight" style="display: flex; flex-direction: column; gap: 20px; padding-top: 48px;">
     <p class="eyebrow">Downloads · General Availability</p>
-    <h1 style="font-size: clamp(30px, 4vw, 48px);">Sassembly v1.2.0</h1>
-    <p class="lede">The release is three native packages and their checksums. There is no Linux aarch64 package in v1.2.0 and no Windows build. The source and the build instructions are in the repository.</p>
-    <p><a class="btn btn--solid" href="https://github.com/paramtatv/sassembly/releases/tag/v1.2.0" rel="noopener">Release page on GitHub</a></p>
+    <h1 style="font-size: clamp(30px, 4vw, 48px);">Sassembly v1.2.1</h1>
+    <p class="lede">The release is three native packages and their checksums. There is no Linux aarch64 package in v1.2.1 and no Windows build. The source and the build instructions are in the repository.</p>
+    <p><a class="btn btn--solid" href="https://github.com/paramtatv/sassembly/releases/tag/v1.2.1-1" rel="noopener">Release page on GitHub</a></p>
   </section>
 
   <section class="section--tight" id="ga">
@@ -55,8 +55,8 @@
       <h2>General Availability</h2>
       <span class="mark" aria-hidden="true">॥</span>
     </div>
-    <p>Sassembly v1.2.0 is generally available: native packages for Linux x86-64, macOS arm64 and macOS x86-64, with a checksum file. Each compiles and runs .t1 programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.0. The native route still needs python3, and 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout (the other 5 differ in exit code only); see Limits below.</p>
-    <p>Install: choose a package below, check it against SHA256SUMS-v1.2.0 (steps in <a href="#verify">Verification</a>), unpack it and run bin/sassembly-build and bin/sassembly-run. A first program, saved as शृङ्खला.t1, prints नमस्ते संसार:</p>
+    <p>Sassembly v1.2.1 is generally available: native packages for Linux x86-64, macOS arm64 and macOS x86-64, with a checksum file. Each compiles and runs .t1 programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.1. The release tree has no Python files. The probe comparison on aarch64-macos (44 of 49 agree in exit code and stdout) was measured on v1.2.0 and not re-run for v1.2.1; see Limits below.</p>
+    <p>Install: choose a package below, check it against SHA256SUMS-v1.2.1 (steps in <a href="#verify">Verification</a>), unpack it and run bin/sassembly-build and bin/sassembly-run. A first program, saved as शृङ्खला.t1, prints नमस्ते संसार:</p>
 <pre class="code-mono code-mono--dark" style="border-radius: 3px;">मण्डलम् शृङ्खला ॥
 आयातः अष्टक ।
 
@@ -71,21 +71,27 @@
     चरः घ ॱॱ न६४ भवति अष्टकॱमुद्रणम् १० ।
     प्रत्यागमनम् ० ।
 इति</pre>
-    <p>Licence: AGPL-3.0-only, with a commercial licence available from the copyright holder. See <a href="https://github.com/paramtatv/sassembly/blob/v1.2.0/COMMERCIAL-LICENSE.md" rel="noopener">COMMERCIAL-LICENSE.md</a>.</p>
+    <p>Licence: AGPL-3.0-only, with a commercial licence available from the copyright holder. See <a href="https://github.com/paramtatv/sassembly/blob/v1.2.1-1/COMMERCIAL-LICENSE.md" rel="noopener">COMMERCIAL-LICENSE.md</a>.</p>
   </section>
 
   <section class="section--tight">
     <div class="dl">
       <article class="dl__card">
-        <span class="dl__plat mono">SHA256SUMS-v1.2.0</span>
-        <span class="dl__meta">checksums · 331 octets</span>
-        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.0/SHA256SUMS-v1.2.0" rel="noopener">Download</a>
-        <span class="hash">sha256 f00d3fe8a714aa8592a523fde420b7ebf3cc6ac3df6cdd39fd3d4ed3c24b7b9e</span>
+        <span class="dl__plat mono">SHA256SUMS-v1.2.1</span>
+        <span class="dl__meta">checksums · 425 octets</span>
+        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.1-1/SHA256SUMS-v1.2.1" rel="noopener">Download</a>
+        <span class="hash">sha256 45f3c7435a35487f10f0fa9263e3747a5faf7c463c9471c099e76f30b5518255</span>
       </article>
       <article class="dl__card">
-        <span class="dl__plat"><span>Source, tag v1.2.0</span></span>
+        <span class="dl__plat mono">sassembly-v1.2.1-stage1.elf</span>
+        <span class="dl__meta">Stage 1 compiler image · 1,161,026 octets</span>
+        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.1-1/sassembly-v1.2.1-stage1.elf" rel="noopener">Download</a>
+        <span class="hash">sha256 269ac263027aea8e173ca04b235eda85efeadbf90d06757c5afc208ddbca24e1</span>
+      </article>
+      <article class="dl__card">
+        <span class="dl__plat"><span>Source, tag v1.2.1-1</span></span>
         <span class="dl__meta">the repository at the release tag</span>
-        <a class="btn btn--sm" href="https://github.com/paramtatv/sassembly/tree/v1.2.0" rel="noopener">Browse</a>
+        <a class="btn btn--sm" href="https://github.com/paramtatv/sassembly/tree/v1.2.1-1" rel="noopener">Browse</a>
         <span class="hash">the compiler, in Sassembly, readable end to end</span>
       </article>
     </div>
@@ -98,30 +104,30 @@
     </div>
     <div class="dl">
       <article class="dl__card">
-        <span class="dl__plat mono">sassembly-native-v1.2.0-x86_64-linux.tar.gz</span>
-        <span class="dl__meta"><span>Linux x86-64 · 7,818,219 octets · </span><span>compile and run .t1, no Rust</span></span>
-        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.0/sassembly-native-v1.2.0-x86_64-linux.tar.gz" rel="noopener">Download</a>
-        <span class="hash">sha256 0598c3c81512756e74db0e6f93f08bcb1aea5481be07be988ccbc73861f6985e</span>
+        <span class="dl__plat mono">sassembly-native-v1.2.1-x86_64-linux.tar.gz</span>
+        <span class="dl__meta"><span>Linux x86-64 · 8,056,421 octets · </span><span>compile and run .t1, no Rust</span></span>
+        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.1-1/sassembly-native-v1.2.1-x86_64-linux.tar.gz" rel="noopener">Download</a>
+        <span class="hash">sha256 d427aec117b4ae7a41bc3837e92c079669d3f8cc4b515eccd6466d073239194a</span>
       </article>
       <article class="dl__card">
         <span class="dl__plat"><span>Linux aarch64</span></span>
-        <span class="dl__meta">Not shipped in v1.2.0. There is no Linux aarch64 package in this release.</span>
+        <span class="dl__meta">Not shipped in v1.2.1. There is no Linux aarch64 package in this release.</span>
       </article>
       <article class="dl__card">
-        <span class="dl__plat mono">sassembly-native-v1.2.0-aarch64-macos.tar.gz</span>
-        <span class="dl__meta"><span>macOS arm64 · 7,525,115 octets · </span><span>compile and run .t1, no Rust</span></span>
-        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.0/sassembly-native-v1.2.0-aarch64-macos.tar.gz" rel="noopener">Download</a>
-        <span class="hash">sha256 ed3557729bc088921b57a41bb0f0e8cced64ae3a38db6beb0ba9fad7b786e0cb</span>
+        <span class="dl__plat mono">sassembly-native-v1.2.1-aarch64-macos.tar.gz</span>
+        <span class="dl__meta"><span>macOS arm64 · 7,751,902 octets · </span><span>compile and run .t1, no Rust</span></span>
+        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.1-1/sassembly-native-v1.2.1-aarch64-macos.tar.gz" rel="noopener">Download</a>
+        <span class="hash">sha256 4710cc63a09265a5cf1c77e755e03b8cee08dc38f4d5df7a2034f021c9bc10ee</span>
       </article>
       <article class="dl__card">
-        <span class="dl__plat mono">sassembly-native-v1.2.0-x86_64-macos.tar.gz</span>
-        <span class="dl__meta"><span>macOS x86-64 · 8,152,728 octets · </span><span>compile and run .t1, no Rust</span></span>
-        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.0/sassembly-native-v1.2.0-x86_64-macos.tar.gz" rel="noopener">Download</a>
-        <span class="hash">sha256 d134f55c1655a6bf1bab3565f0e6a1d60ab471766bd419e66e5cc652246a7346</span>
+        <span class="dl__plat mono">sassembly-native-v1.2.1-x86_64-macos.tar.gz</span>
+        <span class="dl__meta"><span>macOS x86-64 · 8,396,454 octets · </span><span>compile and run .t1, no Rust</span></span>
+        <a class="btn btn--solid btn--sm" href="https://github.com/paramtatv/sassembly/releases/download/v1.2.1-1/sassembly-native-v1.2.1-x86_64-macos.tar.gz" rel="noopener">Download</a>
+        <span class="hash">sha256 5b1ea2e9af589c6b17204894831b5b23e74cc2c1269f83862afdffcdff9143ca</span>
       </article>
       <article class="dl__card">
         <span class="dl__plat"><span>Windows</span></span>
-        <span class="dl__meta">There is no Windows build in v1.2.0. On Windows, the older v1.0.2 Rust binaries below remain available.</span>
+        <span class="dl__meta">There is no Windows build in v1.2.1. On Windows, the older v1.0.2 Rust binaries below remain available.</span>
         <a class="btn btn--sm" href="https://github.com/paramtatv/sassembly/blob/main/README.md#install" rel="noopener">README · Install</a>
       </article>
     </div>
@@ -191,19 +197,19 @@
           <p>A release you cannot check is taken on faith. Check the checksum, then build and run the example from the package.</p>
         </div>
         <div class="colophon__figs" style="flex: 1 1 320px;">
-          <div class="fig"><span class="fig__n">1,146,370</span><span class="fig__l">octets — the v1.2 Stage 1; Stage 2 equals Stage 1, byte-identical</span></div>
-          <div class="fig"><span class="fig__n">3</span><span class="fig__l">native packages in v1.2.0; Linux aarch64 is not shipped</span></div>
+          <div class="fig"><span class="fig__n">1,161,026</span><span class="fig__l">octets — the v1.2.1 Stage 1; Stage 2 equals Stage 1, byte-identical</span></div>
+          <div class="fig"><span class="fig__n">3</span><span class="fig__l">native packages in v1.2.1; Linux aarch64 is not shipped</span></div>
         </div>
       </div>
 <pre class="code-mono code-mono--dark" style="border-radius: 3px;"># fetch a package and the checksums, check, unpack, build and run the example
-V=v1.2.0; T=sassembly-native-$V-TARGET.tar.gz   # TARGET: x86_64-linux, aarch64-macos or x86_64-macos
-gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V
+V=v1.2.1; R=v1.2.1-1; T=sassembly-native-$V-TARGET.tar.gz   # TARGET: x86_64-linux, aarch64-macos or x86_64-macos
+gh release download $R -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V
 grep " $T\$" SHA256SUMS-$V | sha256sum -c -        # macOS: ... | shasum -a 256 -c -
 tar xzf $T &amp;&amp; cd sassembly-native-$V-TARGET
 bin/sassembly-build -o n.elf example/namaste.t1 &amp;&amp; bin/sassembly-run n.elf
 # macOS only, if Gatekeeper blocks the files (downloaded via a browser):
 xattr -dr com.apple.quarantine .</pre>
-      <p style="font-size: 15px; color: var(--code-dim); max-width: 62em;">The release notes record that Stage 2 equals Stage 1, byte-identical. v1.2.0 ships no standalone Stage 1 image and no provenance file, so there is no octet-for-octet rebuild recipe on this page for v1.2.0. If a package does not match its checksum, we want the bug report.</p>
+      <p style="font-size: 15px; color: var(--code-dim); max-width: 62em;">The release notes record that Stage 2 equals Stage 1, byte-identical. v1.2.1 ships the Stage 1 image as sassembly-v1.2.1-stage1.elf (sha256 269ac263027aea8e173ca04b235eda85efeadbf90d06757c5afc208ddbca24e1, 1,161,026 octets), the same in all three packages. If a package does not match its checksum, we want the bug report.</p>
     </div>
   </section>
 
@@ -232,11 +238,11 @@ xattr -dr com.apple.quarantine .</pre>
     <div class="grid grid--3">
       <article class="card">
         <h3>Building from source</h3>
-        <p>No Rust needed: tools/t1-build.sh and tools/t1-run.sh use the native Stage 1 and translator, as the packages do. The Rust route (cargo, tools/fixpoint.sh) is not maintained from v1.1.0; the Rust is frozen and archived. The native route still needs python3.</p>
+        <p>No Rust and no Python needed: tools/t1-build.sh and tools/t1-run.sh use the native Stage 1 and translator, as the packages do. The Rust route (cargo, tools/fixpoint.sh) is not maintained from v1.1.0; the Rust is frozen and archived.</p>
       </article>
       <article class="card">
         <h3>Tools and sources</h3>
-        <p>v1.2.0 ports 152 files from the monorepo: crates/sadhana-t1, tools, tools/selfcheck, spec/net and docs/adr. 8 Python files remain in the release tree, and the fixpoint oracle is still Python. The web build and page checks cannot run without the retired wasm toolchain.</p>
+        <p>v1.2 ports 152 files from the monorepo: crates/sadhana-t1, tools, tools/selfcheck, spec/net and docs/adr. The release tree has 0 Python files. The web build and page checks cannot run without the retired wasm toolchain.</p>
       </article>
       <article class="card">
         <h3>Reporting a defect</h3>
@@ -256,6 +262,7 @@ xattr -dr com.apple.quarantine .</pre>
         <caption>Earlier releases, with their release pages</caption>
         <thead><tr><th>Version</th><th>Date</th><th>Release</th></tr></thead>
         <tbody>
+          <tr><td class="mono"><a href="https://github.com/paramtatv/sassembly/releases/tag/v1.2.0" rel="noopener">v1.2.0</a></td><td>2026-11-11</td><td>General Availability: three native packages</td></tr>
           <tr><td class="mono"><a href="https://github.com/paramtatv/sassembly/releases/tag/v1.1.0" rel="noopener">v1.1.0</a></td><td>2026-10-10</td><td>native packages on four targets</td></tr>
           <tr><td class="mono"><a href="https://github.com/paramtatv/sassembly/releases/tag/v1.1.0-alpha" rel="noopener">v1.1.0-alpha</a></td><td>2026-10-10</td><td>a network frames device, alpha</td></tr>
           <tr><td class="mono"><a href="https://github.com/paramtatv/sassembly/releases/tag/v1.0.2" rel="noopener">v1.0.2</a></td><td>2026-10-10</td><td>any entry; AGPL-3.0-only</td></tr>
