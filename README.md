@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.2.0-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.2.0"></a>
+  <a href="#status-and-stability"><img src="https://img.shields.io/badge/version-v1.2.1-A63A21?style=flat-square&labelColor=2B2521" alt="version v1.2.1"></a>
   <a href="#licence"><img src="https://img.shields.io/badge/licence-AGPL--3.0-A63A21?style=flat-square&labelColor=2B2521" alt="licence AGPL-3.0-only"></a>
   <a href="#the-claim-and-how-to-check-it"><img src="https://img.shields.io/badge/target-RISC--V%20RV64-1F6F6B?style=flat-square&labelColor=2B2521" alt="target RISC-V RV64"></a>
   <a href="https://paramtatv.github.io/sassembly/"><img src="https://img.shields.io/badge/docs-paramtatv.github.io%2Fsassembly-1F6F6B?style=flat-square&labelColor=2B2521" alt="documentation"></a>
@@ -49,15 +49,15 @@ itself.
 
 ## General Availability
 
-Sassembly v1.2.0 is generally available. The release is attached to the [v1.2.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.0) with a `SHA256SUMS-v1.2.0`.
+Sassembly v1.2.1 is generally available. The release is attached to the [v1.2.1 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.1-1) with a `SHA256SUMS-v1.2.1`.
 
 What General Availability covers:
 
-* **Native packages for three targets:** x86-64 Linux, macOS arm64 (Apple silicon) and macOS x86-64 (Intel). Each compiles and runs `.t1` programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.0.
+* **Native packages for three targets:** x86-64 Linux, macOS arm64 (Apple silicon) and macOS x86-64 (Intel). Each compiles and runs `.t1` programs with no Rust and no emulator. There is no Linux aarch64 package and no Windows build in v1.2.1.
 * **A self-hosting compiler:** the v1.2 Stage 1 image is 1,146,370 octets, and Stage 2 equals Stage 1, byte-identical.
 * **Stated limits:** 44 of 49 probes on aarch64-macos agree with the reference interpreter in exit code and stdout; the other 5 differ in exit code only. See [LIMITS.md](LIMITS.md).
 
-Install: pick a package in [Install](#install), check it against `SHA256SUMS-v1.2.0`, unpack it and run `bin/sassembly-build` and `bin/sassembly-run`. A first program (saved as `शृङ्खला.t1`; the output is as shown in [section 1](#1-the-smallest-program-in-t1) below):
+Install: pick a package in [Install](#install), check it against `SHA256SUMS-v1.2.1`, unpack it and run `bin/sassembly-build` and `bin/sassembly-run`. A first program (saved as `शृङ्खला.t1`; the output is as shown in [section 1](#1-the-smallest-program-in-t1) below):
 
 ```
 मण्डलम् शृङ्खला ॥
@@ -86,19 +86,19 @@ Sassembly v1.2 is pure Sassembly: there is no Rust in the tree and none is neede
 
 ### Native packages (v1.2): no Rust, no emulator
 
-Each package compiles and runs `.t1` programs natively. It holds the v1.2 Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for the target, plus `bin/sassembly-build`, `bin/sassembly-run`, an example and a `SHA256SUMS` for every file. It needs only POSIX `sh`, `awk`, `od`, `grep` and `sha256sum` or `shasum`. The packages are attached to the [v1.2.0 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.0).
+Each package compiles and runs `.t1` programs natively. It holds the v1.2 Stage 1 compiler and the RV64-to-native translator, both translated ahead of time for the target, plus `bin/sassembly-build`, `bin/sassembly-run`, an example and a `SHA256SUMS` for every file. It needs only POSIX `sh`, `awk`, `od`, `grep` and `sha256sum` or `shasum`. The packages are attached to the [v1.2.1 release](https://github.com/paramtatv/sassembly/releases/tag/v1.2.1-1).
 
 | OS | archive | sha256 |
 |---|---|---|
-| Linux x86-64 | `sassembly-native-v1.2.0-x86_64-linux.tar.gz` | `0598c3c81512756e74db0e6f93f08bcb1aea5481be07be988ccbc73861f6985e` |
-| Linux aarch64 | `sassembly-native-v1.2.0-aarch64-linux.tar.gz` | not shipped in v1.2.0 |
-| macOS arm64 (Apple silicon) | `sassembly-native-v1.2.0-aarch64-macos.tar.gz` | `ed3557729bc088921b57a41bb0f0e8cced64ae3a38db6beb0ba9fad7b786e0cb` |
-| macOS x86-64 (Intel) | `sassembly-native-v1.2.0-x86_64-macos.tar.gz` | `d134f55c1655a6bf1bab3565f0e6a1d60ab471766bd419e66e5cc652246a7346` |
+| Linux x86-64 | `sassembly-native-v1.2.1-x86_64-linux.tar.gz` | `d427aec117b4ae7a41bc3837e92c079669d3f8cc4b515eccd6466d073239194a` |
+| Linux aarch64 | `sassembly-native-v1.2.1-aarch64-linux.tar.gz` | not shipped in v1.2.1 |
+| macOS arm64 (Apple silicon) | `sassembly-native-v1.2.1-aarch64-macos.tar.gz` | `4710cc63a09265a5cf1c77e755e03b8cee08dc38f4d5df7a2034f021c9bc10ee` |
+| macOS x86-64 (Intel) | `sassembly-native-v1.2.1-x86_64-macos.tar.gz` | `5b1ea2e9af589c6b17204894831b5b23e74cc2c1269f83862afdffcdff9143ca` |
 
-The sha256s are those in the release's `SHA256SUMS-v1.2.0`. There is no Windows build. There is no Linux aarch64 package in v1.2.0.
+The sha256s are those in the release's `SHA256SUMS-v1.2.1`. There is no Windows build. There is no Linux aarch64 package in v1.2.1.
 
 ```sh
-V=v1.2.0; T=sassembly-native-$V-TARGET.tar.gz       # TARGET: x86_64-linux, aarch64-linux, aarch64-macos, x86_64-macos
+V=v1.2.1; T=sassembly-native-$V-TARGET.tar.gz       # TARGET: x86_64-linux, aarch64-linux, aarch64-macos, x86_64-macos
 gh release download $V -R paramtatv/sassembly -p "$T" -p SHA256SUMS-$V
 grep " $T\$" SHA256SUMS-$V | sha256sum -c -          # macOS: ... | shasum -a 256 -c -
 tar xzf $T && cd sassembly-native-$V-TARGET
@@ -313,7 +313,7 @@ The larger worked examples (audio, image, protein, video) are at <https://paramt
 | **target** | bare-metal RISC-V RV64, no LLVM, no external toolchain |
 | **in a browser** | [playground](https://paramtatv.github.io/sassembly/playground.html) — about 612 KB of wasm, no server |
 | **measured** | 2026-10-10, from this repository |
-| **status** | v1.2.0 (release notes below; figures other than the Stage 2 size and package hashes are as measured for v1.1.0) — the language and its compiler are complete; known gaps: HOLE-WEB (the web build and page checks cannot run without the retired wasm toolchain); v1.2 has native packages for three targets (Linux aarch64 is not shipped in v1.2.0) (see [CHANGELOG.md](CHANGELOG.md)) |
+| **status** | v1.2.1 (release notes below; figures other than the Stage 2 size and package hashes are as measured for v1.1.0) — the language and its compiler are complete; known gaps: HOLE-WEB (the web build and page checks cannot run without the retired wasm toolchain); v1.2 has native packages for three targets (Linux aarch64 is not shipped in v1.2.1) (see [CHANGELOG.md](CHANGELOG.md)) |
 
 ### Contents
 
@@ -445,7 +445,7 @@ This table is a summary of [LIMITS.md](LIMITS.md), which keeps only verified res
 | **network frames, UDP, DNS** | a frames-only device (`--net-peer PATH`, `--net-tap` on Linux) and a `.t1` stack in `spec/net/` (Ethernet, ARP, IPv4, ICMP echo, UDP, a DNS client); not re-verified for v1.2 | `yantra-run` only |
 | **outbound TCP, TLS, HTTP, IPv6, DHCP** | no | — |
 | **entropy source** | no hardware source; a pool file `.entropy` in the granted root, drawn through the library | native and `yantra-run` |
-| **Windows** | no build in v1.2.0 | — |
+| **Windows** | no build in v1.2.1 | — |
 | **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it | — |
 
 What the clock, thread and socket windows do, and do not do, is set out in
@@ -748,7 +748,7 @@ here.
 
 ## Status and stability
 
-This is version **v1.2.0**, generally available (see [General Availability](#general-availability) and [CHANGELOG.md](CHANGELOG.md)): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
+This is version **v1.2.1**, generally available (see [General Availability](#general-availability) and [CHANGELOG.md](CHANGELOG.md)): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
 the object format. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
