@@ -428,22 +428,26 @@ Not in this release: compiling Sanskrit to web pages, and a GPU compute path
 Stated first, and in full, because a self-hosting compiler invites the
 assumption that a general-purpose toolchain comes with it. It does not.
 
-Every row of the longer list in [LIMITS.md](LIMITS.md) was checked against the v1.0.0 release binaries or a named test (the file rows have been re-checked on v1.0.1), and carries the command to repeat the check.
+This table is a summary of [LIMITS.md](LIMITS.md), which keeps only verified results and the command to repeat each check. Its section 1 is the v1.2 refresh (49 native-versus-interpreter probes on `aarch64-macos`); its section 2 was verified on the four v1.1.0 native targets and not re-run for v1.2. The Rust tests that earlier versions of this table cited are not in this tree.
 
-| capability | available today | shown by |
+| capability | available today | native or interpreter |
 |---|---|---|
-| **open and read a named file** | **works with `--files DIR` (v1.0.1)**: `yantra-run --files DIR prog.elf`. Without the flag every file request is refused by name. A path that escapes DIR (`..`, absolute, drive-letter, symlink out) is refused. Trust model: DIR must not be writable by an untrusted party while the program runs | `t1_files_flag.rs`: `files_grants_the_root_and_the_program_reads_inside_it`, `without_the_flag_the_same_program_is_refused_by_name`; `t1_file_window.rs`: `the_window_refuses_a_path_that_escapes_its_root_and_says_so` |
-| **write a file** | **works with `--files DIR` (v1.0.1)**, same window (`PATRA_PUT`); it does not follow a symlink at the file itself (unix) | `t1_files_flag.rs`: `files_writes_inside_the_root_and_reads_it_back`, `a_write_through_a_symlink_in_the_root_leaves_the_outside_file_alone`, `without_the_flag_a_write_creates_nothing` |
-| **command-line arguments** | yes, on `yantra-run`; an image that does not declare the argument globals is refused | `t1_arguments.rs`: `a_program_reads_the_arguments_it_was_given`, `the_binary_hands_a_program_its_command_line` |
-| **clock** | yes, but only as a value delivered at a wait and recorded in an event log, so a run can be replayed exactly | `w375_clock.rs` |
-| **threads** | cooperative only: the host switches threads at waits and never preempts; the schedule is in the event log | `w376_threads.rs` |
-| **sockets** | one host socket, served at waits; live it serves one client, and the log replays without a network | `w377_sockets.rs` |
-| **network frames, UDP, DNS** | **v1.1.0-alpha**: a frames-only device (`--net-peer PATH`, `--net-tap` on Linux) and a `.t1` stack in `spec/net/` (Ethernet, ARP, IPv4, ICMP echo, UDP, a DNS client); see [docs/networking-host-setup.md](docs/networking-host-setup.md) | `net_frames.rs`, `net_names.rs`, `net_t1.rs` |
-| **TCP, TLS, HTTP** | no | — |
+| **open and read a named file** | yes, inside a granted root: `tools/t1-run.sh --files DIR` or `YANTRA_FILES=DIR` (a package's `bin/sassembly-run` takes `YANTRA_FILES=DIR`). With no grant every request is refused by name. A path that escapes the root (`..`, absolute, symlink out) is refused | native and `yantra-run` |
+| **write a file** | yes, the same root and the same refusals | native and `yantra-run` |
+| **append, delete or list files** | no: the only file builtins are `अष्टकॱपत्रम्` (read) and `अष्टकॱपत्रलेखनम्` (write) | — |
+| **command-line arguments** | yes; the program's path is argument 0 | native and `yantra-run` |
+| **environment variables, stdin, spawning a process** | no builtin | — |
+| **clock** | only as a value delivered at a wait and recorded in an event log, so a run can be replayed exactly; there is no sleep | recording native and `yantra-run`; replay `yantra-run` only |
+| **threads** | cooperative only (1 to 64): the host switches threads at waits and never preempts | `yantra-run` only; a native package refuses a threaded image by name |
+| **floating point, vectors** | 64-bit F and D: yes. Vectors (the e64 subset): interpreter only | floats native; vectors `yantra-run` |
+| **sockets** | one loopback TCP client (`--listen`), served at waits; the log replays without a network | `yantra-run` only |
+| **network frames, UDP, DNS** | a frames-only device (`--net-peer PATH`, `--net-tap` on Linux) and a `.t1` stack in `spec/net/` (Ethernet, ARP, IPv4, ICMP echo, UDP, a DNS client); not re-verified for v1.2 | `yantra-run` only |
+| **outbound TCP, TLS, HTTP, IPv6, DHCP** | no | — |
+| **entropy source** | no hardware source; a pool file `.entropy` in the granted root, drawn through the library | native and `yantra-run` |
+| **Windows** | no build in v1.2.0 | — |
 | **standard library** | `lib.t1` is fifteen lines of comments and declares no module, so nothing can import it | — |
 
-These are `yantra` features: the device windows are part of the emulator, and
-the same program on bare metal has none of them. What the clock, thread and socket windows do, and do not do, is set out in
+What the clock, thread and socket windows do, and do not do, is set out in
 [NETWORKING.md](NETWORKING.md). The earlier question of how a program that
 cannot wait could use a network is kept as history in
 [WHY-NO-NETWORKING.md](WHY-NO-NETWORKING.md) (ADR-0040).
@@ -452,16 +456,15 @@ cannot wait could use a network is kept as history in
 
 ## What a program can do today
 
-All of the following are measured and have guard tests, listed so the claims can
-be checked rather than taken:
+All of the following were measured; the guard tests named were in the v1.0.2 Rust suite, which is removed from this tree in v1.2:
 
 | capability | measured | guard |
 |---|---|---|
 | compute, branch, loop, records, arenas | `status: Some(55)` = Σ1..10 | — |
 | compile a fresh program | **13.4 s**, 65,832-octet ELF | — |
-| **read the input it was given** | `status: Some(2289)`, the exact octet sum of a 25-byte file | [`t1_user_input_interface.rs`](crates/yantra/tests/t1_user_input_interface.rs) |
-| **allocate dynamically** | a run grown to 5,000 elements and summed | [`t1_user_allocation.rs`](crates/yantra/tests/t1_user_allocation.rs) |
-| **print to the console** | `HI!\n`, asserted from **both** engines | [`t1_user_console.rs`](crates/yantra/tests/t1_user_console.rs) |
+| **read the input it was given** | `status: Some(2289)`, the exact octet sum of a 25-byte file | `t1_user_input_interface.rs` (v1.0.2 Rust suite; not in this tree) |
+| **allocate dynamically** | a run grown to 5,000 elements and summed | `t1_user_allocation.rs` (v1.0.2 Rust suite; not in this tree) |
+| **print to the console** | `HI!\n`, asserted from **both** engines | `t1_user_console.rs` (v1.0.2 Rust suite; not in this tree) |
 | return a result | the finisher status — **48 bits** (the finisher word above its low 16 bits) | a run: status `281474976710652` = 2^48 − 4 |
 
 Two footnotes that will otherwise cost you an afternoon:
@@ -744,7 +747,7 @@ here.
 
 ## Status and stability
 
-This is version **v1.1.0** (v1.1.0-alpha plus native packages, register promotion, fork-join and arenas; see [CHANGELOG.md](CHANGELOG.md)): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
+This is version **v1.2.0**, generally available (see [General Availability](#general-availability) and [CHANGELOG.md](CHANGELOG.md)): the language and its compiler are complete. Interfaces around them can still change. Outside the compiler, nothing here is stable: not the tool names, not
 the object format. The fixpoint is the result; the interfaces
 around it are scaffolding for reaching it.
 
