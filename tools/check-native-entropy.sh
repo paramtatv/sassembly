@@ -3,20 +3,20 @@
 # tools/yantra-entropy.sh) and as a native translation on THIS host. See the header of
 # spec/entropy/yadrucchika-srotah.t1 for the protocol (the reserved name ".entropy" in the file window).
 #
-# usage: tools/check-native-entropy.sh [ORACLE.py]   (BIN=dir holding t1_image and yantra-run; default target/release)
+# usage: tools/check-native-entropy.sh [ORACLE]   (BIN=dir holding t1_image and yantra-run; default target/release)
 # Exits 0 on PASS, 1 on FAIL, 77 when a tool is absent. A native leg that cannot run natively is a FAIL. Entropy is not deterministic: nothing here compares
 # two live runs for equality except a REPLAY with its record.
 set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 BIN=${BIN:-${CARGO_TARGET_DIR:-$root/target}/release}
-ORACLE=${1:-$root/tools/native-spike/anuvada.py}
+ORACLE=${1:-$root/tools/anuvada}
 . "$root/tools/ensure-yantra-bins.sh"; ensure_bins "$BIN"
 tmp=$(mktemp -d) || exit 77; trap 'rm -rf "$tmp"' EXIT
 d=$root/spec/entropy
 build() { # NAME FILES...
   n=$1; shift; load=""; for f in "$@"; do load="$load --load $f"; done
   # shellcheck disable=SC2086
-  SAS_BIN="$BIN" sh "$root/tools/t1-build.sh" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
+  SAS_BIN="$BIN" bash "$root/tools/t1-build.sh" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
     --entry यादृच्छिकपरीक्षा मुख्यम् -o "$tmp/$n.elf" "$@" > "$tmp/$n.build.log" 2>&1 || { echo "FAIL build $n"; tail -5 "$tmp/$n.build.log"; exit 1; }
 }
 build ent "$d/yadrucchika-srotah.t1" "$d/yadrucchika-pariksha.t1"
@@ -45,7 +45,7 @@ case "$(uname -s) $(uname -m)" in
   "Linux x86_64") tgt=x86_64-linux;; "Linux aarch64") tgt=aarch64-linux;;
   "Darwin arm64") tgt=aarch64-macos;; "Darwin x86_64") tgt=x86_64-macos;; *) echo "no native target here"; exit 77;;
 esac
-python3 "$ORACLE" --target $tgt "$tmp/gpu.elf" "$tmp/gpu.nat" "$tmp/gpu.elf" > /dev/null 2>&1; chmod +x "$tmp/gpu.nat"
+"$ORACLE" --target $tgt "$tmp/gpu.elf" "$tmp/gpu.nat" "$tmp/gpu.elf" > /dev/null 2>&1; chmod +x "$tmp/gpu.nat"
 # Native entropy is the SAME launcher with tools/t1-run.sh as the runner: the pool is an ordinary file in the
 # granted root, read through the native file window, so native == yantra by construction (no special case in
 # the runtime). T1_RUN_REQUIRE_NATIVE=1 makes a run that would fall back to yantra-run refuse (exit 3) instead.

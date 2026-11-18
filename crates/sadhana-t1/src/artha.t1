@@ -52,7 +52,7 @@
 ॰ The sema's T1 port existed, machine-transliterated, INSIDE विश्लेषण.त१,
 ॰ as मण्डलम् वइशलएसअन. That is the disassembler's file: spec/marks.tsv row
 ॰ `vishlesana`, spec/lexicon.src.tsv line 437 and task B-013 all name
-॰ विश्लेषणम् the disassembler, and crates/sadhana/src/vishlesana.rs is 231
+॰ विश्लेषणम् the disassembler, and retired Rust vishlesana.rs is 231
 ॰ lines of one. The sema had been written into it.
 ॰
 ॰ THAT MISFILING WAS A LIVE BLOCKER, NOT AN UNTIDINESS. संयोजन.त१'s stub
@@ -170,7 +170,7 @@
 ॰ two-module collision and `t1_modules`'s load-order ratchet caught it — the very
 ॰ class W-249 demonstrated hours earlier. Main was red on the hoisting ratchet for exactly this
 ॰ (2026-09-05, `undeclared विवरम् at line 611`), and the ratchet is `#[ignore]`d,
-॰ so a whole-crate run does not reach it — only `tools/light-gate.sh` does.
+॰ so a whole-crate run does not reach it — only `retired light-gate.sh` does.
 सार्वजनिक चरः प्रकारपाठविवराष्टकम् ॱॱ अ६४ भवति विवरम् अङ्कः ० अन्तः ।
 
 सार्वजनिक चरः पूर्णाङ्कार्थभेद ॱॱ न६४ भवति १ ।     ॰ Ty::Int { width, signed }

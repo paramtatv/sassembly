@@ -1,4 +1,4 @@
-मण्डलम् कोश ॥   ॰ kosha — the port of crates/sadhana/src/kosha.rs, the symbol model
+मण्डलम् कोश ॥   ॰ kosha — the port of retired Rust kosha.rs, the symbol model
 
 ॰ THIS FILE WAS NOT SANSKRIT UNTIL 2026-08-30, and its module could not be
 ॰ imported. It arrived in e332932d transcribed letter by letter out of English:
@@ -43,7 +43,7 @@
 ॰ ══════════════════ THE IMAGE WRITER (`W-kosha` phase 2) ══════════════════
 ॰
 ॰ WHAT AN IMAGE HAS TO BE, MEASURED FROM THE LOADER AND NOT FROM `kosha.rs`.
-॰ `yantra`'s `Program::parse` (`crates/yantra/src/loader.rs:120`) reads the
+॰ `yantra`'s `Program::parse` (`retired Rust loader.rs:120`) reads the
 ॰ sixty-four octet header — the magic, class २, little-endian, `e_machine` २४३,
 ॰ `e_entry`, `e_phoff`, `e_phentsize`, `e_phnum` — and then the PROGRAM
 ॰ HEADERS. IT READS NO SECTION HEADERS AT ALL: no `.symtab`, no `.strtab`, no

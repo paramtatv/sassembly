@@ -1,4 +1,4 @@
-# W-302 frozen oracle: sha256 of Rust sadhana image under ruling (a) (tools/check-w302-native.pl). program(+program)	addr(- = default)	sha256|REFUSED
+# W-302 frozen oracle: sha256 of Rust sadhana image under ruling (a) (tools/w302-proj.sh image). program(+program)	addr(- = default)	sha256|REFUSED
 bare-metal	-	1f577aadb7b7d21ce47629f33b6f797f0e4f564b1f624d011a14b455779c662b
 jump-table	-	d998b180675ecc497dcf5b247e86aa2c1ab0ddd8e1eff8bd5d8dbcdbd9351ac5
 lib-mudraka	-	53a9f6dc354b52f4c38b04c16e67d8d7f810b70ee4cfda7005b12a875faa2040

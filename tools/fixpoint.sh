@@ -94,10 +94,10 @@ done
 # Stage 1 APPROVED for everyday landings (fixpoint via native Stage 1 + native Stage 2), with the
 # Rust-interpreter Stage 1 + full yantra Stage 2 kept as a NIGHTLY (and pre-release) independent
 # check that must stay green"): the PREVIOUS main's compiler image P, translated natively by
-# anuvada.py, compiles THIS corpus -> A (this is Stage 1); A, translated, compiles it again -> B
+# the seed translator (tools/anuvada), compiles THIS corpus -> A (this is Stage 1); A, translated, compiles it again -> B
 # (Stage 2); A == B byte-identical is the everyday fixpoint. If FIXPOINT_PREV_IMAGE is missing or
 # its sha256 sidecar (<elf>.sha256) disagrees, it FALLS BACK to the interpreter Stage 1, saying so
-# by name. an internal tool always runs the interpreter Stage 1.
+# by name. tools/nightly.sh always runs the interpreter Stage 1.
 S1="$OUT/stage1.elf"
 STAGE1_ENGINE=interpreter
 PREV="${FIXPOINT_PREV_IMAGE:-}"
@@ -112,7 +112,7 @@ if [ "${FIXPOINT_STAGE1:-native}" = native ]; then
         echo "fixpoint: FALLBACK to the INTERPRETER Stage 1 — $PREV does not match its pinned sha256" >&2
     else
         echo "fixpoint: Stage 1 running NATIVELY (previous image $(sha256sum "$PREV" | cut -c1-16) translated; compiles this corpus)"
-        python3 "$ROOT/tools/native-spike/anuvada.py" --target "$NTGT" "$PREV" "$OUT/prev.native" > "$OUT/stage1.translate.log" 2>&1 || {
+        "$ROOT/tools/anuvada" --target "$NTGT" "$PREV" "$OUT/prev.native" > "$OUT/stage1.translate.log" 2>&1 || {
             echo "fixpoint: the translator refused the previous image; see $OUT/stage1.translate.log" >&2; exit 2; }
         YANTRA_INPUT="$OUT/corpus.blob" YANTRA_INPUT_NAME=शृङ्खला YANTRA_RAM="${YANTRA_RAM:-2684354560}" YANTRA_STEPS="${YANTRA_STEPS:-10000000000000}" \
             "$OUT/prev.native" > "$OUT/stage1.sink" 2> "$OUT/stage1.log"
@@ -150,29 +150,29 @@ echo "fixpoint: Stage 1 $(wc -c < "$S1" | tr -d ' ') octets"
 # to 20 MiB against a ~1.6 GB high water, so both ceilings are set here.
 # FIXPOINT_STAGE2=native. Owner ruling (coordinator, 2026-10-09): "native Stage 2 fixpoint APPROVED, with scheduled full-yantra sanity runs … Stage 1 stays on the interpreter."
 # Stage 2 runs as the NATIVE
-# translation of Stage 1 (tools/native-spike/anuvada.py: RV64 image -> static x86-64 ELF,
+# translation of Stage 1 (tools/anuvada: RV64 image -> static host ELF,
 # ~5 s; the run ~22 s against yantra's ~15 min for the same 55.4 G instructions). The
 # comparison below is UNCHANGED: Stage 2's output ELF must be byte-identical to Stage 1.
 # Stage 1 stays on the interpreter. Authority stays with yantra: a native Stage 2 is a
-# fast pre-check, so an internal tool runs the full yantra Stage 2 whenever crates/yantra/src
+# fast pre-check, so tools/land.sh runs the full yantra Stage 2 whenever crates/yantra/src
 # or tools/native-spike/ changed, on every 10th landing, and a nightly run is proposed
-# (see an internal tool). The engine is RECORDED: $OUT/stage2.engine and, on a pass, a line in
+# (see tools/land.sh). The engine is RECORDED: $OUT/stage2.engine and, on a pass, a line in
 # $(git dir)/fixpoint-engine (a sidecar, so the fixpoint-pass line's shape is untouched).
 # Native refuses what yantra-only ratchets watch for (threads, sockets, CSR/counter reads)
 # at run time, so such a run reaches no finisher and fails the check below.
 ENGINE="${FIXPOINT_STAGE2:-native}"
 echo "$ENGINE" > "$OUT/stage2.engine"
 if [ "$ENGINE" = native ]; then
-    echo "fixpoint: Stage 2 running NATIVELY (anuvada.py translation of Stage 1)"
+    echo "fixpoint: Stage 2 running NATIVELY (native translation of Stage 1)"
     NAT="$OUT/stage1.native"
-    python3 "$ROOT/tools/native-spike/anuvada.py" --target "$NTGT" "$S1" "$NAT" > "$OUT/stage2.translate.log" 2>&1 || {
+    "$ROOT/tools/anuvada" --target "$NTGT" "$S1" "$NAT" > "$OUT/stage2.translate.log" 2>&1 || {
         echo "fixpoint: the translator refused Stage 1; see $OUT/stage2.translate.log" >&2; exit 2; }
     YANTRA_INPUT="$OUT/corpus.blob" \
     YANTRA_INPUT_NAME=शृङ्खला \
     YANTRA_RAM="${YANTRA_RAM:-2684354560}" \
     YANTRA_STEPS="${YANTRA_STEPS:-4000000000000}" \
         "$NAT" > "$OUT/stage2.sink" 2> "$OUT/stage2.log"
-    echo "fixpoint: Stage 2 engine=native, target $NTGT (translator sha256 $(sha256sum "$ROOT/tools/native-spike/anuvada.py" | cut -c1-16))" >> "$OUT/stage2.log"
+    echo "fixpoint: Stage 2 engine=native, target $NTGT (translator-src sha256 $(sha256sum "$ROOT/tools/native-spike/t1/anuvada.t1" | cut -c1-16), pin-row sha256 $(awk -F'\t' -v t="$NTGT" '$1==t&&NF==5' "$ROOT/tools/translator-seed.sha256" 2>/dev/null | sha256sum | cut -c1-16))" >> "$OUT/stage2.log"
 else
     echo "fixpoint: FIXPOINT_STAGE2 must be 'native' (yantra Stage 2 retired, L28), not '$ENGINE'" >&2; exit 2
 fi
@@ -183,7 +183,7 @@ fi
 # schedule. `yantra-run` prints `threads: N` whenever the tag is found, before it
 # refuses a threaded image given no event log, so this check comes FIRST: the
 # finisher check below would see that refusal only as "no finisher". Pinned by
-# the Rust host source (removed in v1.2).
+# retired Rust w372_fixpoint_ratchet.rs.
 if grep -aq "^threads:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 is a THREADED image — $(grep -a -m1 '^threads:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 addendum / W-376: no fixpoint image may declare SASTHRDS; find it in the corpus)" >&2
@@ -194,7 +194,7 @@ fi
 # 0x1000_0110 halts `Device` and never reaches the finisher, which the check below
 # would report only as "no finisher". `yantra-run` says `socket: …` whenever the
 # device is configured or touched, so this check names the cause FIRST. Pinned by
-# the Rust host source (removed in v1.2).
+# retired Rust w372_fixpoint_ratchet.rs.
 if grep -aq "^socket:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 touched the SOCKET device — $(grep -a -m1 '^socket:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 addendum / W-377: no fixpoint image may reach the socket window; find it in the corpus)" >&2
@@ -210,7 +210,7 @@ fi
 # counter read (W-374) does not halt, so `yantra-run` reports it on its own line
 # and it is refused here. A compiler that read its own retired count could make
 # Stage 2 differ from Stage 1 by self-reference. Pinned by
-# the Rust host source (removed in v1.2).
+# retired Rust w372_fixpoint_ratchet.rs.
 if grep -aq "^counter:" "$OUT/stage2.log"; then
     echo "fixpoint: Stage 2 read the retired-instruction counter — $(grep -a '^counter:' "$OUT/stage2.log")" >&2
     echo "  (ADR-0040 / W-372: no fixpoint image may read it; find the read in the corpus)" >&2
@@ -272,12 +272,26 @@ else
         verdict=1
     fi
 fi
+# ── Stage T: the translator fixpoint (Car B1). N1 = N_seed(anu.elf), N2 = N1(anu.elf), N1 == N2; with an unchanged pin row also
+# N1 == N_seed. Needs the native Stage 1 translation ($NAT) and the pinned seed translator; exit 77 from it = no seed (never a pass).
+if [ "$verdict" -eq 0 ]; then
+    if [ "$ENGINE" = native ] && [ -n "$NTGT" ]; then
+        bash "$ROOT/tools/fixpoint-stage-t.sh" "$OUT" "$NAT" "$NTGT"; trc=$?
+        case $trc in
+            0) ;;
+            77) echo "fixpoint: Stage T could not run (no trusted seed translator): not a pass" >&2; verdict=77 ;;
+            *) echo "fixpoint: Stage T FAILED ($trc); see $OUT/stageT.log" >&2; verdict=1 ;;
+        esac
+    fi
+fi
 # THE PASS IS RECORDED, so the tick's pre-push check can read it (W-354 family):
 # one line under the git dir naming the seven inputs as measured, and the two
-# images' and two binaries' sha256 as evidence.
+# images' and two binaries' sha256 as evidence. See tools/fixpoint-record.sh.
 if [ "$verdict" -eq 0 ]; then
     printf '%s stage1_engine='"$STAGE1_ENGINE"' stage2_engine=%s stage2_sha256=%s at=%s\n' "$(git -C "$ROOT" rev-parse HEAD)" "$ENGINE" \
         "$(sha256_of "$OUT/stage2.elf")" \
         "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$(git -C "$ROOT" rev-parse --absolute-git-dir)/fixpoint-engine"
+    bash "$ROOT/tools/fixpoint-record.sh" "$OUT" "$BIN" ||
+        echo "fixpoint: HOLDS, but the pass could not be recorded — a tick will not be able to push this tree" >&2
 fi
 exit "$verdict"

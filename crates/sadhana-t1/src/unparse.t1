@@ -1,4 +1,4 @@
-मण्डलम् मुद्रण ॥ ॰ unparse — the inverse of व्याकर over the same AST; twin of crates/sadhana/src/t1/unparse.rs
+मण्डलम् मुद्रण ॥ ॰ unparse — the inverse of व्याकर over the same AST; twin of retired Rust unparse.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ THE UNPARSER, `W-215` — research/23 §2.8 statistic 29, research/22 §4.4

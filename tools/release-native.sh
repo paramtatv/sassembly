@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 [ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
 # release-native.sh — package a release's NATIVE build for one target (owner ruling: releases after
-# v1.0.2 ship the native Stage 1 + tools/t1-build.sh and tools/t1-run.sh in place of the Rust yantra-run).
+# v1.0.2 ship the native Stage 1 + retired t1-run.sh in place of the Rust yantra-run).
 #
 #   tools/release-native.sh <tag> <target> [OUTDIR]
 #
@@ -62,7 +62,7 @@ mkdir -p "$outdir" && outdir=$(cd "$outdir" && pwd)   # absolute: the tar and sm
 d=$stage/$pkg; mkdir -p "$d/bin" "$d/lib" "$d/example"
 cp "$HERE/release-native/sassembly-build" "$HERE/release-native/sassembly-run" "$d/bin/"
 cp "$nat1" "$d/lib/stage1.native"; cp "$natT" "$d/lib/translator.native"; chmod +x "$d"/bin/* "$d"/lib/*
-cp "$HERE/release-native/namaste.t1" "$d/example/"; cp "$ROOT/LICENSE.md" "$HERE/release-native/COMMERCIAL-LICENSE.md" "$d/"
+cp "$HERE/release-native/namaste.t1" "$HERE/release-native/spin.t1" "$d/example/"; cp "$ROOT/LICENSE.md" "$HERE/release-native/COMMERCIAL-LICENSE.md" "$d/"
 sed -e "s/@TAG@/$tag/g" -e "s/@TARGET@/$target/g" "$HERE/release-native/NOTICE.in" > "$d/NOTICE"
 note="Built $(date -u +%Y-%m-%dT%H:%MZ) on $(uname -sm) from stage1.elf sha256 $(sha "$S1")."
 sed -e "s/@TAG@/$tag/g" -e "s/@TARGET@/$target/g" -e "s|@NOTE@|$note|" "$HERE/release-native/README-BIN.txt.in" > "$d/README-BIN.txt"
@@ -88,7 +88,15 @@ smoke() {
     cat "$s/e2"; echo "stdout: $out"; echo "status line: exit $rc"
     [ "$out" = _ ] && [ $rc -eq 1 ] && grep -aq 'status: Some(7)' "$s/e2" || { echo "SMOKE FAIL: want '_' / halt status 7 / exit 1"; ok=1; }
     echo "-- re-run n1 (translation cached)"; "${run[@]}" "$p/bin/sassembly-run" "$s/n1.elf" 2>&1 | head -3
-    echo "-- refusal: yantra-only feature"; "${run[@]}" env YANTRA_STEPS=5 "$p/bin/sassembly-run" "$s/n1.elf"; echo "exit $?"
+    echo "-- refusal: yantra-only feature"; "${run[@]}" env YANTRA_VERDICT="$s/v" "$p/bin/sassembly-run" "$s/n1.elf"; echo "exit $?"
+    echo "-- YANTRA_STEPS is honoured: spin.t1 (over 1M steps) under the 1000000 default, then under 100000000, then YANTRA_RAM"
+    "${run[@]}" "$p/bin/sassembly-build" -o "$s/sp.elf" "$p/example/spin.t1" || ok=1
+    "${run[@]}" "$p/bin/sassembly-run" "$s/sp.elf" 2> "$s/e3"; rc=$?; cat "$s/e3"
+    [ $rc -eq 1 ] && grep -aq 'StepLimit' "$s/e3" && ! grep -aq REFUSED "$s/e3" || { echo "SMOKE FAIL: want StepLimit / exit 1 at the default"; ok=1; }
+    "${run[@]}" env YANTRA_STEPS=100000000 YANTRA_RAM=268435456 "$p/bin/sassembly-run" "$s/sp.elf" 2> "$s/e4"; rc=$?; cat "$s/e4"
+    [ $rc -eq 0 ] && grep -aq 'status: Some(0)' "$s/e4" || { echo "SMOKE FAIL: want halt status 0 / exit 0 under YANTRA_STEPS=100000000"; ok=1; }
+    "${run[@]}" env YANTRA_STEPS=5 "$p/bin/sassembly-run" "$s/n1.elf" 2> "$s/e5"; rc=$?; cat "$s/e5"
+    [ $rc -eq 1 ] && grep -aq 'StepLimit' "$s/e5" || { echo "SMOKE FAIL: want StepLimit / exit 1 under YANTRA_STEPS=5"; ok=1; }
     [ $ok = 0 ] && echo "SMOKE PASS $target" || echo "SMOKE FAILED $target"
     return $ok
 }

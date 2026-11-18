@@ -6,14 +6,15 @@
 # with yantra-run's meaning (0 = finisher status 0, 1 = anything else). There is NO yantra-run here:
 # what the native runtime refuses at run time (an unlowered instruction, an MMIO load, a store to
 # a device other than UART/FINISHER, the file window, floats) is reported and exits 1.
-# env: YANTRA_INPUT, YANTRA_INPUT_NAME, YANTRA_RAM (as yantra-run), SASSEMBLY_NATIVE_CACHE.
+# env: YANTRA_INPUT, YANTRA_INPUT_NAME, YANTRA_RAM, YANTRA_STEPS (as yantra-run: the native run reads both itself;
+# unset steps = 1000000, StepLimit halts exit 1), SASSEMBLY_NATIVE_CACHE.
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 LIB=$(dirname "$HERE")/lib
 say() { echo "sassembly-run: $*" >&2; }
 [ $# -gt 0 ] || { say "usage: sassembly-run IMAGE.elf [args...]"; exit 64; }
 case $1 in -*) say "REFUSED - $1: the package has no yantra-run flags"; exit 1 ;; esac
-for v in YANTRA_STEPS YANTRA_VERDICT YANTRA_SCANOUT YANTRA_VIRTIO_DEFER YANTRA_WATERMARK; do
+for v in YANTRA_VERDICT YANTRA_SCANOUT YANTRA_VIRTIO_DEFER YANTRA_WATERMARK; do
     eval "[ -z \"\${$v+x}\" ]" || { say "REFUSED - $v is a yantra-only feature (no yantra-run in this package)"; exit 1; }
 done
 img=$1; shift

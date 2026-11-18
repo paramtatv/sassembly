@@ -82,13 +82,6 @@ cd "$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)" || exit 1
 # run() and `deep-gate.sh` both match `^(SKIPPED|CANNOT RUN):`.
 missing=
 command -v node  >/dev/null 2>&1 || missing="$missing node"
-command -v cargo >/dev/null 2>&1 || missing="$missing cargo"
-# Not under RESOLVE_ONLY: that mode builds no page, so demanding its target would make
-# the self-test's four probes unrunnable on a host the real check merely SKIPS.
-if [ -z "${1:-}" ] && [ -z "${SASSEMBLY_PAGE_RESOLVE_ONLY:-}" ]; then
-  rustc --print target-list 2>/dev/null | grep -qx wasm32-unknown-unknown \
-    || missing="$missing wasm32-unknown-unknown"
-fi
 if [ -n "$missing" ]; then
   echo "CANNOT RUN:$missing absent — the page cannot be built or its script cannot be run"
   echo "            Exiting 77 rather than 0: a check that cannot run has not passed."
@@ -121,7 +114,7 @@ fi
 #          means the image was built from a DIFFERENT worktree, which mtime cannot see at
 #          all — a foreign image minutes old passes every mtime test. Measured on this
 #          host 2026-10-05, the cached image names
-#          a sibling worktree, not this worktree.
+#          `/Users/pkpro/sansos/wt-raminject/crates/sadhana-t1/src`, not this worktree.
 #
 # NEITHER MAY BE A RED, AND THAT IS A MEASUREMENT, NOT A PREFERENCE. Measured on this host
 # 2026-10-05: NINE of the 21 sources carry the mtime `2026-10-04 14:10:11` — the same
@@ -264,7 +257,7 @@ else
   rc=$?
   if [ "$rc" -eq 77 ]; then
     # `not a tree fault` IS THE PHRASE `salvage` GREPS FOR.
-    echo "SKIPPED: the page build cannot run here (wasm32 target absent) — a toolchain fault of this machine, not a tree fault; the page's script is unrun."
+    echo "SKIPPED: the page build cannot run here (native wasm toolchain absent: node, python3, yantra-run or Stage 1) — a toolchain fault of this machine, not a tree fault; the page's script is unrun."
     echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
     exit 77
   elif [ "$rc" -ne 0 ]; then

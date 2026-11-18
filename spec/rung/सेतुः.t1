@@ -51,7 +51,7 @@
 ॰ `सञ्चयसिद्धमस्ति = true`, `निर्णायकसिद्धः = true`, `असङ्गृहीतमण्डलसंख्या = 0`,
 ॰ `असदस्यमस्ति = false` — the registry reports itself full and names no missing
 ॰ member, and the stage refuses anyway. The Rust-hosted chain says the same in
-॰ words, with the store NOT pre-filled: `tools/demo.sh spec/rung/सेतुः.t1`
+॰ words, with the store NOT pre-filled: `retired demo.sh spec/rung/सेतुः.t1`
 ॰ reports `3 RESOLVE REFUSED — `पारम्ॱद्विगुणय` has no declaration`,
 ॰ having lexed 14 tokens and parsed 1 routine.
 ॰
@@ -76,7 +76,7 @@
 ॰
 ॰ MEASURED BOTH WAYS, ON TREE `205816cc`, BEFORE AND AFTER THE ONE-LINE ADD:
 ॰
-॰   RUST TWIN   `tools/demo.sh` on this file
+॰   RUST TWIN   `retired demo.sh` on this file
 ॰               before -> `3 RESOLVE REFUSED — `पारम्ॱद्विगुणय` at line 74 has
 ॰                          no declaration`, 14 tokens, 1 declaration
 ॰               after  -> `3 RESOLVE ok`, `4 TYPECHECK ok`, 17 tokens,
@@ -124,7 +124,7 @@
 ॰
 ॰ AND THE SYMBOL QUESTION THE PREVIOUS CYCLE LEFT OPEN IS CLOSED, FOR PENNIES,
 ॰ BEFORE ANY IMAGE WAS BUILT. It asked whether the emitter writes a callee
-॰ target carrying the CALLER's module prefix — `tools/demo.sh` had reported
+॰ target carrying the CALLER's module prefix — `retired demo.sh` had reported
 ॰ `1 call (0 cross-module)` and a target spelled `सेतुःसंज्ञा२०००००१य्`. It does
 ॰ not. `T1_BOOT_TEXT` on both halves of the pair, on this tree:
 ॰   this file emits  `लङ्घनम् पुनःस्थानम्म् पारम्द्विगुणयय् ।`

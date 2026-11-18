@@ -10,7 +10,7 @@
 ॰ sees: it wraps no 64-bit type in `अङ्कः अन्तः`, `सम्भाव्य` or `दोषयुक्त`,
 ॰ so this is the first file since `ir.t1` whose count and whose ledger agree.
 ॰
-॰ THE TWIN IS `crates/sadhana/src/lex.rs` AND IT HAS NO `i64` AND NO `isize`
+॰ THE TWIN IS `retired Rust lex.rs` AND IT HAS NO `i64` AND NO `isize`
 ॰ AT ALL. `Token::{byte, aksara, line}` and `LexError::{byte, index, line}`
 ॰ are every numeric field the module declares and all six are `usize`; `Kind`
 ॰ and `Karaka` are enums. `t1_sources.rs`'s `T0_LEXER_KINDS` already pairs the
@@ -38,7 +38,7 @@
 ॰ why the pass still goes site by site.
 
 ॰ ══════════════════════════════════════════════════════════════════════
-॰ THE T0 LEXER — a port of crates/sadhana/src/lex.rs `lex`.
+॰ THE T0 LEXER — a port of retired Rust lex.rs `lex`.
 ॰
 ॰ Devanagari source in, चिह्नक out. The atom is the akṣara and every
 ॰ offset reported is a character index as well as a byte offset, which is

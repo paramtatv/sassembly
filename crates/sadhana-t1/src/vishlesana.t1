@@ -1,11 +1,11 @@
-मण्डलम् विश्लेषण ॥ ॰ vishlesana — the port of crates/sadhana/src/vishlesana.rs
+मण्डलम् विश्लेषण ॥ ॰ vishlesana — the port of retired Rust vishlesana.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ ADR-0030 REMEDIATION, TASK `D-002h`. THE FILE TAKEN BY THIS CYCLE IS THIS ONE.
 ॰ 42 type positions: 39 `अ६४` become `न६४`, 2 `इ६४` become `अ६४`, and ONE `अ६४`
 ॰ IS LEFT EXACTLY AS IT STANDS because it was already right — see उद्धरणम्.
 ॰
-॰ THE RUST TWIN IS `crates/sadhana/src/vishlesana.rs`, AND UNLIKE `ast.t1`'s IT
+॰ THE RUST TWIN IS `retired Rust vishlesana.rs`, AND UNLIKE `ast.t1`'s IT
 ॰ DOES NOT RUN OUT: every routine below has a counterpart there, and the twin
 ॰ declares its signs in as many words. It holds exactly TWO signed things —
 ॰ `Decoded::operands: Vec<(String, i64)>` at `:50` and `fn extract(..) -> i64`
@@ -38,13 +38,13 @@
 ॰ ── THIS FILE HELD THE WRONG MODULE, AND THAT IS WHY THE LINKER STALLED ──
 ॰ Until this port it contained the T1 compiler's SEMA — Resolver, Scope,
 ॰ SymbolEntry, TypeKind — machine-transliterated as मण्डलम् वइशलएसअन.
-॰ That content belongs to crates/sadhana/src/t1/resolve.rs and typecheck.rs,
+॰ That content belongs to retired Rust resolve.rs and typecheck.rs,
 ॰ whose name in doc 03 §2 is अर्थ, not विश्लेषण. It is REHOMED, not deleted:
 ॰ it is now अर्थ.त१ (artha.t1), hand written, with its own gap list.
 ॰
 ॰ विश्लेषणम् is "taking apart", the counterpart to साधनम् which puts
 ॰ together — spec/marks.tsv row `vishlesana`, spec/lexicon.src.tsv line 437,
-॰ task B-013. Its Rust original is crates/sadhana/src/vishlesana.rs, 231
+॰ task B-013. Its Rust original is retired Rust vishlesana.rs, 231
 ॰ lines, and that is what is ported here.
 ॰
 ॰ The misfiling was not cosmetic. संयोजन's own stub note (b) reads "संस्कारः
@@ -533,7 +533,7 @@
 ॰ include nor a file reader."
 ॰
 ॰ T1 HAS HAD AN INCLUDE SINCE ADR-0019, and spec/encodings-riscv64.tsv has
-॰ carried the name सङ्केतकोशः in crates/sadhana/src/t1/anita.rs since that ADR
+॰ carried the name सङ्केतकोशः in retired Rust anita.rs since that ADR
 ॰ landed. That is the date half, and it is the smaller half.
 ॰
 ॰ THE PREMISE HALF: NOTHING HERE EVER WANTED THE WHOLE TABLE. सङ्केताः
@@ -560,7 +560,7 @@
 ॰ out of the file at run time. The only octets written down in this file are
 ॰ the SEPARATORS of the table's own grammar and the first letters of the six
 ॰ slot kinds, and those are checked by
-॰ crates/sadhana-t1/tests/t1_execution.rs against the file itself.
+॰ retired Rust t1_execution.rs against the file itself.
 ॰
 ॰ ── THE COLUMNS OF spec/encodings-riscv64.tsv, counted from ० ──
 ॰   ० insn   १ family   २ mnemonic   ३ pattern   ४ mask   ५ bits
@@ -800,7 +800,7 @@
 ॰ the (value bit, encoding bit) pairs of one slot, read out of `0>7;1>8;…`.
 ॰ THIS IS THE MEASURED MAP AND NOTHING ELSE KNOWS IT. Nothing in this file
 ॰ knows that a jal scatters its displacement across four discontiguous runs;
-॰ the map knows, and the map was measured by tools/gen-encodings.py from the
+॰ the map knows, and the map was measured by retired gen-encodings.py from the
 ॰ assembler. That is the whole argument for a disassembler existing at all,
 ॰ and it is why this routine reads the pairs rather than a format letter.
 ॰

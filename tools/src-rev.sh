@@ -14,7 +14,7 @@
 # because both sides would be self-consistent. AGREEMENT IS NOT PROVENANCE.
 #
 # So both sides carry a stamp and the page compares them. The wasm's is COMPILED IN
-# (`the Rust build script (removed in v1.2)` and `the Rust build script (removed in v1.2)` run this script and
+# (`retired Rust build.rs` and `retired Rust build.rs` run this script and
 # seal the answer into the module, so a stale module carries its OWN old stamp and cannot
 # claim a fresh one); the native side's is taken by `tools/build-sassembly-web.sh` from
 # the tree it just ran `cargo run -p sadhana` and `yantra-run` against. A second copy of
@@ -29,8 +29,8 @@
 #
 # ## WHY NOT `SASSEMBLY_BUILD_COMMIT`, WHICH ALREADY EXISTS
 #
-# `the Rust build script (removed in v1.2)` already stamps a commit into this crate's binaries
-# (`build-stamp.rs` (retired to archive/rust/build-stamp/), `W-347`) — so there is an existing instrument and this is
+# `retired Rust build.rs` already stamps a commit into this crate's binaries
+# (`build-stamp.rs` (retired to purged-rust/build-stamp/), `W-347`) — so there is an existing instrument and this is
 # deliberately not it, for two measured reasons. It is not REACHABLE: the stamp is a
 # `rustc-env` of the `sadhana` crate's own compilation, read by `t1_image.rs:156` and
 # exported from the library nowhere, so `sadhana-wasm` cannot see it without an
@@ -51,7 +51,7 @@
 # ## Exit 2 with NO argument, and why that is not defaulted to the assembler
 #
 # A default of `crates/sadhana/src` would make a caller that forgot its argument stamp
-# THE WRONG CRATE and still exit 0 — so `the Rust build script (removed in v1.2)` would seal the
+# THE WRONG CRATE and still exit 0 — so `retired Rust build.rs` would seal the
 # assembler's hash and the page would compare the interpreter against it, differ, and
 # report STALE INTERPRETER forever. A missing argument is a caller bug and says so.
 set -eu

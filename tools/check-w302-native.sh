@@ -6,7 +6,7 @@
 # Twin of the retired crates/sadhana-t1/tests/w302_loaded_identity census. The oracle (Rust `sadhana`,
 # IDENTITY RULED (a) 2026-10-03) is FROZEN in tools/check-w302-native.tsv: per program and load address, the
 # sha256 of Rust's image restricted to ELF-header octets 0..40 and 48..58, every program header and every
-# PT_LOAD's bytes (tools/check-w302-native.pl; the section table is excluded by the ruling). This script runs the
+# PT_LOAD's bytes (tools/w302-proj.sh image; the section table is excluded by the ruling). This script runs the
 # native chain (tools/sadhana-native.sh: the t1-built wrapper image under tools/t1-run.sh) on every row, three ways
 # (image from source; object per source via --वस्तु then --संयोजय; the two-object LINK), and compares projections.
 # A row whose golden is REFUSED must be refused by the native side too (namaste-main alone). A MISSING output is
@@ -23,15 +23,14 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 export LC_ALL=C.UTF-8 2>/dev/null || true
 GOLD=tools/check-w302-native.tsv
-PROJ="perl tools/check-w302-native.pl"
-command -v perl >/dev/null 2>&1 || { echo "CANNOT RUN: perl"; exit 77; }
+PROJ="sh tools/w302-proj.sh image"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/w302-native.XXXXXX") || exit 77
 trap 'rm -rf "$WORK"' EXIT
 
 if [ "${1:-}" = "--regen" ]; then
   [ -n "${W302_SADHANA:-}" ] && [ -x "$W302_SADHANA" ] || { echo "FAIL: --regen needs W302_SADHANA=<rust sadhana>"; exit 1; }
   {
-    printf '# W-302 frozen oracle: sha256 of Rust sadhana image under ruling (a) (tools/check-w302-native.pl). program(+program)\taddr(- = default)\tsha256|REFUSED\n'
+    printf '# W-302 frozen oracle: sha256 of Rust sadhana image under ruling (a) (tools/w302-proj.sh image). program(+program)\taddr(- = default)\tsha256|REFUSED\n'
     while IFS=$'\t' read -r name addr; do
       a=(); [ "$addr" != "-" ] && a=(--स्थान "$addr")
       rm -f "$WORK/r.elf"; srcs=(); IFS=+ read -ra ps <<<"$name"; for p in "${ps[@]}"; do srcs+=("spec/$p.sas"); done

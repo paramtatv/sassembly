@@ -20,7 +20,7 @@
 ॰ Every site here is a DISCRIMINANT numbered from १ or an INDEX into one of the
 ॰ two arenas at the foot of the file, and neither can be negative.
 ॰
-॰ THE RUST TWIN IS `crates/sadhana/src/t1/ast.rs`, AND IT REACHES ONLY TWELVE OF
+॰ THE RUST TWIN IS `retired Rust ast.rs`, AND IT REACHES ONLY TWELVE OF
 ॰ THE THIRTY-FOUR KIND CONSTANTS BELOW. Its `Type` enum's five variants are the
 ॰ five `*प्रकारभेद` in the same order, and `SymbolId(pub usize)` is what a
 ॰ `सूचकाङ्क` is — every integer `ast.rs` declares is unsigned.
@@ -34,7 +34,7 @@
 ॰ TWENTY-TWO of these sites the twin has nothing to read, and the sign is read
 ॰ off what the constant is instead. Each line below says which case it is.
 ॰
-॰ `crates/sadhana/src/t1/passes.rs` IS NOT A TWIN AND MAY NOT BE READ AS ONE:
+॰ `retired Rust passes.rs` IS NOT A TWIN AND MAY NOT BE READ AS ONE:
 ॰ it is absent from `t1/mod.rs`, so it is never compiled, and its test writes
 ॰ `Expression::BinaryOp`, `BinaryOp::Add` and a `Declaration::Function` with an
 ॰ `is_public` field — three things `ast.rs` does not have. A file that does not

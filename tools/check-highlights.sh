@@ -65,7 +65,9 @@ fi
 before=$(mktemp "${TMPDIR:-/tmp}/highlights-before.XXXXXX")
 trap 'rm -f "$before"' EXIT
 cp "$QUERIES" "$before" 2>/dev/null || true
-sh tools/gen-highlights.sh >/dev/null || exit 1
+rc=0; sh tools/gen-highlights.sh >/dev/null || rc=$?
+if [ "$rc" -eq 77 ]; then echo "SKIPPED: gen-highlights could not run (no Stage 1 compiler) - CANNOT RUN, exiting 77"; exit 77; fi
+[ "$rc" -eq 0 ] || exit 1
 if ! cmp -s "$before" "$QUERIES"; then
     echo "  FAIL  $QUERIES was stale — regenerating changed it"
     echo "        run tools/gen-highlights.sh and commit the result"
@@ -76,39 +78,40 @@ fi
 (cd "$GRAMMAR" && tree-sitter generate --js-runtime native >/dev/null 2>&1) || {
     echo "  FAIL  tree-sitter generate failed"; exit 1; }
 
-python3 - "$GRAMMAR" <<'PY'
-import re, subprocess, sys, pathlib, collections
 
-grammar_dir = sys.argv[1]
-root = pathlib.Path('.')
-queries = 'queries/highlights.scm'
+# No interpreter beyond sh/awk/sort/find: the former embedded script is ported
+# stage for stage.  Same checks, same messages, same exit codes.
+tab=$(printf '\t')
+queries=queries/highlights.scm
+root=$PWD
 
 # The five ratified sigils must be the ones sadhana implements. The generator
 # has to restate them — a .scm file cannot import an enum — so the copy is
 # checked against its source here rather than trusted.
-# Frozen from the retired Rust Karaka::sigil() (git show 688e3e63a^:the retired Rust source, lines 61-69).
-from_rust = ["म्", "न", "त्", "य्", "ए"]
-from_gen = [l.split('\t')[1] for l in (root / 'spec/highlight-constants.tsv').read_text(encoding='utf-8').splitlines()
-            if l.startswith('s\t')]
-if not from_rust:
-    print("  FAIL  frozen sigil list is empty")
-    sys.exit(1)
-if sorted(from_rust) != sorted(from_gen):
-    print(f"  FAIL  sigils disagree: sadhana has {sorted(from_rust)}, "
-          f"the generator has {sorted(from_gen)}")
-    sys.exit(1)
+# Frozen from the retired Rust Karaka::sigil() (git show 688e3e63a^:crates/sadhana/src/lex.rs, lines 61-69).
+sigils=('म्' 'न' 'त्' 'य्' 'ए')
+from_rust=$(printf '%s\n' "${sigils[@]}" | LC_ALL=C sort)
+from_gen=$(awk -F'\t' 'index($0, "s\t") == 1 { print $2 }' spec/highlight-constants.tsv | LC_ALL=C sort)
+pylist() {  # sorted lines on stdin -> ['a', 'b'] as the old report printed them
+    awk 'BEGIN { printf "[" } { printf "%s'"'"'%s'"'"'", (NR > 1 ? ", " : ""), $0 } END { print "]" }'
+}
+if [ -z "$from_rust" ]; then
+    echo "  FAIL  frozen sigil list is empty"
+    exit 1
+fi
+if [ "$from_rust" != "$from_gen" ]; then
+    gen_repr=$([ -n "$from_gen" ] && printf '%s\n' "$from_gen" | pylist || echo '[]')
+    rust_repr=$(printf '%s\n' "$from_rust" | pylist)
+    echo "  FAIL  sigils disagree: sadhana has $rust_repr, the generator has $gen_repr"
+    exit 1
+fi
 
 # The labels sadhana says exist, from the B-034a oracle. This is the witness.
-labels = set()
-for line in (root / 'spec/parse-shape-t0.tsv').read_text(encoding='utf-8').splitlines():
-    f = line.split('\t')
-    if len(f) == 4 and f[2] == 'label':
-        labels.add(f[3])
-if not labels:
-    print("  FAIL  parsed 0 labels out of spec/parse-shape-t0.tsv — its format moved")
-    sys.exit(1)
-
-CAP = re.compile(r'capture: \d+ - ([\w.]+), start: \((\d+), (\d+)\).*?text: `(.*)`')
+nlabels=$(awk -F'\t' 'NF == 4 && $3 == "label" { n++ } END { print n + 0 }' spec/parse-shape-t0.tsv)
+if [ "${nlabels:-0}" -eq 0 ]; then
+    echo "  FAIL  parsed 0 labels out of spec/parse-shape-t0.tsv — its format moved"
+    exit 1
+fi
 
 # THE ORACLE DEFINES THE CORPUS — the same correction `check-grammar.sh`
 # needed, for the same reason and on the same line. `**/*.sas` swept in the T1
@@ -124,96 +127,140 @@ CAP = re.compile(r'capture: \d+ - ([\w.]+), start: \((\d+), (\d+)\).*?text: `(.*
 # taken from the same oracle so the witness and the corpus cannot drift apart.
 # Narrowing a check is how a check quietly stops checking, so what is skipped is
 # COUNTED AND NAMED rather than dropped in silence.
-oracle_files = set()
-for line in (root / 'spec/parse-shape-t0.tsv').read_text(encoding='utf-8').splitlines():
-    f = line.split('\t')
-    if len(f) == 4 and f[0] != 'file' and not line.startswith('#'):
-        oracle_files.add(f[0])
-found = sorted(str(p) for p in root.glob('**/*.sas') if 'target/' not in str(p))
-sources = [s for s in found if s in oracle_files]
-skipped = [s for s in found if s not in oracle_files]
-if skipped:
-    print(f"  note  {len(skipped)} .sas file(s) carry no oracle row and are not T0 corpus:")
-    for s in skipped[:4]:
-        print(f"          {s}")
-    if len(skipped) > 4:
-        print(f"          ... and {len(skipped) - 4} more")
+listing=$(find . -name '*.sas' 2>/dev/null | sed 's|^\./||' | LC_ALL=C awk -v shape=spec/parse-shape-t0.tsv '
+    BEGIN {
+        while ((getline line < shape) > 0) {
+            n = split(line, f, "\t")
+            if (n == 4 && f[1] != "file" && substr(line, 1, 1) != "#") orc[f[1]] = 1
+        }
+    }
+    index($0, "target/") == 0 { print (($0 in orc) ? "K" : "S") "\t" $0 }' | LC_ALL=C sort)
+sources=$(printf '%s\n' "$listing" | awk -F'\t' '$1 == "K" { print $2 }')
+skipped=$(printf '%s\n' "$listing" | awk -F'\t' '$1 == "S" { print $2 }')
+nsrc=0
+[ -n "$sources" ] && nsrc=$(printf '%s\n' "$sources" | awk 'END { print NR }')
+if [ -n "$skipped" ]; then
+    nskip=$(printf '%s\n' "$skipped" | awk 'END { print NR }')
+    echo "  note  $nskip .sas file(s) carry no oracle row and are not T0 corpus:"
+    printf '%s\n' "$skipped" | awk 'NR <= 4 { print "          " $0 }'
+    if [ "$nskip" -gt 4 ]; then
+        echo "          ... and $((nskip - 4)) more"
+    fi
+fi
+
 # Last capture wins, which is how tree-sitter-highlight resolves overlap, so
 # the classification of a span is the last one recorded for it.
-final = {}
-for src in sources:
-    out = subprocess.run(['tree-sitter', 'query', queries, str(pathlib.Path(src).resolve())],
-                         cwd=grammar_dir, capture_output=True, text=True)
-    for m in CAP.finditer(out.stdout):
-        cap, row, col, text = m.group(1), int(m.group(2)), int(m.group(3)), m.group(4)
-        final[(src, row, col)] = (cap, text)
-
-if not final:
-    print(f"  FAIL  0 captures across {len(sources)} files — the query matched nothing")
-    sys.exit(1)
-
-counts = collections.Counter(c for c, _ in final.values())
-print("  capture              spans")
-for cap, n in sorted(counts.items()):
-    print(f"  {cap:<20} {n:>5}")
-
 # (2) Every operand must be captured. Operands are found from the parse tree,
 # independently of the query, so a query that matches nothing cannot hide.
-operands = set()
-NODE = re.compile(r'\(operand \[(\d+), (\d+)\]')
-for src in sources:
-    out = subprocess.run(['tree-sitter', 'parse', str(pathlib.Path(src).resolve())],
-                         cwd=grammar_dir, capture_output=True, text=True)
-    for m in NODE.finditer(out.stdout):
-        operands.add((src, int(m.group(1)), int(m.group(2))))
-
-uncaptured = sorted(o for o in operands if o not in final)
-fail = 0
-if uncaptured:
-    print(f"\n  FAIL  {len(uncaptured)} operand(s) received no capture at all:")
-    for o in uncaptured[:5]:
-        print(f"        {o[0]}:{o[1]+1}")
-    fail += len(uncaptured)
-
 # (3) Every operand called a label reference must name a real label.
-SIGILS = from_rust
 # Address modifiers, from sadhana's own splitter rather than from the examples.
-# Frozen from the retired Rust encode split (git show 688e3e63a^:the retired Rust source, lines 443-446).
-MODIFIERS = ['', 'ॱउपरि', 'ॱअधः']
-bad = []
-for (src, row, col), (cap, text) in sorted(final.items()):
-    if (src, row, col) not in operands or cap != 'constant':
-        continue
-    # Strip the sigil by construction rather than by segmentation: the base is
-    # whichever known label, plus an optional address modifier, plus a sigil,
-    # that reproduces the text exactly. `सारणीॱउपरि` is the high 20 bits of
-    # `सारणी` (B-064), and it is a reference to that label, not to another one.
-    if not any(text == lbl + m + s
-               for lbl in labels for m in MODIFIERS for s in SIGILS):
-        bad.append((src, row, text))
-if bad:
-    print(f"\n  FAIL  {len(bad)} operand(s) highlighted as a label reference name no label "
-          f"sadhana defines:")
-    for src, row, text in bad[:8]:
-        print(f"        {src}:{row+1}  `{text}`")
-    print("        either the register/numeral rules missed it, or the program is broken")
-    fail += len(bad)
-
+# Frozen from the retired Rust encode split (git show 688e3e63a^:crates/sadhana/src/encode.rs, lines 443-446).
 # (4) No mnemonic may fall through to plain @function. Every instruction in the
 # corpus uses a ratified name, and R-02-1 says every architectural instruction
 # has one, so a residue here means either an unregistered mnemonic slipped into
 # the tree or the व्याप्ति rule is wrong again — it was twice.
-residue = sorted({t for c, t in final.values() if c == 'function'})
-if residue:
-    print(f"\n  FAIL  {len(residue)} mnemonic(s) are not ratified names: {residue}")
-    print("        add them to spec/mnemonics-riscv64.src.tsv, or fix the व्याप्ति rule")
-    fail += len(residue)
-
-if fail:
-    print(f"\n{fail} highlighting fault(s).")
-    sys.exit(1)
-
-print(f"\n{len(operands)} operands, every one classified; "
-      f"every label reference names a label sadhana defines; "
-      f"every mnemonic is a ratified name.")
-PY
+#
+# Stage 1 streams tree-sitter's query and parse output per source, stage 2
+# classifies, sort puts the report records in (file, row, col) order, stage 3
+# prints.  The rightmost failing stage sets the exit code (pipefail).
+sigs=$(IFS='|'; echo "${sigils[*]}")
+{
+    printf '%s\n' "$sources" | while IFS= read -r src; do
+        [ -n "$src" ] || continue
+        printf '\n@Q %s\n' "$src"
+        (cd "$GRAMMAR" && tree-sitter query "$queries" "$root/$src") 2>/dev/null || true
+        printf '\n@P %s\n' "$src"
+        (cd "$GRAMMAR" && tree-sitter parse "$root/$src") 2>/dev/null || true
+    done
+} | LC_ALL=C awk -v shape=spec/parse-shape-t0.tsv -v sigs="$sigs" '
+    BEGIN {
+        ns = split(sigs, SG, "|")
+        MD[1] = ""; MD[2] = "ॱउपरि"; MD[3] = "ॱअधः"
+        while ((getline line < shape) > 0) {
+            n = split(line, f, "\t")
+            if (n == 4 && f[3] == "label") labels[f[4]] = 1
+        }
+        close(shape)
+        QRE = "capture: [0-9]+ - [A-Za-z0-9_.]+, start: \\([0-9]+, [0-9]+\\)"
+        ORE = "\\(operand \\[[0-9]+, [0-9]+\\]"
+    }
+    /^@[QP] / { mode = substr($0, 2, 1); src = substr($0, 4); next }
+    mode == "Q" {
+        if (!match($0, QRE)) next
+        seg = substr($0, RSTART, RLENGTH); rest = substr($0, RSTART + RLENGTH)
+        i = index(rest, "text: `")
+        if (i == 0) next
+        t = substr(rest, i + 7)
+        if (t !~ /`/) next
+        sub(/`[^`]*$/, "", t)
+        c = seg; sub(/^capture: [0-9]+ - /, "", c); sub(/,.*/, "", c)
+        s = seg; sub(/.*start: \(/, "", s); sub(/\)/, "", s); split(s, rc, ", ")
+        k = src SUBSEP (rc[1] + 0) SUBSEP (rc[2] + 0)
+        fcap[k] = c; ftext[k] = t; fsrc[k] = src; frow[k] = rc[1] + 0; fcol[k] = rc[2] + 0
+        next
+    }
+    mode == "P" {
+        s = $0
+        while (match(s, ORE)) {
+            m = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+            gsub(/[^0-9,]/, "", m); split(m, rc, ",")
+            k = src SUBSEP (rc[1] + 0) SUBSEP (rc[2] + 0)
+            if (!(k in ops)) { ops[k] = 1; nops++; osrc[k] = src; orow[k] = rc[1] + 0; ocol[k] = rc[2] + 0 }
+        }
+    }
+    END {
+        for (k in fcap) { nf++; cnt[fcap[k]]++; if (fcap[k] == "function") res[ftext[k]] = 1 }
+        for (k in ops) if (!(k in fcap)) { nu++; U[k] = 1 }
+        for (k in fcap) {
+            if (!(k in ops) || fcap[k] != "constant") continue
+            t = ftext[k]; L = length(t); ok = 0
+            for (i = 1; i <= ns && !ok; i++)
+                for (j = 1; j <= 3 && !ok; j++) {
+                    suf = MD[j] SG[i]; ls = length(suf)
+                    if (L >= ls && substr(t, L - ls + 1) == suf && (substr(t, 1, L - ls) in labels)) ok = 1
+                }
+            if (!ok) { nb++; B[k] = 1 }
+        }
+        for (t in res) nr++
+        printf "0\t%d\t%d\t%d\t%d\t%d\n", nf, nops, nu, nb, nr
+        for (c in cnt) printf "1\t%s\t%d\t0\n", c, cnt[c]
+        for (k in U) printf "2\t%s\t%d\t%d\n", osrc[k], orow[k], ocol[k]
+        for (k in B) printf "3\t%s\t%d\t%d\t%s\n", fsrc[k], frow[k], fcol[k], ftext[k]
+        for (t in res) printf "4\t%s\t0\t0\n", t
+    }' \
+  | LC_ALL=C sort -t "$tab" -k1,1 -k2,2 -k3,3n -k4,4n \
+  | LC_ALL=C awk -F'\t' -v nsrc="$nsrc" '
+    $1 == 0 {
+        nf = $2; nop = $3; nu = $4; nb = $5; nr = $6
+        if (nf == 0) {
+            printf "  FAIL  0 captures across %d files — the query matched nothing\n", nsrc
+            dead = 1; exit 1
+        }
+        print "  capture              spans"; next
+    }
+    $1 == 1 { printf "  %-20s %5d\n", $2, $3; next }
+    $1 == 2 {
+        if (!h2) { printf "\n  FAIL  %d operand(s) received no capture at all:\n", nu; h2 = 1 }
+        if (++c2 <= 5) printf "        %s:%d\n", $2, $3 + 1
+        next
+    }
+    $1 == 3 {
+        if (!h3) {
+            printf "\n  FAIL  %d operand(s) highlighted as a label reference name no label sadhana defines:\n", nb
+            h3 = 1
+        }
+        if (++c3 <= 8) printf "        %s:%d  `%s`\n", $2, $3 + 1, $5
+        next
+    }
+    $1 == 4 { rl = rl (nrl++ ? ", " : "") "\047" $2 "\047"; next }
+    END {
+        if (dead) exit 1
+        if (nb > 0) print "        either the register/numeral rules missed it, or the program is broken"
+        if (nr > 0) {
+            printf "\n  FAIL  %d mnemonic(s) are not ratified names: [%s]\n", nr, rl
+            print "        add them to spec/mnemonics-riscv64.src.tsv, or fix the व्याप्ति rule"
+        }
+        fail = nu + nb + nr
+        if (fail) { printf "\n%d highlighting fault(s).\n", fail; exit 1 }
+        printf "\n%d operands, every one classified; every label reference names a label sadhana defines; every mnemonic is a ratified name.\n", nop
+    }'

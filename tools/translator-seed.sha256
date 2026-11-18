@@ -1,0 +1,8 @@
+# translator-seed.sha256: the trust root of Stage 1 (Car B1; replaces the python oracle tools/native-spike/anuvada.py).
+# One TAB-separated row per host target (no wasm32 row): target, N_T sha256, compiler key, anuvada.t1 sha256, anu.elf sha256.
+# N_T = translate_T(anu.elf) for that target, shipped as an untracked object (tools/land-seed-ship.sh --translator-seed).
+# Rows are appended ONLY by tools/check-translator-seed.sh --bootstrap-py (one-time) or re-pinned by a6 after a Stage T pass.
+x86_64-linux	e45df9045f2b8f273a6051deae1e3f5ecfab5e2a62e4936dd1c979ca2126c44e	bc18f7618db7c19867bfb59a4ce30aa8949c5d51adfb5ced46a5b42168f3b7c1	090ef0706b5d824c0b04b166a43698a43bdc29c49b086387e3bd33aaae7d8ad3	0aface83f2dddb02e2d4832f46f5f1676149215040b9e150cee80b97b7c37c4d
+aarch64-linux	ef7e36c1a5ba537415d61baee4854b9d48a8b64066648d240920a342b247601b	bc18f7618db7c19867bfb59a4ce30aa8949c5d51adfb5ced46a5b42168f3b7c1	090ef0706b5d824c0b04b166a43698a43bdc29c49b086387e3bd33aaae7d8ad3	0aface83f2dddb02e2d4832f46f5f1676149215040b9e150cee80b97b7c37c4d
+aarch64-macos	a0a7887cf239ade72643d1d25035cef7251b9b78da6e184854c31c3dc9d93b21	bc18f7618db7c19867bfb59a4ce30aa8949c5d51adfb5ced46a5b42168f3b7c1	090ef0706b5d824c0b04b166a43698a43bdc29c49b086387e3bd33aaae7d8ad3	0aface83f2dddb02e2d4832f46f5f1676149215040b9e150cee80b97b7c37c4d
+x86_64-macos	d3f74bc1eed00580d98dd4441656d1624a1a11fd3c73b5efc5a0ea5de9c308e1	bc18f7618db7c19867bfb59a4ce30aa8949c5d51adfb5ced46a5b42168f3b7c1	090ef0706b5d824c0b04b166a43698a43bdc29c49b086387e3bd33aaae7d8ad3	0aface83f2dddb02e2d4832f46f5f1676149215040b9e150cee80b97b7c37c4d

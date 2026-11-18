@@ -15,25 +15,25 @@
 # without the list keys all of spec/** (the key before 2026-10-10).
 # Every file carries a .sha256 beside it, checked on use.
 #
-# A TRANSLATION is made by the first translator that can run, all three byte-identical
-# (tools/native-spike: the .t1 translator equals anuvada.py, octet for octet):
+# A TRANSLATION is made by the first translator that can run, all three byte-identical:
 #   1. the native translator (the .t1 translator translated for this host) from the cache;
 #   2. the .t1 translator ELF under yantra-run;
-#   3. tools/native-spike/anuvada.py (the oracle; needs only python3).
+#   3. the SEED native translator N_T (tools/translator-seed.sha256 pins its sha256 per host target; shipped as an
+#      untracked object by tools/land-seed-ship.sh --translator-seed; trusted_translator). No python3 anywhere (Car B1).
 # Seeding a host that cannot build: rsync -a ~/.cache/sassembly-native/ HOST:.cache/sassembly-native/
 #
 # ROUTES PER HOST, measured 2026-10-09 with the compiler at 3e245f49 (sieve: t1-build's image
 # a6b8467a… on every host, equal to the yantra route's; t1-run prints 1270607 as yantra-run):
-#   x86_64 host   x86_64-linux   builds everything: Stage 1 and the translator by t1_image
+#   ubuntu-local  x86_64-linux   builds everything: Stage 1 and the translator by t1_image
 #                                (cold, end to end: 2,423 s), the native translator by the
 #                                .t1 translator under yantra-run; then all native.
-#   ARM64 Linux   aarch64-linux  cache seeded from the x86_64 host (Stage 1, translator ELF); the native
+#   Jetson        aarch64-linux  cache seeded from ubuntu (Stage 1, translator ELF); the native
 #                                translator made by yantra-run built there from 3e245f49 (the
 #                                older ones there predate W-381); build 13 s cold, then native.
-#   ARM64 Mac     aarch64-macos  as the ARM64 Linux host (yantra-run built in ~/sansos-work, cache under
+#   Mac mini      aarch64-macos  as the Jetson (yantra-run built in ~/sansos-work, cache under
 #                                ~/sansos-work by SASSEMBLY_NATIVE_CACHE); build 33 s cold.
 #   Intel Mac     x86_64-macos   no cargo, no yantra-run: cache seeded, the native translator
-#                                made by anuvada.py; build 8 s cold. t1-run's fallbacks name
+#                                made by the seed translator; build 8 s cold. t1-run's fallbacks name
 #                                their reason and then refuse (no yantra-run to fall back to).
 #
 # needs: ROOT (this checkout's root), SAS (the compiler checkout), BIN (yantra-run, t1_image)
@@ -46,7 +46,11 @@ CACHE=${SASSEMBLY_NATIVE_CACHE:-$HOME/.cache/sassembly-native}
 T1_COMPILER_SRC=$SAS/crates/sadhana-t1/src
 T1_SPEC_ROOT=$SAS/spec
 TRANSLATOR=$ROOT/tools/native-spike/t1/anuvada.t1
-ORACLE=$ROOT/tools/native-spike/anuvada.py
+TRANSLATOR_PIN=$ROOT/tools/translator-seed.sha256
+# pin_row TARGET: the TAB-separated pin row `<target> <N_T sha256> <compiler key> <anuvada.t1 sha256> <anu.elf sha256>`, or fails
+pin_row() { [ -r "$TRANSLATOR_PIN" ] && awk -F'\t' -v t="$1" '$1==t && NF==5 {print; f=1; exit} END{exit f?0:1}' "$TRANSLATOR_PIN"; }
+# pin_key TARGET: what the cache keys name instead of the retired oracle's sha: the sha of the target's pin row ("nopin" when none)
+pin_key() { local r; r=$(pin_row "$1") && strsha "$r" || echo nopin; }
 
 # switch NAME: 0 when the env var NAME is unset, empty or 0; 1 when it is 1; any other value is
 # REFUSED by name (a typo like "yes" or "0 " must never silently change the route)
@@ -96,7 +100,7 @@ host_target() {
 # compiler_key: sha256 over "compiler-key v2\0" then, per file, 8-byte BE len(name), name, 8-byte BE len(data), data. Files = core
 # (compiler *.t1, crates/sadhana/**, Cargo.lock) + spec/** (the keyed ones) + tools/compiler-key-spec.txt, each group sorted by path
 # COMPONENTS (byte order, "/" sorting below every other octet). POSIX sh + awk + od-free printf, no python (N48); byte-identical to
-# the python it replaced (an internal tool K8 pins a golden key). No compiler here ($SAS holds no *.t1): no key, exit 1.
+# the python it replaced (tools/test-compiler-key.sh K8 pins a golden key). No compiler here ($SAS holds no *.t1): no key, exit 1.
 ck_be8() {   # 8-byte big-endian N as raw octets, in shell arithmetic only (no fork)
     ck_n=$1; ck_o=; ck_i=0
     while [ "$ck_i" -lt 8 ]; do
@@ -127,9 +131,9 @@ compiler_key_compute() (
     } > "$ck_t/core"
     ck_ls "$ck_spec" | awk '{ print "spec/" $0 }' > "$ck_t/spec.names"
     if [ -f "$ck_lst" ]; then
-        # v2: $SAS/tools/compiler-key-spec.txt names the spec files the compiler build reads (an internal tool proves it).
+        # v2: $SAS/tools/compiler-key-spec.txt names the spec files the compiler build reads (tools/check-compiler-key.sh proves it).
         # PATH = a file; "dir/" = a subtree; a glob's * and ? never cross "/". key wins; an unclassified file is KEYED. A MALFORMED
-        # list fails CLOSED: all of spec/ is keyed (with the list, as always) and stderr says why. (Same rules as an internal tool.)
+        # list fails CLOSED: all of spec/ is keyed (with the list, as always) and stderr says why. (Same rules as tools/compiler-key-classify.sh.)
         awk -v lst="$ck_lst" '
         function rx(p,   i, c, r) {          # glob -> anchored regex; * and ? never cross "/"
             r = "^"
@@ -229,11 +233,14 @@ stage1_have() {
     return 1
 }
 # stage1_native_path: where a NATIVELY made Stage 1 of this compiler lives. Its key adds everything that route reads besides the
-# corpus (8f F1): this lib, pack-corpus.sh, the oracle anuvada.py, with-timeout.pl and the SEED image's octets
+# corpus (8f F1): this lib, pack-corpus.sh, the host target's translator-seed pin row, with-timeout.pl and the SEED image's octets
 stage1_native_path() {
-    local p
+    local p tg _c
     p=$(trusted_seed) || return 1
-    echo "$CACHE/stage1/$(compiler_key)-n$(strsha "$(sha "$ROOT/tools/t1-native-lib.sh")$(sha "$ROOT/tools/pack-corpus.sh")$(sha "$ORACLE")$(sha "$ROOT/tools/with-timeout.pl")$(sha "$p")" | cut -c1-32)/stage1.elf"
+    read -r tg _c <<EOF_T
+$(host_target)
+EOF_T
+    echo "$CACHE/stage1/$(compiler_key)-n$(strsha "$(sha "$ROOT/tools/t1-native-lib.sh")$(sha "$ROOT/tools/pack-corpus.sh")$(pin_key "$tg")$(sha "$ROOT/tools/with-timeout.pl")$(sha "$p")" | cut -c1-32)/stage1.elf"
 }
 
 # cut_elf SINK OUT: the ELF a Stage 1 run wrote to its sink (from the first \x7fELF, minus the trailing octet), as tools/fixpoint.sh
@@ -254,10 +261,10 @@ cut_elf() {
 # Every candidate is checked against its .sha256 sidecar. A cache seeded from another host works the same (stage1/*).
 trusted_seed() {
     local fpc=${FIXPOINT_CACHE:-$HOME/.sansos-fixpoint-cache} want f c rk past stale d dirs hosts
-    # cache dirs: $fpc,
+    # cache dirs: $fpc, then each host work-disk dir tools/seed-hosts.txt names (land.sh ships there; never the root disk)
     dirs=$fpc
     # POSIX only (no process substitution, no ${//}): sourced by scripts that run under sh (dash; bash --posix on macOS)
-    hosts=
+    hosts=$(sed 's/#.*//' "$SAS/tools/seed-hosts.txt" 2>/dev/null)
     while read -r _ d _; do
         [ -n "$d" ] || continue; case $d in "~"*) d=$HOME${d#\~};; esac; [ -d "$d" ] && dirs="$dirs
 $d"
@@ -308,11 +315,11 @@ EOF_DIRS
 }
 
 # stage1_native S1: make Stage 1 for this compiler at S1 (stage1_native_path) FROM trusted_seed's image P, natively, in seconds:
-#   A = P(corpus), B = A(corpus), C = B(corpus), each translated for this host (by the oracle: no translator ELF of this key
-#   exists yet); B == C byte-identical or REFUSE; B is published. The landing's chain (the internal gate tooling) is the same three
+#   A = P(corpus), B = A(corpus), C = B(corpus), each translated for this host (by the seed N_T: no translator ELF of this key
+#   exists yet); B == C byte-identical or REFUSE; B is published. The landing's chain (tools/land-remote.sh) is the same three
 #   stages. Fails (1) when there is no trusted image or the chain does not hold; the caller decides whether a cold build is allowed.
 stage1_native() {
-    local s1=$1 p w cur st nat t rc T1N_ORACLE_ONLY=1
+    local s1=$1 p w cur st nat t rc T1N_SEED_ONLY=1
     p=$(trusted_seed) || return 1
     w=$(mktemp -d "${TMPDIR:-/tmp}/t1-stage1.XXXXXX") || return 1
     echo "t1-native: making Stage 1 natively from the trusted image $p (A, B, C; B == C) -> $s1" >&2
@@ -337,10 +344,40 @@ stage1_native() {
     return 1
 }
 
+# trusted_translator TARGET: echo the seed native translator N_T for TARGET: a file whose sha256 EQUALS the pin row's field 2
+# (tools/translator-seed.sha256) and whose sidecar agrees; searched in FIXPOINT_CACHE, the seed-hosts dirs and
+# $CACHE/translator-seed/TARGET/. Fails 77-style (prints "no trusted seed translator" on stderr, returns 1) otherwise.
+trusted_translator() {
+    local tg=$1 row want d f dirs= hosts line
+    row=$(pin_row "$tg") || { echo "t1-native: no trusted seed translator: no pin row for $tg in tools/translator-seed.sha256" >&2; return 1; }
+    want=$(printf '%s\n' "$row" | cut -f2)
+    dirs=$CACHE/translator-seed/$tg
+    dirs="$dirs
+${FIXPOINT_CACHE:-$HOME/.sansos-fixpoint-cache}/translator-seed/$tg"
+    hosts=$(cat "$ROOT/tools/seed-hosts.txt" 2>/dev/null)
+    while read -r line; do
+        d=$(printf '%s' "$line" | awk '{print $NF}'); [ -n "$d" ] || continue; case $d in "~"*) d=$HOME${d#\~};; esac
+        [ -d "$d/translator-seed/$tg" ] && dirs="$dirs
+$d/translator-seed/$tg"
+    done <<EOF_H
+$hosts
+EOF_H
+    while read -r d; do
+        [ -n "$d" ] || continue
+        for f in "$d"/*.elf; do
+            [ -s "$f" ] && [ "$(cut -d' ' -f1 "$f.sha256" 2>/dev/null)" = "$want" ] && [ "$(sha "$f")" = "$want" ] && { echo "$f"; return 0; }
+        done
+    done <<EOF_D
+$dirs
+EOF_D
+    echo "t1-native: no trusted seed translator for $tg (want ${want%"${want#????????????}"}; ship it: tools/land-seed-ship.sh --translator-seed)" >&2
+    return 1
+}
+
 # the .t1 translator ELF, built NATIVELY by this compiler's cached Stage 1 when absent (never t1_image): echoes its path, or
-# fails, and then every translation falls back to anuvada.py (the oracle: byte-identical, seconds)
+# fails, and then every translation falls back to the seed N_T (byte-identical, seconds)
 translator_elf() {
-    local d=$CACHE/translator/$(compiler_key)-$(sha "$TRANSLATOR") s1 nat tmp T1N_ORACLE_ONLY=1
+    local d=$CACHE/translator/$(compiler_key)-$(sha "$TRANSLATOR") s1 nat tmp T1N_SEED_ONLY=1
     if fresh "$d/anu.elf"; then echo "$d/anu.elf"; return 0; fi
     switch T1_BUILD_CACHED_ONLY && return 1
     # only from a Stage 1 this cache key can vouch for: the canonical entry, or a native one the RECORD names. Otherwise no
@@ -378,15 +415,15 @@ image_base() {
 
 # translate IMAGE ARG0 [NOSELF] [FJ] [NET] [WM] [VD] [SC] [VDF]: echoes the native file's path, or fails; with NOSELF the
 # native translator is not used (it is what is being made); with NET the frames device is compiled in
-# (tools/native-spike/NET.md: anuvada.py only, x86_64-linux only); WM non-empty: the translation that keeps the
+# (tools/native-spike/NET.md: no native route yet; refused until Car A); WM non-empty: the translation that keeps the
 # store high-water mark and says it at exit when YANTRA_WATERMARK is set (Linux x86-64 / aarch64 only; the
 # .t1 translator's trace + 131072, the oracle's --watermark), its own cache entry; no fork-join with it;
-# SC non-empty: slot 0's GPU is compiled in (YANTRA_SCANOUT; scanout_dev.py, L33), anuvada.py only (the
-# oracle, ANUVADA_SC=1), its own cache entry, no fork-join, never with NET or WM
+# SC non-empty: slot 0's GPU is compiled in (YANTRA_SCANOUT; L33), refused until Car A (the
+# python oracle is retired), its own cache entry, no fork-join, never with NET or WM
 # VDF non-empty (with NET): the frames device that defers its completions (YANTRA_VIRTIO_DEFER; the oracle's
 # ANUVADA_VD=1: SAFE blocks that tick the deferral's clock before every word), its own cache entry
 translate() {
-    local img=$1 arg0=$2 noself=${3:-} fj=${4:-} net=${5:-} wm=${6:-} vd=${7:-} sc=${8:-} vdf=${9:-} tgt code tsha dir out anu nat tmp log fjk= fjenv= netenv= scenv= wmk= wmflag= vdk=
+    local img=$1 arg0=$2 noself=${3:-} fj=${4:-} net=${5:-} wm=${6:-} vd=${7:-} sc=${8:-} vdf=${9:-} tgt code tsha dir out anu nat seed tmp log fjk= fjenv= netenv= scenv= wmk= wmflag= vdk=
     read -r tgt code <<EOF
 $(host_target)
 EOF
@@ -420,22 +457,17 @@ EOF
         esac
     fi
     # the key covers BOTH translators AND the compiler key (the translator ELF is made by the compiler):
-    # a host may translate with the oracle (anuvada.py), and an edit to any of them must never
+    # a host may translate with the seed N_T (named by its pin row), and an edit to any of them must never
     # reuse a cached translation
-    if [ -n "$net" ]; then
-        [ "$tgt" = x86_64-linux ] || return 1
-        fjk=-net; fjenv=; netenv=ANUVADA_NET=1
-        [ -z "$vdf" ] || { fjk=-netvd; netenv="ANUVADA_NET=1 ANUVADA_VD=1"; }
-    fi
-    if [ -n "$sc" ]; then
-        [ -z "$wm" ] && [ -z "$vd" ] || return 1
-        case $tgt in x86_64-linux|aarch64-linux) ;; *) return 1 ;; esac
-        if [ -n "$net" ]; then fjk=$fjk-sc; scenv=ANUVADA_SC=1   # the frames device and slot 0's GPU together (x86_64)
-        else fjk=-sc; fjenv=; scenv=ANUVADA_SC=1; net=$sc; fi
+    # NET (frames device), SC (slot-0 GPU scanout) and VD (deferred virtio completions) were served only by the python
+    # oracle's device models; retired by ADR 0069 (golden frozen, no .t1 replacement): a named refusal, so t1-run.sh
+    # falls to yantra-run, or exits 3 under T1_RUN_REQUIRE_NATIVE=1.
+    if [ -n "$net" ] || [ -n "$sc" ] || [ -n "$vdf" ]; then
+        echo "t1-native: REFUSED — NET/SC/VD (frames device, virtio-gpu scanout, deferred completions) are retired (ADR 0069): no native route" >&2
+        return 1
     fi
     local ck; ck=$(compiler_key) && [ -n "$ck" ] || { echo "t1-native: REFUSED — no compiler key: $T1_COMPILER_SRC holds no .t1 sources (set SAS to the checkout, or --compiler)" >&2; return 1; }
-    tsha=$(strsha "$ck$(sha "$TRANSLATOR")$(sha "$ORACLE")")
-    [ -n "$sc" ] && tsha=$(strsha "$tsha$(sha "$(dirname "$ORACLE")/scanout_dev.py")")
+    tsha=$(strsha "$ck$(sha "$TRANSLATOR")$(pin_key "$tgt")")
     # the image's link base is part of the key (it is in the image sha too; named so a key never hides it)
     dir=$CACHE/$(sha "$img")/$tgt-$tsha-$(strsha "$arg0" | cut -c1-16)-b$(image_base "$img")$fjk$wmk$vdk
     out=$dir/image.native
@@ -443,18 +475,21 @@ EOF
     switch T1_BUILD_CACHED_ONLY && return 1
     mkdir -p "$dir"
     tmp=$(tmpname "$out"); log=$tmp.log   # per-process: concurrent cold translations never share a file
-    if [ -z "$net" ] && [ -z "$noself" ] && [ -z "${T1N_ORACLE_ONLY:-}" ] && nat=$(native_translator) ; then
+    if [ -z "$noself" ] && [ -z "${T1N_SEED_ONLY:-${T1N_ORACLE_ONLY:-}}" ] && nat=$(native_translator) ; then
         echo "t1-native: translating $(basename "$img") for $tgt by the native translator" >&2
         env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$img" YANTRA_INPUT_NAME="$arg0" YANTRA_INPUT_TRACE="$code" \
             YANTRA_RAM=1073741824 YANTRA_STEPS=10000000000000 "$nat" > "$tmp" 2> "$log"
-    elif [ -z "$net" ] && [ -z "${T1N_ORACLE_ONLY:-}" ] && [ -x "$BIN/yantra-run" ] && anu=$(translator_elf); then
+    elif [ -z "${T1N_SEED_ONLY:-${T1N_ORACLE_ONLY:-}}" ] && [ -x "$BIN/yantra-run" ] && anu=$(translator_elf); then
         echo "t1-native: translating $(basename "$img") for $tgt by the .t1 translator under yantra-run" >&2
         env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$img" YANTRA_INPUT_NAME="$arg0" YANTRA_INPUT_TRACE="$code" \
             YANTRA_RAM=1073741824 YANTRA_STEPS=10000000000000 "$BIN/yantra-run" "$anu" > "$tmp" 2> "$log"
+    elif seed=$(trusted_translator "$tgt"); then
+        echo "t1-native: translating $(basename "$img") for $tgt by the seed translator N_T ($(sha "$seed" | cut -c1-12))" >&2
+        env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$img" YANTRA_INPUT_NAME="$arg0" YANTRA_INPUT_TRACE="$code" \
+            YANTRA_RAM=1073741824 YANTRA_STEPS=10000000000000 "$seed" > "$tmp" 2> "$log"
     else
-        echo "t1-native: translating $(basename "$img") for $tgt by anuvada.py (the oracle)" >&2
-        env $fjenv $netenv $scenv python3 "$ORACLE" --target "$tgt" $wmflag "$img" "$tmp" "$arg0" 2> "$log" &&
-            echo "halt: Finisher { value: 21845, status: Some(0) }" >> "$log"
+        echo "t1-native: no translator can run for $(basename "$img") ($tgt): no trusted seed translator" >&2
+        rm -f "$tmp" "$log"; return 1
     fi
     grep -aq "status: Some(0)" "$log" && [ -s "$tmp" ] ||
         { mv -f "$log" "$dir/translate.log"; echo "t1-native: the translator refused $(basename "$img"); see $dir/translate.log" >&2; rm -f "$tmp"; return 1; }

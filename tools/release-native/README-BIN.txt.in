@@ -18,10 +18,10 @@ WHAT THIS PACKAGE IS NOT (stated plainly)
    does not carry: the existing Rust stays until the native path replaces it. For .sas, use the
    Rust `sadhana` from the v1.1.0-alpha release archives (the last release that ships Rust).
  * Programs are run by the native translation, not by yantra-run. Scalar floats (F/D) run
-   natively. Files: grant a root with YANTRA_FILES=DIR (the --files flag is a yantra-run flag).
+   natively. YANTRA_STEPS (step ceiling, default 1000000) and YANTRA_RAM are honoured. Files: grant a root with YANTRA_FILES=DIR (the --files flag is a yantra-run flag).
    There is no fallback, so these are REFUSED with exit 1 and a message: vector instructions,
    CSR ecalls, MMIO loads (virtio/gpu, the instruction counter), stores to devices other than
-   UART and FINISHER, YANTRA_STEPS / VERDICT / SCANOUT / VIRTIO_DEFER / WATERMARK, and every
+   UART and FINISHER, YANTRA_VERDICT / SCANOUT / VIRTIO_DEFER / WATERMARK, and every
    yantra-run flag (--files, --events, --net-*, --smp, ...).
  * Threads run only under the emulator (yantra-run): a threaded image is REFUSED by name, exit 1,
    when this package's runtime starts it.

@@ -13,7 +13,9 @@ done
 w=$(mktemp -d "${TMPDIR:-/tmp}/gen-hl.XXXXXX")
 elf=$w/hl.elf
 (cd "$root" && tools/t1-build.sh --entry उद्दीपन मुख्यम् -o "$elf" crates/sadhana-t1/src/ashtaka.t1 tools/gen/sanchika.t1 tools/gen/highlights.t1) >"$w/blog" 2>&1 || true
-[ -f "$elf" ] || { echo "gen-highlights: build refused" >&2; cat "$w/blog" >&2; rm -rf "$w"; exit 1; }
+[ -f "$elf" ] || {
+  if grep -a -q "no cached Stage 1\|no trusted\|CANNOT RUN" "$w/blog"; then echo "gen-highlights: CANNOT RUN: no Stage 1 compiler (SKIPPED)" >&2; rm -rf "$w"; exit 77; fi
+  echo "gen-highlights: build refused" >&2; cat "$w/blog" >&2; rm -rf "$w"; exit 1; }
 mkdir "$w/f"
 cp "$spec/mnemonics-riscv64.src.tsv" "$w/f/आज्ञा"; cp "$spec/registers-riscv64.tsv" "$w/f/पञ्जी"
 cp "$spec/directives.tsv" "$w/f/निर्देश"; cp "$spec/fence-domains-riscv64.tsv" "$w/f/आवरण"

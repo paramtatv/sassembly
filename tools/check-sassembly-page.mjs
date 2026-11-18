@@ -982,7 +982,7 @@ await rerun(
 // UNKNOWN is the arm reached when one side's build could not take a stamp: `build.rs` in
 // both `*-wasm` crates falls back to the literal seven octets `unknown` on a machine with
 // no sha256 tool (`crates/sadhana-wasm/build.rs:32`, `crates/yantra-wasm/build.rs:45`),
-// and `build-stamp.rs:78` (retired to archive/rust/build-stamp/) does the same for the native side. It is `na` by design —
+// and `build-stamp.rs:78` (retired to purged-rust/build-stamp/) does the same for the native side. It is `na` by design —
 // `web/sassembly.template.html:162` calls it "a gap and not a verdict" — and that is
 // exactly why it needs arms the other three cannot give it:
 //

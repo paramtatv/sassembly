@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # run as `sh tools/...` (dash) too: this file needs bash — re-exec under it
-[ -n "${BASH_VERSION:-}" ] || exec bash "$0" "$@"
+{ [ -n "${BASH_VERSION:-}" ] && ! shopt -oq posix; } || exec bash "$0" "$@"
 # t1-run.sh — A DROP-IN FOR yantra-run that runs the image natively where it can.
 #
 #   tools/t1-run.sh [yantra-run flags] IMAGE.elf [args...]
@@ -129,7 +129,7 @@ yantra() {
     exit "$rc"
 }
 # ॥ THE EVENT LOG OF A REPLAY (`--events LOG`; SL5, K3) — read here as yantra-run reads it ॥
-# (the retired Rust source: parse_event_log, parse_thread_log, refuse_torn_final_record).
+# (retired Rust input.rs: parse_event_log, parse_thread_log, refuse_torn_final_record).
 # events_read LOG fills ev_n (the records), ev_at (the `@N` records among them) and ev_fmt (each record
 # as 16 octets, little-endian: the kind, 0 a value or `t=` record and 1 an `@N`, then the value, as
 # printf escapes), or answers 1 with ev_why. It takes a log WHOLE or not at all: what it does not take
@@ -478,7 +478,7 @@ vdsh=
 if [ -n "${YANTRA_VERDICT+x}" ]; then
     case "$(uname -s)" in Linux) vdt=vd; wmt= ;; *) vdsh=1 ;; esac
 fi
-# YANTRA_SCANOUT runs natively on Linux (slot 0's GPU in the translation, sct below; tools/native-spike/scanout_dev.py)
+# YANTRA_SCANOUT runs natively on Linux (slot 0's GPU in the translation, sct below; retired scanout_dev.py)
 sct=
 if [ -n "${YANTRA_SCANOUT+x}" ]; then
     case "$(uname -s)" in Linux) sct=sc ;; *) yantra "YANTRA_SCANOUT is a yantra-only feature on this host" ;; esac

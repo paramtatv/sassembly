@@ -10,6 +10,7 @@
 # Exit 0 only if every comparison held. Run it on a Linux host (x86_64 or aarch64), never here on the Mac.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
+anu=${ANUVADA-$here/../anuvada}   # override: a join-mutant harness points this at a mutated translator
 ns=${FJ_NS:-"1 2 8 20 cpus"}; rep=${FJ_REPEAT:-1}; tmo=${FJ_TIMEOUT:-20}
 case $(uname -m) in x86_64) tgt=x86_64-linux ;; aarch64) tgt=aarch64-linux ;; *) echo "fj-check: no Linux target here" >&2; exit 2 ;; esac
 if [ -n "${FJ_WORK:-}" ]; then work=$FJ_WORK; else work=$(mktemp -d "${TMPDIR:-/tmp}/fj-check.XXXXXX"); trap 'rm -rf "$work"' EXIT; trap 'exit 143' INT TERM; fi
@@ -42,8 +43,8 @@ same() {  # same A B WHAT — or BOTH runs are ones tools/t1-run.sh discards and
 }
 for img in "$@"; do
     n=$(basename "$img" .elf); bad=0
-    python3 "$here/anuvada.py" --target $tgt "$img" "$work/$n.ser" > /dev/null 2>&1 || { echo "fj-check: $n: no serial translation"; fail=1; continue; }
-    ANUVADA_FORKJOIN=1 python3 "$here/anuvada.py" --target $tgt "$img" "$work/$n.fj" > /dev/null 2>&1 || { echo "fj-check: $n: no fork-join translation"; fail=1; continue; }
+    "$anu" --target $tgt "$img" "$work/$n.ser" > /dev/null 2>&1 || { echo "fj-check: $n: no serial translation"; fail=1; continue; }
+    ANUVADA_FORKJOIN=1 "$anu" --target $tgt "$img" "$work/$n.fj" > /dev/null 2>&1 || { echo "fj-check: $n: no fork-join translation"; fail=1; continue; }
     run "$work/$n.S" "$work/$n.ser"
     want "$n" "$work/$n.S"
     if [ -n "${YANTRA:-}" ] && ! grep -aq "$fb" "$work/$n.S.err"; then   # (a serial run t1-run reruns IS yantra's)

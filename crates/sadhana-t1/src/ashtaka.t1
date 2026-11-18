@@ -232,7 +232,7 @@
 ॰ program reads it with ordinary indexing — `स्थितिः अङ्कः ० अन्तः`. Every LENGTH
 ॰ is read from the runs' own headers, never from a word the caller fills in: a
 ॰ program that overstated its buffer would otherwise be written past the end of
-॰ its own run and told it succeeded. `crates/yantra/src/patra.rs` holds the
+॰ its own run and told it succeeded. `retired Rust patra.rs` holds the
 ॰ protocol and the reasons.
 ॰
 ॰ **THE INTERPRETER DOES NOT INTERCEPT THIS ONE, AND THAT IS DELIBERATE.** It

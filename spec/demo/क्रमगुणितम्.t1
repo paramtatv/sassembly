@@ -1,12 +1,12 @@
 मण्डलम् क्रमगुणितम् ॥   ॰ factorial — recursion and a call with an argument
 
 ॰ THE ANSWER IS १२०. ५! = ५ × ४ × ३ × २ × १ = १२०.
-॰ MEASURED 2026-09-04, by the chain in `crates/yantra/tests/paradigm_encode.rs`
+॰ MEASURED 2026-09-04, by the chain in `retired Rust paradigm_encode.rs`
 ॰ run over this directory: lex, parse, resolve, typecheck, IR, emit, assemble,
 ॰ link, load, run — every stage passes, and both emitter twins write the same
 ॰ octets. IT RETURNS 120.
 ॰
-॰ RE-MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file:
+॰ RE-MEASURED 2026-09-05 on main `f7f93806`, by `retired demo.sh` over this file:
 ॰ 2 routines, 7 blocks, FOURTEEN IR instructions, 4 constants (all non-zero), and the machine halts with status 120.
 ॰ UNTIL 2026-09-05 THIS LINE READ "It reaches the machine and returns ०", and it
 ॰ was true when measured. Three changes made it false, in order: `W-257` opened

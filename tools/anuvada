@@ -1,0 +1,59 @@
+#!/bin/sh
+# tools/anuvada [--target T] [--watermark|--verdict] IN OUT [NAME]   (native front, seed N_T pinned in tools/translator-seed.sha256)
+# targets: x86_64-linux aarch64-linux aarch64-macos x86_64-macos wasm32 wasm32-attest
+# Translates the riscv64 ELF IN into a native image OUT with the .t1 translator (native image, no python).
+# env: ANUVADA_FORKJOIN=1 (Linux targets); SASSEMBLY_NATIVE_CACHE. Unsupported natively (exit 3, nothing written): ANUVADA_NET/SC/VD, --verdict on macOS.
+# exit: 0 ok, 2 usage, 3 not native-able, 1 translator refused.
+set -u
+HERE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 1
+ROOT=$(dirname "$HERE")
+tgt= flag=
+while [ $# -gt 0 ]; do
+    case $1 in
+        --target) [ $# -ge 2 ] || { echo "usage: anuvada [--target T] [--watermark|--verdict] IN OUT [NAME]" >&2; exit 2; }; tgt=$2; shift 2 ;;
+        --watermark|--verdict) flag=$1; shift ;;
+        --) shift; break ;;
+        *) break ;;
+    esac
+done
+[ $# -ge 2 ] || { echo "usage: anuvada [--target T] [--watermark|--verdict] IN OUT [NAME]" >&2; exit 2; }
+in=$1 out=$2 name=${3:-$(basename -- "$1")}
+[ -n "${TMPDIR:-}" ] && { [ -d "$TMPDIR" ] && [ -w "$TMPDIR" ] || { echo "anuvada: TMPDIR=$TMPDIR unusable" >&2; exit 77; }; }
+[ -r "$in" ] || { echo "anuvada: cannot read $in" >&2; exit 1; }
+if [ -z "$tgt" ]; then
+    case "$(uname -s)-$(uname -m)" in
+        Linux-x86_64) tgt=x86_64-linux ;; Linux-aarch64|Linux-arm64) tgt=aarch64-linux ;;
+        Darwin-arm64) tgt=aarch64-macos ;; Darwin-x86_64) tgt=x86_64-macos ;;
+        *) echo "anuvada: unknown host; give --target" >&2; exit 2 ;;
+    esac
+fi
+for v in ANUVADA_NET ANUVADA_SC ANUVADA_VD; do
+    eval "x=\${$v:-}"; [ -z "$x" ] || [ "$x" = 0 ] || { echo "anuvada: $v has no native translator route yet (Car A); no fallback remains" >&2; exit 3; }
+done
+fj=; [ "${ANUVADA_FORKJOIN:-}" = 1 ] && fj=1
+case $tgt in wasm32*) [ -z "$fj" ] && [ -z "$flag" ] || { echo "anuvada: ANUVADA_FORKJOIN/--watermark/--verdict are not for $tgt" >&2; exit 3; } ;; esac
+case $tgt in
+    x86_64-linux) code=0 ;; aarch64-linux) code=183 ;; aarch64-macos) code=268 ;; x86_64-macos) code=263 ;;
+    wasm32) code=1032 ;; wasm32-attest) code=1033 ;;
+    *) echo "anuvada: unknown target $tgt" >&2; exit 2 ;;
+esac
+case $flag in
+    --watermark) case $tgt in x86_64-linux) code=131134 ;; aarch64-linux) code=131255 ;; *) echo "anuvada: --watermark is Linux only" >&2; exit 3 ;; esac; fj= ;;
+    --verdict) case $tgt in x86_64-linux) code=262206 ;; aarch64-linux) code=262327 ;; *) echo "anuvada: --verdict is Linux only" >&2; exit 3 ;; esac; fj= ;;
+esac
+if [ -n "$fj" ]; then
+    case $tgt in x86_64-linux) code=65598 ;; aarch64-linux) code=$((code + 65536)) ;; esac
+fi
+SAS=${SAS:-$ROOT}; BIN=${SAS_BIN:-$SAS/target/release}
+# cold cache (fresh host or a re-key): make this key's Stage 1 natively from the trusted seed first, as t1-build.sh stage1() does
+nat=$(SAS=$SAS ROOT=$ROOT BIN=$BIN bash -c '. "$ROOT/tools/t1-native-lib.sh"; native_translator 2>/dev/null && exit 0
+    stage1_have > /dev/null || { s1=$(stage1_native_path) && stage1_native "$s1"; } || exit 1; native_translator') ||
+    { echo "anuvada: no native translator (no trusted Stage 1 seed for this compiler key)" >&2; exit 3; }
+tmp=$(mktemp "${TMPDIR:-/tmp}/anuvada.XXXXXX") || { echo "anuvada: cannot make temp" >&2; exit 77; }
+log=$tmp.log
+env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="$in" YANTRA_INPUT_NAME="$name" YANTRA_INPUT_TRACE="$code" \
+    YANTRA_RAM=1073741824 YANTRA_STEPS=10000000000000 "$nat" > "$tmp" 2> "$log"
+if grep -aq "status: Some(0)" "$log" && [ -s "$tmp" ]; then
+    chmod 755 "$tmp" && mv -f -- "$tmp" "$out" && rm -f -- "$log"; exit $?   # mode 0755 (as the retired oracle)
+fi
+cat "$log" >&2; rm -f -- "$tmp" "$log"; exit 1

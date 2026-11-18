@@ -2,6 +2,11 @@
 
 Earlier releases are described in their `ANNOUNCEMENT-*.md` files. This file starts at v1.1.0.
 
+## v1.2.1
+
+- **Python retired:** 0 .py files in the tree. `tools/native-spike/anuvada.py` and `softfp.py`, `scanout_dev.py`, `pack-corpus.py`, `t1-qemu-args.py`, `bare-type-census.py` and two probe/example generators are removed; the translator is `tools/anuvada` (native `.t1`), `tools/pack-corpus.sh` and `tools/t1-qemu-args.sh` replace the scripts. `tools/fixpoint.sh` and `tools/t1-native-lib.sh` need no python3.
+- **Known gaps:** network, scanout and virtio-device translator models (ANUVADA_NET/SC/VD) have no native route (exit 3); the web build chain stays skipped (exit 77); no Windows build.
+
 ## v1.2.0
 
 - **Native route:** halt, exit-code, SBI, rounding and argument parity with the reference interpreter; step ceiling and infinite-loop (SpinForever) detection; `--version` parity; `VERDICT`, `SCANOUT` and virtio deferral native; wasm32 matches the reference interpreter.

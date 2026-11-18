@@ -87,7 +87,7 @@ numeral() {
 
 LOAD_DEFAULT=2147483648
 
-load="" mode=image compressed=0 debug=0
+load="" mode=image compressed=0 debug=0 symtab=0
 ARGS_REPR=$(repr_list "$@")
 n=$#
 while [ "$n" -gt 0 ]; do
@@ -101,6 +101,7 @@ while [ "$n" -gt 0 ]; do
         "--संयोजय") mode=link ;;
         "--संक्षिप्त") compressed=1 ;;
         "-g") debug=1 ;;
+        "--नामसारणी") symtab=1 ;;
         --*) refuse "$a: a sadhana flag this shim does not stand in for" ;;
         *) set -- "$@" "$a" ;;
     esac
@@ -114,6 +115,9 @@ while [ "$i" -lt "$cnt" ]; do set -- "$@" "$1"; shift; i=$((i + 1)); done
 out=$1; shift                      # now only the inputs remain
 if [ "$compressed" = 1 ] && [ "$mode" != image ]; then
     refuse "--संक्षिप्त: image from sources only (SAD-C4d1), not with --वस्तु/--संयोजय"
+fi
+if [ "$symtab" = 1 ] && { [ "$mode" != image ] || [ "$compressed" = 1 ] || [ "$debug" = 1 ]; }; then
+    refuse "--नामसारणी: .symtab image from sources only (assemble.t1 mode ३), not with --वस्तु/--संयोजय/--संक्षिप्त/-g"
 fi
 if [ "$debug" = 1 ] && [ "$mode" != image ]; then
     refuse "-g: DWARF from sources only (image mode), not with --वस्तु/--संयोजय"
@@ -156,7 +160,7 @@ done
 
 case $mode in object) what=object ;; *) what=image ;; esac
 if [ -z "$load" ]; then loadarg=$LOAD_DEFAULT; else loadarg=$load; fi
-case $mode in image) modeno=0; [ "$compressed" = 1 ] && modeno=4 ;; object) modeno=1 ;; *) modeno=2 ;; esac
+case $mode in image) modeno=0; [ "$compressed" = 1 ] && modeno=4; [ "$symtab" = 1 ] && modeno=3 ;; object) modeno=1 ;; *) modeno=2 ;; esac
 [ "$debug" = 1 ] && modeno=$(( modeno + 8 ))
 
 b=${out##*/}

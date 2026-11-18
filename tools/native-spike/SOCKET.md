@@ -1,8 +1,8 @@
 # The socket device in the native runtime (W-377; NATIVE-GAPS C3, LIMITS rows 3, 39, 40)
 
-The reference is yantra's, read only: `the retired Rust source` (the device),
-`the retired Rust source` (`--listen`, `serve_live`, `accept_within`, the report line),
-`a file not in this tree` and `the retired Rust source`. The native runtime
+The reference is yantra's, read only: `crates/yantra/src/socket.rs` (the device),
+`crates/yantra/src/bin/yantra-run.rs` (`--listen`, `serve_live`, `accept_within`, the report line),
+`docs/adr/0040-addendum-w377-sockets.md` and `crates/yantra/tests/w377_sockets.rs`. The native runtime
 must print what yantra-run prints, octet for octet, wherever it runs the device. This note says
 what it does, and where it does not.
 
@@ -205,8 +205,8 @@ named difference from yantra's strerror text.
 ## 7. The .t1 port
 
 - The runtimes are generated:
-  - `runtime_sock` is RECORDED by rt2t1.py (added to its RECORDED list).
-  - `runtime_sock_a64` is recorded by rta2t1.py with the rest of `runtime_a64`.
+  - `runtime_sock` is recorded once into anuvada.t1 (converter retired).
+  - `runtime_sock_a64` is recorded once with the rest of `runtime_a64`.
 - The lowering is hand-written, and it changes in two places:
   - `main.t1a`: the load cold stub calls `rt_load_slow` and continues at the B label. The x86-64
     load lowering already defines that label.

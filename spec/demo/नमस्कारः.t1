@@ -9,7 +9,7 @@
 ॰ only in prose, so the demonstration could not check it. Added 2026-09-06 by
 ॰ the row that made the demonstration run the directory it makes claims about.
 
-॰ THE SMALLEST SASSEMBLY PROGRAM THAT REACHES THE MACHINE. `tools/demo.sh`
+॰ THE SMALLEST SASSEMBLY PROGRAM THAT REACHES THE MACHINE. `retired demo.sh`
 ॰ compiles this file with the self-hosted chain — lex, parse, resolve, typecheck,
 ॰ IR, emit (both twins), assemble, link, load, run — and every stage passes.
 ॰

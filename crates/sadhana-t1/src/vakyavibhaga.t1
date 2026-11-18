@@ -1,4 +1,4 @@
-मण्डलम् वाक्यविभाग ॥ ॰ vakyavibhaga — the port of crates/sadhana/src/parse.rs
+मण्डलम् वाक्यविभाग ॥ ॰ vakyavibhaga — the port of retired Rust parse.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ THE SASSEMBLY INSTRUCTION READER, task D-002f1, doc 03 §8.
@@ -13,7 +13,7 @@
 ॰ closed on the cycle before this one after thirteen bounded parts. This
 ॰ file arrived at 487 अ६४ and NOT ONE न६४, and it is taken in parts for
 ॰ the same reason encode.t1 was: each site's spelling is read off its
-॰ twin in crates/sadhana/src/parse.rs, not guessed from its neighbour.
+॰ twin in retired Rust parse.rs, not guessed from its neighbour.
 ॰
 ॰ THE PART TAKEN FIRST IS THE LINE NUMBER — 14 sites, all fourteen
 ॰ moving, all fourteen visible to the census: पङ्क्ति in आज्ञा, दत्तम्,
@@ -43,8 +43,8 @@
 ॰ For a week the D-002 chain called its second blocker "B-109/parse.t1".
 ॰ That was FALSE and D-002a2 measured it false. crates/sadhana-t1/src/
 ॰ parse.t1 is मण्डलम् व्याकर, the T1 LANGUAGE parser — घोषणा,
-॰ व्याकरदोष — and it is a port of crates/sadhana/src/t1/parse.rs. The
-॰ Sassembly instruction reader, crates/sadhana/src/parse.rs, 1422 lines,
+॰ व्याकरदोष — and it is a port of retired Rust parse.rs. The
+॰ Sassembly instruction reader, retired Rust parse.rs, 1422 lines,
 ॰ had never been ported at all. Two files named parse and one of them
 ॰ absent is exactly how a whole module goes missing for a week.
 ॰
@@ -2303,7 +2303,7 @@
 ॰ 2026-08-28 (D-002g), `समावेशः आरभ्य <name> समाप्तम्`, and encode.t1 and
 ॰ samyojana.t1 both use it today. What is actually missing is smaller and
 ॰ exact: the embed resolves an IDENTIFIER against TABLES in
-॰ crates/sadhana/src/t1/anita.rs, and NEITHER spec/directives.tsv NOR
+॰ retired Rust anita.rs, and NEITHER spec/directives.tsv NOR
 ॰ spec/mnemonics-riscv64.src.tsv is quite reachable — mnemonics IS listed,
 ॰ as नामकोशः, but directives.tsv HAS NO NAME THERE AT ALL, so it is
 ॰ unreachable however much it exists on disk. That is one line of Rust and
@@ -2599,7 +2599,7 @@
 ॰ embed, समावेशः आरभ्य <name> समाप्तम्, and encode.t1's कोष्ठाङ्कः reads
 ॰ spec/registers-riscv64.tsv that way today. THE ACTUAL BLOCKER IS THAT
 ॰ web-dictionary.tsv HAS NO NAME. The embed resolves an identifier
-॰ against TABLES in crates/sadhana/src/t1/anita.rs, which lists six files
+॰ against TABLES in retired Rust anita.rs, which lists six files
 ॰ and not this one, and ADR-0019's own design is that an unlisted file is
 ॰ UNSPELLABLE rather than refused. Naming it is a registry decision of
 ॰ the same kind D-002i2 took when it added संस्कारकोशः, so it wants its

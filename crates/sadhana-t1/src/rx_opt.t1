@@ -1,5 +1,5 @@
 मण्डलम् अनुकूलन ॥
-॰ twin of crates/sadhana/src/t1/opt.rs: IrFault, optimize_function, verify, dce_pass.
+॰ twin of retired Rust opt.rs: IrFault, optimize_function, verify, dce_pass.
 ॰ It works on one function of the flat IR of मध्यरूप (वृत्ति -> पर्वकोश -> आज्ञाकोश).
 ॰ Fault kinds: ० none, १ TargetNotInFunction, २ ValueNotDefined, ३ CmpOfDifferentTypes.
 आयातः मध्यरूप ।

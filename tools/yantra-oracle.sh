@@ -13,7 +13,7 @@ if [ ! -s "$c/yi.elf" ]; then
   mkdir -p "$c.tmp.$$" || { echo "yantra-oracle: cannot make $c.tmp.$$" >&2; exit 77; }
   FP=1 sh "$ti/mk.sh" "$c.tmp.$$/mods" >&2 || { echo "yantra-oracle: mk.sh failed" >&2; exit 77; }
   # shellcheck disable=SC2046
-  ( cd "$root" && sh tools/t1-build.sh --entry यन्त्रकेन्द्र मुख्यम् -o "$c.tmp.$$/yi.elf" $(cat "$c.tmp.$$/mods/MODULES") ) >&2 \
+  ( cd "$root" && bash tools/t1-build.sh --entry यन्त्रकेन्द्र मुख्यम् -o "$c.tmp.$$/yi.elf" $(cat "$c.tmp.$$/mods/MODULES") ) >&2 \
     || { echo "yantra-oracle: t1-build of yi.elf failed" >&2; exit 77; }
   mv "$c.tmp.$$" "$c" 2>/dev/null || [ -s "$c/yi.elf" ] || exit 77   # a peer won the race: use its copy
   [ -d "$c.tmp.$$" ] && rm -rf -- "$c.tmp.$$"

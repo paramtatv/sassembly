@@ -34,7 +34,7 @@
 #                release builds: cheap enough for every landing and the nightly. Exit 77 only when
 #                NO generator runner exists (no tools/lexgen/run.sh); the caller must
 #                treat that as UNMEASURED, never as a pass. Added after b7f9b6f5 (2026-10-12)
-#                landed with a stale spec/lexicon.tsv: this check ran only inside the internal gate,
+#                landed with a stale spec/lexicon.tsv: this check ran only inside tools/gate.sh,
 #                which neither land.sh/land-remote.sh nor nightly.sh run.
 #
 # Re-exec under bash if invoked as `sh tools/check-reproducible.sh` — task
@@ -186,7 +186,11 @@ say "generated identity assets match their generator"
 _m=$(mktemp -d); trap 'rm -rf "$tmp" "$_m"' EXIT
 cp assets/marks/marks.svg "$_m/marks.svg"
 cp assets/marks/sheet-marks.html "$_m/sheet.html"
-if ! out=$(tools/gen-marks.sh 2>&1); then
+gm_rc=0; out=$(tools/gen-marks.sh 2>&1) || gm_rc=$?
+if [ "$gm_rc" -eq 77 ]; then
+  say "CANNOT RUN: tools/gen-marks.sh has no Stage 1 compiler - identity assets UNMEASURED"
+  cannot=1
+elif [ "$gm_rc" -ne 0 ]; then
   bad "tools/gen-marks.sh failed"
   echo "$out"
 else
@@ -200,7 +204,10 @@ else
 fi
 
 say
-if [ "$fail" -eq 0 ]; then
+if [ "$fail" -eq 0 ] && [ "${cannot:-0}" = 1 ]; then
+  say "UNMEASURED: a section could not run (exit 77, not a pass)."
+  exit 77
+elif [ "$fail" -eq 0 ]; then
   say "reproducible."
 else
   say "NOT reproducible — see failures above."

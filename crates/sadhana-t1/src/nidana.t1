@@ -1,4 +1,4 @@
-मण्डलम् निदान ॥ ॰ nidana — the port of crates/sadhana/src/nidana.rs and of
+मण्डलम् निदान ॥ ॰ nidana — the port of retired Rust nidana.rs and of
 ॰ parse.rs's ParseError::message, distance and nearest.
 
 ॰ ══════════════════════════════════════════════════════════════════════
@@ -21,7 +21,7 @@
 ॰ अक्षरदूरम् IS AKṢARA-LEVEL AND MUST STAY SO. क्ष is ONE akṣara — क
 ॰ plus virāma plus ष, three code points — so a code-point distance calls
 ॰ क्ष and क three edits apart when they are one, and suppresses exactly
-॰ the suggestion worth making. crates/sadhana/src/parse.rs:376 spends its
+॰ the suggestion worth making. retired Rust parse.rs:376 spends its
 ॰ first two lines on sanskrit_text::aksharas for that reason, and NO .t1
 ॰ module in this crate had अक्षराणि written: अक्षरकोश ॱ अक्षराणि is a
 ॰ stub returning अपूर्णम्. So this row could not be a hundred lines of
@@ -29,7 +29,7 @@
 ॰ row, and it is written here.
 ॰
 ॰ ── WHAT IS PORTED, AND THE ONE THING THAT IS NOT ──
-॰ crates/sanskrit-text/src/segment.rs computes the UAX #29 EXTENDED
+॰ retired Rust segment.rs computes the UAX #29 EXTENDED
 ॰ grapheme cluster in full: GB1–GB999, Hangul jamo, regional-indicator
 ॰ parity, ExtPict ZWJ sequences, over GRAPHEME_BREAK (१३८६ rows), INCB
 ॰ (४७३ rows) and EXTENDED_PICTOGRAPHIC (१५६ rows) in tables.rs. THAT IS
@@ -199,7 +199,7 @@
 
 
 ॰ ══════════════════ the two property lookups ══════════════════
-॰ crates/sanskrit-text/src/lib.rs binary-searches a range table. Inside
+॰ retired Rust lib.rs binary-searches a range table. Inside
 ॰ one Unicode block the table is short enough to be the code, and writing
 ॰ it as code rather than as data is what keeps this file free of the
 ॰ generated-table dependency the general port would need.
@@ -568,7 +568,7 @@
 
 
 ॰ ══════════════════ अक्षरदूरम् ══════════════════
-॰ crates/sadhana/src/parse.rs:375. Levenshtein, and the two lines that
+॰ retired Rust parse.rs:375. Levenshtein, and the two lines that
 ॰ matter are the first two: the operands are AKṢARAS. Everything below is
 ॰ the ordinary two-row matrix; what makes it right for this language is
 ॰ that a[i] and b[j] are clusters, so क्ष and क are one edit apart rather
@@ -658,7 +658,7 @@
 
 
 ॰ ══════════════════ आसन्नतमम् ══════════════════
-॰ crates/sadhana/src/parse.rs:391. The registry family whose नाम is
+॰ retired Rust parse.rs:391. The registry family whose नाम is
 ॰ nearest to what was written, or none. वाक्यविभाग holds the registry —
 ॰ संज्ञाकुलकोश , one संज्ञाकुल per row — so this walks that arena and
 ॰ returns an index into it. ० is Rust's None, which is why every arena in
@@ -701,7 +701,7 @@
 
 
 ॰ ══════════════════ निदानम् — the registry ══════════════════
-॰ crates/sadhana/src/nidana.rs. A diagnostic is a stable कूट and the
+॰ retired Rust nidana.rs. A diagnostic is a stable कूट and the
 ॰ pieces that vary; the sentence lives in spec/diagnostics.tsv, in both
 ॰ languages, so translating is editing a table rather than finding every
 ॰ format! in the tree.
@@ -804,7 +804,7 @@
 ॰ read "T1 has neither an include nor a file reader — the same wall
 ॰ सङ्केतन ॱ सङ्केताः stands at". That wall came down when ADR-0019's
 ॰ समावेशः landed; what kept THIS routine behind it afterwards was that
-॰ spec/diagnostics.tsv had no NAME in crates/sadhana/src/t1/anita.rs's
+॰ spec/diagnostics.tsv had no NAME in retired Rust anita.rs's
 ॰ TABLES, so the embed could not resolve to it. ("निदानकोशः",
 ॰ "diagnostics.tsv") is now anita.rs:201.
 ॰
@@ -1019,7 +1019,7 @@
 
 
 ॰ ══════════════════ सन्देश — ParseError::message ══════════════════
-॰ crates/sadhana/src/parse.rs:329. THE ENTRY POINT OF THIS ROW: a caller
+॰ retired Rust parse.rs:329. THE ENTRY POINT OF THIS ROW: a caller
 ॰ holds a वाक्यदोष and wants the sentence in a language it chooses.
 ॰
 ॰ A diagnostic with no कूट yet falls back to its rendered कारणम् — B-078e,

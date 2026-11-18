@@ -64,9 +64,20 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "SKIPPED: qemu-system-riscv64 is not installed"
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
-command -v python3 >/dev/null 2>&1 || {
-  echo "SKIPPED: python3 is not installed; it is the host end of the frame socket"
-  echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
+
+# Host-end deps of the stream netdev wire: nc with unix-socket (-U) support, and
+# a QEMU that has the `stream` netdev.  Missing or unsuitable = 77, not FAIL.
+command -v nc >/dev/null 2>&1 || {
+  echo "SKIP nc is not installed (needed for the unix-socket host end)" >&2
+  exit 77; }
+# Capability test, not a help grep (BSD prints -U inside a flag bundle): -U on an
+# absent socket fails to connect; an nc without -U rejects the option itself.
+if nc -U "$tmp/no-such.sock" </dev/null 2>&1 | grep -aEqi 'illegal option|invalid option|unknown option|usage:'; then
+  echo "SKIP nc lacks -U (unix-socket) support" >&2
+  exit 77
+fi
+qemu-system-riscv64 -netdev help 2>&1 | grep -qw stream || {
+  echo "SKIP qemu-system-riscv64 lacks the stream netdev (needs QEMU >= 7.2)" >&2
   exit 77; }
 
 # The assembler is tools/sadhana-native.sh (no Rust); its exit 77 (no Stage 1) is this check's 77.
@@ -107,202 +118,234 @@ assemble() {  # $1 = link address, $2 = output elf
 }
 
 # ---------------------------------------------------------------------------
-# The host end of the wire.  Speaks QEMU's socket-netdev framing: each frame is
-# preceded by its length as a four-byte big-endian integer.
+# The host end of the wire.  Speaks QEMU's stream-netdev framing: each frame is
+# preceded by its length as a four-byte big-endian integer.  QEMU listens on a
+# unix socket; `nc -U` is the host end, fed and read through two fifos.  Every
+# frame is built and checked in awk on hex strings; bytes go out through octal
+# `printf` escapes and come back through `od`.
+#
+# No timers.  Each wait is an event: the guest's NET-UP line opens the exchange,
+# a reply closes each step, and "must not be answered" is settled by ORDER — the
+# guest handles frames one at a time, so when the reply to the frame sent LAST
+# arrives, anything it was going to say about the earlier ones has come first.
+# A guest that never answers ends the wait when the SIGKILL watcher below kills
+# QEMU and the socket closes.
 # ---------------------------------------------------------------------------
-cat > "$tmp/probe.py" <<'PROBE_PY'
-import os, random, socket, struct, sys, time
-
-GUEST_IP="10.0.2.15"; PROBE_IP="10.0.2.2"; OTHER_IP="10.0.2.99"
-PROBE_MAC=bytes.fromhex("525400aabbcc"); BCAST=b"\xff"*6
-portfile=sys.argv[1]
-
-def ip2b(s): return bytes(int(x) for x in s.split("."))
-
-def csum(b):
-    if len(b)%2: b+=b"\x00"
-    s=sum(struct.unpack("!%dH"%(len(b)//2),b))
-    while s>>16: s=(s&0xffff)+(s>>16)
-    return (~s)&0xffff
-
-def eth(d,s,t,p):
-    f=d+s+struct.pack("!H",t)+p
-    return f+b"\x00"*(60-len(f)) if len(f)<60 else f
-
-class Link:
-    def __init__(s,sk): s.s=sk; s.buf=b""
-    def send(s,f): s.s.sendall(struct.pack("!I",len(f))+f)
-    def recv(s,timeout):
-        end=time.monotonic()+timeout
-        while True:
-            if len(s.buf)>=4:
-                n=struct.unpack("!I",s.buf[:4])[0]
-                if n>65536: raise RuntimeError("bad framing on the socket netdev")
-                if len(s.buf)>=4+n:
-                    f=s.buf[4:4+n]; s.buf=s.buf[4+n:]; return f
-            left=end-time.monotonic()
-            if left<=0: return None
-            s.s.settimeout(left)
-            try: d=s.s.recv(65536)
-            except socket.timeout: return None
-            if not d: return None
-            s.buf+=d
-
-def arp_req(t):
-    b=struct.pack("!HHBBH",1,0x0800,6,4,1)+PROBE_MAC+ip2b(PROBE_IP)+b"\x00"*6+ip2b(t)
-    return eth(BCAST,PROBE_MAC,0x0806,b)
-
-def echo(dm,dip,i,q,pay,bad=False):
-    ic=struct.pack("!BBHHH",8,0,0,i,q)+pay
-    ic=ic[:2]+struct.pack("!H",csum(ic))+ic[4:]
-    ip=struct.pack("!BBHHHBBH",0x45,0,20+len(ic),0x1234,0,64,1,0)+ip2b(PROBE_IP)+ip2b(dip)
+cat > "$tmp/probe.awk" <<'PROBE_AWK'
+function h2n(s,  i,n){n=0;for(i=1;i<=length(s);i++)n=n*16+index("0123456789abcdef",substr(s,i,1))-1;return n}
+function n2h(n,w){return sprintf("%0" w "x",n)}
+function ip2h(s,  a,r,i){split(s,a,".");r="";for(i=1;i<=4;i++)r=r sprintf("%02x",a[i]);return r}
+function csum(h,  i,s){
+    if(length(h)%4)h=h "00"
+    s=0
+    for(i=1;i<=length(h);i+=4)s+=h2n(substr(h,i,4))
+    while(s>=65536)s=(s%65536)+int(s/65536)
+    return 65535-s
+}
+function eth(d,s,t,p,  f){f=d s t p;while(length(f)<120)f=f "00";return f}
+function echo(dm,dip,i,q,pay,bad,  ic,ip,c){
+    ic="0800" "0000" i q pay
+    c=csum(ic)
+    ic="0800" n2h(c,4) i q pay
+    ip="4500" n2h(20+length(ic)/2,4) "1234" "0000" "4001" "0000" ip2h(PROBE_IP) ip2h(dip)
     c=csum(ip)
     # One bit in the high byte.  Not `^0xffff`: in ones-complement arithmetic 0
     # and 0xffff are the same value, so that flip would be a no-op on a header
     # whose checksum happened to be 0 and the control would silently pass.
-    if bad: c^=0x0100
-    ip=ip[:10]+struct.pack("!H",c)+ip[12:]
-    return eth(dm,PROBE_MAC,0x0800,ip+ic)
-
-out=[]
-def say(k,v): out.append("PROBE %s %s"%(k,v))
-def done():
-    print("\n".join(out)); sys.exit(0)
-
-srv=socket.socket(); srv.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-srv.bind(("127.0.0.1",0)); srv.listen(1)
-# Written under a temporary name and renamed, so the shell never reads a
-# half-written port number and hands QEMU a truncated one.
-open(portfile+".tmp","w").write(str(srv.getsockname()[1]))
-os.rename(portfile+".tmp",portfile)
-
-srv.settimeout(40)
-try: c,_=srv.accept()
-except socket.timeout:
-    say("FAIL","qemu never connected to the frame socket"); done()
-lk=Link(c)
-
-def drain():
-    while lk.recv(0.30) is not None: pass
-
-# ---- 1. ARP, retried until the guest driver is up --------------------------
-# The retry is not politeness: QEMU connects this socket before the guest has
-# booted, and a single request sent into that window is simply gone.  Retrying
-# is also what a real host does.
-gmac=None; deadline=time.monotonic()+30
-while time.monotonic()<deadline and gmac is None:
-    lk.send(arp_req(GUEST_IP))
-    t=time.monotonic()+0.6
-    while time.monotonic()<t:
-        f=lk.recv(max(0.05,t-time.monotonic()))
-        if f is None: break
-        if len(f)>=42 and f[12:14]==b"\x08\x06" and f[20:22]==b"\x00\x02" \
-           and f[28:32]==ip2b(GUEST_IP) and f[38:42]==ip2b(PROBE_IP):
-            gmac=f[22:28]
-            # The Ethernet source and the ARP sender-hardware-address must be
-            # the same six bytes.  A reply that disagrees with itself would
-            # still "work" against a lenient peer and is wrong.
-            say("ARP-ETH-SRC-EQUALS-SHA","1" if f[6:12]==gmac else "0")
-            say("ARP-TARGET-IS-PROBE","1" if f[32:38]==PROBE_MAC else "0")
-            break
-if gmac is None:
-    say("FAIL","no ARP reply from %s within 30s"%GUEST_IP); done()
-say("ARP-REPLY-MAC",":".join("%02x"%b for b in gmac))
-
-# ---- 2. the ping ----------------------------------------------------------
-def ping(tag,ident,seq,pay,dst_ip=GUEST_IP,bad=False,expect=True,wait=8.0):
-    drain()
-    lk.send(echo(gmac,dst_ip,ident,seq,pay,bad))
-    end=time.monotonic()+wait
-    while time.monotonic()<end:
-        f=lk.recv(max(0.05,end-time.monotonic()))
-        if f is None: continue
-        if len(f)<34 or f[12:14]!=b"\x08\x00": continue
-        ip=f[14:34]
-        if ip[9]!=1: continue
-        if not expect:
-            say(tag+"-SILENT","0")
-            say("FAIL",tag+": the guest answered a frame it was required to drop")
-            return None
-        tl=struct.unpack("!H",ip[2:4])[0]
-        ic=f[34:14+tl]
-        ok=1
-        def bad_(why):
-            say("FAIL",tag+": "+why)
-        if f[0:6]!=PROBE_MAC: ok=0; bad_("reply destination MAC is not the probe")
-        if f[6:12]!=gmac:     ok=0; bad_("reply source MAC is not the guest MAC")
-        if ip[0]!=0x45:       ok=0; bad_("reply version/IHL is not 0x45")
-        if csum(ip)!=0:       ok=0; bad_("reply IPv4 header checksum does not verify")
-        if ip[12:16]!=ip2b(GUEST_IP): ok=0; bad_("reply source IP is not the guest")
-        if ip[16:20]!=ip2b(PROBE_IP): ok=0; bad_("reply destination IP is not the probe")
-        if ip[8]==0:          ok=0; bad_("reply TTL is zero")
-        if len(ic)<8 or ic[0]!=0 or ic[1]!=0: ok=0; bad_("reply is not ICMP type 0 code 0")
-        if csum(ic)!=0:       ok=0; bad_("reply ICMP checksum does not verify")
-        if len(ic)>=8 and struct.unpack("!HH",ic[4:8])!=(ident,seq):
-            ok=0; bad_("identifier and sequence were not echoed")
-        if ic[8:]!=pay:       ok=0; bad_("payload was not echoed byte for byte")
-        say(tag+"-OK",str(ok))
-        say(tag+"-TTL",str(ip[8]))
-        return f
-    if expect:
-        say(tag+"-OK","0"); say("FAIL",tag+": no echo reply within %gs"%wait)
-    else:
-        say(tag+"-SILENT","1")
-    return None
-
-i1=random.randrange(1,0xffff); q1=random.randrange(1,0xffff)
-pay1=bytes(random.randrange(256) for _ in range(56))
-say("ECHO-IDSEQ-SENT","%04x%04x"%(i1,q1))
-ping("ECHO",i1,q1,pay1)
-
-# ---- 3. three frames that MUST NOT be answered ----------------------------
-b=echo(gmac,GUEST_IP,i1,q1,pay1,bad=True)
-say("CTL-BADCSUM-REALLY-INVALID","1" if csum(b[14:34])!=0 else "0")
-ping("CTL-BADCSUM",i1,q1,pay1,bad=True,expect=False,wait=3.0)
-ping("CTL-WRONGIP",i1,q1,pay1,dst_ip=OTHER_IP,expect=False,wait=3.0)
-
-drain(); lk.send(arp_req(OTHER_IP))
-seen=0; end=time.monotonic()+3.0
-while time.monotonic()<end:
-    f=lk.recv(max(0.05,end-time.monotonic()))
-    if f is None: continue
-    if len(f)>=42 and f[12:14]==b"\x08\x06" and f[20:22]==b"\x00\x02": seen=1
-say("CTL-ARP-OTHER-SILENT","0" if seen else "1")
-if seen: say("FAIL","the guest answered an ARP for an address that is not its own")
-
-# ---- 4. still alive: the silence above was selective, not death ------------
-i2=random.randrange(1,0xffff); q2=random.randrange(1,0xffff)
-pay2=bytes(random.randrange(256) for _ in range(56))
-say("ECHO2-IDSEQ-SENT","%04x%04x"%(i2,q2))
-ping("ECHO2",i2,q2,pay2)
-say("DISTINCT-IDSEQ","1" if (i1,q1)!=(i2,q2) else "0")
-done()
-PROBE_PY
+    if(bad){if(int(c/256)%2)c-=256;else c+=256}
+    ip=substr(ip,1,20) n2h(c,4) substr(ip,25)
+    return eth(dm,PROBE_MAC,"0800",ip ic)
+}
+function arpreq(t){
+    return eth("ffffffffffff",PROBE_MAC,"0806","0001" "0800" "06" "04" "0001" PROBE_MAC ip2h(PROBE_IP) "000000000000" ip2h(t))
+}
+function chk(why){if(tag!="")print "PROBE FAIL " tag ": " why; ok=0}
+BEGIN{
+    GUEST_IP="10.0.2.15";PROBE_IP="10.0.2.2";OTHER_IP="10.0.2.99";PROBE_MAC="525400aabbcc"
+    f=a1
+    if(m=="arpreq")print arpreq(a1)
+    else if(m=="arpother")print arpreq(OTHER_IP)
+    else if(m=="echo")print echo(a1,a2,a3,a4,a5,a6+0)
+    else if(m=="wire"){
+        h=n2h(length(a1)/2,8) a1;r=""
+        for(i=1;i<=length(h);i+=2)r=r sprintf("\\%03o",h2n(substr(h,i,2)))
+        printf "%s",r
+    }
+    else if(m=="badvalid")print (csum(substr(a1,29,40))!=0)?1:0
+    else if(m=="succ")print n2h((h2n(a1)+1)%65536,4)
+    else if(m=="chkarp"){
+        f=a1
+        if(length(f)>=84&&substr(f,25,4)=="0806"&&substr(f,41,4)=="0002"&&substr(f,57,8)==ip2h(GUEST_IP)&&substr(f,77,8)==ip2h(PROBE_IP)){
+            g=substr(f,45,12)
+            print 1,g,(substr(f,13,12)==g)?1:0,(substr(f,65,12)==PROBE_MAC)?1:0
+        } else print 0
+    }
+    else if(m=="classify"){
+        f=a1
+        if(length(f)>=84&&substr(f,25,4)=="0806"&&substr(f,41,4)=="0002")print "arp"
+        else if(length(f)>=84&&substr(f,25,4)=="0800"&&substr(f,47,2)=="01")print "icmp",substr(f,77,8)
+        else print "skip"
+    }
+    else if(m=="chkecho"){
+        # a1 = frame, a2 = ident, a3 = seq, a4 = payload, a5 = guest MAC; tag = the probe's name for it
+        f=a1;gm=a5;ok=1
+        tl=h2n(substr(f,33,4))
+        ip=substr(f,29,40)
+        ic=substr(f,69,2*(tl-20))
+        if(substr(f,1,12)!=PROBE_MAC)chk("reply destination MAC is not the probe")
+        if(substr(f,13,12)!=gm)chk("reply source MAC is not the guest MAC")
+        if(substr(ip,1,2)!="45")chk("reply version/IHL is not 0x45")
+        if(csum(ip)!=0)chk("reply IPv4 header checksum does not verify")
+        if(substr(ip,25,8)!=ip2h(GUEST_IP))chk("reply source IP is not the guest")
+        if(substr(ip,33,8)!=ip2h(PROBE_IP))chk("reply destination IP is not the probe")
+        if(substr(ip,17,2)=="00")chk("reply TTL is zero")
+        if(length(ic)<16||substr(ic,1,2)!="00"||substr(ic,3,2)!="00")chk("reply is not ICMP type 0 code 0")
+        if(csum(ic)!=0)chk("reply ICMP checksum does not verify")
+        if(length(ic)>=16&&substr(ic,9,8)!=a2 a3)chk("identifier and sequence were not echoed")
+        if(substr(ic,17)!=a4)chk("payload was not echoed byte for byte")
+        print "PROBE " tag "-OK " ok
+        print "PROBE " tag "-TTL " h2n(substr(ip,17,2))
+    }
+    exit 0
+}
+PROBE_AWK
 
 # ---------------------------------------------------------------------------
 # One run: a probe and a whole QEMU process, both gone by the time it returns.
 # ---------------------------------------------------------------------------
+trap '' PIPE   # a write to a dead socket is a failed step, not a dead script
+A() {  # $1 = mode, then up to six arguments -> awk's answer
+    m=$1; shift
+    awk -v m="$m" -v tag="${tag:-}" -v a1="${1:-}" -v a2="${2:-}" -v a3="${3:-}" \
+        -v a4="${4:-}" -v a5="${5:-}" -v a6="${6:-}" -f "$tmp/probe.awk"
+}
+say() { printf 'PROBE %s %s\n' "$1" "$2" >> "$pout"; }
+tx() {  # $1 = frame as hex -> the frame on the wire, length first
+    fmt=$(A wire "$1")
+    # the format IS the bytes, every one of them an octal escape
+    # shellcheck disable=SC2059
+    printf "$fmt" >&5 || true
+}
+rx() {  # one frame off the wire -> $fr as hex; false when the socket has closed
+    fr=
+    h=$(dd bs=1 count=4 <&6 2>/dev/null | od -An -v -tx1 | tr -d ' \n')
+    [ "${#h}" -eq 8 ] || return 1
+    n=$((0x$h))
+    [ "$n" -le 65536 ] || { echo "bad framing on the socket netdev" >> "$perr"; return 1; }
+    fr=$(dd bs=1 count="$n" <&6 2>/dev/null | od -An -v -tx1 | tr -d ' \n')
+    [ "${#fr}" -eq $((2 * n)) ]
+}
+rnd() {  # -> $r1 = identifier, $r2 = sequence (never 0), $r3 = 56 payload bytes
+    x=$(od -An -v -N60 -tx1 /dev/urandom | tr -d ' \n')
+    [ "${#x}" -eq 120 ] || { echo "no random bytes from /dev/urandom" >> "$perr"; return 1; }
+    r1=$(printf '%s' "$x" | cut -c1-4); r2=$(printf '%s' "$x" | cut -c5-8)
+    r3=$(printf '%s' "$x" | cut -c9-120)
+    [ "$r1" != 0000 ] || r1=0001
+    [ "$r2" != 0000 ] || r2=0001
+}
+
+drive() {  # $1 = where; the whole exchange, ending with every PROBE line written
+    where=$1; gip=10.0.2.15
+    # ---- 0. the guest says it is up -----------------------------------------
+    up=0
+    while IFS= read -r l <&4; do
+        printf '%s\n' "$l" >> "$tmp/raw-$where"
+        case $l in *NET-UP*) up=1; break ;; esac
+    done
+    cat <&4 >> "$tmp/raw-$where" & catpid=$!
+    [ "$up" -eq 1 ] || { say FAIL "no ARP reply from $gip within 30s"; return; }
+    [ -S "$sock" ] || { say FAIL "qemu never connected to the frame socket"; return; }
+    nc -U "$sock" < "$tmp/tx-$where" > "$tmp/rx-$where" 2>/dev/null & ncpid=$!
+    exec 5> "$tmp/tx-$where"
+    exec 6< "$tmp/rx-$where"
+
+    # ---- 1. ARP -------------------------------------------------------------
+    tag=
+    tx "$(A arpreq "$gip")"
+    got=
+    while rx; do
+        c=$(A chkarp "$fr")
+        case $c in 1\ *) got=$c; break ;; esac
+    done
+    [ -n "$got" ] || { say FAIL "no ARP reply from $gip within 30s"; return; }
+    set -- $got
+    gmac=$2
+    say ARP-ETH-SRC-EQUALS-SHA "$3"
+    say ARP-TARGET-IS-PROBE "$4"
+    say ARP-REPLY-MAC "$(printf '%s' "$gmac" | sed 's/../&:/g; s/:$//')"
+
+    # ---- 2. the ping --------------------------------------------------------
+    rnd || return; i1=$r1; q1=$r2; pay1=$r3
+    say ECHO-IDSEQ-SENT "$i1$q1"
+    tx "$(A echo "$gmac" "$gip" "$i1" "$q1" "$pay1" 0)"
+    found=
+    while rx; do
+        c=$(A classify "$fr")
+        case $c in icmp*) found=$fr; break ;; esac
+    done
+    if [ -n "$found" ]; then
+        tag=ECHO A chkecho "$found" "$i1" "$q1" "$pay1" "$gmac" >> "$pout"
+    else
+        say ECHO-OK 0; say FAIL "ECHO: no echo reply within 8s"
+    fi
+
+    # ---- 3. three frames that MUST NOT be answered, then one that must --------
+    rnd || return; i2=$r1; q2=$r2; pay2=$r3
+    qw=$(A succ "$q1")
+    b=$(A echo "$gmac" "$gip" "$i1" "$q1" "$pay1" 1)
+    say CTL-BADCSUM-REALLY-INVALID "$(A badvalid "$b")"
+    tx "$b"
+    tx "$(A echo "$gmac" 10.0.2.99 "$i1" "$qw" "$pay1" 0)"
+    tx "$(A arpother)"
+    # ---- 4. still alive: the silence above was selective, not death ----------
+    say ECHO2-IDSEQ-SENT "$i2$q2"
+    tx "$(A echo "$gmac" "$gip" "$i2" "$q2" "$pay2" 0)"
+    bs=1; ws=1; as=1; found=
+    while rx; do
+        c=$(A classify "$fr")
+        case $c in
+            arp) as=0 ;;
+            "icmp $i2$q2") found=$fr; break ;;
+            "icmp $i1$q1") bs=0 ;;
+            "icmp $i1$qw") ws=0 ;;
+        esac
+    done
+    say CTL-BADCSUM-SILENT "$bs"
+    [ "$bs" -eq 1 ] || say FAIL "CTL-BADCSUM: the guest answered a frame it was required to drop"
+    say CTL-WRONGIP-SILENT "$ws"
+    [ "$ws" -eq 1 ] || say FAIL "CTL-WRONGIP: the guest answered a frame it was required to drop"
+    say CTL-ARP-OTHER-SILENT "$as"
+    [ "$as" -eq 1 ] || say FAIL "the guest answered an ARP for an address that is not its own"
+    if [ -n "$found" ]; then
+        tag=ECHO2 A chkecho "$found" "$i2" "$q2" "$pay2" "$gmac" >> "$pout"
+    else
+        say ECHO2-OK 0; say FAIL "ECHO2: no echo reply within 8s"
+    fi
+    if [ "$i1$q1" != "$i2$q2" ]; then say DISTINCT-IDSEQ 1; else say DISTINCT-IDSEQ 0; fi
+}
+
 run() {  # $1 = elf, $2 = mac to give the device, $3 = tag for the output files
     elf=$1; mac=$2; where=$3
-    rm -f "$tmp/port"
-
-    python3 "$tmp/probe.py" "$tmp/port" > "$tmp/probe-$where.out" 2>"$tmp/probe-$where.err" &
-    ppid=$!
-
-    # The probe must be listening before QEMU is told to connect: `connect=` does
-    # not retry, and a QEMU that cannot reach the port exits immediately.
-    n=0
-    while [ ! -s "$tmp/port" ] && [ "$n" -lt 20 ]; do n=$((n + 1)); sleep 1; done
-    port=$(cat "$tmp/port" 2>/dev/null || true)
-    case "$port" in
-        ''|*[!0-9]*) note "$where: the probe never published a port number"; return ;;
-    esac
+    pout=$tmp/probe-$where.out; perr=$tmp/probe-$where.err
+    : > "$pout"; : > "$perr"; : > "$tmp/raw-$where"
+    sock=$tmp/s-$where
+    # sun_path is 104 bytes on macOS; a longer name is a bind that cannot happen
+    [ "${#sock}" -lt 100 ] || {
+        echo "SKIPPED: \$TMPDIR is too long for a unix socket name: $sock"
+        echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
+        exit 77; }
+    mkfifo "$tmp/ser-$where" "$tmp/tx-$where" "$tmp/rx-$where" || {
+        echo "SKIPPED: mkfifo failed in $tmp"
+        echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
+        exit 77; }
+    qpid=; ncpid=; catpid=
 
     qemu-system-riscv64 -machine virt -nographic -bios default \
         -kernel "$elf" \
-        -netdev socket,id=n0,connect=127.0.0.1:"$port" \
-        -device virtio-net-device,netdev=n0,mac="$mac" > "$tmp/raw-$where" 2>&1 &
+        -netdev stream,id=n0,addr.type=unix,addr.path="$sock",server=on \
+        -device virtio-net-device,netdev=n0,mac="$mac" > "$tmp/ser-$where" 2>&1 &
     qpid=$!
+    exec 4< "$tmp/ser-$where"
 
     # Bounded by an explicit SIGKILL from a background `sleep`, not by an alarm:
     # QEMU runs its own timer subsystem and survives SIGALRM.  A driver that
@@ -312,9 +355,13 @@ run() {  # $1 = elf, $2 = mac to give the device, $3 = tag for the output files
     # and that word landing mid-report reads as a failure to the next reader.
     ( sleep 120; kill -9 "$qpid" 2>/dev/null ) 2>/dev/null & watcher=$!
 
-    wait "$ppid" 2>/dev/null || true
+    LC_ALL=C drive "$where"
+    exec 5>&- 6<&- 4<&-
     kill -9 "$qpid" 2>/dev/null || true
     wait "$qpid" 2>/dev/null || true
+    [ -z "$ncpid" ] || kill "$ncpid" 2>/dev/null || true
+    [ -z "$ncpid" ] || wait "$ncpid" 2>/dev/null || true
+    [ -z "$catpid" ] || wait "$catpid" 2>/dev/null || true
     # `pkill -P` FIRST: killing the subshell alone orphans its `sleep` to init.
     # By PARENT pid, never by pattern — another agent's QEMU has been seen live
     # on this host and a pattern kill would take it down.

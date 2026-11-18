@@ -12,8 +12,8 @@
 ॰ is the wrapper and not the type. Not one site moves the other way. This file
 ॰ holds NO `इ६४` at all, and no signed quantity at any width.
 ॰
-॰ THE RUST TWIN IS `crates/sadhana/src/t1/parse.rs`, IT IS COMPILED —
-॰ `crates/sadhana/src/t1/mod.rs` names it, which is the check `ast.t1` learned
+॰ THE RUST TWIN IS `retired Rust parse.rs`, IT IS COMPILED —
+॰ `retired Rust mod.rs` names it, which is the check `ast.t1` learned
 ॰ to make of `passes.rs` — AND IT DECLARES NO SIGNED INTEGER ANYWHERE. It has
 ॰ three numeric fields and all three are `usize`: `ParseError::line` at `:6`,
 ॰ `ParseError::aksara` at `:7` and `Parser::pos` at `:13`. Those testify
@@ -546,7 +546,7 @@
 ॰ files it is meant to compile. Each is now the inflection the bodies use,
 ॰ which is also the spelling spec/lexicon.tsv carries and the stem वास्तु
 ॰ declares beside it. The counts are NOT written here, because a count in a
-॰ comment goes stale in silence; crates/sadhana/tests/t1_operators.rs
+॰ comment goes stale in silence; retired Rust t1_operators.rs
 ॰ re-derives them from the corpus every run and asserts this table against
 ॰ them.
 

@@ -13,12 +13,12 @@
 # ## Why a handed-over page needs a PROOF and not an assumption
 #
 # `e01c05f5` is the precedent one layer up: a cached `stage1.elf` whose `stage1.log`
-# named a sibling worktree, A DIFFERENT WORKTREE, and three siblings
+# named `/Users/pkpro/sansos/wt-raminject`, A DIFFERENT WORKTREE, and three siblings
 # quoting it as this tree's. A page handed between steps is the same hazard with a
 # shorter fuse. So the producer records a CONTENT DIGEST of the tree it built from and
 # the consumer recomputes it; a mismatch declines the page and builds its own.
 #
-# NOT the build stamp. `build-stamp.rs` (retired to archive/rust/build-stamp/) is explicit that it names HEAD AND NOT THE
+# NOT the build stamp. `build-stamp.rs` (retired to purged-rust/build-stamp/) is explicit that it names HEAD AND NOT THE
 # TREE — a binary built from a dirty worktree prints a commit it is not — so a stamp
 # comparison would accept a page built before an uncommitted edit. The digest here is
 # every byte of every file `git` can see:
@@ -163,7 +163,7 @@ _page_handoff_lost() {
 # ALWAYS rc 0, and the reason for any loss in `$page_handoff_lost`. The producer's own
 # assertions have already passed by the time it calls this; a failure to hand the page on
 # is a lost optimisation and must never be reported as a failed check. Every path here
-# ends in a value, like `build-stamp.rs` (retired to archive/rust/build-stamp/).
+# ends in a value, like `build-stamp.rs` (retired to purged-rust/build-stamp/).
 page_handoff_publish() {
   _ph_page=$1; shift
   page_handoff_lost=

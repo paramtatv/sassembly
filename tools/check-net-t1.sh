@@ -53,7 +53,9 @@ build() {
   # shellcheck disable=SC2086
   "$T1" --spec-root "$root/spec" --compiler "$root/crates/sadhana-t1/src" $load \
       --entry "$3" मुख्यम् -o "$tmp/$1.elf" $files > "$tmp/$1.build.log" 2>&1 || true
-  [ -s "$tmp/$1.elf" ] || { echo "  FAIL  $1: the program did not build:"; tail -20 "$tmp/$1.build.log"; exit 1; }
+  [ -s "$tmp/$1.elf" ] || { if grep -a -q "no cached Stage 1\|no trusted\|CANNOT RUN" "$tmp/$1.build.log"; then
+      echo "SKIPPED: no Stage 1 compiler (t1-build: CANNOT RUN) - exiting 77, not a failure"; exit 77; fi
+    echo "  FAIL  $1: the program did not build:"; tail -20 "$tmp/$1.build.log"; exit 1; }
   grep -a -q " octets) by " "$tmp/$1.build.log" && echo "  PASS  build $1: t1-build.sh wrote the image (R3-SAD: the native route replaces the t1_image AGREED gate)" \
     || { echo "  FAIL  build $1: t1-build.sh did not report the image written"; exit 1; }
 }

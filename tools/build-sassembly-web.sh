@@ -13,7 +13,7 @@
 # template, the glue and this script — the things a person wrote.
 #
 # **And it is written outside the working tree, which is not tidiness.** The first version
-# wrote `the generated sassembly page` and gitignored it. The gate then went red: `cargo run -p
+# wrote `web/sassembly.html` and gitignored it. The gate then went red: `cargo run -p
 # secrets` reads untracked files too, and a 37 KB base64 module contains `ASIA…` by chance,
 # which is the shape of an AWS session token. Two findings, one red tree, from an artefact
 # that is not source.
@@ -28,7 +28,7 @@
 # This needs the `wasm32-unknown-unknown` target, which is not part of a default toolchain.
 # On a machine without it the honest answer is "did not run", not "passed" — `W-087` found
 # 29 skip paths across 27 scripts that said the latter. 77 is GNU Automake's SKIP code and
-# `the internal gate tooling` renders it as neither pass nor fail.
+# `tools/gate.sh` renders it as neither pass nor fail.
 #
 # Usage: tools/build-sassembly-web.sh [output.html]   (from the repository root)
 set -eu
@@ -36,38 +36,17 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
-command -v cargo >/dev/null 2>&1 || {
-  echo "SKIPPED: cargo is not installed, so nothing can be built"
-  echo "         Exiting 77 rather than 0 — a build that cannot run has not succeeded."
-  exit 77; }
-
-# `rustup target list --installed` is the question that matters. Asking whether `rustup`
-# exists is a different one: a toolchain installed another way still compiles.
-#
-# TWO CAUSES, TWO VERDICTS, AND THIS USED TO CONFLATE THEM. The target being
-# absent is a fault of the MACHINE (77, skip); the crate failing to compile is a
-# fault of the TREE (1, red). One `if` reported both as "the target is not
-# available", and `2>/dev/null` threw away the compiler's reason.
-#
-# MEASURED 2026-09-24: on a machine WITH the target installed, `yantra-wasm`
-# failed with two `error[E0004]: non-exhaustive patterns: &Halt::BeyondRam not
-# covered` — `yantra` grew a variant and these matches did not. The check said
-# "the wasm32-unknown-unknown target is not available" and told the reader to
-# run `rustup target add`, which was already done and changed nothing.
-# `check-sassembly-identity.sh` propagated the 77 as SKIPPED, so a real defect
-# rode through the gate wearing "not a tree fault" for as long as nobody looked.
-if ! rustc --print target-list 2>/dev/null | grep -qx wasm32-unknown-unknown; then
-  echo "SKIPPED: the wasm32-unknown-unknown target is not available"
-  echo "         rustup target add wasm32-unknown-unknown"
-  echo "         Exiting 77 rather than 0 — a build that cannot run has not succeeded."
-  exit 77
-fi
-# Stderr is KEPT. Whatever rustc says is the only thing that can tell a reader
-# which of the two they have.
-# YANTRA_WASM=<path>: the yantra wasm module to use. The module builder (yantra/Rust) is retired;
-# unset, there is no subject to build: SKIPPED (77), never a PASS.
+# WEB-NATIVE: no cargo, no rustc, no wasm32 rustup target. Both modules are T1 builds (anuvada --target wasm32):
+#   yantra   tools/build-yantra-wasm.sh  (tools/t1-interp yi image -> anuvada -> zeroimp -> abi.sh)
+#   sadhana  tools/t1-interp/wasm/build-sadhana.sh (below)
+# YANTRA_WASM=<path> overrides with a prebuilt module. 77 = a needed binary (node, python3 for anuvada.py, yantra-run,
+# cached Stage 1) is truly absent, named by the builder: SKIPPED, never a PASS.
 if [ -z "${YANTRA_WASM:-}" ]; then
-  echo "SKIPPED: YANTRA_WASM unset (no in-tree yantra wasm builder)"; exit 77
+  YANTRA_WASM=target/native-wasm/yantra.wasm; mkdir -p target/native-wasm
+  _rc=0; sh tools/build-yantra-wasm.sh "$YANTRA_WASM" >"$YANTRA_WASM.log" 2>&1 || _rc=$?
+  [ "$_rc" -ne 77 ] || { sed 's/^/        /' "$YANTRA_WASM.log"; rm -f "$YANTRA_WASM.log"; echo "SKIPPED: native yantra wasm cannot build (see above)"; exit 77; }
+  [ "$_rc" -eq 0 ] || { tail -5 "$YANTRA_WASM.log"; rm -f "$YANTRA_WASM.log"; echo "  FAIL  native yantra wasm build rc=$_rc"; exit 1; }
+  rm -f "$YANTRA_WASM.log"
 fi
 
 wasm=$YANTRA_WASM
@@ -77,7 +56,7 @@ wasm=$YANTRA_WASM
 #
 # CO-sw (2026-10-19): the module is the NATIVE one, tools/t1-interp/wasm/build-sadhana.sh
 # (spec/entry/assemble.t1 -> anuvada --target wasm32 -> zero-import seal, ABI sadhana-abi.wat);
-# crates/sadhana-wasm was retired to archive/rust/sadhana-wasm. SADHANA_WASM=<path> uses that module instead.
+# crates/sadhana-wasm was retired to purged-rust/sadhana-wasm. SADHANA_WASM=<path> uses that module instead.
 # build-sadhana.sh defaults its own ANUVADA_RUN/ZEROIMP_RUN; exit 77 = a needed binary is truly absent
 # (t1_image, yantra-run, node; it names which): SKIPPED, never a PASS.
 # The module's sadhana_rev is `tools/src-rev.sh --t1-assembler` (assemble.t1 + crates/sadhana-t1/src/*.t1), and the page ELFs
@@ -102,7 +81,7 @@ sadhana_wasm=$SADHANA_WASM
 # NOTHING about a page served tomorrow from a stale `sadhana-wasm`: two copies of the
 # same wrong assembler agree with each other perfectly. So the page carries the stamp
 # of the NATIVE assembler that assembled its ELFs, and the module carries its own
-# (sealed in by `the Rust build script (removed in v1.2)`), and the page says whether they match.
+# (sealed in by `retired Rust build.rs`), and the page says whether they match.
 #
 # TAKEN FROM THE TREE AND NOT FROM THE BINARY, and the asymmetry is deliberate: the
 # `cargo run -q -p sadhana` below compiles from this same `crates/sadhana/src`, so the
@@ -110,17 +89,15 @@ sadhana_wasm=$SADHANA_WASM
 # `.wasm` can arrive from anywhere. 77 (no sha256 tool) becomes `unknown` rather than a
 # stamp that happens to match — the page renders that as a third state and not as
 # agreement.
-# The page ELFs are assembled by the T1 assembler (spec/entry/assemble.t1 image, `${SADHANA_WASM%.wasm}.elf`) when that image
-# sits beside the wasm; its stamp is the T1-source one the wasm carries. Otherwise cargo's `sadhana` and its own crate stamp.
+# The page ELFs are assembled by the T1 assembler (spec/entry/assemble.t1 image, `${SADHANA_WASM%.wasm}.elf`, built beside the wasm by
+# build-sadhana.sh) run under yantra-run (the L28 oracle, provisioned by ensure_bins). ONE assembler for the ELFs and the module, so
+# the stamp is the T1-source one on both sides. No fallback: a missing image or runner is 77 (SKIPPED), never a different assembler.
+. "$root/tools/ensure-yantra-bins.sh"; ensure_bins target/release   # exit 77, reason named, when no oracle
 T1ASM=${SADHANA_WASM%.wasm}.elf
 YR=target/release/yantra-run
-if [ -s "$T1ASM" ] && { [ -x "$YR" ]; }; then
-  asm=t1; native_rev=$(tools/src-rev.sh --t1-assembler 2>/dev/null) || native_rev=
-  native_src="spec/entry/assemble.t1 + crates/sadhana-t1/src, T1 assembler"
-else
-  asm=cargo; native_rev=$(tools/src-rev.sh crates/sadhana/src 2>/dev/null) || native_rev=
-  native_src="crates/sadhana/src, native side"
-fi
+[ -s "$T1ASM" ] || { echo "SKIPPED: no T1 assembler image beside $SADHANA_WASM ($T1ASM)"; exit 77; }
+asm=t1; native_rev=$(tools/src-rev.sh --t1-assembler 2>/dev/null) || native_rev=
+native_src="spec/entry/assemble.t1 + crates/sadhana-t1/src, T1 assembler"
 [ -n "$native_rev" ] || native_rev=unknown
 
 # ── WHICH INTERPRETER MEASURED THE SIZING FIGURES — the weaker position ─────
@@ -135,10 +112,10 @@ fi
 # this page could see it. This stamp is what makes that visible.
 #
 # Taken from the tree for the same reason as the assembler's: the native `yantra-run`
-# used below is built from this `crates/yantra/src`, so the tree's stamp IS that
+# used below is built from this `tools/t1-interp/authoring`, so the tree's stamp IS that
 # binary's provenance, whereas the wasm's must be sealed because a `.wasm` can arrive
 # from anywhere.
-native_yantra_rev=$(tools/src-rev.sh crates/yantra/src 2>/dev/null) || native_yantra_rev=
+native_yantra_rev=$(tools/src-rev.sh tools/t1-interp/authoring 2>/dev/null) || native_yantra_rev=
 [ -n "$native_yantra_rev" ] || native_yantra_rev=unknown
 
 # The programs the page offers, in three kinds, because the page runs them three ways.
@@ -161,7 +138,7 @@ APPLICATIONS="atithi"
 # QEMU `virt` reset vector — right for a boot proof and wrong for a guest — and it is the
 # supervisor's own gigabyte, which `yantra::host` refuses by name rather than quietly
 # handing an application the supervisor's pages. Written in the language, which is how
-# `--स्थान` reads a number. `the Rust host source (removed in v1.2)` links it here too.
+# `--स्थान` reads a number. `retired Rust host.rs` links it here too.
 APP_LOAD=$(awk '$1 == "0x2000_0000" {print $2}' spec/application-load.tsv)
 APP_LOAD_HEX=$(awk '$1 == "0x2000_0000" {gsub(/_/,"",$1); print $1}' spec/application-load.tsv)
 
@@ -180,18 +157,13 @@ for p in $PROOFS $APPLICATIONS; do
     *)        kind=proof; at= ;;
   esac
   [ -f "spec/$p.sas" ] || { echo "  FAIL  spec/$p.sas does not exist"; exit 1; }
-  if [ "$asm" = t1 ]; then
     # assemble.t1 image: source on the input channel, ARGUMENT 1 = load address in ASCII decimal (absent = 0x8000_0000), ELF on stdout
-    case $kind in app) ld=$((APP_LOAD_HEX)) ;; *) ld= ;; esac
+    # arg 2 = mode 3 (.symtab/.strtab), the mode the tab's sadhana_assemble passes; arg 1 must then be explicit
+    case $kind in app) ld="$((APP_LOAD_HEX)) 3" ;; *) ld="2147483648 3" ;; esac
     # shellcheck disable=SC2086
-    env -u YANTRA_INPUT_ENTRY YANTRA_INPUT="spec/$p.sas" YANTRA_INPUT_NAME="$p" YANTRA_RAM=1073741824 \
+    env -u YANTRA_INPUT_ENTRY YANTRA_STEPS="${YANTRA_STEPS:-1000000000}" YANTRA_INPUT="spec/$p.sas" YANTRA_INPUT_NAME="$p" YANTRA_RAM=1073741824 \
       "$YR" "$T1ASM" $ld >"$out/$p.elf" 2>"$out/$p.log" && [ -s "$out/$p.elf" ] || {
       echo "  FAIL  the T1 assembler could not assemble spec/$p.sas"; sed 's/^/        /' "$out/$p.log" 2>/dev/null; exit 1; }
-  else
-  # shellcheck disable=SC2086
-  "$root/tools/sadhana-native.sh" $at "spec/$p.sas" "$out/$p.elf" >/dev/null 2>&1 || {
-    echo "  FAIL  sadhana could not assemble spec/$p.sas"; exit 1; }
-  fi
   b64=$(base64 < "$out/$p.elf" | tr -d '\n')
   # ॥ THE SOURCE TRAVELS WITH THE ELF, AND IT TRAVELS AS BASE64 ॥ The ELF was on the
   # page and the source was not, so nothing in the tab could be assembled — the glue
@@ -212,7 +184,7 @@ done
 # before its first byte is a page build nobody runs, and the figures this button rests on
 # — the declared extent and the high water — are properties of the ABI and of how much
 # work one source is, neither of which moves between builds. So the image is an INPUT,
-# named by `T1_IMAGE`, exactly as `the internal gate tooling` takes it.
+# named by `T1_IMAGE`, exactly as `tools/check-t1-image-wasm-budget.sh` takes it.
 #
 # ABSENT `T1_IMAGE` THERE IS NO FOURTH BUTTON AND THAT IS NOT A SKIP. The page is
 # complete without it; the deep gate builds it that way. `T1_IMAGE` set and unusable is a
@@ -234,10 +206,6 @@ if [ -n "${T1_IMAGE:-}" ]; then
     echo "        Unset it for a page without the fourth button; a named image that is"
     echo "        not there is a caller's error and exiting 0 over it would hide the ask."
     exit 1; }
-  command -v python3 >/dev/null 2>&1 || {
-    echo "SKIPPED: python3 is absent, so the one-source corpus cannot be packed"
-    echo "         Exiting 77 rather than 0 — the T1 button was asked for and not built."
-    exit 77; }
 
   # ONE SOURCE, and the smallest in the corpus — `check-t1-image-wasm-budget.sh`'s own
   # choice, so the page and the check quote figures about the same work. PACKED BY
@@ -247,7 +215,7 @@ if [ -n "${T1_IMAGE:-}" ]; then
   # refuses `YANTRA_INPUT` without `YANTRA_INPUT_NAME`, so one must be passed; but Stage 1's
   # entry (`स्वपरीक्षास्वप्रतिबिम्बम्`) takes each module's name out of the blob's own
   # `name NUL text NUL` frame — `lib` here — and never loads the `निवेशमण्डलनाम` global the
-  # host writes. Arm E of `the internal gate tooling` pins it: the same run under
+  # host writes. Arm E of `tools/check-t1-image-wasm-budget.sh` pins it: the same run under
   # a name matching nothing retires the same count, halts on the same status and prints the
   # same octets. So the `inputName` this script puts on the page is the runner's required
   # companion to `input` and NOT a figure — the arm that ties the frame to `t.source` is
@@ -398,5 +366,5 @@ fi
 printf '  %-12s %s bytes\n' "wasm" "$(wc -c < "$wasm" | tr -d ' ')"
 printf '  %-12s %s bytes\n' "sadhana-wasm" "$(wc -c < "$sadhana_wasm" | tr -d ' ')"
 printf '  %-12s %s\n' "sadhana rev" "$native_rev ($native_src)"
-printf '  %-12s %s\n' "yantra rev" "$native_yantra_rev (crates/yantra/src, native side)"
+printf '  %-12s %s\n' "yantra rev" "$native_yantra_rev (tools/t1-interp/authoring, native side)"
 echo "wrote $dest ($(wc -c < "$dest" | tr -d ' ') bytes) — open it directly, no server needed"

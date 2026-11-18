@@ -1,4 +1,4 @@
-॰ lib.t1 — the seat of what `crates/sadhana/src/lib.rs` does, which in T1 is
+॰ lib.t1 — the seat of what `retired Rust lib.rs` does, which in T1 is
 ॰ NOTHING: Rust's crate root lists its modules, and T1 has no crate root — each
 ॰ source declares its own `मण्डलम्` and the loader gathers them. So this file
 ॰ declares no module and holds no declaration, and that is its content.

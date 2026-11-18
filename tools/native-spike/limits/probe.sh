@@ -19,12 +19,15 @@ OUT=${1:-/dev/stdout}
 W=$(mktemp -d "${TMPDIR:-/tmp}/limits.XXXXXX"); trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/nobin" "$W/cache" "$W/img"
 awk -f "$HERE/../rvgen.awk" -f "$HERE/rvenc.awk" -f "$HERE/gen.awk" -v OUTDIR="$W/img" >/dev/null || exit 1
-TMO=""; command -v timeout >/dev/null && TMO="timeout 60"
+# Every pass is bounded by the step ceiling, never by a clock or an optional `timeout` binary (absent on macOS):
+# LIMSTEPS = the lim/ family budget of tools/t1-interp/vectors/golden-rest.sh:15 (ysof lim/*) = the frozen oracle StepLimit rows.
+LIMSTEPS=${LIMSTEPS:-3000000}
+export YANTRA_STEPS=$LIMSTEPS
 export SAS_BIN="$W/nobin" SASSEMBLY_NATIVE_CACHE="$W/cache" T1_RUN_REQUIRE_NATIVE=1 SAS="$ROOT"
 : > "$W/rows"
 row() { # name, extra env/flags handled by caller via $@ ; runs t1-run on image $IMG
     local name=$1 img=$2; shift 2
-    $TMO env "$@" "$ROOT/tools/t1-run.sh" ${FLAGS:-} "$img" > "$W/o" 2> "$W/e"; local rc=$?
+    env "$@" "$ROOT/tools/t1-run.sh" ${FLAGS:-} "$img" > "$W/o" 2> "$W/e"; local rc=$?
     local cls detail
     if grep -a -q 'native required (T1_RUN_REQUIRE_NATIVE) but:' "$W/e"; then
         # t1-run refused the fallback T1_RUN_REQUIRE_NATIVE forbids: that IS a fallback, the reason after "but: "
@@ -50,3 +53,38 @@ for fl in "--events $W/log" "--record-events $W/log" "--record-events $W/log --l
 done
 sort "$W/rows" > "$W/sorted"; cp "$W/sorted" "$OUT"
 [ "$OUT" = /dev/stdout ] || { echo "host $(uname -s) $(uname -m): $(cut -f2 "$W/sorted" | sort | uniq -c | tr '\n' ' ')" >&2; }
+# ---- PARITY (HOLE-PROBE-EXIT, v1.2.3): the class column above says WHICH route ran; it never compared WHAT it printed.
+# For every lim/ probe, run the DEFAULT route (fallback allowed: native, else the L28 interp oracle behind t1-run) and compare
+# rc + halt line + stdout length + stdout sha256 with the frozen oracle row in vectors/rest/golden-rest.tsv (the same four
+# fields golden-rest.sh check compares). A REQUIRE_NATIVE refusal (rc 3) is a class, not a divergence: the five probes
+# csr_satp_write csr_sie_read csr_stvec_write csr_time store_into_code are rc 3 above and MATCH here (fallback parity).
+# Output rows: parity:<name> TAB MATCH|DIFF|NOGOLD|XDIV|XPASS TAB route TAB detail. Exit 1 on any DIFF/NOGOLD/XPASS or an empty golden.
+# PARITY_NEG=1 flips one expected sha: every row must DIFF (negative control). PARITY=0 skips the pass.
+if [ "${PARITY:-1}" = 1 ]; then
+    GOLD=${GOLDEN_REST:-$ROOT/tools/t1-interp/vectors/rest/golden-rest.tsv}
+    [ -s "$GOLD" ] || { echo "probe: parity: golden $GOLD missing or empty" >&2; exit 1; }
+    s256() { (sha256sum <"$1" 2>/dev/null || shasum -a 256 <"$1") | cut -c1-64; }
+    # expected divergence (HOLE-PROBE-EXIT): rows in vectors/rest/expected-divergence.tsv, ONE rule shared with golden-rest.sh check
+    # (vectors/rest/xdiv.sh): listed + exact native rc/len = XDIV (counted, not a DIFF); listed but now MATCH = XPASS = exit 1.
+    # PARITY_XDIV=<tsv> overrides the list (negative control: an empty list must give DIFF for every listed divergence).
+    . "$ROOT/tools/t1-interp/vectors/rest/xdiv.sh"
+    XD=${PARITY_XDIV:-$ROOT/tools/t1-interp/vectors/rest/expected-divergence.tsv}; [ "${PARITY_NEG:-}" = 1 ] && XD=/dev/null
+    : > "$W/par"; pd=0; pm=0; pn=0; px=0; pp=0
+    for f in "$W"/img/*.elf; do
+        n=$(basename "$f" .elf)
+        g=$(grep -a -m1 "^lim/$n	" "$GOLD")
+        if [ -z "$g" ]; then printf 'parity:%s\tNOGOLD\t-\tno lim/%s row in %s\n' "$n" "$n" "${GOLD##*/}" >> "$W/par"; pn=$((pn+1)); continue; fi
+        grc=$(printf '%s' "$g" | cut -f2); ghalt=$(printf '%s' "$g" | cut -f3); glen=$(printf '%s' "$g" | cut -f4); gsha=$(printf '%s' "$g" | cut -f5)
+        [ "${PARITY_NEG:-}" = 1 ] && gsha=0000$gsha
+        env -u T1_RUN_REQUIRE_NATIVE -u SAS_BIN YANTRA_STEPS=$LIMSTEPS YANTRA_RAM=268435456 "$ROOT/tools/t1-run.sh" "$f" > "$W/po" 2> "$W/pe"; prc=$?
+        route=$(grep -a -m1 '^t1-run: route ' "$W/pe" | sed 's/^t1-run: route //; s/ —.*//' | tr -d '\n'); [ -n "$route" ] || route=unknown
+        ph=$(grep -a -m1 '^halt:' "$W/pe" | tr '\t' ' '); pl=$(wc -c < "$W/po" | tr -d ' '); ps=$(s256 "$W/po")
+        xdiv_classify "$XD" "lim/$n" "$prc" "$ph" "$pl" "$ps" "$grc" "$ghalt" "$glen" "$gsha"
+        case $XV in MATCH) v=MATCH; pm=$((pm+1));; XDIV) v=XDIV; px=$((px+1));; XPASS) v=XPASS; pp=$((pp+1));; *) v=DIFF; pd=$((pd+1));; esac
+        printf 'parity:%s\t%s\t%s\trc=%s/%s len=%s/%s halt=[%s]/[%s]\n' "$n" "$v" "$route" "$prc" "$grc" "$pl" "$glen" "$ph" "$ghalt" >> "$W/par"
+    done
+    sort "$W/par" > "$W/parsorted"
+    [ "$OUT" = /dev/stdout ] && cat "$W/parsorted" || cat "$W/parsorted" >> "$OUT"
+    echo "parity: MATCH=$pm DIFF=$pd NOGOLD=$pn XDIV=$px XPASS=$pp (lim/ probes vs golden-rest.tsv: rc+halt+stdout len+sha)" >&2
+    [ "$pd" = 0 ] && [ "$pn" = 0 ] && [ "$pp" = 0 ] && [ "$pm" -gt 0 ] || exit 1
+fi

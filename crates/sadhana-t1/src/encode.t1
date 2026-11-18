@@ -1,4 +1,4 @@
-मण्डलम् सङ्केतन ॥ ॰ encode — the port of crates/sadhana/src/encode.rs
+मण्डलम् सङ्केतन ॥ ॰ encode — the port of retired Rust encode.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ ADR-0030 REMEDIATION, TASK `D-002h`. THIS FILE IS TAKEN IN PARTS, AND WITH
@@ -839,7 +839,7 @@
 ॰
 ॰ SO THE CYCLE IS NOT A NEW KIND OF THING and there is nothing for an ADR
 ॰ to rule on. It is also not merely tolerated by accident: `मण्डलम्`
-॰ (crates/sadhana/src/t1/mandala.rs) models imports as a FLAT SET and
+॰ (retired Rust mandala.rs) models imports as a FLAT SET and
 ॰ checks exactly two properties — that a reached module is imported
 ॰ (`missing_imports`) and that an imported module exists
 ॰ (`UnknownImport`). There is no ordering, no acyclicity test and no link
@@ -1106,7 +1106,7 @@
 इति
 
 ॰ whether a slot kind holds an immediate, signed or not — is_immediate.
-॰ simm is derived rather than declared: tools/gen-encodings.py asks the
+॰ simm is derived rather than declared: retired gen-encodings.py asks the
 ॰ assembler whether the field accepts -1.
 सार्वजनिक वृत्तिः तत्कालवाचकः आदाय भेद ॱॱ न६४ ददाति बूल आदि
     यदि भेद समम् तत्कालभेद आदि
@@ -1226,7 +1226,7 @@
 ॰ defect it could fix. अन्तर्भावः — "inclusion, containment within" — occurs
 ॰ nowhere else in the tree, and its signed partner below is चिह्नितान्तर्भावः.
 ॰ THE GUARD IS THE PART THAT LASTS: no_t1_source_binds_a_frozen_keyword_as_a_
-॰ name in crates/sadhana-t1/tests/t1_sources.rs reads the keyword production
+॰ name in retired Rust t1_sources.rs reads the keyword production
 ॰ out of the grammar and fails on the next collision by name. Writing it found
 ॰ ten more, of which the six in this file — गणना four times as a loop counter,
 ॰ now संख्यानम्, and दोषः as a parameter, now सङ्केतनदोषः — are fixed here.
@@ -1452,7 +1452,7 @@
 ॰
 ॰ ── THE BLOCKER IS GONE AND THIS IS ITS OBITUARY — 2026-08-30 ──
 ॰ This routine's margin said, correctly and for two days, that the gap was
-॰ ONE ROW IN A REGISTRY: `TABLES` in crates/sadhana/src/t1/anita.rs carried
+॰ ONE ROW IN A REGISTRY: `TABLES` in retired Rust anita.rs carried
 ॰ no name for spec/diagnostics.tsv, so `समावेशः` had nothing to resolve.
 ॰ `D-002i2` added `("निदानकोशः", "diagnostics.tsv")` at anita.rs:201 — the
 ॰ fifth and sixth time a spec table on disk was unreachable for want of a
@@ -2527,7 +2527,7 @@
 ॰ thing this section said it did not have: `समावेशः आरभ्य <name> समाप्तम्`
 ॰ brings a DERIVED table in BY NAME at assembly time, as a string. So the
 ॰ table is still not hand-copied — `कोष्ठकोशः` resolves to
-॰ spec/registers-riscv64.tsv, the same file `crates/sadhana/src/encode.rs`
+॰ spec/registers-riscv64.tsv, the same file `retired Rust encode.rs`
 ॰ reaches with `include_str!`, and the two cannot drift because there is
 ॰ only one file.
 ॰
@@ -2884,7 +2884,7 @@
 ॰ answers ०. A row added with bit ० would make this routine report a real
 ॰ domain as unknown, silently. THIS COMMENT CITED tests/t1_embed.rs AS THE
 ॰ PLACE THAT INVARIANT WAS ASSERTED "where a test can see it" AND THAT WAS
-॰ NOT TRUE — crates/sadhana/tests/t1_embed.rs names neither the table nor
+॰ NOT TRUE — retired Rust t1_embed.rs names neither the table nor
 ॰ this routine, so the one fact holding up the ० was an unchecked claim in a
 ॰ comment. The fence-table remediation cycle checked it: item 4 of
 ॰ the_fence_ordering_domain_table_is_unsigned_because_its_table_is walks
@@ -3072,7 +3072,7 @@
 ॰     was true only of parse.t1. `वाक्यविभाग` HOLDS BOTH TYPES:
 ॰     `सार्वजनिक संरचना आज्ञा` at vakyavibhaga.t1:178 — कुल, व्याप्ति,
 ॰     प्रथमप्रकार, कारकारम्भ, कारकसंख्यान, पङ्क्ति, field for field the
-॰     Instruction of crates/sadhana/src/parse.rs — and
+॰     Instruction of retired Rust parse.rs — and
 ॰     `सार्वजनिक संरचना कार्यक्रम` at :287, with the instruction, label,
 ॰     datum and statement ranges a Program carries. This is the FOURTH
 ॰     blocker in this file found to be describing the tree as it was

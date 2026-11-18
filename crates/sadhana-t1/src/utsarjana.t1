@@ -1,5 +1,5 @@
-मण्डलम् उत्सर्जन ॥ ॰ codegen — the port of crates/sadhana/src/t1/regalloc.rs
-॰                    and crates/sadhana/src/t1/x86_64.rs (emit.rs: retired
+मण्डलम् उत्सर्जन ॥ ॰ codegen — the port of retired Rust regalloc.rs
+॰                    and retired Rust x86_64.rs (emit.rs: retired
 ॰                    and deleted, `W-237`)
 
 ॰ ══════════════════════════════════════════════════════════════════════
@@ -15,14 +15,14 @@
 ॰ WITHDRAWN — `कार्यक्रमोत्सर्जनम्` and its twin `emit.rs` emit a text that is
 ॰ NOT T0 (`निधेहि`/`प्रत्यावर्तनम्` are in no mnemonic table, `कोष्ठ५` names no
 ॰ register the assembler knows, no operand carries a kāraka), so `सङ्केतन`
-॰ refuses every line; the T0 emitter is `crates/sadhana/src/t1/riscv64.rs`
+॰ refuses every line; the T0 emitter is `retired Rust riscv64.rs`
 ॰ with its twin `yantrotsarjana.t1` (यन्त्रोत्सर्जन), and `W-237` deletes the
 ॰ retired pair. 3.4.7 and 3.4.11 are not retired; do not extend 3.4.8.
 ॰ DELETED, 2026-09-04 (`W-237`): the three routines of 3.4.8 are gone from
 ॰ this file and `emit.rs` from the tree — see THE RETIRED T0 PAIR below.
 ॰
 ॰ ── WHAT THIS FILE REPLACES, AND WHAT IT ACTUALLY HELD ──
-॰ 28 lines of tools/port_encode.py output, and IT WAS NOT THE CODEGEN
+॰ 28 lines of retired port_encode.py output, and IT WAS NOT THE CODEGEN
 ॰ THE FILENAME CLAIMS — it was regalloc.rs's two types and nothing else.
 ॰ Not one symbol of emit.rs or x86_64.rs appeared in it: no
 ॰ emit_program, no X86_64Emitter, no reg_name. Two thirds of the module
@@ -2791,9 +2791,9 @@
 ॰ — and `सङ्केतन` refused every line of it (research/25 §1.2). `W-236`'s header
 ॰ note withdrew the claim; this row deletes the routines and `emit.rs` with
 ॰ them, so that nothing in the tree calls itself the RISC-V emitter but the
-॰ one that reaches the machine: `crates/sadhana/src/t1/riscv64.rs` and its
+॰ one that reaches the machine: `retired Rust riscv64.rs` and its
 ॰ twin `yantrotsarjana.t1` (यन्त्रोत्सर्जन), measured over the corpus by
-॰ `crates/yantra/tests/paradigm_encode.rs`. What the three needed and STAYS is
+॰ `retired Rust paradigm_encode.rs`. What the three needed and STAYS is
 ॰ the output buffer above (निर्गमकोश, the appenders, देवनागराङ्कः) — the RISC-V twin and the AMD64 back end below both write through it.
 ॰ Twin-table rows moved in `tests/t1_sources.rs`; the three octet tests went
 ॰ from `tests/t1_execution.rs`; the buffer's mutations are killed there
@@ -2879,7 +2879,7 @@
 ॰       • `movq` → `निधेहि`. NOT FROM A TABLE, and said out loud: no
 ॰         `mv`/`move` family exists in spec/mnemonics-riscv64.src.tsv, so
 ॰         the word is taken from the sibling emitter in this same tree
-॰         (crates/sadhana/src/t1/emit.rs:55 writes `निधेहि` for the T0
+॰         (retired Rust emit.rs:55 writes `निधेहि` for the T0
 ॰         move) so that one compiler spells a move one way.
 ॰       • `%rsp` → `स्तूपसूचकः` — spec/lexicon.src.tsv:394 `stack pointer`,
 ॰         and spec/registers-riscv64.tsv:13 already carries it for `sp`.
@@ -3127,7 +3127,7 @@
 ॰       1. THE STRING LITERAL TOKEN — the thing the old note correctly
 ॰          said was "an ADR against spec/grammar-t1.ebnf" and not
 ॰          something a port could close. It is that ADR. `token` now
-॰          lists `string`, crates/sadhana/src/lex.rs `lex_t1` reads it,
+॰          lists `string`, retired Rust lex.rs `lex_t1` reads it,
 ॰          and `उक्तम् … इति` is one token where it used to be five.
 ॰       2. A GROWABLE पाठः — WITHDRAWN, because it was never needed.
 ॰          `out.push_str(s)` is `out = out योगः s`, and the result of a

@@ -83,7 +83,7 @@ grep_total=$(git grep -hoE 'ADR-00(2[6-9]|3[01])' -- . \
     ':(exclude).loop' ':(exclude)docs/adr' ':(exclude)BACKLOG*.tsv' \
     ':(exclude,glob)spec/golden/**/fixture/**' ':(exclude,glob)spec/golden/**/pool/**' \
     | grep -c . || true)
-FLOOR=300
+FLOOR=150   # v1.2 CX: 300 -> 150; purging the Rust archive removed 130 citations (measured 178 after)
 if [ "${grep_total:-0}" -lt "$FLOOR" ]; then
     echo "CANNOT RUN: only ${grep_total:-0} ambiguous ADR citation(s) in scope, expected at least $FLOOR."
     echo "  Either the exclusions widened or the pattern stopped matching. A zero"
@@ -114,6 +114,7 @@ crates/sadhana-t1/src/utsarjana.t1	12
 crates/sadhana-t1/src/vakyavibhaga.t1	1
 crates/sadhana-t1/src/vishlesana.t1	3
 crates/tree-sitter-t1/grammar.js	8
+docs/storage-modelling-method.md	1
 notebooks/03-paramtatva-base-model.ipynb	2
 notebooks/11-operators.ipynb	2
 notebooks/17-paramtatva-ops-execution-storage.ipynb	2
@@ -127,7 +128,8 @@ spec/lexicon.src.tsv	13
 spec/lexicon.tsv	14
 spec/registers-amd64.tsv	4
 tests/corpus/CATALOG.tsv	1
-TOTAL	156
+tools/gen-grapheme-break.sh	1
+TOTAL	158
 TABLE
 )
 

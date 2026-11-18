@@ -2,7 +2,7 @@
 # Sourced by the yantra-era native checks: `. "$root/tools/ensure-yantra-bins.sh"; ensure_bins DIR [t1_image]` makes
 # DIR/yantra-run present (DIR = <target>/release) so a fresh job tree (ev rotation, run-best) never exits 77 for
 # "not built" (EVFX 11-03). The yantra crates left the tree (FIN2RED 11-04: the old in-tree cargo build hit the missing
-# crates/sadhana-t1/Cargo.toml, rc77 on every host), so yantra-run is $SC_YANTRA (explicit override) or the L28 interpreter
+# retired Rust Cargo.toml, rc77 on every host), so yantra-run is $SC_YANTRA (explicit override) or the L28 interpreter
 # (tools/yantra-oracle.sh: yi.elf behind the yantra-run CLI), written into DIR. No cargo, no ~/.sansos-bin. t1_image is checked only when asked for.
 # Fails closed: nothing found is exit 77 with the reason named, never a pass.
 ensure_bins() { # DIR [t1_image]

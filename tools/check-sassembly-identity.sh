@@ -26,7 +26,7 @@
 # ## Absence is loud
 #
 # Exits **77** when `qemu-system-riscv64`, `node`, `cargo` or the `wasm32-unknown-unknown`
-# target is missing — `W-087`'s convention, and `the internal gate tooling` renders 77 as neither pass
+# target is missing — `W-087`'s convention, and `tools/gate.sh` renders 77 as neither pass
 # nor fail. A check that cannot run has not passed.
 #
 # QEMU is bounded by an explicit `kill -9` watcher and never by `perl -e alarm`: QEMU
@@ -64,11 +64,8 @@ case "$PROGRAM" in
 esac
 
 missing=
-command -v cargo               >/dev/null 2>&1 || missing="$missing cargo"
 command -v node                >/dev/null 2>&1 || missing="$missing node"
 command -v qemu-system-riscv64 >/dev/null 2>&1 || missing="$missing qemu-system-riscv64"
-rustc --print target-list 2>/dev/null | grep -qx wasm32-unknown-unknown \
-  || missing="$missing wasm32-unknown-unknown"
 if [ -n "$missing" ]; then
   echo "SKIPPED:$missing not available — absent tooling on this machine, not a tree fault"
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
@@ -81,7 +78,7 @@ trap 'rm -f "$work"/* 2>/dev/null || true' EXIT
 # ---------------------------------------------------------------- 1. the bytes
 say() { printf '  %-34s %s\n' "$1" "$2"; }
 
-"$root/tools/sadhana-native.sh" "spec/$PROGRAM.sas" "$work/direct.elf" >/dev/null 2>&1 || {
+"$root/tools/sadhana-native.sh" --नामसारणी "spec/$PROGRAM.sas" "$work/direct.elf" >/dev/null 2>&1 || {
   echo "  FAIL  sadhana could not assemble spec/$PROGRAM.sas"; exit 1; }
 
 # ONE GATE RUN, ONE PAGE BUILD — the CONSUMING half. `check-sassembly-page.sh` builds
@@ -145,7 +142,7 @@ else
     # says not to do. Unmarked, it declined ten consecutive recovery cycles whose
     # gates had otherwise passed (2026-09-20). It does NOT make the skip a pass:
     # `GATE_STRICT=1` still reds on it where the toolchain is guaranteed.
-    echo "SKIPPED: the page build cannot run here (wasm32 target absent) — a toolchain fault of this machine, not a tree fault; identity unverified."
+    echo "SKIPPED: the page build cannot run here (native wasm toolchain absent: node, python3, yantra-run or Stage 1) — a toolchain fault of this machine, not a tree fault; identity unverified."
     exit 77
   elif [ "$rc" -ne 0 ]; then
     echo "  FAIL  the page build failed (rc=$rc); run it alone to see why"; exit 1
@@ -212,9 +209,12 @@ case "$qemu_out" in
 esac
 
 # ------------------------------------------------- 3. the SAME bytes, in the VM
-wasm=${YANTRA_WASM:-}  # YANTRA_WASM: prebuilt module; the in-tree builder is retired
+wasm=${YANTRA_WASM:-}  # YANTRA_WASM: native module; unset, build it (tools/build-yantra-wasm.sh, no cargo)
 if [ -z "$wasm" ]; then
-  echo "SKIPPED: YANTRA_WASM unset (no in-tree yantra wasm builder)"; exit 77
+  wasm=$work/yantra.wasm
+  rc=0; sh tools/build-yantra-wasm.sh "$wasm" >"$work/bw.log" 2>&1 || rc=$?
+  [ "$rc" -ne 77 ] || { echo "SKIPPED: native yantra wasm cannot build (no node/python3/cached Stage 1)"; exit 77; }
+  [ "$rc" -eq 0 ] || { tail -5 "$work/bw.log"; echo "  FAIL  native yantra wasm build rc=$rc"; exit 1; }
 fi
 wasm_out=$(node -e '
   const fs = require("fs");

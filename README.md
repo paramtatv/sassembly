@@ -432,7 +432,7 @@ This table is a summary of [LIMITS.md](LIMITS.md), which keeps only verified res
 
 | capability | available today | native or interpreter |
 |---|---|---|
-| **open and read a named file** | yes, inside a granted root: `tools/t1-run.sh --files DIR` or `YANTRA_FILES=DIR` (a package's `bin/sassembly-run` takes `YANTRA_FILES=DIR`). With no grant every request is refused by name. A path that escapes the root (`..`, absolute, symlink out) is refused | native and `yantra-run` |
+| **open and read a named file** | yes, inside a granted root: `tools/t1-run.sh --files DIR` or `YANTRA_FILES=DIR` (a package's `bin/sassembly-run` takes only `YANTRA_FILES=DIR` and refuses every flag; `--files` is `tools/t1-run.sh` only, lines 19-20 and 309-311 at the v1.2.1 pin). With no grant every request is refused by name. A path that escapes the root (`..`, absolute, symlink out) is refused | native and `yantra-run` |
 | **write a file** | yes, the same root and the same refusals | native and `yantra-run` |
 | **append, delete or list files** | no: the only file builtins are `अष्टकॱपत्रम्` (read) and `अष्टकॱपत्रलेखनम्` (write) | — |
 | **command-line arguments** | yes; the program's path is argument 0 | native and `yantra-run` |

@@ -45,20 +45,12 @@ command -v node >/dev/null || {
     echo "            Exiting 77 rather than 0: a check that cannot run has not passed."
     exit 77
 }
-command -v cargo >/dev/null || {
-    echo "CANNOT RUN: cargo absent — the reference ELF has to be assembled natively"
-    echo "            Exiting 77 rather than 0: a check that cannot run has not passed."
-    exit 77
-}
 
 wasm=target/native-wasm/sadhana_wasm.wasm
 [ -f "$wasm" ] || {
-    echo "VACUOUS: no sadhana wasm module on this tree, so there is no subject to \
-cross-check against; build one with tools/build-sassembly-web.sh. 78 and not 77: the \
-toolchain is present and nothing about this machine is broken, so it must not red a \
-GATE_STRICT run."
-    echo "         Exiting 78 rather than 0 — this is NO MEASUREMENT, not a green."
-    exit 78
+    _rc=0; sh tools/t1-interp/wasm/build-sadhana.sh "$wasm" >/dev/null 2>&1 || _rc=$?
+    [ "$_rc" -ne 77 ] || { echo "CANNOT RUN: native sadhana wasm cannot build (node, yantra-run or Stage 1 absent)"; exit 77; }
+    [ "$_rc" -eq 0 ] || { echo "  FAIL  build-sadhana.sh rc=$_rc"; exit 1; }
 }
 
 # ———— THE REFERENCE ELFS, ASSEMBLED THE WAY THE PAGE'S ARE ————————————————
@@ -86,8 +78,9 @@ trap 'rm -rf "$out"' EXIT
 for spec in 'namaste:proof' 'bare-metal:proof' 'atithi:app'; do
     p=${spec%%:*}; kind=${spec##*:}
     [ -f "spec/$p.sas" ] || { echo "  FAIL  spec/$p.sas does not exist"; exit 1; }
-    case $kind in app) at="--स्थान $APP_LOAD" ;; *) at= ;; esac
-    # A failure HERE is the tree's, not the machine's — cargo was found above.
+    # --नामसारणी = assemble.t1 mode ३ (.symtab), the mode the page and the wasm module assemble in (build-sassembly-web.sh)
+    case $kind in app) at="--स्थान $APP_LOAD --नामसारणी" ;; *) at=--नामसारणी ;; esac
+    # A failure HERE is the tree's, not the machine's — node and the native toolchain were found above.
     # shellcheck disable=SC2086
     if ! tools/sadhana-native.sh $at "spec/$p.sas" "$out/$p.elf" >"$out/$p.log" 2>&1; then
         echo "  FAIL  sadhana could not assemble spec/$p.sas natively."

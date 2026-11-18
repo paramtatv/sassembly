@@ -1,6 +1,6 @@
 मण्डलम् मण्डलपाठ ॥
 
-॰ RX-C020 — the native twin of crates/sadhana/src/t1/mandala.rs: `read_unit`, `declared`,
+॰ RX-C020 — the native twin of retired Rust mandala.rs: `read_unit`, `declared`,
 ॰ `missing_imports`, `unknown_imports`. A unit's tokens come from पदविभाग (lex_t1's twin), read in place
 ॰ from the arena. Facts go to parallel tables, one row per fact; a unit is a number, as Rust's key is a string.
 ॰ NOT HERE: `read_lossy` (the T1 lexer reports no LexError: lex.t1 declares it and leaves it unfilled).

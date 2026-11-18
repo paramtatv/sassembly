@@ -7,7 +7,9 @@ d=${GEN_MARKS_DIR:-$here/gen/marks}
 w=$(mktemp -d "${TMPDIR:-/tmp}/gen-mk.XXXXXX")
 elf=$w/mk.elf
 (cd "$root" && tools/t1-build.sh --entry चिह्नसाधन मुख्यम् -o "$elf" crates/sadhana-t1/src/ashtaka.t1 tools/gen/sanchika.t1 tools/gen/marks.t1) >"$w/blog" 2>&1 || true
-[ -f "$elf" ] || { echo "gen-marks: build refused" >&2; rm -rf "$w"; exit 1; }
+[ -f "$elf" ] || {
+  if grep -a -q "no cached Stage 1\|no trusted\|CANNOT RUN" "$w/blog"; then echo "gen-marks: CANNOT RUN: no Stage 1 compiler (SKIPPED)" >&2; rm -rf "$w"; exit 77; fi
+  echo "gen-marks: build refused" >&2; rm -rf "$w"; exit 1; }
 mkdir "$w/f"
 for t in "$d"/[0-9]*.tmpl "$d/marks.tsv" "$d/housings.tsv"; do cat "$t"; printf '\001'; done >"$w/f/निवेश"
 rc=0; (cd "$root" && tools/t1-run.sh --files "$w/f" "$elf") >"$w/log" 2>&1 || rc=$?

@@ -1,19 +1,10 @@
-# Sassembly v1.2: limits
+# Native runtime LIMITS (step 0 of "runtime completeness, no holes")
 
-This page lists what a Sassembly v1.2 program can and cannot do. Section 1 is the v1.2 refresh: a native-versus-reference-interpreter probe run on `aarch64-macos` (49 probes, 0 with different stdout) and the open items. Section 2 is the per-capability table verified for v1.1.0 (2026-10-10). It was **not** re-run for v1.2; where section 1 and section 2 differ, section 1 holds. The `x86_64-macos` column was last probed on 2026-10-10.
-
-## 1. v1.2 refresh
-
-- **Native parity.** 49 probes on `aarch64-macos`: 44 agree with the reference interpreter in exit code and stdout; 5 differ in exit code only (native 3, interpreter 0): `csr_satp_write`, `csr_sie_read`, `csr_stvec_write`, `csr_time`, `store_into_code`. Stdout is the same in all 49. Halt, exit-code, step-ceiling and infinite-loop (SpinForever) behaviour agree.
-- **Python 3 is still required** by the native route: the RV64-to-native translator is run through `tools/native-spike/anuvada.py` (the reference translator), and `tools/t1-interp/yantra-run` is a wrapper around a Python shim. Retiring Python is not done in v1.2.
-- **Not available:** an entropy source; an outbound TCP client; Windows (no build); wasm32 is the integer subset only (no F/D, files or devices).
-- **Still through the reference interpreter:** threads (up to 64), event replay, SMP, floating point (F/D), atomics (A), vectors (V), most CSRs, SBI calls. `YANTRA_WATERMARK` and `VERDICT` still fall back on macOS.
-- **Memory.** Default guest RAM 20 MiB (plus 16 MiB headroom). The compiler's record region is 512 MiB (536,870,912 octets), reclaimed in place.
-- **Counts (2026-10-10 table below):** 82 rows: native 23, native/fallback 3, fallback 48, refused 1, missing 7. 71 probe programs: fallback 36, native 13, native-halt 22.
-- **Open, not verified for v1.2:** the whole-tree release gate verdict; a re-probe on `x86_64-macos`; U-mode application kind (no probe); 188 of 211 `yantra-run` call sites in the tooling still go through the Python shim.
-
-## 2. Verified for v1.1.0 (not re-run for v1.2)
-
+What `tools/t1-run.sh` does today with each yantra-run feature, per host. Updated 2026-10-10 on agent/native-halts (NATIVE-GAPS A1, A2, B1, G1 and the threads guard), base origin/main c5488650;
+first measured 2026-10-10 at origin/main e90def04
+with `tools/native-spike/limits/probe.sh` (53 hand-assembled RV64 probe images from `limits/gen.awk` plus the flag and
+env probes: 71 probes per host). All four probed hosts gave **identical classes on every probe**; the translator
+(`anuvada.py`) is "milestone 1" on all four targets.
 
 ## Classes
 - **N** native: runs natively, same output and halt as yantra-run.
@@ -31,7 +22,7 @@ The x86_64-macos column was not re-probed in the 2026-10-10 update (the Intel Ma
 x86-64 runtime the Linux column ran.
 
 **probe.sh classes (71 probes), 2026-10-10, agent/native-halts:** fallback 36, native 13, native-halt 22 on
-x86_64-linux (x86_64 Linux), aarch64-linux and aarch64-macos; the sorted `probe<TAB>class`
+x86_64-linux (ubuntu-local), aarch64-linux (Jetson) and aarch64-macos (macmini2); the sorted `probe<TAB>class`
 digest is **2e0c31601328 on all three** (`cut -f1,2 OUT | LC_ALL=C sort | sha256sum`). On origin/main 8c7df26d it was
 native 17, native-halt 4, fallback 50 (with the T1_RUN_REQUIRE_NATIVE classifier fix). Every native and native-halt row
 was compared with yantra-run on the same host: the same stdout, the same `halt:` line and the same exit status.
@@ -183,9 +174,9 @@ An **integer subset**, probed against yantra-run over `examples/limits` (SAS-LIM
 ## Per-host notes
 | host | how probed | notes |
 |---|---|---|
-| x86_64-linux host | an x86_64 Linux host, `~/work/limits`, nice | has stage1/native cache elsewhere; probe uses a fresh cache and anuvada.py |
-| aarch64-linux host | an ARM64 Linux host, `~/work/limits`, nice | anuvada.py `--target aarch64-linux` via t1-native-lib |
-| aarch64-macos host | an ARM64 macOS host, `~/work/limits`, nice | anuvada.py, Mach-O output |
+| ubuntu-local (x86_64-linux) | `ssh ubuntu-local`, `~/sansos-work/a9-limits`, nice | has stage1/native cache elsewhere; probe uses a fresh cache and anuvada.py |
+| jetson (aarch64-linux) | `ssh jetson`, `~/sansos-work/a9-limits`, nice | anuvada.py `--target aarch64-linux` via t1-native-lib |
+| macmini2 (aarch64-macos) | `ssh macmini2`, `~/sansos-work/a9-limits`, nice | anuvada.py, Mach-O output |
 | Intel Mac (x86_64-macos) | local, scratchpad run, light | no yantra-run, no cargo; fallbacks refuse |
 | windows | not probed | pending (sansos-27) |
 

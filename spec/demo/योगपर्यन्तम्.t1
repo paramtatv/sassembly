@@ -1,7 +1,7 @@
 मण्डलम् योगपर्यन्तम् ॥   ॰ sum to n — a loop and an addition
 
 ॰ THE ANSWER IS ५५. १ + २ + … + १० = ५५. IT RETURNS ५५.
-॰ MEASURED 2026-09-05 on main `f7f93806`, by `tools/demo.sh` over this file: one
+॰ MEASURED 2026-09-05 on main `f7f93806`, by `retired demo.sh` over this file: one
 ॰ routine, five blocks, SIXTEEN IR instructions, four constants of which three
 ॰ are non-zero, and the machine halts with status ५५.
 ॰

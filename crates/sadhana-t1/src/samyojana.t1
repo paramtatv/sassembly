@@ -1,4 +1,4 @@
-मण्डलम् संयोजन ॥ ॰ samyojana — the port of crates/sadhana/src/samyojana.rs
+मण्डलम् संयोजन ॥ ॰ samyojana — the port of retired Rust samyojana.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ THE LINKER, task D-002b, doc 03 §8. It links from OBJECTS — bytes, a
@@ -13,7 +13,7 @@
 ॰
 ॰ ── ON THE NAMES THIS FILE IMPORTS ──
 ॰ वास्तु and कोश are named here in the spelling their HAND-PORT will
-॰ carry. Both files are still tools/port_encode.py output today
+॰ carry. Both files are still retired port_encode.py output today
 ॰ (मण्डलम् वअसतउ, मण्डलम् कओश), so those two names resolve to nothing
 ॰ yet. This is the convention पदविभाग and व्याकर already follow —
 ॰ व्याकर names वास्तुॱअभिव्यञ्जककोश, which वअसतउ does not define either.
@@ -140,7 +140,7 @@
 ॰ BARE SUM of their data lengths, so an object's whole aligned interior landed
 ॰ wherever the preceding objects' lengths happened to end.
 ॰
-॰ Measured 2026-09-21 (`crates/yantra/src/input.rs`): all three interface tags
+॰ Measured 2026-09-21 (`retired Rust input.rs`): all three interface tags
 ॰ at addresses ≡ ५ (mod ८) — an ODD address, failing even halfword alignment.
 ॰ `yantra` tolerates a misaligned load, which is why the corpus ran and nothing
 ॰ said a word; many RV64 cores trap on one. After this repair, same instrument
@@ -192,7 +192,7 @@
     ॰ appeared to break the FIXPOINT, and this margin blamed the extra local:
     ॰ 4 of 873 routines disagreed on frame size, three by exactly two slots,
     ॰ matching the three `चरः` that version added. THAT WAS A MEASUREMENT
-    ॰ ERROR, not a divergence. `tools/pack-corpus.py` had packed the blob four
+    ॰ ERROR, not a divergence. `retired pack-corpus.py` had packed the blob four
     ॰ hours BEFORE the edit, and `t1_image` builds Stage 1 from the working
     ॰ tree while `yantra-run` feeds Stage 2 the BLOB — so Stage 1 held the new
     ॰ locals and Stage 2 compiled sources without them. Three routines two

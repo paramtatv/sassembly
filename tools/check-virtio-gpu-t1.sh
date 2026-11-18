@@ -13,8 +13,9 @@
 # C-009's histogram-and-place assertion; that assertion is ALSO made on both
 # screens, so a failure says which half of the picture is wrong.
 #
-# Then the same image on yantra's device model (YANTRA_SCANOUT) must give the
-# same octets: two devices that share no code, one picture.
+# GAP (ADR 0069): yantra's slot-0 scanout device (YANTRA_SCANOUT) and its deferred-completion model
+# (YANTRA_VIRTIO_DEFER) were native SC/VD routes and are retired; no leg here runs them. The picture
+# is proved on QEMU alone; alt rows: the PD146 gpu.t1 device model (spec/native-tests/yantra/agg-yantra/PD146.tsv).
 #
 # ## Why the GPU is not pinned to a slot
 #
@@ -111,14 +112,11 @@ Y="$tmp/bin/yantra-run"
 # P3: T1_RUN picks the runner for the legs that only RUN an image (deferred-completion legs,
 # shape legs). The placement oracle and the yantra-vs-QEMU scanout leg keep yantra-run: it IS
 # the device under comparison there.
-# The L28 interpreter oracle ($Y) has no slot-0 GPU scanout and drops YANTRA_SCANOUT, so the scanout and
-# deferred-completion legs run on the native route (tools/t1-run.sh: YANTRA_SCANOUT + YANTRA_VIRTIO_DEFER are native
-# on Linux); T1_RUN_REQUIRE_NATIVE=1 makes a silent fallback to an oracle that cannot dump a screen a refusal.
-R="${T1_RUN:-$root/tools/t1-run.sh}"; export T1_RUN_REQUIRE_NATIVE=1
+# NET/SC/VD native routes are retired (ADR 0069): no leg below runs YANTRA_SCANOUT or YANTRA_VIRTIO_DEFER.
 qemu-system-riscv64 --version | head -1
 
 # ---- the QMP client --------------------------------------------------------
-. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the python heredoc)
+. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the old inline-script heredoc)
 
 # C-009's assertion on a screen: 64x32, every pixel 0x112233 but (1,1) 0xc47b2a
 # (POSIX sh + od + awk; prints a verdict, exit 0 = that picture, 1 = not)
@@ -213,7 +211,6 @@ grep -a '^predict:' "$tmp/draw.elf.build.log" | sed 's/^/  build /'
 
 # the injector, against yantra-run's own placement of the same arguments
 want=$(YANTRA_RAM=$RAM "$Y" "$tmp/draw.elf" screen 2>&1 | sed -n 's/.*run at \(0x[0-9a-f]*\).*/\1/p')
-YANTRA_RAM=$RAM YANTRA_SCANOUT="$tmp/y.ppm" "$R" "$tmp/draw.elf" screen > "$tmp/y.out" 2>&1 || true
 got=$(sh "$root/tools/t1-qemu-args.sh" --ram $RAM "$tmp/draw.elf" "$tmp/x.elf" "$tmp/x.bin" \
     "$tmp/draw.elf" screen | sed -n 's/^run //p')
 if [ -n "$want" ] && [ "$want" = "$got" ]; then pass "t1-qemu-args.sh places the run where yantra-run does ($got)"
@@ -231,35 +228,24 @@ if [ -s "$tmp/t1.ppm" ] && cmp -s "$tmp/t1.ppm" "$tmp/c009.ppm"; then
   pass "QEMU screen BYTE-IDENTICAL to C-009's ($(wc -c < "$tmp/t1.ppm" | tr -d ' ') octets)"
 else red "QEMU screen differs from C-009's: $(cmp "$tmp/t1.ppm" "$tmp/c009.ppm" 2>&1 | head -1)"; fi
 
-YG=$(sed -n 's/^G //p' "$tmp/y.out")
-[ "$YG" = 0 ] && pass "yantra: the driver says G 0" || red "yantra: the driver says G ${YG:-<none>}"
-if [ -s "$tmp/y.ppm" ] && cmp -s "$tmp/y.ppm" "$tmp/c009.ppm"; then
-  pass "yantra's scanout BYTE-IDENTICAL to C-009's QEMU screen"
-else red "yantra's scanout differs from C-009's QEMU screen"; fi
 
 # ---- deferred completion (the asynchronous device is QEMU) -------------------
 # yantra's device used to complete a chain INSIDE the notify store, which hid the
 # driver's single read of the used index; QEMU completes on its own clock and
-# failed it (G 11). The native slot-0 GPU (tools/native-spike/scanout_dev.py) is
+# failed it (G 11). The native slot-0 GPU (the deleted scanout oracle translator) is
 # synchronous BY DESIGN: it REFUSES when YANTRA_VIRTIO_DEFER is in the environment
-# (scanout_dev.py "YANTRA_VIRTIO_DEFER is set"), and t1-run.sh passes the deferral
+# (its "YANTRA_VIRTIO_DEFER is set" path), and t1-run.sh passes the deferral
 # clock only to the frames device (--net), never to slot 0's GPU. So "yantra with
 # deferred completion" has no native twin (GAP, below); the hazard is proven where the
 # deferral is real: the polling driver is G 0 on QEMU (the draw leg above), and the
-# single-read driver, its bound cut to one read, must go red on QEMU. The control —
-# the same single-read driver on the synchronous native device — must say G 0,
-# with YANTRA_VIRTIO_DEFER UNSET (set to 0 it still refuses).
-# GAP: yantra's deferred-GPU model (YANTRA_VIRTIO_DEFER + YANTRA_SCANOUT) is not native.
+# single-read driver, its bound cut to one read, must go red on QEMU.
+# GAP (ADR 0069): the synchronous-native-device control leg and yantra's deferred-GPU model are retired;
+# alt: PD146 gpu.t1 defer rows.
 echo
-echo "deferred completion: the single-read driver on QEMU, the control on the synchronous native device..."
+echo "deferred completion: the single-read driver on QEMU..."
 onedrv="$tmp/one-read.drv.t1"
 subst1 "$root/spec/darshaka.t1" "$onedrv" "यावत् पठनानि न्यूनम् १००००००० आदि" "यावत् पठनानि न्यूनम् १ आदि"
 if build "$root/spec/virtio-gpu-draw.t1" "$tmp/one-read.elf" "$onedrv"; then
-  rm -f "$tmp/one-sync.ppm"
-  env -u YANTRA_VIRTIO_DEFER YANTRA_RAM=$RAM YANTRA_SCANOUT="$tmp/one-sync.ppm" "$R" "$tmp/one-read.elf" screen > "$tmp/one-sync.out" 2>&1 || true
-  G=$(sed -n 's/^G //p' "$tmp/one-sync.out")
-  [ "$G" = 0 ] && pass "one-read driver, synchronous native device: G 0 — the hazard a synchronous device hides" \
-    || red "one-read driver, synchronous native device: G ${G:-<none>}, want 0 (the control)"
   qemu_t1 "$tmp/one-read.elf" "$tmp/one-qemu.ppm" one-read
   case "$G" in
     1[0-5]) pass "one-read driver, QEMU's own clock: caught as G $G (no used entry), not drawn" ;;
@@ -302,11 +288,8 @@ shape() {  # $1 = W, $2 = H, $3 = expected G
   subst1 "$root/spec/virtio-gpu-draw.t1" "$src" "न्यूनम् २०४८ आदि" "न्यूनम् $(devn $(($1 * $2))) आदि" "आरभ्य पटः ऽ ६४ ऽ ३२ समाप्तम्" "आरभ्य पटः ऽ $(devn "$1") ऽ $(devn "$2") समाप्तम्"
   if ! build "$src" "$tmp/s-$lbl.elf"; then red "shape $lbl did not build"; return; fi
   qemu_t1 "$tmp/s-$lbl.elf" "$tmp/s-$lbl.ppm" "$lbl"
-  qg=$G
-  yg=$(YANTRA_RAM=$RAM YANTRA_STEPS=4000000000 YANTRA_SCANOUT="$tmp/s-$lbl.y.ppm" "$R" "$tmp/s-$lbl.elf" screen 2>&1 \
-      | sed -n 's/^G //p')
-  if [ "$qg" = "$3" ] && [ "$yg" = "$3" ]; then pass "shape $lbl: G $3 on QEMU and on yantra"
-  else red "shape $lbl: QEMU G ${qg:-<none>}, yantra G ${yg:-<none>}, want G $3 on both"; fi
+  if [ "$G" = "$3" ]; then pass "shape $lbl: G $3 on QEMU"
+  else red "shape $lbl: QEMU G ${G:-<none>}, want G $3"; fi
 }
 shape 16 128 0
 shape 15 32 9
@@ -321,5 +304,5 @@ mutant create-height-short driver "        शब्दाः अङ्कः �
         प्रत्यागमनम् ४० ।"
 
 echo
-if [ "$fail" -eq 0 ]; then echo "PASS: C-015 — the .t1 driver puts C-009's screen on QEMU's virtio-gpu, and on yantra's"; exit 0; fi
+if [ "$fail" -eq 0 ]; then echo "PASS: C-015 — the .t1 driver puts C-009's screen on QEMU's virtio-gpu"; exit 0; fi
 echo "FAIL: C-015"; exit 1

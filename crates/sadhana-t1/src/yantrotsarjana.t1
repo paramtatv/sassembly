@@ -1,4 +1,4 @@
-मण्डलम् यन्त्रोत्सर्जन ॥ ॰ riscv64 — the port of crates/sadhana/src/t1/riscv64.rs
+मण्डलम् यन्त्रोत्सर्जन ॥ ॰ riscv64 — the port of retired Rust riscv64.rs
 
 ॰ ══════════════════════════════════════════════════════════════════════
 ॰ `W-236` — EMITTER LANE R2: the T1 TWIN of the Rust RISC-V emitter,
@@ -3942,7 +3942,7 @@
 इति
 
 ॰ ══════════════ ADR-0044 D3: may a run be written as `वर्णाष्टकम्` letters? ══════════════
-॰ The twin of `devanagari8::payload` (crates/sadhana/src/devanagari8.rs): non-empty;
+॰ The twin of `devanagari8::payload` (retired Rust devanagari8.rs): non-empty;
 ॰ every octet १२८ or more and none of the five marks' octets ऽ । ॥ ॰ ॱ
 ॰ (१८९ २२८ २२९ २४० २४१); NOT shaped like UTF-8 — the loose walk below, every
 ॰ lead १९२+ followed by its count of १२८..१९१ — so a run written with `उक्तम्`

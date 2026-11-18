@@ -66,7 +66,7 @@ prog=$root/spec/virtio-gpu.sas
 [ -f "$prog" ] || { echo "RED, as written: spec/virtio-gpu.sas does not exist."; exit 1; }
 
 # ---- the QMP client: connect, negotiate, screendump, leave ------------------
-. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the python heredoc)
+. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the old inline-script heredoc)
 
 # ---- the PPM reader: what is actually on the screen -------------------------
 #
@@ -81,7 +81,7 @@ pixels() {
     od -An -v -tu1 "$1" | LC_ALL=C awk '
     function sp(c) { return c == 32 || (c >= 9 && c <= 13) }
     function hexc(r, g, b) { return sprintf("%02x%02x%02x", r, g, b) }
-    function brepr(s,   q, i, c, o, n) {          # python bytes repr
+    function brepr(s,   q, i, c, o, n) {          # bytes repr as the retired port wrote it
         q = "\047"
         if (index(s, "\047") && !index(s, "\042")) q = "\042"
         o = ""

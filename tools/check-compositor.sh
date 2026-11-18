@@ -86,7 +86,7 @@ command -v qemu-system-riscv64 >/dev/null 2>&1 || {
   echo "         Exiting 77 rather than 0 — a check that cannot run has not passed."
   exit 77; }
 
-. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the python heredoc)
+. "$root/tools/lib/qmp.sh"   # QMP client in sh + nc -U (N2; replaces the old inline-script heredoc)
 
 # ---- the PPM reader ---------------------------------------------------------
 #

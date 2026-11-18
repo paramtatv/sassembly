@@ -1,4 +1,4 @@
-मण्डलम् शृङ्खला ॥   ॰ shrinkhala — the DRIVER, the port of crates/sadhana/src/t1/chain.rs
+मण्डलम् शृङ्खला ॥   ॰ shrinkhala — the DRIVER, the port of retired Rust chain.rs
 
 ॰ THE TOP OF THE GRAPH, AND THAT IS WHY IT IS ITS OWN MODULE. Every other
 ॰ module here is called BY this one; nothing calls it. Putting the driver inside
@@ -770,7 +770,21 @@
     ॰ universal or belongs to the name table only: if either moves across a
     ॰ `वास्तु` emit, the same defect is present in an arena where it would NOT go
     ॰ negative and would read as a plausible partial loss.
-    चरः नामानि ॱॱ न६४ भवति नामसञ्चयः मण्डलनाम ।
+    ॰ 1601-PAD: own routines take the DECLARED module name, as imports and
+    ॰ globals do (ir.t1 `स्वमण्डलपाठ`). The pack frame name falls back to the
+    ॰ basename when line 1 is not the header, so a comment above `मण्डलम्`
+    ॰ split definition and reference labels and the link came back empty.
+    ॰ No header (lib.t1): keep the frame name.
+    चरः स्वमण्डलपाठ ॱॱ अङ्कः अन्तः अ८ भवति मण्डलनाम ।
+    यदि व्याकरॱमण्डलनामसूचकाङ्क अधिकम् ० आदि
+        यदि व्याकरॱमण्डलनामसूचकाङ्क न्यूनम् पदविभागॱचिह्नककोश ॱ दैर्घ्य आदि
+            चरः स्वमण्डलचिह्नकम् ॱॱ पदविभागॱचिह्नक भवति पदविभागॱचिह्नककोश अङ्कः व्याकरॱमण्डलनामसूचकाङ्क अन्तः ।
+            यदि स्वमण्डलचिह्नकम् असमम् शून्यम् आदि
+                स्वमण्डलपाठ भवति पदविभागॱचिह्नकपाठः स्वमण्डलचिह्नकम् ।
+            इति
+        इति
+    इति
+    चरः नामानि ॱॱ न६४ भवति नामसञ्चयः स्वमण्डलपाठ ।
     चरः प्रविष्टयः ॱॱ न६४ भवति यन्त्रोत्सर्जनॱयन्त्रनामसूचकाङ्क ।
     ॰ RECORDED BEFORE THE GUARD, so both are readable on the REFUSING path too —
     ॰ a diagnostic written only on the success path answers only where it is not
@@ -2215,7 +2229,7 @@
 ॰ instrument did not perturb the run, and the 232 octets decode to `pass 1 [0]`,
 ॰ `pass 2 [0]`, `विन्याससाम्यम् [1]` — **byte for byte the interpreted sink**. The
 ॰ verdict `82be3d5d` introduced is graded interpreted by
-॰ `crates/sadhana-t1/tests/t1_encode_verdict.rs`; it had no test until then.
+॰ `retired Rust t1_encode_verdict.rs`; it had no test until then.
 ॰
 ॰ THE SWITCH GOES AFTER `सङ्कलनारम्भः`, which clears `सङ्केतन`'s module state and
 ॰ would clear the flag with it — measured, not assumed: set ahead of the reset
@@ -2859,17 +2873,17 @@
 ॰ the emitter placing a global's octets somewhere and then addressing them.
 ॰
 ॰ WHY THIS SHAPE IS AVAILABLE ONLY NOW, STATED AS THE RECORD RATHER THAN AS
-॰ CONVENIENCE. Until 2026-09-21 `tools/demo.sh` could not report this source's
-॰ counts at all: `crates/pradarshana/src/pathana.rs` passed `globals: Vec::new()`
+॰ CONVENIENCE. Until 2026-09-21 `retired demo.sh` could not report this source's
+॰ counts at all: `retired Rust pathana.rs` passed `globals: Vec::new()`
 ॰ and entered no global's SYMBOL into `Names`, so the demo's stage 6 REFUSED
 ॰ ``symbol SymbolId(2) has no name`` and threw stages 7 and 8 away — *every*
 ॰ source in the language that reads one of its own module's globals stopped at
 ॰ stage six. `W-278`'s port opened it and
-॰ `crates/pradarshana/tests/module_globals.rs` is its witness. A rung cannot be
+॰ `retired Rust module_globals.rs` is its witness. A rung cannot be
 ॰ PREDICTED from a stage that does not run, which is why this row is written now
 ॰ and not beside rung 102.
 ॰
-॰ MEASURED THIS CYCLE ON THE SHORTENED SOURCE, NOT QUOTED. `tools/demo.sh` over
+॰ MEASURED THIS CYCLE ON THE SHORTENED SOURCE, NOT QUOTED. `retired demo.sh` over
 ॰ the literal below — and over the same text whitespace-normalised to ONE line,
 ॰ which is what this routine actually compiles — reports IDENTICALLY: **1
 ॰ routine, 2 blocks, 3 IR instructions, 0 calls (0 cross-module)**, 0 constants,
@@ -2939,7 +2953,7 @@
 ॰ ADDRESSES. `कग` and `कच` are both eight octets, so an emitter that addressed
 ॰ `कग` twice would place the same 18 instructions and answer ११०७२ — and would
 ॰ compute १४, not १२. The status here is a LENGTH, not the program's answer, so
-॰ the ADDRESSES rest where `module_globals.rs` left them: on `tools/demo.sh`,
+॰ the ADDRESSES rest where `module_globals.rs` left them: on `retired demo.sh`,
 ॰ which is the RUST chain. Engine agreement is what this row proves; the two
 ॰ labels `कग` and `कच` are proved elsewhere.
 सार्वजनिक वृत्तिः स्वपरीक्षात्रिशततमी ददाति न६४ आदि
@@ -2979,7 +2993,7 @@
 ॰ literal IMPORTS `अष्टक` and calls `अष्टकॱशून्याष्टकयोजनम्`, which `ashtaka.t1`
 ॰ really does export and whose signature really is `न६४ → न६४`.
 ॰
-॰ MEASURED THIS CYCLE ON THE SHORTENED SOURCE, NOT QUOTED: `tools/demo.sh` over
+॰ MEASURED THIS CYCLE ON THE SHORTENED SOURCE, NOT QUOTED: `retired demo.sh` over
 ॰ it reports **1 routine, 2 blocks, 2 IR instructions, 1 call — AND THE CALL IS
 ॰ `1 cross-module`** — 1 constant (1 non-zero), 0 arithmetic, 20 lines of T0,
 ॰ twins AGREE on 1438 octets, **960 octets of object and 13 machine instructions
@@ -2989,11 +3003,11 @@
 ॰ `W-279`'s previous cycle that counter read `0` for every input in the tree —
 ॰ `kosha.t1`'s forty cross-module calls included — so the five rows above were
 ॰ each written from an instrument with ONE reachable state.
-॰ `crates/pradarshana/tests/cross_module_calls.rs` holds the four properties
+॰ `retired Rust cross_module_calls.rs` holds the four properties
 ॰ that made it two, and this literal is the shape its first property asserts.
 ॰
 ॰ AND THE ASSEMBLE COUNTS WERE UNOBTAINABLE UNTIL THIS CYCLE, WHICH IS WHY THIS
-॰ RUNG COULD NOT BE PREDICTED BEFORE. `tools/demo.sh` printed
+॰ RUNG COULD NOT BE PREDICTED BEFORE. `retired demo.sh` printed
 ॰ `7-8 REFUSED — at LINK: …` for exactly this source and threw stage 7's two
 ॰ numbers away, HAVING COMPUTED THEM. A four-stage back half reported two
 ॰ outcomes where the truth has three, and the third is the one every
@@ -3036,7 +3050,7 @@
 ॰   AND THE ONE THIS ROW ADDS TO THE LADDER, WHICH THE SCALAR CANNOT SEE: A
 ॰     CROSS-MODULE CALL LOWERED AS AN INTRA-MODULE ONE WOULD STILL ANSWER
 ॰     १००५२. Two things say this source tests what it claims and BOTH are in
-॰     the margin above: `1 cross-module` from `tools/demo.sh`, and THE LINK
+॰     the margin above: `1 cross-module` from `retired demo.sh`, and THE LINK
 ॰     LABEL — a correct lowering names `अष्टकशून्याष्टकयोजनम्`, the DEFINING
 ॰     module's export, and the pre-`W-253` wrong one names `कसंज्ञा<id>`, a name
 ॰     minted inside the resolving program that nothing can export. The label is
@@ -3051,7 +3065,7 @@
 ॰ ONE THING TO EXPECT THAT NO RUNG BEFORE IT HAD: THE LITERAL WILL NOT LINK,
 ॰ AND THAT IS CORRECT. The rung stops at `सङ्केतनॱवस्तुसङ्केतनम्` and returns
 ॰ the OBJECT's length; it never links. Anyone checking the source with
-॰ `tools/demo.sh` first sees `8 REFUSED — at LINK: अष्टकशून्याष्टकयोजनम् is
+॰ `retired demo.sh` first sees `8 REFUSED — at LINK: अष्टकशून्याष्टकयोजनम् is
 ॰ not defined by any object`, because the demo compiles ONE file. Read the
 ॰ LABEL, not the refusal.
 ॰
@@ -3104,7 +3118,7 @@
 ॰     of a name against a literal. `शेषः` is the operator this demo's own
 ॰     margin says it was the first program ever to ask the chain for.
 ॰
-॰ MEASURED THIS CYCLE, NOT QUOTED: `tools/demo.sh` over the shortened source
+॰ MEASURED THIS CYCLE, NOT QUOTED: `retired demo.sh` over the shortened source
 ॰ below reports **2 routines, 8 blocks, 11 IR instructions, 1 call (0
 ॰ cross-module), 5 constants (3 non-zero), 54 lines of T0, twins AGREE, 1264
 ॰ octets of object, 39 machine instructions in .text**, and the machine halts
@@ -3270,7 +3284,7 @@
 ॰ the ladder `7319bd11` measured, and it is the ONLY one of the six that tests
 ॰ control flow with NO CALL IN IT AT ALL: `spec/demo/योगपर्यन्तम्.t1` is one
 ॰ routine, FIVE blocks, 16 IR instructions, ZERO calls, 29 machine instructions.
-॰ The source below is that program with its names shortened; `tools/demo.sh`
+॰ The source below is that program with its names shortened; `retired demo.sh`
 ॰ over it reports the same 1/5/16/0/29 and the machine halts with status ५५,
 ॰ which is what १ + २ + … + १० is.
 ॰
@@ -3355,7 +3369,7 @@
 ॰ ║ Every figure below that names 41, 44, 39, ४१६४, ८१७६ or ९१५६ is the RUST
 ॰ ║ chain's and is kept as written: the falsifier lists are still right about
 ॰ ║ what a status ABOVE the prediction means, and a `.t1` image that answers
-॰ ║ the OLD number now is a regression, not a confirmation. `tools/demo.sh`
+॰ ║ the OLD number now is a regression, not a confirmation. `retired demo.sh`
 ॰ ║ prices the Rust chain and has not moved. Measured, not argued:
 ॰ ║ `t1_emitted_labels.rs` re-derives all three from the emitted text.
 सार्वजनिक वृत्तिः स्वपरीक्षाष्टनवतिः ददाति न६४ आदि
@@ -3384,7 +3398,7 @@
 
 ॰ ══ RUNG 97: TWO ROUTINES AND A CALL, natively ══════════════════════
 ॰
-॰ Rung 84 compiles ONE routine whose body is a constant, and `tools/demo.sh`
+॰ Rung 84 compiles ONE routine whose body is a constant, and `retired demo.sh`
 ॰ prices it at 1 IR instruction and ZERO calls — the other nine machine
 ॰ instructions it assembles to are prologue, epilogue and the return path.
 ॰ Every rung above it tests a mechanism rather than a bigger compile, so a
@@ -4364,7 +4378,7 @@
 ॰ `प्रवेशन्यासः` is called here exactly as `t1_image` calls it before its build.
 ॰
 ॰ THE CORPUS ARRIVES AS ONE FILE, `name NUL text NUL` repeated, packed by
-॰ `tools/pack-corpus.py` with names derived the way `t1_image` derives them.
+॰ `retired pack-corpus.py` with names derived the way `t1_image` derives them.
 ॰ NUL never occurs in UTF-8 source, so the split below needs no escaping.
 ॰
 ॰ EACH PIECE IS A FRESH DECLARATION, NOT A REASSIGNMENT. `भवति ०` is read
@@ -4594,6 +4608,9 @@
     यदि अर्थॱरिक्तसारणीसंख्या अधिकम् ० आदि
         प्रत्यागमनम् अर्थॱरिक्तसारणीपङ्क्ति ।
     इति
+    यदि अर्थॱअनिर्णीतमस्ति समम् सत्यम् आदि
+        प्रत्यागमनम् अर्थॱअनिर्णीतपङ्क्ति ।
+    इति
     प्रत्यागमनम् अर्थॱप्रकारदोषपङ्क्ति ।
 इति
 
@@ -4601,6 +4618,7 @@
     यदि अर्थॱरिक्तसारणीसंख्या अधिकम् ० आदि
         प्रत्यागमनम् अर्थॱरिक्तसारणीअक्षर ।
     इति
+    ॰ the undeclared name has a line only; its akshara is not recorded.
     प्रत्यागमनम् ० ।
 इति
 
@@ -4613,6 +4631,11 @@
         चरः अघोषितप्रस्तावः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् अघोषितप्रकारः इति ।
         चरः अघोषितपाठः ॱॱ अङ्कः अन्तः अ८ भवति अर्थॱअज्ञातप्रकारपाठ ।
         प्रत्यागमनम् पाठसंयोगः आरभ्य अघोषितप्रस्तावः ऽ अघोषितपाठः समाप्तम् ।
+    इति
+    यदि अर्थॱअनिर्णीतमस्ति समम् सत्यम् आदि
+        चरः अनिर्णीतप्रस्तावः ॱॱ अङ्कः अन्तः अ८ भवति उक्तम् अनिर्णीतनाम इति ।
+        चरः अनिर्णीतपाठः ॱॱ अङ्कः अन्तः अ८ भवति अर्थॱअनिर्णीतनाम ।
+        प्रत्यागमनम् पाठसंयोगः आरभ्य अनिर्णीतप्रस्तावः ऽ अनिर्णीतपाठः समाप्तम् ।
     इति
     यदि अर्थॱप्रकारदोषमस्ति समम् सत्यम् आदि
         प्रत्यागमनम् उक्तम् प्रत्यागमनप्रकारः असमानः इति ।

@@ -17,7 +17,7 @@
 # compiler key (t1-native-lib.sh compiler_key), so a different compiler or spec is a different Stage 1,
 # built from them; the t1_image route and the cold Stage 1 build pass them on. A missing or unusable
 # directory is REFUSED (exit 1) before anything runs — never a silent fall back to the default
-# (an internal tool holds both negative controls). A Stage 1 for a non-default spec root
+# (tools/check-t1-build-flags.sh holds both negative controls). A Stage 1 for a non-default spec root
 # is never made from the seed chain (the seed's tables are baked in): cache or T1_BUILD_COLD only.
 #
 # THE ROUTE, first that can run (printed on stderr):
@@ -29,7 +29,7 @@
 # sources, never a host binary: a cache seeded from another host is still never stale).
 # A missing Stage 1 (a new compiler key) is made NATIVELY from a trusted earlier image: P(corpus) = A,
 # A(corpus) = B, B(corpus) = C, B == C, in seconds; t1_image's cold 25-70 minutes (2,423 s measured on
-# x86_64 Linux host) only with T1_BUILD_COLD=1. A missing translation, seconds.
+# ubuntu-local) only with T1_BUILD_COLD=1. A missing translation, seconds.
 #
 # Stage 1 runs with YANTRA_INPUT = the packed sources and YANTRA_INPUT_ENTRY = "MODULE ROUTINE";
 # its sink's ELF is cut out exactly as tools/fixpoint.sh does; any status but 1200 is refused.
@@ -66,7 +66,7 @@ die() { echo "t1-build: REFUSED — $*" >&2; exit 1; }
 # octets, ending the sink (its last octet may be the halt's). D1601c: the sink is relayed only up to the
 # start of the validated 234 record (max 2000 octets), so the raw record never reaches the console;
 # C14: a bounded-valid marker-235 site record (u32le length <= 2000 + octets) is stripped likewise;
-# its text is relayed as one decoded `t1-build: SITE <text>` line (an internal tool); marker 233 sits before it, and
+# its text is relayed as one decoded `t1-build: SITE <text>` line (tools/t1tests/refuse.sh); marker 233 sits before it, and
 # tools/selfcheck/build-refuse.sh reads it from the relay. No valid 234
 # record: the old 2000-octet relay. Args: sink status. Writes the relay and the REFUSED line to stdout.
 relay_refusal() {
@@ -164,6 +164,16 @@ END {
             fi
             [ "$off" -gt 2000 ] && off=2000
         fi
+    fi
+    # RCA-N2A: a bare Stage-1 halt 0x400 (1024) = record region full (cap वाटक्षेत्रसीमा 536870913 B, ir.t1
+    # रचनाक्षेत्रपूर्णतानिषेधः); it writes no 234 record, so name it unless a REFUSED line already did
+    if [ "$st" = 1024 ]; then
+        case "$line" in
+            *REFUSED*) ;;
+            *) [ -z "$line" ] || line="$line
+"
+               line="${line}t1-build: record region full (cap 536870913 B)" ;;
+        esac
     fi
     head -c "$off" "$sink"
     [ -z "$line" ] || printf '%s\n' "$line"
